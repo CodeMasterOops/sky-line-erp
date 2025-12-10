@@ -36,15 +36,6 @@
             </thead>
             <tbody>
             <VLoader v-if="productCategories.loading" :colspan="5"/>
-            <template v-else-if="productCategories.data.length">
-              <ProductCategoryRow
-                  :categories="productCategories.data"
-                  :site-url="siteUrl"
-                  @toggle-status="updateStatus"
-                  @toggle-featured-status="updateFeaturedStatus"
-                  @delete="deleteProductCategory"
-              />
-            </template>
             <tr v-else>
               <td colspan="5" class="text-center">
                 No Result Found.

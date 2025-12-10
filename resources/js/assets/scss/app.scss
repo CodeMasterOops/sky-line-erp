@@ -51,6 +51,6 @@ $input-padding-y: 0.51rem;
 
 $form-check-input-width: 1.3em;
 
-@use "bootstrap/scss/bootstrap";
+@use "../../../../node_modules/bootstrap/scss/bootstrap";
 @use "base/variables";
 @use "style.scss";

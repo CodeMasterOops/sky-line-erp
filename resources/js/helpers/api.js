@@ -1,7 +1,7 @@
 import axios from "axios";
 import {useAdminAuthStore} from "@/stores/admin/auth";
 import {useRouter} from "vue-router";
-import {useVendorAuthStore} from "@/stores/vendor/auth.js";
+import {useSuperAdminAuthStore} from "@/stores/super-admin/auth.js";
 
 const router = useRouter();
 
@@ -40,14 +40,14 @@ const apiAdmin = (url, method = 'get', body = {}, options = {}) => {
     return formattedRequest(axiosBase, method, url, body)
 }
 
-const apiVendor = (url, method = 'get', body = {}, options = {}) => {
+const apiSuperAdmin = (url, method = 'get', body = {}, options = {}) => {
     const axiosBase = axios.create({
-        baseURL: `${baseUrl}/vendor/`,
+        baseURL: `${baseUrl}/super-admin/`,
         ...options
     });
 
     axiosBase.interceptors.request.use(config => {
-        config.headers.Authorization = `Bearer ${useVendorAuthStore().authUser.access_token}`
+        config.headers.Authorization = `Bearer ${useSuperAdminAuthStore().authUser.access_token}`
         return config;
     })
 
@@ -55,8 +55,8 @@ const apiVendor = (url, method = 'get', body = {}, options = {}) => {
         return response;
     }, async error => {
         if (error.response.status === 401) {
-            useVendorAuthStore().removeAuthToken();
-            await router.push({name: 'vendor.login'});
+            useSuperAdminAuthStore().removeAuthToken();
+            await router.push({name: 'super-admin.login'});
         }
         throw error;
     })
@@ -80,4 +80,4 @@ const formattedRequest = (base, method, url, body = null) => {
     }
 }
 
-export {apiFront, apiAdmin,apiVendor}
+export {apiFront, apiAdmin, apiSuperAdmin}

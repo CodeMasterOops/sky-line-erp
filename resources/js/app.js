@@ -9,8 +9,8 @@ import router from "@/router";
 import '@vueform/multiselect/themes/default.css';
 
 //bootstrap
-import "bootstrap";
-import '@/assets/scss/app.scss';
+import "bootstrap/dist/js/bootstrap.bundle.js";
+import '@/assets/app.css';
 
 //base components
 import VInput from "@/components/base/VInput.vue";

@@ -6,7 +6,7 @@ import { resolve } from 'path';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            input: ['resources/js/app.js'],
             refresh: ['resources/js/**'],
         }),
         vue(),
@@ -19,4 +19,16 @@ export default defineConfig({
             '@': resolve(__dirname, 'resources/js'),
         },
     },
+    css: {
+        preprocessorOptions: {
+            scss: {
+                silenceDeprecations: [
+                    'import',
+                    'mixed-decls',
+                    'color-functions',
+                    'global-builtin',
+                ],
+            },
+        },
+    }
 });

@@ -7,10 +7,7 @@
                         <div class="col-lg-6 bg-login d-flex align-items-center justify-content-center">
                             <div class="text-center align-self-center p-1 text-light">
                                 <div>
-                                    <img :src="appLogo" height="130" alt="Logo">
-                                    <div class="m-3">
-                                        <h5 class="fw-bold">INDIBE</h5>
-                                    </div>
+                                    <img :src="appLogo" height="70" alt="Logo">
                                 </div>
                             </div>
                         </div>
