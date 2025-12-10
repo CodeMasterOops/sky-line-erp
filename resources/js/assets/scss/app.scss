@@ -1,0 +1,56 @@
+$body-bg: #f4f6f9;
+$font-family-base: "Poppins", sans-serif;
+$body-color: #333;
+
+$primary-color:01399a;
+
+$card-border-radius: .25rem;
+$card-cap-bg: #fff;
+$card-cap-padding-y: 12px;
+$card-title-spacer-y: 0;
+$card-title-color: 111;
+$card-bg: #fff;
+
+$table-bg: transparent;
+
+$btn-border-radius: 2px;
+$btn-font-family: initial;
+
+$form-label-font-size: 14px;
+$form-label-font-weight: bold;
+$form-label-margin-bottom: .4rem;
+$input-border-radius: 2px;
+$input-bg: #fff;
+
+$breadcrumb-bg: transparent;
+$breadcrumb-padding-y: 8px;
+$breadcrumb-padding-x: 8px;
+$breadcrumb-border-radius: 2px;
+$breadcrumb-font-size: 14px;
+$breadcrumb-active-color: #51678f;
+$breadcrumb-margin-bottom: .5rem;
+
+$dropdown-bg: #fff;
+
+$nav-tabs-link-active-bg: #fff;
+
+$legend-font-size: 16px;
+
+//grid columns
+$grid-gutter-width: 0.7rem;
+
+//card
+$card-spacer-x: 0.7rem;
+$card-spacer-y: 0.7rem;
+
+//form
+$form-select-padding-y: 0.51rem;
+$form-select-disabled-bg: aliceblue;
+
+$input-padding-y: 0.51rem;
+
+$form-check-input-width: 1.3em;
+
+@use "bootstrap/scss/bootstrap";
+@use "base/variables";
+@use "style.scss";

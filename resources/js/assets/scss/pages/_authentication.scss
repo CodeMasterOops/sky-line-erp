@@ -1,0 +1,32 @@
+.authentication-content {
+    .authentication-card {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: auto;
+        max-width: 60rem;
+        height: 100vh;
+
+        .bg-login {
+            background-color: #0259e6 !important;
+        }
+    }
+}
+
+.admin-auth {
+    background-position: center;
+    background-size: cover;
+
+    .authentication-card {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: auto;
+        max-width: 55rem;
+        height: 100vh;
+
+        .bg-login {
+            background-color: #291c59 !important;
+        }
+    }
+}
