@@ -89,14 +89,6 @@ const routes = [
                 ]
             },
             {
-                path: 'customer',
-                name: 'admin.customer-list',
-                meta: {
-                    pageTitle: 'Customer'
-                },
-                component: () => import('@/views/admin/customer/Index.vue')
-            },
-            {
                 path: 'notification',
                 name: 'admin.notification-list',
                 meta: {
@@ -105,109 +97,13 @@ const routes = [
                 component: () => import('@/views/admin/notification/Index.vue')
             },
             {
-                path: 'vendor',
-                name: 'admin.vendor-list',
-                meta: {
-                    pageTitle: 'Vendor List'
-                },
-                component: () => import('@/views/admin/vendor/Index.vue')
-            },
-            {
-                path: 'vendor/create',
-                name: 'admin.vendor-create',
-                meta: {
-                    pageTitle: 'Add Vendor'
-                },
-                component: () => import('@/views/admin/vendor/Create.vue')
-            },
-            {
-                path: 'vendor/:id/edit',
-                name: 'admin.vendor-edit',
-                meta: {
-                    pageTitle: 'Edit Vendor'
-                },
-                component: () => import('@/views/admin/vendor/Edit.vue')
-            },
-            {
-                path: 'product-category',
-                name: 'admin.product-category-list',
-                meta: {
-                    pageTitle: 'Product Category List'
-                },
-                component: () => import('@/views/admin/product-category/Index.vue')
-            },
-            {
-                path: 'product-category/create',
-                name: 'admin.product-category-create',
-                meta: {
-                    pageTitle: 'Add Product Category'
-                },
-                component: () => import('@/views/admin/product-category/Create.vue')
-            },
-            {
-                path: 'product-category/:id/edit',
-                name: 'admin.product-category-edit',
-                meta: {
-                    pageTitle: 'Edit Product Category'
-                },
-                component: () => import('@/views/admin/product-category/Edit.vue')
-            },
-            {
                 path: 'brand',
                 name: 'admin.brand-list',
                 meta: {
                     pageTitle: 'Brand List'
                 },
                 component: () => import('@/views/admin/brand/Index.vue')
-            },
-            {
-                path: 'product',
-                name: 'admin.product-list',
-                meta: {
-                    pageTitle: 'Product List'
-                },
-                component: () => import('@/views/admin/product/Index.vue')
-            },
-            {
-                path: 'product/create',
-                name: 'admin.product-create',
-                meta: {
-                    pageTitle: 'Add Product'
-                },
-                component: () => import('@/views/admin/product/Create.vue')
-            },
-            {
-                path: 'product/:id/edit',
-                name: 'admin.product-edit',
-                meta: {
-                    pageTitle: 'Edit Product'
-                },
-                component: () => import('@/views/admin/product/Edit.vue')
-            },
-            {
-                path: 'product/:id',
-                name: 'admin.product-show',
-                meta: {
-                    pageTitle: 'Product Detail'
-                },
-                component: () => import('@/views/admin/product/Show.vue')
-            },
-            {
-                path: 'stock',
-                name: 'admin.stock-list',
-                meta: {
-                    pageTitle: 'Manage Stock'
-                },
-                component: () => import('@/views/admin/stock/Index.vue')
-            },
-            {
-                path: 'stock/:id/history',
-                name: 'admin.stock-history',
-                meta: {
-                    pageTitle: 'Stock History'
-                },
-                component: () => import('@/views/admin/stock/History.vue')
-            },
+            }
         ]
     },
 ];

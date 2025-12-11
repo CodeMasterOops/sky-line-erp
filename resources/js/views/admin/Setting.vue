@@ -6,7 +6,7 @@
           <i class="fa fa-home"> Home</i>
         </router-link>
       </li>
-      <li class="breadcrumb-item active">Site Setting</li>
+      <li class="breadcrumb-item active"> Setting</li>
     </ol>
   </div>
 
@@ -34,14 +34,6 @@
                         data-bs-target="#tab-media" type="button" role="tab">
                   Media
                 </button>
-                <button class="nav-link mb-2 border" data-bs-toggle="pill"
-                        data-bs-target="#tab-contents" type="button" role="tab">
-                  Contents
-                </button>
-                <button class="nav-link mb-2 border" data-bs-toggle="pill"
-                        data-bs-target="#tab-meta" type="button" role="tab">
-                  Meta Info
-                </button>
               </div>
             </div>
           </div>
@@ -57,22 +49,6 @@
                           label="Site Name"
                           @validate="validateField('site_name')"
                           :error="errors.site_name"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          id="alternate_name"
-                          v-model="form.alternate_name"
-                          label="Alternate Name"
-                          @validate="validateField('alternate_name')"
-                          :error="errors.alternate_name"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          id="slogan"
-                          v-model="form.slogan"
-                          label="Slogan"
                       />
                     </div>
                     <div class="col-md-4">
@@ -98,32 +74,9 @@
                     </div>
                     <div class="col-md-4">
                       <VInput
-                          id="established_year"
-                          v-model="form.established_year"
-                          label="Established Year"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
                           id="whatsapp_number"
                           v-model="form.whatsapp_number"
                           label="WhatsApp Number"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          input-type="number"
-                          id="total_ratings"
-                          v-model="form.total_ratings"
-                          label="Total Ratings"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          input-type="number"
-                          id="rating_value"
-                          v-model="form.rating_value"
-                          label="Rating Value"
                       />
                     </div>
                     <div class="col-md-6">
@@ -198,112 +151,6 @@
                           :default-photo="setting.data.logo_url"
                       />
                     </div>
-                    <div class="col-md-6">
-                      <VFileUpload
-                          id="favicon"
-                          v-model="form.favicon"
-                          label="Favicon"
-                          :default-photo="setting.data.favicon_url"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VFileUpload
-                          id="og_image"
-                          v-model="form.og_image"
-                          label="OG Image"
-                          :default-photo="setting.data.og_image_url"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div class="tab-pane fade" id="tab-contents" role="tabpanel">
-                  <div class="row g-3">
-                    <div class="col-md-4">
-                      <VSelect
-                          id="blog_page_id"
-                          v-model="form.blog_page_id"
-                          :options="pages.data"
-                          name-prop="title"
-                          label="Blog Page"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="about_page_id"
-                          v-model="form.about_page_id"
-                          :options="pages.data"
-                          name-prop="title"
-                          label="About Page"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="contact_page_id"
-                          v-model="form.contact_page_id"
-                          :options="pages.data"
-                          name-prop="title"
-                          label="Contact Page"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="search_page_id"
-                          v-model="form.search_page_id"
-                          :options="pages.data"
-                          name-prop="title"
-                          label="Search Page"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="sitemap_page_id"
-                          v-model="form.sitemap_page_id"
-                          :options="pages.data"
-                          name-prop="title"
-                          label="Sitemap Page"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="faq_page_id"
-                          v-model="form.faq_page_id"
-                          :options="pages.data"
-                          name-prop="title"
-                          label="FAQ Page"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="featured_collection_id"
-                          v-model="form.featured_collection_id"
-                          :options="collections.data"
-                          label="Featured Collection"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="new_in_collection_id"
-                          v-model="form.new_in_collection_id"
-                          :options="collections.data"
-                          label="New In Collection"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="trending_collection_id"
-                          v-model="form.trending_collection_id"
-                          :options="collections.data"
-                          label="Trending Collection"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VSelect
-                          id="best_seller_collection_id"
-                          v-model="form.best_seller_collection_id"
-                          :options="collections.data"
-                          label="Best Seller Collection"
-                      />
-                    </div>
                   </div>
                 </div>
                 <div class="tab-pane fade" id="tab-meta" role="tabpanel">
@@ -356,21 +203,11 @@ import {object, string} from "yup";
 import {useYup} from "@/helpers/yup";
 import {storeToRefs} from "pinia";
 import {useSettingStore} from "@/stores/admin/setting";
-import {usePageStore} from "@/stores/admin/page.js";
-import {useCollectionStore} from "@/stores/admin/collection.js";
 
 const settingStore = useSettingStore();
-const pageStore = usePageStore();
-const collectionStore = useCollectionStore();
 
 onMounted(() => {
-  collectionStore.getCollections();
   setSettingData();
-  pageStore.getPages({
-    filter: {
-      limit: 50
-    }
-  });
 })
 
 const setSettingData = async () => {
@@ -381,8 +218,6 @@ const setSettingData = async () => {
 }
 
 const {setting} = storeToRefs(settingStore);
-const {pages} = storeToRefs(pageStore);
-const {collections} = storeToRefs(collectionStore);
 
 const initialState = {
   site_name: '',
@@ -409,16 +244,6 @@ const initialState = {
   meta_title: '',
   meta_keywords: '',
   meta_description: '',
-  blog_page_id: '',
-  about_page_id: '',
-  contact_page_id: '',
-  search_page_id: '',
-  sitemap_page_id: '',
-  faq_page_id: '',
-  featured_collection_id: '',
-  new_in_collection_id: '',
-  trending_collection_id: '',
-  best_seller_collection_id: '',
 };
 
 const form = reactive({...initialState});
