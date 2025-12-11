@@ -1,5 +1,3 @@
-import {useRoute} from "vue-router";
-
 export const storedPermissions = () => {
     let permissions = [];
     if (localStorage.getItem('permissions')) {
@@ -19,41 +17,14 @@ export const extractBaseUrl = (fullUrl) => {
     return `${urlObj.protocol}//${urlObj.host}`;
 }
 
-export const stringHeadline = (string) => {
-    return string
-        .split('_')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
+export const convertToNepali = (number = '') => {
+    const devanagariDigits = {
+        '0': '०', '1': '१', '2': '२', '3': '३',
+        '4': '४', '5': '५', '6': '६', '7': '७',
+        '8': '८', '9': '९'
+    };
 
-export const generateSlug = (text, separator = '-') => {
-    return text
-        .toLowerCase()
-        .trim()
-        .replace(/[\s\W-]+/g, separator);
-};
-
-export const statusColor = (status) => {
-    let color = '';
-
-    switch (status) {
-        case 'pending':
-            color = 'warning';
-            break;
-        case 'waiting-list':
-            color = 'secondary';
-            break;
-        case 'cancelled':
-            color = 'danger';
-            break;
-        case 'confirmed':
-            color = 'success';
-            break;
-        default:
-            color = 'primary'
-    }
-
-    return color;
+    return number.toString().replace(/[0-9]/g, (digit) => devanagariDigits[digit]);
 }
 
 export const fileExtension = (file) => {
@@ -66,12 +37,4 @@ export const isImage = (file) => {
 
 export const isPdf = (file) => {
     return ['pdf'].includes(fileExtension(file));
-}
-
-export const siteUrl = import.meta.env.VITE_SITE_URL;
-export const editorFileSelectPath = '/admin/editor-file-select';
-export const vendorEditorFileSelectPath = '/vendor/editor-file-select';
-export const isVendorRoute =()=>{
-    const route=useRoute();
-    return route.path.startsWith('/vendor/');
 }

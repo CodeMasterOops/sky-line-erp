@@ -1,4 +1,5 @@
 import moment from "moment";
+import {convertToNepali} from "@/helpers/helper.js";
 
 // eslint-disable-next-line no-undef
 const dateFunctions = NepaliFunctions;
@@ -8,7 +9,7 @@ export const useDateHelper = () => {
     const currentBsDate = () => {
         try {
             return dateFunctions.BS.GetCurrentDate('YYYY-MM-DD')
-        } catch {
+        } catch (e) {
             return '';
         }
     }
@@ -52,10 +53,16 @@ export const useDateHelper = () => {
         return formatDateToYMD(adjustedDate);
     }
 
-    const adToBs = (ad_date) => {
+    const adToBs = (ad_date, format = 'en') => {
         if (ad_date) {
             try {
-                return dateFunctions.AD2BS(ad_date,"YYYY-MM-DD");
+                const bsDate = dateFunctions.AD2BS(ad_date, "YYYY-MM-DD");
+
+                if (format === 'ne') {
+                    return convertToNepali(bsDate);
+                }
+
+                return bsDate;
             } catch (e) {
                 console.log(e)
             }
@@ -65,18 +72,7 @@ export const useDateHelper = () => {
     const bsToAd = (bs_date) => {
         if (bs_date) {
             try {
-                const bsDateObj = (dateFunctions.ParseDate(bs_date)).parsedDate
-                const adDateObj = dateFunctions.BS2AD({
-                    year: bsDateObj.year,
-                    month: bsDateObj.month,
-                    day: bsDateObj.day
-                })
-
-                return dateFunctions.ConvertDateFormat({
-                    year: adDateObj.year,
-                    month: adDateObj.month,
-                    day: adDateObj.day
-                }, "YYYY-MM-DD")
+                return dateFunctions.BS2AD(bs_date, "YYYY-MM-DD");
             } catch (e) {
                 console.log(e);
             }
@@ -103,8 +99,8 @@ export const useDateHelper = () => {
 
     const bsMonths = dateFunctions.BS.GetMonths();
 
-    const nepaliDate=(date='')=>{
-        date=date ? date : currentBsDate();
+    const nepaliDate = (date = '') => {
+        date = date ? date : currentBsDate();
 
         return `${dateFunctions.BS.GetFullDate(date, true, "YYYY-MM-DD")} ${dateFunctions.BS.GetFullDayInUnicode(date)}`;
     }
@@ -117,6 +113,19 @@ export const useDateHelper = () => {
         return moment().format('HH:mm A')
     }
 
+    const generateDateRange = (startDate, endDate) => {
+        const start = moment(startDate);
+        const end = moment(endDate);
+        const dates = [];
+
+        while (start <= end) {
+            dates.push(start.format("YYYY-MM-DD"));
+            start.add(1, "days");
+        }
+
+        return dates;
+    }
+
     return {
         currentBsDate: currentBsDate(),
         currentAdDate,
@@ -127,9 +136,10 @@ export const useDateHelper = () => {
         subAdDays, addAdDays,
         bsToAd, adToBs,
         getDay,
-        toUniCode,nepaliDate:nepaliDate(),
+        toUniCode, nepaliDate: nepaliDate(),
         currentBsYear, currentAdYear,
         currentBsMonth,
-        bsMonths
+        bsMonths,
+        generateDateRange
     }
 }
