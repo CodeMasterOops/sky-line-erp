@@ -2,10 +2,6 @@ import AdminLayout from '@/layouts/super-admin/AppLayout.vue';
 
 const routes = [
     {
-        path:'/',
-        redirect: '/super-admin/dashboard'
-    },
-    {
         path: '/super-admin/login',
         name: 'super-admin.login',
         meta: {

@@ -6,18 +6,18 @@ use Illuminate\Database\Eloquent\Builder;
 
 trait MultiTenant
 {
-    public static function bootMultiTenant()
+    public static function bootMultiTenant(): void
     {
-        if (request()->routeIs('api.vendor.*') && auth('vendor')->check()) {
-            if (columnExists((new self)->getTable(), 'vendor_id')) {
-                $user = auth('vendor')->user();
+        if (request()->routeIs('api.admin.*') && auth('admin')->check()) {
+            if (columnExists((new self)->getTable(), 'company_id')) {
+                $user = auth('admin')->user();
                 static::creating(function ($model) use ($user) {
-                    $model->vendor_id = is_null($model->vendor_id) ? $user->vendor_id : $model->vendor_id;
+                    $model->company_id = is_null($model->company_id) ? $user->company_id : $model->company_id;
                 });
 
                 // global scope
-                static::addGlobalScope('vendor_scope', function (Builder $builder) use ($user) {
-                    return $builder->where('vendor_id', $user->vendor_id);
+                static::addGlobalScope('company_scope', function (Builder $builder) use ($user) {
+                    return $builder->where('company_id', $user->company_id);
                 });
             }
         }

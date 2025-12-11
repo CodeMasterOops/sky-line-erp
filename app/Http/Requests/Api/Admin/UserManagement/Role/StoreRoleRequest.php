@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Api\Admin\UserManagement\Role;
 
-use Illuminate\Validation\Rule;
+use App\Tenancy\TRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRoleRequest extends FormRequest
@@ -15,7 +15,7 @@ class StoreRoleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', Rule::unique('roles')->withoutTrashed()],
+            'name' => ['required', TRule::unique('roles')->withoutTrashed()],
             'permissions' => ['required', 'array'],
             'permissions.*' => ['required'],
         ];

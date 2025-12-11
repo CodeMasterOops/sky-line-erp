@@ -3,7 +3,6 @@
         <div class="d-flex align-items-center justify-content-between logo-area">
             <router-link :to="{ name: 'admin.dashboard' }" class="square-logo d-flex align-items-center">
                 <img :src="appLogo" alt="logo"/>
-                <span class="app-name">INDIBE</span>
             </router-link>
             <i class="fa fa-bars toggle-sidebar-btn pe-2" @click="sidebarToggle()"></i>
         </div>
@@ -103,7 +102,7 @@
 
 <script setup>
 import userIcon from '@/assets/images/user-icon.png';
-import appLogo from '@/assets/images/logo.png';
+import appLogo from '@/assets/images/app-logo.png';
 import {onMounted} from "vue";
 import {useProfileStore} from "@/stores/admin/profile";
 import {storeToRefs} from "pinia";

@@ -15,12 +15,18 @@ class AuthController extends Controller
     {
         $formData = $request->validated();
 
-        $user = User::where('email', $formData['email'])->first();
+        $user = User::with('company')->where('email', $formData['email'])->first();
 
         if ($user && Hash::check($formData['password'], $user->password)) {
             if (! $user->status) {
                 return response()->json([
                     'message' => 'Your account is not active.',
+                ], 400);
+            }
+
+            if (! $user->company->is_active) {
+                return response()->json([
+                    'message' => 'Your company account is not active.',
                 ], 400);
             }
 
