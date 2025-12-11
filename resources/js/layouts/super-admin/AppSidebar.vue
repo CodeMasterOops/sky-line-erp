@@ -8,9 +8,9 @@
                 </router-link>
             </li>
             <li class="nav-item">
-                <router-link :to="{ url: '#' }" class="nav-link">
-                    <i class="fa fa-user"></i>
-                    <span>Customers</span>
+                <router-link :to="{ name: 'super-admin.company-list' }" class="nav-link">
+                    <i class="fa fa-building-o"></i>
+                    <span>Company</span>
                 </router-link>
             </li>
             <li class="nav-item">

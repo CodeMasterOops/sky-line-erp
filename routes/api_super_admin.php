@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\SuperAdmin\AuthController;
+use App\Http\Controllers\Api\SuperAdmin\CompanyController;
 use App\Http\Controllers\Api\SuperAdmin\FiscalYearController;
 use App\Http\Controllers\Api\SuperAdmin\ProfileController;
 use App\Http\Controllers\Api\SuperAdmin\DashboardController;
@@ -27,6 +28,8 @@ Route::middleware('auth:super_admin')->group(function () {
     //fiscal year
     Route::apiResource('fiscal-year',FiscalYearController::class);
 
-    // enum
-    Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {});
+    //company
+    Route::put('company/{company}/update-status', [CompanyController::class, 'updateStatus'])->name('company.update-status');
+    Route::put('company/{company}/reset-password', [CompanyController::class, 'resetPassword'])->name('company.reset-password');
+    Route::apiResource('company', CompanyController::class);
 });

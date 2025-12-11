@@ -34,7 +34,7 @@ export const useSuperAdminAuthStore = defineStore('super-admin-auth', {
         },
         removeAuthToken() {
             this.authUser.access_token = '';
-            localStorage.removeItem('access_token');
+            localStorage.removeItem('s_access_token');
         },
     }
 })

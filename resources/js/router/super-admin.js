@@ -58,6 +58,30 @@ const routes = [
                 },
                 component: () => import('@/views/super-admin/fiscal-year/Index.vue')
             },
+            {
+                path: 'company',
+                name: 'super-admin.company-list',
+                meta: {
+                    pageTitle: 'Company List'
+                },
+                component: () => import('@/views/super-admin/company/Index.vue')
+            },
+            {
+                path: 'company/create',
+                name: 'super-admin.company-create',
+                meta: {
+                    pageTitle: 'Add Company'
+                },
+                component: () => import('@/views/super-admin/company/Create.vue')
+            },
+            {
+                path: 'company/:id/edit',
+                name: 'super-admin.company-edit',
+                meta: {
+                    pageTitle: 'Edit Company'
+                },
+                component: () => import('@/views/super-admin/company/Edit.vue')
+            },
         ]
     },
 ];

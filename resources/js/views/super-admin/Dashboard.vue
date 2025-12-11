@@ -8,7 +8,7 @@
                       </span>
                     <div class="info-box-content">
                         <span class="info-box-text">Company</span>
-                        <span class="info-box-number">0</span>
+                        <span class="info-box-number">{{ dashboard.data.companies_count }}</span>
                     </div>
                 </div>
             </div>
@@ -19,7 +19,7 @@
                       </span>
                     <div class="info-box-content">
                         <span class="info-box-text">Fiscal Year</span>
-                        <span class="info-box-number">0</span>
+                        <span class="info-box-number">{{ dashboard.data.fiscal_years_count }}</span>
                     </div>
                 </div>
             </div>
