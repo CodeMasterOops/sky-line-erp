@@ -35,6 +35,12 @@
                             <span> Setting</span>
                         </router-link>
                     </li>
+                    <li>
+                        <router-link :to="{ name: 'super-admin.fiscal-year-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span> Fiscal Year</span>
+                        </router-link>
+                    </li>
                 </ul>
             </li>
         </ul>

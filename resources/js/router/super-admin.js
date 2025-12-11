@@ -49,7 +49,15 @@ const routes = [
                         component: () => import('@/views/super-admin/Setting.vue')
                     }
                 ]
-            }
+            },
+            {
+                path: 'fiscal-year',
+                name: 'super-admin.fiscal-year-list',
+                meta: {
+                    pageTitle: 'Fiscal Year'
+                },
+                component: () => import('@/views/super-admin/fiscal-year/Index.vue')
+            },
         ]
     },
 ];

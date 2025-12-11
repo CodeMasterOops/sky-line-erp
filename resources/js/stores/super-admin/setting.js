@@ -1,10 +1,10 @@
 import {defineStore} from 'pinia'
-import {apiAdmin} from "@/helpers/api";
+import {apiSuperAdmin} from "@/helpers/api";
 import showErrors from "@/helpers/showErrors";
 
 const apiUrl = 'setting';
 
-export const useSettingStore = defineStore('setting', {
+export const useSuperAdminSettingStore = defineStore('super-admin-setting', {
     state: () => ({
         setting: {
             data: {},
@@ -15,7 +15,7 @@ export const useSettingStore = defineStore('setting', {
         getSetting() {
             if (!Object.keys(this.setting.data).length) {
                 this.setting.loading = true;
-                return apiAdmin(`${apiUrl}`)
+                return apiSuperAdmin(`${apiUrl}`)
                     .then((res) => {
                         this.setting.data = res.data.data;
                     })
@@ -27,7 +27,7 @@ export const useSettingStore = defineStore('setting', {
             }
         },
         updateSetting(form) {
-            return apiAdmin(`${apiUrl}`, 'post', form)
+            return apiSuperAdmin(`${apiUrl}`, 'post', form)
                 .then((res) => {
                     this.setting.data = res.data.data;
                     return res

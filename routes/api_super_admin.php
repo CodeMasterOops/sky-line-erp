@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\SuperAdmin\AuthController;
+use App\Http\Controllers\Api\SuperAdmin\FiscalYearController;
 use App\Http\Controllers\Api\SuperAdmin\ProfileController;
 use App\Http\Controllers\Api\SuperAdmin\DashboardController;
+use App\Http\Controllers\Api\SuperAdmin\SettingController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -21,6 +23,9 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
     Route::apiResource('setting', SettingController::class)->only('index', 'store');
+
+    //fiscal year
+    Route::apiResource('fiscal-year',FiscalYearController::class);
 
     // enum
     Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {});
