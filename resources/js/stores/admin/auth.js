@@ -1,6 +1,7 @@
 import {defineStore} from 'pinia'
 import {apiAdmin, apiFront} from "@/helpers/api";
 import {storedPermissions} from "@/helpers/helper";
+import Cookies from "js-cookie";
 
 export const useAdminAuthStore = defineStore('admin-auth', {
     state: () => {
@@ -16,7 +17,7 @@ export const useAdminAuthStore = defineStore('admin-auth', {
         login(form) {
             return apiFront('admin/login', 'post', form)
                 .then((res) => {
-                    this.setAuthToken(res.data.access_token);
+                    this.setAuthToken(res.data.access_token,res.data.expires_at);
                     this.setPermissions(res.data.user?.user_type, res.data.permissions);
                     return res;
                 }).catch((err) => {
@@ -32,8 +33,13 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                     throw err;
                 });
         },
-        setAuthToken(token) {
+        setAuthToken(token,expires_at) {
             this.authUser.access_token = token;
+            Cookies.set("access_token", token, {
+                expires: 7,
+                secure: true,
+                sameSite: "Strict",
+            });
             localStorage.setItem('access_token', token);
         },
         setPermissions(user_type, permissions = []) {

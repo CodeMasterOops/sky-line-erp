@@ -32,12 +32,13 @@ class AuthController extends Controller
 
             Auth::guard('admin')->setUser($user);
 
-            $authToken = auth('admin')->user()->createToken('auth-token')->plainTextToken;
+            $tokenData = auth('admin')->user()->createToken('auth-token', ['*'], now()->addWeek());
 
             $authUser = auth('admin')->user();
 
             return response()->json([
-                'access_token' => $authToken,
+                'access_token' => $tokenData->plainTextToken,
+                'expires_at' => $tokenData->accessToken->expires_at,
                 'user' => ProfileResource::make($authUser),
                 'permissions' => base64_encode(json_encode(userPermissions($authUser))),
                 'message' => 'Signed In Successfully.',
