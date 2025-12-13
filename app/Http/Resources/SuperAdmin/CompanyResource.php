@@ -24,7 +24,7 @@ class CompanyResource extends JsonResource
             'user_email' => $this->admin->email ?? '',
             'website' => $this->website ?? '',
             'address' => $this->address ?? '',
-            'status' => $this->status ?? true,
+            'is_active' => $this->is_active ?? true,
         ];
     }
 }

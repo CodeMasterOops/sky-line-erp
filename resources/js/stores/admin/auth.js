@@ -7,7 +7,7 @@ export const useAdminAuthStore = defineStore('admin-auth', {
     state: () => {
         return {
             authUser: {
-                access_token: localStorage.getItem("access_token"),
+                access_token: Cookies.get("access_token"),
                 user_type: localStorage.getItem('user_type'),
                 permissions: storedPermissions()
             }
@@ -17,7 +17,7 @@ export const useAdminAuthStore = defineStore('admin-auth', {
         login(form) {
             return apiFront('admin/login', 'post', form)
                 .then((res) => {
-                    this.setAuthToken(res.data.access_token,res.data.expires_at);
+                    this.setAuthToken(res.data.access_token, res.data.expires_at);
                     this.setPermissions(res.data.user?.user_type, res.data.permissions);
                     return res;
                 }).catch((err) => {
@@ -33,14 +33,15 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                     throw err;
                 });
         },
-        setAuthToken(token,expires_at) {
+        setAuthToken(token, expires_at) {
             this.authUser.access_token = token;
+            const expiresAt = new Date(expires_at);
             Cookies.set("access_token", token, {
-                expires: 7,
-                secure: true,
+                expires: expiresAt,
+                secure: false,
                 sameSite: "Strict",
+                path: '/',
             });
-            localStorage.setItem('access_token', token);
         },
         setPermissions(user_type, permissions = []) {
             if (user_type === 'admin') {
@@ -59,7 +60,11 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             this.authUser.permissions = [];
             localStorage.removeItem('user_type');
             localStorage.removeItem('permissions');
-            localStorage.removeItem('access_token');
+            Cookies.remove('access_token', {
+                secure: false,
+                sameSite: "Strict",
+                path: '/',
+            });
             localStorage.removeItem('admin_user');
         },
     }
