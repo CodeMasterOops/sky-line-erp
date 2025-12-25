@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\UnitController;
+use App\Http\Controllers\Api\Admin\WarehouseController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\EnumController;
@@ -50,6 +51,9 @@ Route::middleware('auth:admin')->group(function () {
 
         //brand
         Route::apiResource('brand', BrandController::class);
+
+        //warehouse
+        Route::apiResource('warehouse', WarehouseController::class);
     });
 
     // enum

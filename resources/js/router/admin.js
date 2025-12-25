@@ -111,6 +111,14 @@ const routes = [
                     pageTitle: 'Unit List'
                 },
                 component: () => import('@/views/admin/inventory/unit/Index.vue')
+            },
+            {
+                path: 'warehouse',
+                name: 'admin.warehouse-list',
+                meta: {
+                    pageTitle: 'Warehouse List'
+                },
+                component: () => import('@/views/admin/inventory/warehouse/Index.vue')
             }
         ]
     },

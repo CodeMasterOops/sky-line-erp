@@ -6,16 +6,16 @@
                     <i class="fa fa-home"> Home</i>
                 </router-link>
             </li>
-            <li class="breadcrumb-item active">Brands</li>
+            <li class="breadcrumb-item active">Warehouses</li>
         </ol>
     </div>
 
     <section class="section">
         <div class="card">
             <div class="card-header d-flex justify-content-between">
-                <h5 class="card-title">Brand List</h5>
+                <h5 class="card-title">Warehouse List</h5>
                 <button
-                    v-can="'create_brand'"
+                    v-can="'create_warehouse'"
                     type="button"
                     @click.prevent="createModalOpened=true"
                     class="btn btn-sm btn-outline-primary">
@@ -30,29 +30,37 @@
                             <th>SN</th>
                             <th>Name</th>
                             <th>Code</th>
+                            <th>Phone</th>
+                            <th>Address</th>
                             <th class="text-center">Action</th>
                         </tr>
                         </thead>
                         <tbody class="align-middle">
-                        <VLoader v-if="brands.loading" :colspan="4" />
-                        <template v-else-if="brands.data.length">
-                            <tr v-for="(brand,index) in brands.data" :key="index">
+                        <VLoader v-if="warehouses.loading" :colspan="6" />
+                        <template v-else-if="warehouses.data.length">
+                            <tr v-for="(warehouse,index) in warehouses.data" :key="index">
                                 <th>{{ index + 1 }}</th>
                                 <td>
-                                    {{ brand.name }}
+                                    {{ warehouse.name }}
                                 </td>
                                 <td>
-                                    {{ brand.code }}
+                                    {{ warehouse.code }}
+                                </td>
+                                <td>
+                                    {{ warehouse.phone || 'N/A' }}
+                                </td>
+                                <td>
+                                    {{ warehouse.address || 'N/A' }}
                                 </td>
                                 <td style="width:90px;">
                                     <button
-                                        v-can="'edit_brand'"
+                                        v-can="'edit_warehouse'"
                                         type="button"
-                                        @click.prevent="edit_brand_id=brand.id"
+                                        @click.prevent="edit_warehouse_id=warehouse.id"
                                         class="btn btn-sm btn-outline-primary">
                                         <i class="fa fa-edit"> </i>
                                     </button>
-                                    <button v-can="'delete_brand'" @click="deleteBrand(brand.id)" type="button"
+                                    <button v-can="'delete_warehouse'" @click="deleteWarehouse(warehouse.id)" type="button"
                                             class="btn btn-sm btn-outline-danger">
                                         <i class="fa fa-trash"> </i>
                                     </button>
@@ -60,7 +68,7 @@
                             </tr>
                         </template>
                         <tr v-else>
-                            <td colspan="4" class="text-center">
+                            <td colspan="6" class="text-center">
                                 No Result Found.
                             </td>
                         </tr>
@@ -70,8 +78,8 @@
             </div>
         </div>
     </section>
-    <CreateBrand v-model:create-modal-opened="createModalOpened" />
-    <EditBrand v-model:brand_id="edit_brand_id" />
+    <CreateWarehouse v-model:create-modal-opened="createModalOpened" />
+    <EditWarehouse v-model:warehouse_id="edit_warehouse_id" />
 </template>
 
 <script setup>
@@ -80,22 +88,22 @@ import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
-import CreateBrand from './Create.vue';
-import EditBrand from './Edit.vue';
-import { useBrandStore } from '@/stores/admin/inventory/brand.js';
+import CreateWarehouse from './Create.vue';
+import EditWarehouse from './Edit.vue';
+import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
 
-const brandStore = useBrandStore();
+const warehouseStore = useWarehouseStore();
 
 onMounted(() => {
-    brandStore.getBrands();
+    warehouseStore.getWarehouses();
 });
 
-const edit_brand_id = ref('');
+const edit_warehouse_id = ref('');
 const createModalOpened = ref(false);
 
-const { brands } = storeToRefs(brandStore);
+const { warehouses } = storeToRefs(warehouseStore);
 
-const deleteBrand = async (id) => {
+const deleteWarehouse = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
         text: 'If you delete this, it will be gone forever.',
@@ -106,7 +114,7 @@ const deleteBrand = async (id) => {
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await brandStore.deleteBrand(id);
+                let res = await warehouseStore.deleteWarehouse(id);
                 toast(res.status, res.data.message);
             } catch (e) {
                 showErrors(e);

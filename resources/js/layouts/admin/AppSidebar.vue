@@ -32,6 +32,10 @@
                             <i class="fa fa-angle-double-right"></i>
                             <span>Brands</span>
                         </router-link>
+                        <router-link :to="{ name: 'admin.warehouse-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Warehouse</span>
+                        </router-link>
                     </li>
                 </ul>
             </li>
