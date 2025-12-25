@@ -10,6 +10,30 @@
       <li class="nav-item">
         <a
             class="nav-link collapsed"
+            data-bs-target="#sidebarInventory"
+            data-bs-toggle="collapse"
+            href="#"
+        >
+          <i class="fa fa-stack-exchange"></i>
+          <span>Inventory</span
+          >
+        </a>
+        <ul
+            id="sidebarInventory"
+            class="nav-content collapse"
+            data-bs-parent="#sidebarInventory"
+        >
+          <li v-can="'list_unit'">
+            <router-link :to="{ name: 'admin.unit-list' }">
+              <i class="fa fa-angle-double-right"></i>
+              <span>Units</span>
+            </router-link>
+          </li>
+        </ul>
+      </li>
+      <li class="nav-item">
+        <a
+            class="nav-link collapsed"
             data-bs-target="#sidebarAuthorization"
             data-bs-toggle="collapse"
             href="#"

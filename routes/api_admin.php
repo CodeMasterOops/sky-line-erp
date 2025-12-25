@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\UnitController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\EnumController;
@@ -42,6 +43,9 @@ Route::middleware('auth:admin')->group(function () {
             Route::get('unread', 'unreadNotifications')->name('unread');
             Route::post('mark-as-read/{id?}', 'markAsRead')->name('mark-as-read');
         });
+
+        //unit
+        Route::apiResource('unit', UnitController::class);
     });
 
     // enum

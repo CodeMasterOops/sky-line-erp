@@ -103,6 +103,14 @@ const routes = [
                     pageTitle: 'Brand List'
                 },
                 component: () => import('@/views/admin/brand/Index.vue')
+            },
+            {
+                path: 'unit',
+                name: 'admin.unit-list',
+                meta: {
+                    pageTitle: 'Unit List'
+                },
+                component: () => import('@/views/admin/inventory/unit/Index.vue')
             }
         ]
     },
