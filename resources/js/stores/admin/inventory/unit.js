@@ -2,7 +2,7 @@ import {defineStore} from "pinia";
 import {apiAdmin} from "@/helpers/api.js";
 import showErrors from "@/helpers/showErrors.js";
 
-const unitUrl = 'unit'
+const apiUrl = 'unit'
 
 export const useUnitStore = defineStore('unit', {
     state: () => ({
@@ -20,7 +20,7 @@ export const useUnitStore = defineStore('unit', {
         getUnits() {
             if (!this.units.data.length) {
                 this.units.loading = true;
-                return apiAdmin(`${unitUrl}`)
+                return apiAdmin(`${apiUrl}`)
                     .then((res) => {
                         this.units.data = res.data.data;
                     }).catch((err) => {
@@ -31,7 +31,7 @@ export const useUnitStore = defineStore('unit', {
             }
         },
         storeUnit(form) {
-            return apiAdmin(`${unitUrl}`, 'post', form)
+            return apiAdmin(`${apiUrl}`, 'post', form)
                 .then((res) => {
                     this.units.data.push(res.data.data);
                     return res;
@@ -41,7 +41,7 @@ export const useUnitStore = defineStore('unit', {
         },
         getUnit(id) {
             this.unit.loading = true;
-            return apiAdmin(`${unitUrl}/${id}`)
+            return apiAdmin(`${apiUrl}/${id}`)
                 .then((res) => {
                     this.unit.data = res.data.data;
                 }).catch((err) => {
@@ -51,7 +51,7 @@ export const useUnitStore = defineStore('unit', {
                 })
         },
         updateUnit(id, form) {
-            return apiAdmin(`${unitUrl}/${id}`, 'put', form)
+            return apiAdmin(`${apiUrl}/${id}`, 'put', form)
                 .then((res) => {
                     this.units.data[this.units.data.findIndex(d => d.id === id)] = res.data.data;
                     return res;
@@ -60,7 +60,7 @@ export const useUnitStore = defineStore('unit', {
                 })
         },
         deleteUnit(id) {
-            return apiAdmin(`${unitUrl}/${id}`, 'delete')
+            return apiAdmin(`${apiUrl}/${id}`, 'delete')
                 .then((res) => {
                     this.units.data = this.units.data.filter(d => d.id !== id);
                     return res;

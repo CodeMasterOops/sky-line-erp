@@ -102,7 +102,7 @@ const routes = [
                 meta: {
                     pageTitle: 'Brand List'
                 },
-                component: () => import('@/views/admin/brand/Index.vue')
+                component: () => import('@/views/admin/inventory/brand/Index.vue')
             },
             {
                 path: 'unit',

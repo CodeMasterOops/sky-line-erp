@@ -1,6 +1,6 @@
 import {defineStore} from "pinia";
-import {apiAdmin} from "@/helpers/api";
-import showErrors from "@/helpers/showErrors";
+import {apiAdmin} from "@/helpers/api.js";
+import showErrors from "@/helpers/showErrors.js";
 
 const apiUrl = 'brand'
 
@@ -67,24 +67,6 @@ export const useBrandStore = defineStore('brand', {
                 }).catch((err) => {
                     throw err;
                 })
-        },
-        updateStatus(id) {
-            return apiAdmin(`${apiUrl}/${id}/update-status`, 'put')
-                .then((res) => {
-                    this.brands.data[this.brands.data.findIndex(d => d.id === id)].status = res.data.status;
-                    return res;
-                }).catch((err) => {
-                    throw err;
-                })
-        },
-        updateFeaturedStatus(id) {
-            return apiAdmin(`${apiUrl}/${id}/update-featured-status`, 'put')
-                .then((res) => {
-                    this.brands.data[this.brands.data.findIndex(d => d.id === id)].is_featured = res.data.is_featured;
-                    return res;
-                }).catch((err) => {
-                    throw err;
-                })
-        },
+        }
     }
 })

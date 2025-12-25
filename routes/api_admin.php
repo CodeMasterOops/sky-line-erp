@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\UnitController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\AuthController;
@@ -46,6 +47,9 @@ Route::middleware('auth:admin')->group(function () {
 
         //unit
         Route::apiResource('unit', UnitController::class);
+
+        //brand
+        Route::apiResource('brand', BrandController::class);
     });
 
     // enum
