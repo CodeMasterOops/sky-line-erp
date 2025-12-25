@@ -1,56 +1,60 @@
-$body-bg: #f4f6f9;
-$font-family-base: "Poppins", sans-serif;
-$body-color: #333;
+@use "../../../../node_modules/bootstrap/scss/bootstrap" with (
+  /* Base */
+  $body-bg: #f4f6f9,
+  $body-color: #333,
+  $font-family-base: ("Poppins", sans-serif),
 
-$primary-color:01399a;
+  /* Theme colors */
+  $primary: #01399a,
 
-$card-border-radius: .25rem;
-$card-cap-bg: #fff;
-$card-cap-padding-y: 12px;
-$card-title-spacer-y: 0;
-$card-title-color: 111;
-$card-bg: #fff;
+  /* Grid */
+  $grid-gutter-width: 0.7rem,
 
-$table-bg: transparent;
+  /* Cards */
+  $card-border-radius: .25rem,
+  $card-bg: #fff,
+  $card-cap-bg: #fff,
+  $card-cap-padding-y: 12px,
+  $card-title-spacer-y: 0,
+  $card-title-color: #111,
+  $card-spacer-x: 0.7rem,
+  $card-spacer-y: 0.7rem,
 
-$btn-border-radius: 2px;
-$btn-font-family: initial;
+  /* Tables */
+  $table-bg: transparent,
 
-$form-label-font-size: 14px;
-$form-label-font-weight: bold;
-$form-label-margin-bottom: .4rem;
-$input-border-radius: 2px;
-$input-bg: #fff;
+  /* Buttons */
+  $btn-border-radius: 2px,
+  $btn-font-family: initial,
 
-$breadcrumb-bg: transparent;
-$breadcrumb-padding-y: 8px;
-$breadcrumb-padding-x: 8px;
-$breadcrumb-border-radius: 2px;
-$breadcrumb-font-size: 14px;
-$breadcrumb-active-color: #51678f;
-$breadcrumb-margin-bottom: .5rem;
+  /* Forms */
+  $form-label-font-size: 14px,
+  $form-label-font-weight: 700,
+  $input-bg: #fff,
+  $input-border-radius: 2px,
+  $input-padding-y: 0.51rem,
+  $form-select-padding-y: 0.51rem,
+  $form-select-disabled-bg: aliceblue,
+  $form-check-input-width: 1.3em,
 
-$dropdown-bg: #fff;
+  /* Breadcrumb */
+  $breadcrumb-bg: transparent,
+  $breadcrumb-padding-y: 8px,
+  $breadcrumb-padding-x: 8px,
+  $breadcrumb-border-radius: 2px,
+  $breadcrumb-font-size: 14px,
+  $breadcrumb-active-color: #51678f,
+  $breadcrumb-margin-bottom: .5rem,
 
-$nav-tabs-link-active-bg: #fff;
+  /* Dropdown */
+  $dropdown-bg: #fff,
 
-$legend-font-size: 16px;
+  /* Nav tabs */
+  $nav-tabs-link-active-bg: #fff,
 
-//grid columns
-$grid-gutter-width: 0.7rem;
+  /* Typography */
+  $legend-font-size: 16px
+);
 
-//card
-$card-spacer-x: 0.7rem;
-$card-spacer-y: 0.7rem;
-
-//form
-$form-select-padding-y: 0.51rem;
-$form-select-disabled-bg: aliceblue;
-
-$input-padding-y: 0.51rem;
-
-$form-check-input-width: 1.3em;
-
-@use "../../../../node_modules/bootstrap/scss/bootstrap";
 @use "base/variables";
-@use "style.scss";
+@use "style";

@@ -65,17 +65,17 @@
                     <label class="form-check-label" :for="'switch'+index"></label>
                   </div>
                 </td>
-                <td style="width:180px;">
+                <td style="width:90px;">
                   <button
                       v-can="'edit_user'"
                       type="button"
                       @click.prevent="edit_user_id=user.id"
                       class="btn btn-sm btn-outline-primary">
-                    <i class="fa fa-edit"> Edit</i>
+                    <i class="fa fa-edit"> </i>
                   </button>
                   <button v-can="'delete_user'" @click="deleteUser(user.id)" type="button"
                           class="btn btn-sm btn-outline-danger">
-                    <i class="fa fa-trash"> Delete</i>
+                    <i class="fa fa-trash"> </i>
                   </button>
                 </td>
               </tr>

@@ -18,7 +18,10 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with('roles:id,name')->whereNot('user_type', UserTypeEnum::ADMIN->value)->get();
+        $users = User::with('roles:id,name')
+            ->where('company_id', auth('admin')->user()->company_id)
+            ->whereNot('user_type', UserTypeEnum::ADMIN->value)
+            ->get();
 
         return UserResource::collection($users);
     }
@@ -28,9 +31,12 @@ class UserController extends Controller
      */
     public function store(StoreUserRequest $request)
     {
-        $user = DB::transaction(function () use ($request) {
-            $user = User::create($request->validated());
-            $user->roles()->attach($request->validated('roles'));
+        $formData = $request->validated();
+        $formData['company_id'] = auth('admin')->user()->company_id;
+
+        $user = DB::transaction(function () use ($formData) {
+            $user = User::create($formData);
+            $user->roles()->attach($formData['roles']);
 
             return $user;
         });
