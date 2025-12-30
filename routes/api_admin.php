@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminSettingController;
 use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\UnitController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
@@ -54,6 +55,11 @@ Route::middleware('auth:admin')->group(function () {
 
         //warehouse
         Route::apiResource('warehouse', WarehouseController::class);
+    });
+
+    //global settings
+    Route::prefix('admin-setting')->as('admin-setting.')->controller(AdminSettingController::class)->group(function () {
+        Route::get('fiscal-year','fiscalYears')->name('fiscal-year');
     });
 
     // enum

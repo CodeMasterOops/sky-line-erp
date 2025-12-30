@@ -28,7 +28,7 @@ class AddTableColumn extends Command
     public function handle()
     {
         Schema::table('companies', function (Blueprint $table) {
-            $table->string('code')->after('company_name');
+            $table->foreignId('fiscal_year_id')->nullable()->after('id')->constrained()->nullOnDelete();
         });
 
         $this->output->success('Column added');

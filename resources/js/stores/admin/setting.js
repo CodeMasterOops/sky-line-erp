@@ -12,8 +12,8 @@ export const useSettingStore = defineStore('setting', {
         }
     }),
     actions: {
-        getSetting() {
-            if (!Object.keys(this.setting.data).length) {
+        getSetting(refetch=false) {
+            if (!Object.keys(this.setting.data).length || refetch) {
                 this.setting.loading = true;
                 return apiAdmin(`${apiUrl}`)
                     .then((res) => {
@@ -29,7 +29,6 @@ export const useSettingStore = defineStore('setting', {
         updateSetting(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)
                 .then((res) => {
-                    this.setting.data = res.data.data;
                     return res
                 })
                 .catch((err) => {

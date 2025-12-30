@@ -1,281 +1,216 @@
 <template>
-  <div class="page-title">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <router-link :to="{name:'admin.dashboard'}">
-          <i class="fa fa-home"> Home</i>
-        </router-link>
-      </li>
-      <li class="breadcrumb-item active"> Setting</li>
-    </ol>
-  </div>
-
-  <section class="section">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between">
-        <h5 class="card-title">Site Setting</h5>
-      </div>
-      <VLoader v-if="setting.loading" loader-type="progress"/>
-      <div class="card-body">
-        <div class="row">
-          <div class="col-2 border rounded-1">
-            <div class="d-flex align-items-start py-2">
-              <div class="nav flex-column nav-pills w-100" role="tablist"
-                   aria-orientation="vertical">
-                <button class="nav-link active mb-2 border" data-bs-toggle="pill"
-                        data-bs-target="#tab-basic" type="button" role="tab">
-                  Basic Info
-                </button>
-                <button class="nav-link mb-2 border" data-bs-toggle="pill"
-                        data-bs-target="#tab-social" type="button" role="tab">
-                  Social Media
-                </button>
-                <button class="nav-link mb-2 border" data-bs-toggle="pill"
-                        data-bs-target="#tab-media" type="button" role="tab">
-                  Media
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="col-10">
-            <form @submit.prevent="updateSetting" class="border rounded-1 p-3">
-              <div class="tab-content">
-                <div class="tab-pane fade show active" id="tab-basic" role="tabpanel">
-                  <div class="row g-3">
-                    <div class="col-md-4">
-                      <VInput
-                          id="site_name"
-                          v-model="form.site_name"
-                          label="Site Name"
-                          @validate="validateField('site_name')"
-                          :error="errors.site_name"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          id="office_time"
-                          v-model="form.office_time"
-                          label="Office Time"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          id="primary_email"
-                          v-model="form.primary_email"
-                          label="Primary Email"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          id="secondary_email"
-                          v-model="form.secondary_email"
-                          label="Secondary Email"
-                      />
-                    </div>
-                    <div class="col-md-4">
-                      <VInput
-                          id="whatsapp_number"
-                          v-model="form.whatsapp_number"
-                          label="WhatsApp Number"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VInput
-                          id="google_map_link"
-                          v-model="form.google_map_link"
-                          label="Google Map Link (Src Only)"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div class="tab-pane fade" id="tab-social" role="tabpanel">
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <VInput
-                          id="facebook_link"
-                          v-model="form.facebook_link"
-                          label="Facebook Link"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VInput
-                          id="twitter_link"
-                          v-model="form.twitter_link"
-                          label="Twitter Link"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VInput
-                          id="instagram_link"
-                          v-model="form.instagram_link"
-                          label="Instagram Link"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VInput
-                          id="pinterest_link"
-                          v-model="form.pinterest_link"
-                          label="Pinterest Link"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VInput
-                          id="skype_link"
-                          v-model="form.skype_link"
-                          label="Skype Link"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VInput
-                          id="linkedin_link"
-                          v-model="form.linkedin_link"
-                          label="LinkedIn Link"
-                      />
-                    </div>
-                    <div class="col-md-6">
-                      <VInput
-                          id="youtube_link"
-                          v-model="form.youtube_link"
-                          label="YouTube Link"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div class="tab-pane fade" id="tab-media" role="tabpanel">
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <VFileUpload
-                          id="logo"
-                          v-model="form.logo"
-                          label="Logo"
-                          :default-photo="setting.data.logo_url"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div class="tab-pane fade" id="tab-meta" role="tabpanel">
-                  <div class="row g-3">
-                    <div class="col-md-12">
-                      <VInput
-                          id="meta_title"
-                          v-model="form.meta_title"
-                          label="Meta Title"
-                          @validate="validateField('meta_title')"
-                          :error="errors.meta_title"
-                      />
-                    </div>
-                    <div class="col-md-12">
-                      <VTextarea
-                          id="meta_keywords"
-                          v-model="form.meta_keywords"
-                          label="Meta Keywords"
-                          @validate="validateField('meta_keywords')"
-                          :error="errors.meta_keywords"
-                      />
-                    </div>
-                    <div class="col-md-12">
-                      <VTextarea
-                          id="meta_description"
-                          v-model="form.meta_description"
-                          label="Meta Description"
-                          @validate="validateField('meta_description')"
-                          :error="errors.meta_description"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12 text-end mt-3">
-                <VButton :loading="isSubmitting"/>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
+    <div class="page-title">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <router-link :to="{name:'admin.dashboard'}">
+                    <i class="fa fa-home"> Home</i>
+                </router-link>
+            </li>
+            <li class="breadcrumb-item active"> Setting</li>
+        </ol>
     </div>
-  </section>
+
+    <section class="section">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                <h5 class="card-title"> Setting</h5>
+            </div>
+            <VLoader v-if="setting.loading" loader-type="progress" />
+            <div class="card-body">
+                <form @submit.prevent="updateSetting">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <VInput
+                                id="company_name"
+                                v-model="form.company_name"
+                                label="Company Name"
+                                @validate="validateField('company_name')"
+                                :error="errors.company_name"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="legal_name"
+                                v-model="form.legal_name"
+                                label="Legal Name"
+                                @validate="validateField('legal_name')"
+                                :error="errors.legal_name"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="code"
+                                v-model="form.code"
+                                label="Code"
+                                @validate="validateField('code')"
+                                :error="errors.code"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="pan"
+                                v-model="form.pan"
+                                label="PAN"
+                                @validate="validateField('pan')"
+                                :error="errors.pan"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="phone"
+                                v-model="form.phone"
+                                label="Phone"
+                                @validate="validateField('phone')"
+                                :error="errors.phone"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="email"
+                                v-model="form.email"
+                                label="Email"
+                                @validate="validateField('email')"
+                                :error="errors.email"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="landline"
+                                v-model="form.landline"
+                                label="Landline"
+                                @validate="validateField('landline')"
+                                :error="errors.landline"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="website"
+                                v-model="form.website"
+                                label="Website"
+                                @validate="validateField('website')"
+                                :error="errors.website"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VInput
+                                id="address"
+                                v-model="form.address"
+                                label="Address"
+                                @validate="validateField('address')"
+                                :error="errors.address"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VSelect
+                                id="fiscal_year_id"
+                                v-model="form.fiscal_year_id"
+                                :options="fiscalYears.data"
+                                name-prop="year_name"
+                                label="Fiscal Year"
+                                @validate="validateField('fiscal_year_id')"
+                                :error="errors.fiscal_year_id"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VFileUpload
+                                id="logo"
+                                v-model="form.logo"
+                                label="Logo"
+                                :default-photo="setting.data.logo_url"
+                            />
+                        </div>
+                        <div class="col-12 text-end">
+                            <VButton :loading="isSubmitting" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
 </template>
 <script setup>
-import {onMounted, reactive, ref} from "vue";
-import {toast} from "@/helpers/toast";
-import showErrors from "@/helpers/showErrors";
-import {object, string} from "yup";
-import {useYup} from "@/helpers/yup";
-import {storeToRefs} from "pinia";
-import {useSettingStore} from "@/stores/admin/setting";
+import { onMounted, reactive, ref } from 'vue';
+import { toast } from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import { object, string } from 'yup';
+import { useYup } from '@/helpers/yup';
+import { storeToRefs } from 'pinia';
+import { useSettingStore } from '@/stores/admin/setting';
+import { useAdminSettingStore } from '@/stores/admin/admin-setting.js';
 
 const settingStore = useSettingStore();
+const adminSettingStore = useAdminSettingStore();
 
 onMounted(() => {
-  setSettingData();
-})
+    setSettingData();
+    adminSettingStore.getFiscalYears();
+});
 
-const setSettingData = async () => {
-  await settingStore.getSetting();
-  Object.keys(form).forEach(key => {
-    form[key] = setting.value.data[key] || '';
-  })
-}
-
-const {setting} = storeToRefs(settingStore);
-
-const initialState = {
-  site_name: '',
-  alternate_name: '',
-  slogan: '',
-  office_time: '',
-  primary_email: '',
-  secondary_email: '',
-  established_year: '',
-  logo: '',
-  favicon: '',
-  og_image: '',
-  whatsapp_number: '',
-  facebook_link: '',
-  twitter_link: '',
-  instagram_link: '',
-  pinterest_link: '',
-  skype_link: '',
-  linkedin_link: '',
-  youtube_link: '',
-  google_map_link: '',
-  total_ratings: '',
-  rating_value: '',
-  meta_title: '',
-  meta_keywords: '',
-  meta_description: '',
+const setSettingData = async (refetch = false) => {
+    await settingStore.getSetting(refetch);
+    Object.keys(form).forEach(key => {
+        form[key] = setting.value.data[key] || '';
+    });
 };
 
-const form = reactive({...initialState});
+const { setting } = storeToRefs(settingStore);
+const { fiscalYears } = storeToRefs(adminSettingStore);
+
+const initialState = {
+    company_name: '',
+    legal_name: '',
+    code: '',
+    pan: '',
+    phone: '',
+    landline: '',
+    email: '',
+    website: '',
+    address: '',
+    logo: '',
+    fiscal_year_id: ''
+};
+
+const form = reactive({ ...initialState });
 const isSubmitting = ref(false);
 
 const validations = object({
-  site_name: string().required('Site name is required.'),
-  alternate_name: string().required('Alt name is required.'),
+    company_name: string().required('Company name is required.'),
+    legal_name: string().required('Legal name is required.'),
+    code: string().required('Code is required.'),
+    pan: string().nullable(),
+    phone: string().nullable(),
+    landline: string().nullable(),
+    website: string().nullable(),
+    email: string().required('Email is required.').email('Invalid email format'),
+    address: string().nullable()
 });
 
-const {errors, validateField, validateForm} = useYup(form, validations);
+const { errors, validateField, validateForm } = useYup(form, validations);
 
 const updateSetting = async () => {
-  let validated = await validateForm(validations, form)
-  if (validated) {
-    isSubmitting.value = true;
-    try {
-      let res = await settingStore.updateSetting(form);
-      toast(res.status, res.data.message);
-      resetForm();
-      await setSettingData();
-    } catch (e) {
-      showErrors(e);
-    } finally {
-      isSubmitting.value = false;
+    let validated = await validateForm(validations, form);
+    if (validated) {
+        isSubmitting.value = true;
+        try {
+            const formData=new FormData();
+            Object.keys(form).forEach(key => {
+                formData.append(key, form[key] || '');
+            });
+            const res = await settingStore.updateSetting(formData);
+            toast(res.status, res.data.message);
+            resetForm();
+            await setSettingData(true);
+        } catch (e) {
+            showErrors(e);
+        } finally {
+            isSubmitting.value = false;
+        }
     }
-  }
-}
+};
 
 const resetForm = () => {
-  Object.assign(form, {...initialState});
-  errors.value = {};
-}
+    Object.assign(form, { ...initialState });
+    errors.value = {};
+};
 </script>
 

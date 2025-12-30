@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('companies', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('fiscal_year_id')->nullable()->constrained()->nullOnDelete();
             $table->string('company_name');
             $table->string('code');
             $table->string('legal_name')->nullable();
