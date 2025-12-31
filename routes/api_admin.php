@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminSettingController;
 use App\Http\Controllers\Api\Admin\BrandController;
+use App\Http\Controllers\Api\Admin\TaxController;
 use App\Http\Controllers\Api\Admin\UnitController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,9 @@ Route::middleware('auth:admin')->group(function () {
 
         //warehouse
         Route::apiResource('warehouse', WarehouseController::class);
+
+        //tax
+        Route::apiResource('tax', TaxController::class);
     });
 
     //global settings

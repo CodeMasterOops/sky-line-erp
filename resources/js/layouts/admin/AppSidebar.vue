@@ -91,6 +91,12 @@
                             <span> Setting</span>
                         </router-link>
                     </li>
+                    <li v-can="'list_tax'">
+                        <router-link :to="{ name: 'admin.tax-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span> Tax</span>
+                        </router-link>
+                    </li>
                 </ul>
             </li>
         </ul>

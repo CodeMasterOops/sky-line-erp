@@ -119,6 +119,14 @@ const routes = [
                     pageTitle: 'Warehouse List'
                 },
                 component: () => import('@/views/admin/inventory/warehouse/Index.vue')
+            },
+            {
+                path: 'tax',
+                name: 'admin.tax-list',
+                meta: {
+                    pageTitle: 'Tax List'
+                },
+                component: () => import('@/views/admin/setting/tax/Index.vue')
             }
         ]
     },
