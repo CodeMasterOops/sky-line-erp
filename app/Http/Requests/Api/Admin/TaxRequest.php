@@ -21,7 +21,7 @@ class TaxRequest extends FormRequest
             ],
             'PUT' => [
                 'name' => ['required', 'string', 'max:255', TRule::unique('taxes')->withoutTrashed()->ignore($this->tax)],
-                'code' => ['required', 'numeric'],
+                'rate' => ['required', 'numeric'],
             ],
         };
     }

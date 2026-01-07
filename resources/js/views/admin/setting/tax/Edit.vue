@@ -1,11 +1,11 @@
 <template>
     <VModal
-        :show-modal="!!edit_unit_id"
+        :show-modal="!!edit_tax_id"
         @close-click="closeEditModal"
-        title="Update Unit">
+        title="Update Tax">
         <template #modal-body>
-            <VLoader v-if="unit.loading" loader-type="progress" />
-            <form @submit.prevent="updateUnit(unit.data.id)" class="row g-3">
+            <VLoader v-if="tax.loading" loader-type="progress" />
+            <form @submit.prevent="updateTax(tax.data.id)" class="row g-3">
                 <div class="col-md-6">
                     <VInput
                         id="name"
@@ -17,11 +17,12 @@
                 </div>
                 <div class="col-md-6">
                     <VInput
-                        id="code"
-                        v-model="form.code"
-                        label="Code"
-                        @validate="validateField('code')"
-                        :error="errors.code"
+                        input-type="number"
+                        id="rate"
+                        v-model="form.rate"
+                        label="Rate (%)"
+                        @validate="validateField('rate')"
+                        :error="errors.rate"
                     />
                 </div>
                 <div class="col-12 text-end">
@@ -42,44 +43,44 @@ import showErrors from '@/helpers/showErrors';
 import { object, string } from 'yup';
 import { useYup } from '@/helpers/yup';
 import { storeToRefs } from 'pinia';
-import { useUnitStore } from '@/stores/admin/inventory/unit.js';
+import { useTaxStore } from '@/stores/admin/setting/tax.js';
 
-const unitStore = useUnitStore();
+const taxStore = useTaxStore();
 
-const edit_unit_id = defineModel('unit_id');
+const edit_tax_id = defineModel('tax_id');
 
-const { unit } = storeToRefs(unitStore);
+const { tax } = storeToRefs(taxStore);
 
 const initialState = {
     name: '',
-    code: ''
+    rate: ''
 };
 
 const form = reactive({ ...initialState });
 const isSubmitting = ref(false);
 
-watch(() => edit_unit_id.value, async (id) => {
+watch(() => edit_tax_id.value, async (id) => {
     if (id) {
-        await unitStore.getUnit(id);
+        await taxStore.getTax(id);
         Object.keys(form).forEach(key => {
-            form[key] = unit.value.data[key] || '';
+            form[key] = tax.value.data[key] || '';
         });
     }
 });
 
 const validations = object({
     name: string().required('Name is required.'),
-    code: string().required('Code is required.')
+    rate: string().required('Rate is required.')
 });
 
 const { errors, validateField, validateForm } = useYup(form, validations);
 
-const updateUnit = async (id) => {
+const updateTax = async (id) => {
     let validated = await validateForm(validations, form);
     if (validated) {
         isSubmitting.value = true;
         try {
-            let res = await unitStore.updateUnit(id, form);
+            let res = await taxStore.updateTax(id, form);
             toast(res.status, res.data.message);
             closeEditModal();
         } catch (e) {
@@ -92,7 +93,7 @@ const updateUnit = async (id) => {
 
 const closeEditModal = () => {
     resetForm();
-    edit_unit_id.value = '';
+    edit_tax_id.value = '';
 };
 
 function resetForm() {
