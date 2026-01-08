@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminSettingController;
 use App\Http\Controllers\Api\Admin\BrandController;
+use App\Http\Controllers\Api\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\Admin\TaxController;
 use App\Http\Controllers\Api\Admin\UnitController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
@@ -59,6 +60,9 @@ Route::middleware('auth:admin')->group(function () {
 
         //tax
         Route::apiResource('tax', TaxController::class);
+
+        //product category
+        Route::apiResource('product-category', ProductCategoryController::class);
     });
 
     //global settings

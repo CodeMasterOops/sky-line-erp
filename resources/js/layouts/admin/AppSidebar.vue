@@ -28,10 +28,20 @@
                             <i class="fa fa-angle-double-right"></i>
                             <span>Units</span>
                         </router-link>
+                    </li>
+                    <li v-can="'list_product_category'">
+                        <router-link :to="{ name: 'admin.product-category-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Product Category</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_brand'">
                         <router-link :to="{ name: 'admin.brand-list' }">
                             <i class="fa fa-angle-double-right"></i>
                             <span>Brands</span>
                         </router-link>
+                    </li>
+                    <li v-can="'list_warehouse'">
                         <router-link :to="{ name: 'admin.warehouse-list' }">
                             <i class="fa fa-angle-double-right"></i>
                             <span>Warehouse</span>
