@@ -23,6 +23,12 @@
                     class="nav-content collapse"
                     data-bs-parent="#sidebarInventory"
                 >
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Products</span>
+                        </router-link>
+                    </li>
                     <li v-can="'list_unit'">
                         <router-link :to="{ name: 'admin.unit-list' }">
                             <i class="fa fa-angle-double-right"></i>

@@ -135,7 +135,15 @@ const routes = [
                     pageTitle: 'Product Category'
                 },
                 component: () => import('@/views/admin/inventory/product-category/Index.vue')
-            }
+            },
+            {
+                path: 'product',
+                name: 'admin.product-list',
+                meta: {
+                    pageTitle: 'Product List'
+                },
+                component: () => import('@/views/admin/inventory/product/Index.vue')
+            },
         ]
     },
 ];

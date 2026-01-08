@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\AdminSettingController;
 use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\ProductCategoryController;
+use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\TaxController;
 use App\Http\Controllers\Api\Admin\UnitController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
@@ -63,6 +64,9 @@ Route::middleware('auth:admin')->group(function () {
 
         //product category
         Route::apiResource('product-category', ProductCategoryController::class);
+
+        //product
+        Route::apiResource('product', ProductController::class);
     });
 
     //global settings
