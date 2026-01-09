@@ -60,7 +60,7 @@ import { object, string } from 'yup';
 import { useYup } from '@/helpers/yup';
 import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
 
-const userStore = useWarehouseStore();
+const warehouseStore = useWarehouseStore();
 
 const createModalOpened = defineModel('createModalOpened');
 
@@ -88,7 +88,7 @@ const storeWarehouse = async () => {
     if (validated) {
         isSubmitting.value = true;
         try {
-            let res = await userStore.storeWarehouse(form);
+            let res = await warehouseStore.storeWarehouse(form);
             toast(res.status, res.data.message);
             closeCreateModal();
         } catch (e) {

@@ -30,8 +30,8 @@
                             <th>SN</th>
                             <th>Name</th>
                             <th>Code</th>
-                            <th>Phone</th>
-                            <th>Address</th>
+                            <th>Sales Price</th>
+                            <th>Purchase Price</th>
                             <th class="text-center">Action</th>
                         </tr>
                         </thead>
@@ -47,10 +47,10 @@
                                     {{ product.code }}
                                 </td>
                                 <td>
-                                    {{ product.phone || 'N/A' }}
+                                    {{ product.sales_price }}
                                 </td>
                                 <td>
-                                    {{ product.address || 'N/A' }}
+                                    {{ product.purchase_price }}
                                 </td>
                                 <td style="width:90px;">
                                     <button

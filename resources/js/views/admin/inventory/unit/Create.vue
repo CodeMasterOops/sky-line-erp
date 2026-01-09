@@ -42,7 +42,7 @@ import {object, string} from "yup";
 import {useYup} from "@/helpers/yup";
 import { useUnitStore } from '@/stores/admin/inventory/unit.js';
 
-const userStore=useUnitStore();
+const unitStore=useUnitStore();
 
 const createModalOpened = defineModel('createModalOpened');
 
@@ -66,7 +66,7 @@ const storeUnit = async () => {
   if (validated) {
     isSubmitting.value = true;
     try {
-      let res = await userStore.storeUnit(form);
+      let res = await unitStore.storeUnit(form);
       toast(res.status, res.data.message);
       closeCreateModal();
     } catch (e) {

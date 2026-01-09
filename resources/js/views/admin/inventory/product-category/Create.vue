@@ -42,13 +42,13 @@ import { object, string } from 'yup';
 import { useYup } from '@/helpers/yup';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
 
-const userStore = useProductCategoryStore();
+const categoryStore = useProductCategoryStore();
 
 const createModalOpened = defineModel('createModalOpened');
 
 const initialState = {
     name: '',
-    description: '',
+    description: ''
 };
 
 const form = reactive({ ...initialState });
@@ -66,7 +66,7 @@ const storeProductCategory = async () => {
     if (validated) {
         isSubmitting.value = true;
         try {
-            let res = await userStore.storeProductCategory(form);
+            let res = await categoryStore.storeProductCategory(form);
             toast(res.status, res.data.message);
             closeCreateModal();
         } catch (e) {
