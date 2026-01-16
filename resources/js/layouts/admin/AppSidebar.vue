@@ -16,6 +16,114 @@
             <li class="nav-item">
                 <a
                     class="nav-link collapsed"
+                    data-bs-target="#sidebarSales"
+                    data-bs-toggle="collapse"
+                    href="#"
+                >
+                    <i class="fa fa-tags"></i>
+                    <span>Sales</span
+                    >
+                </a>
+                <ul
+                    id="sidebarSales"
+                    class="nav-content collapse"
+                    data-bs-parent="#sidebarSales"
+                >
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Quotations</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Sales</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Invoice</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Customer Payment</span>
+                        </router-link>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a
+                    class="nav-link collapsed"
+                    data-bs-target="#sidebarPurchase"
+                    data-bs-toggle="collapse"
+                    href="#"
+                >
+                    <i class="fa fa-shopping-cart"></i>
+                    <span>Purchase </span
+                    >
+                </a>
+                <ul
+                    id="sidebarPurchase"
+                    class="nav-content collapse"
+                    data-bs-parent="#sidebarPurchase"
+                >
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Purchase Order</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Sales</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Purchase Bills</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Supplier Payment</span>
+                        </router-link>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a
+                    class="nav-link collapsed"
+                    data-bs-target="#sidebarAccounting"
+                    data-bs-toggle="collapse"
+                    href="#"
+                >
+                    <i class="fa fa-file-text-o"></i>
+                    <span>Accounting</span
+                    >
+                </a>
+                <ul
+                    id="sidebarAccounting"
+                    class="nav-content collapse"
+                    data-bs-parent="#sidebarAccounting"
+                >
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Chart Of Account</span>
+                        </router-link>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a
+                    class="nav-link collapsed"
                     data-bs-target="#sidebarInventory"
                     data-bs-toggle="collapse"
                     href="#"
@@ -57,6 +165,36 @@
                         <router-link :to="{ name: 'admin.warehouse-list' }">
                             <i class="fa fa-angle-double-right"></i>
                             <span>Warehouse</span>
+                        </router-link>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a
+                    class="nav-link collapsed"
+                    data-bs-target="#sidebarReport"
+                    data-bs-toggle="collapse"
+                    href="#"
+                >
+                    <i class="fa fa-bar-chart-o"></i>
+                    <span>Reports</span
+                    >
+                </a>
+                <ul
+                    id="sidebarReport"
+                    class="nav-content collapse"
+                    data-bs-parent="#sidebarReport"
+                >
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Sales Report</span>
+                        </router-link>
+                    </li>
+                    <li v-can="'list_product'">
+                        <router-link :to="{ name: 'admin.product-list' }">
+                            <i class="fa fa-angle-double-right"></i>
+                            <span>Purchase Report</span>
                         </router-link>
                     </li>
                 </ul>
