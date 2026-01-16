@@ -7,6 +7,12 @@
                     <span>Dashboard</span>
                 </router-link>
             </li>
+            <li v-can="'list_party'" class="nav-item">
+                <router-link :to="{ name: 'admin.party-list' }" class="nav-link">
+                    <i class="fa fa-user"></i>
+                    <span>Parties</span>
+                </router-link>
+            </li>
             <li class="nav-item">
                 <a
                     class="nav-link collapsed"

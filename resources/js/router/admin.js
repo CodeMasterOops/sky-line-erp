@@ -2,7 +2,7 @@ import AdminLayout from '@/layouts/admin/AppLayout.vue';
 
 const routes = [
     {
-        path:'/',
+        path: '/',
         redirect: '/admin/dashboard'
     },
     {
@@ -143,6 +143,14 @@ const routes = [
                     pageTitle: 'Product List'
                 },
                 component: () => import('@/views/admin/inventory/product/Index.vue')
+            },
+            {
+                path: 'party',
+                name: 'admin.party-list',
+                meta: {
+                    pageTitle: 'Party List'
+                },
+                component: () => import('@/views/admin/party/Index.vue')
             },
         ]
     },

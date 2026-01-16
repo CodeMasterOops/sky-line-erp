@@ -1,21 +1,22 @@
 <?php
 
-use App\Http\Controllers\Api\Admin\AdminSettingController;
-use App\Http\Controllers\Api\Admin\BrandController;
-use App\Http\Controllers\Api\Admin\ProductCategoryController;
-use App\Http\Controllers\Api\Admin\ProductController;
-use App\Http\Controllers\Api\Admin\TaxController;
-use App\Http\Controllers\Api\Admin\UnitController;
-use App\Http\Controllers\Api\Admin\WarehouseController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Admin\TaxController;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\EnumController;
 use App\Http\Controllers\Api\Admin\RoleController;
+use App\Http\Controllers\Api\Admin\UnitController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\Admin\BrandController;
+use App\Http\Controllers\Api\Admin\PartyController;
+use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\DashboardController;
+use App\Http\Controllers\Api\Admin\WarehouseController;
 use App\Http\Controllers\Api\Admin\PermissionController;
+use App\Http\Controllers\Api\Admin\AdminSettingController;
+use App\Http\Controllers\Api\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
 
 Route::controller(AuthController::class)->group(function () {
@@ -50,28 +51,31 @@ Route::middleware('auth:admin')->group(function () {
             Route::post('mark-as-read/{id?}', 'markAsRead')->name('mark-as-read');
         });
 
-        //unit
+        // unit
         Route::apiResource('unit', UnitController::class);
 
-        //brand
+        // brand
         Route::apiResource('brand', BrandController::class);
 
-        //warehouse
+        // warehouse
         Route::apiResource('warehouse', WarehouseController::class);
 
-        //tax
+        // tax
         Route::apiResource('tax', TaxController::class);
 
-        //product category
+        // product category
         Route::apiResource('product-category', ProductCategoryController::class);
 
-        //product
+        // product
         Route::apiResource('product', ProductController::class);
+
+        // parties
+        Route::apiResource('party', PartyController::class);
     });
 
-    //global settings
+    // global settings
     Route::prefix('admin-setting')->as('admin-setting.')->controller(AdminSettingController::class)->group(function () {
-        Route::get('fiscal-year','fiscalYears')->name('fiscal-year');
+        Route::get('fiscal-year', 'fiscalYears')->name('fiscal-year');
     });
 
     // enum
