@@ -1,139 +1,385 @@
 <template>
-    <header id="header" class="header fixed-top d-flex align-items-center">
-        <div class="d-flex align-items-center justify-content-between logo-area">
-            <router-link :to="{ name: 'admin.dashboard' }" class="square-logo d-flex align-items-center">
-                <img :src="appLogo" alt="logo"/>
+    <header class="header">
+        <div class="header-left active">
+            <router-link :to="{ name: 'admin.dashboard' }" class="logo logo-normal">
+                <img src="@/assets/images/logo.svg" alt="">
             </router-link>
-            <i class="fa fa-bars toggle-sidebar-btn pe-2" @click="sidebarToggle()"></i>
+            <router-link :to="{ name: 'admin.dashboard' }" class="logo logo-white">
+                <img src="@/assets/images/logo-white.svg" alt="">
+            </router-link>
+            <router-link :to="{ name: 'admin.dashboard' }" class="logo-small">
+                <img src="@/assets/images/logo-small.png" alt="">
+            </router-link>
         </div>
 
-        <nav class="header-nav ms-auto">
-            <ul class="d-flex align-items-center">
-                <li class="nav-item dropdown">
-                    <template v-if="notifications.data.length">
-                        <a href="javascript:void(0)" class="nav-link nav-icon"
-                           data-bs-toggle="dropdown" title="Notifications">
-                            <i class="fa fa-bell-o"></i>
-                            <span class="badge bg-warning badge-number">
-                                {{ notifications.data.length }}
+        <a id="mobile_btn" class="mobile_btn" href="#" @click.prevent="toggleMobileBtn">
+            <span class="bar-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </span>
+        </a>
+
+        <ul class="nav user-menu">
+
+            <!-- Search -->
+            <li class="nav-item nav-searchinputs">
+                <div class="top-nav-search">
+                    <a href="javascript:void(0);" class="responsive-search">
+                        <i class="fa fa-search"></i>
+                    </a>
+                    <form action="#" class="dropdown">
+                        <div class="searchinputs input-group dropdown-toggle" id="dropdownMenuClickable"
+                            data-bs-toggle="dropdown" data-bs-auto-close="false">
+                            <input type="text" placeholder="Search">
+                            <div class="search-addon">
+                                <span><i class="ti ti-search"></i></span>
+                            </div>
+                            <span class="input-group-text">
+                                <kbd class="d-flex align-items-center"><img src="@/assets/images/icons/command.svg"
+                                        alt="img" class="me-1">K</kbd>
                             </span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow notifications">
-                            <li class="dropdown-header">
-                                You have {{ notifications.data.length }} new notifications
-                                <a style="cursor: pointer;" @click.prevent="viewAllNotifications">
-                                    <span class="badge rounded-pill bg-primary p-2 ms-2">View all</span>
-                                </a>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
+                        </div>
+                        <div class="dropdown-menu search-dropdown" aria-labelledby="dropdownMenuClickable">
+                            <div class="search-info">
+                                <h6><span><i data-feather="search" class="feather-16"></i></span>Recent Searches
+                                </h6>
+                                <ul class="search-tags">
+                                    <li><a href="javascript:void(0);">Products</a></li>
+                                    <li><a href="javascript:void(0);">Sales</a></li>
+                                    <li><a href="javascript:void(0);">Applications</a></li>
+                                </ul>
+                            </div>
+                            <div class="search-info">
+                                <h6><span><i data-feather="help-circle" class="feather-16"></i></span>Help</h6>
+                                <p>How to Change Product Volume from 0 to 200 on Inventory management</p>
+                                <p>Change Product Name</p>
+                            </div>
+                            <div class="search-info">
+                                <h6><span><i data-feather="user" class="feather-16"></i></span>Customers</h6>
+                                <ul class="customers">
+                                    <li><a href="javascript:void(0);">Aron Varu<img
+                                                src="@/assets/images/profiles/avator1.jpg" alt="" class="img-fluid"></a>
+                                    </li>
+                                    <li><a href="javascript:void(0);">Jonita<img
+                                                src="@/assets/images/profiles/avatar-01.jpg" alt=""
+                                                class="img-fluid"></a>
+                                    </li>
+                                    <li><a href="javascript:void(0);">Aaron<img
+                                                src="@/assets/images/profiles/avatar-10.jpg" alt=""
+                                                class="img-fluid"></a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </li>
+            <li class="nav-item dropdown link-nav">
+                <a href="javascript:void(0);" class="btn btn-primary btn-md d-inline-flex align-items-center"
+                    data-bs-toggle="dropdown">
+                    <i class="fa fa-plus-circle me-1"></i>Add New
+                </a>
+                <div class="dropdown-menu dropdown-xl dropdown-menu-center">
+                    <div class="row g-2">
+                        <div class="col-md-2">
+                            <router-link to="/inventory/category-list" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-brand-codepen"></i>
+                                </span>
+                                <p>Category</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/inventory/add-product" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-square-plus"></i>
+                                </span>
+                                <p>Product</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/inventory/category-list" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-shopping-bag"></i>
+                                </span>
+                                <p>Purchase</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/sales/online-orders" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-shopping-cart"></i>
+                                </span>
+                                <p>Sale</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/expenses/expenses-list" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-file-text"></i>
+                                </span>
+                                <p>Expense</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/quotation-list" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-device-floppy"></i>
+                                </span>
+                                <p>Quotation</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/sales-returns" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-copy"></i>
+                                </span>
+                                <p>Return</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/users/users-list" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-user"></i>
+                                </span>
+                                <p>User</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/ecommerce/customers" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-users"></i>
+                                </span>
+                                <p>Customer</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/sales-report/sales-report" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-shield"></i>
+                                </span>
+                                <p>Biller</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/people/suppliers" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-user-check"></i>
+                                </span>
+                                <p>Supplier</p>
+                            </router-link>
+                        </div>
+                        <div class="col-md-2">
+                            <router-link to="/stock/stock-transfer" class="link-item">
+                                <span class="link-icon">
+                                    <i class="ti ti-truck"></i>
+                                </span>
+                                <p>Transfer</p>
+                            </router-link>
+                        </div>
+                    </div>
+                </div>
+            </li>
 
-                            <template v-for="notification in notifications.data" :key="notification.id">
-                                <li @click.prevent="notificationClick(notification)" style="cursor: pointer;" class="notification-item">
-                                    <i class="fa fa-exclamation-circle text-info"></i>
-                                    <div>
-                                        <h6 class="mb-1">{{ notification.notification_type }}</h6>
-                                        <p class="fw-bolder">{{ notification.data.notification_title }}</p>
-                                        <p>{{ notification.time }}</p>
-                                    </div>
-                                </li>
+            <li class="nav-item pos-nav">
+                <router-link to="/pos/pos-1" class="btn btn-dark btn-md d-inline-flex align-items-center">
+                    <i class="fa fa-laptop me-1"></i>POS
+                </router-link>
+            </li>
 
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                            </template>
-                        </ul>
-                    </template>
-                    <template v-else>
-                        <router-link :to="{name:'admin.notification-list'}" class="nav-link nav-icon" title="Notifications">
-                            <i class="fa fa-bell-o"></i>
-                        </router-link>
-                    </template>
-                </li>
+            <!-- Flag -->
+            <li class="nav-item dropdown has-arrow flag-nav nav-item-box">
+                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="javascript:void(0);" role="button">
+                    <img src="@/assets/images/flags/us-flag.svg" alt="Language" class="img-fluid">
+                </a>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a href="javascript:void(0);" class="dropdown-item">
+                        <img src="@/assets/images/flags/english.svg" alt="" height="16">English
+                    </a>
+                    <a href="javascript:void(0);" class="dropdown-item">
+                        <img src="@/assets/images/flags/arabic.svg" alt="" height="16">Arabic
+                    </a>
+                </div>
+            </li>
+            <!-- /Flag -->
 
-                <li class="nav-item dropdown pe-3">
-                    <a
-                        class="nav-link nav-profile d-flex align-items-center pe-0"
-                        href="#"
-                        data-bs-toggle="dropdown"
-                    >
-                        <img :src="profile.data.profile_photo_url || userIcon" alt="Profile" class="rounded-circle"/>
-                        <span class="d-none d-md-block dropdown-toggle ps-2">
-                            {{ profile.data.name }}
+            <li class="nav-item nav-item-box">
+                <a href="javascript:void(0);" id="btnFullscreen" @click.prevent="initFullScreen">
+                    <i class="fa fa-arrows-alt"></i>
+                </a>
+            </li>
+            <!-- Notifications -->
+            <li class="nav-item dropdown nav-item-box">
+                <template v-if="notifications.data.length">
+                    <a href="javascript:void(0);" class="dropdown-toggle nav-link" data-bs-toggle="dropdown">
+                        <i class="fa fa-bell"></i>
+                        <span class="badge bg-warning badge-number">
+                            {{ notifications.data.length }}
                         </span>
                     </a>
-
-                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
-                        <li class="dropdown-header">
-                            <h6>{{ profile.data.name }}</h6>
-                        </li>
-                        <li>
-                            <hr class="dropdown-divider"/>
-                        </li>
-
-                        <li>
-                            <router-link
-                                :to="{ name: 'admin.profile' }"
-                                class="dropdown-item d-flex align-items-center"
-                            >
-                                <i class="fa fa-user"></i>
-                                <span>My Profile</span>
+                    <div class="dropdown-menu notifications">
+                        <div class="topnav-dropdown-header">
+                            <h5 class="notification-title">
+                                You have {{ notifications.data.length }} new notifications
+                            </h5>
+                            <a href="javascript:void(0)" class="clear-noti" @click.prevent="markAllAsRead">
+                                Mark all as read
+                            </a>
+                        </div>
+                        <div class="noti-content">
+                            <ul class="notification-list">
+                                <template v-for="notification in notifications.data" :key="notification.id">
+                                    <li class="notification-message">
+                                        <a href="javascript:void(0);" class="recent-msg"
+                                           @click.prevent="notificationClick(notification)">
+                                            <div class="media d-flex">
+                                                <span class="avatar flex-shrink-0">
+                                                    <img alt="" src="@/assets/images/profiles/avatar-10.jpg">
+                                                </span>
+                                                <div class="flex-grow-1">
+                                                    <p class="noti-details">
+                                                        <span class="noti-title">
+                                                            {{ notification.notification_type }}
+                                                        </span>
+                                                        {{ notification.data.notification_title }}
+                                                    </p>
+                                                    <p class="noti-time">{{ notification.time }}</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                        <div class="topnav-dropdown-footer d-flex align-items-center gap-3">
+                            <a href="javascript:void(0);" class="btn btn-secondary btn-md w-100">Close</a>
+                            <router-link :to="{ name: 'admin.notification-list' }"
+                                         class="btn btn-primary btn-md w-100">
+                                View all
                             </router-link>
-                        </li>
-                        <li>
-                            <hr class="dropdown-divider"/>
-                        </li>
+                        </div>
+                    </div>
+                </template>
+                <template v-else>
+                    <router-link :to="{ name: 'admin.notification-list' }" class="dropdown-toggle nav-link">
+                        <i class="fa fa-bell"></i>
+                    </router-link>
+                </template>
+            </li>
+            <!-- /Notifications -->
 
-                        <li>
-                            <button @click.prevent="logout"
-                                    type="button"
-                                    class="dropdown-item d-flex align-items-center">
-                                <i class="fa fa-sign-out"></i>
-                                <span>Sign Out</span>
-                            </button>
-                        </li>
-                    </ul>
-                </li>
-            </ul>
-        </nav>
+            <li class="nav-item nav-item-box">
+                <router-link to="/settings/general-settings"><i class="fa fa-cog"></i></router-link>
+            </li>
+            <li class="nav-item dropdown has-arrow main-drop profile-nav">
+                <a href="javascript:void(0);" class="nav-link userset" data-bs-toggle="dropdown">
+                    <span class="user-info p-0">
+                        <span class="user-letter">
+                            <img :src="profile.data.profile_photo_url || userIcon" alt="" class="img-fluid">
+                        </span>
+                    </span>
+                </a>
+                <div class="dropdown-menu menu-drop-user">
+                    <div class="profileset d-flex align-items-center">
+                        <span class="user-img me-2">
+                            <img :src="profile.data.profile_photo_url || userIcon" alt="">
+                        </span>
+                        <div>
+                            <h6 class="fw-medium">{{ profile.data.name }}</h6>
+                            <p>Admin</p>
+                        </div>
+                    </div>
+                    <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">
+                        <i class="ti ti-user-circle me-2"></i>My Profile
+                    </router-link>
+                    <router-link class="dropdown-item" to="/sales-report/sales-report">
+                        <i class="ti ti-file-text me-2"></i>Reports
+                    </router-link>
+                    <router-link class="dropdown-item" to="/settings/general-settings">
+                        <i class="ti ti-settings-2 me-2"></i>Settings
+                    </router-link>
+                    <hr class="my-2">
+                    <button class="dropdown-item logout pb-0" type="button" @click.prevent="logout">
+                        <i class="ti ti-logout me-2"></i>Logout
+                    </button>
+                </div>
+            </li>
+        </ul>
+
+        <div class="dropdown mobile-user-menu">
+            <a href="javascript:void(0);" class="nav-link dropdown-toggle" data-bs-toggle="dropdown"
+                aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+            <div class="dropdown-menu dropdown-menu-right">
+                <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">My Profile</router-link>
+                <router-link class="dropdown-item" to="/settings/general-settings">Settings</router-link>
+                <button class="dropdown-item" type="button" @click.prevent="logout">Logout</button>
+            </div>
+        </div>
     </header>
 </template>
 
 <script setup>
 import userIcon from '@/assets/images/user-icon.png';
-import appLogo from '@/assets/images/app-logo.png';
-import {onMounted} from "vue";
-import {useProfileStore} from "@/stores/admin/profile";
-import {storeToRefs} from "pinia";
-import {useAdminAuthStore} from "@/stores/admin/auth";
+import { onMounted } from "vue";
+import { useProfileStore } from "@/stores/admin/profile";
+import { storeToRefs } from "pinia";
+import { useAdminAuthStore } from "@/stores/admin/auth";
 import showErrors from "@/helpers/showErrors";
-import {toast} from "@/helpers/toast";
-import {useRouter} from "vue-router";
-import {useAdminNotificationStore} from "@/stores/admin/notification";
+import { toast } from "@/helpers/toast";
+import { useRouter } from "vue-router";
+import { useAdminNotificationStore } from "@/stores/admin/notification";
 
 const notificationStore = useAdminNotificationStore();
 const profileStore = useProfileStore();
 const authStore = useAdminAuthStore();
 const router = useRouter();
 
-const sidebarToggle = () => {
-    document.body.classList.toggle("toggle-sidebar");
-}
+const toggleMobileBtn = () => {
+    document.body.classList.toggle('slide-nav');
+    document.body.classList.toggle('menu-opened');
+};
+
+const initFullScreen = () => {
+    document.body.classList.toggle("fullscreen-enable");
+    if (
+        !document.fullscreenElement &&
+        /* alternative standard method */
+        !document.mozFullScreenElement &&
+        !document.webkitFullscreenElement
+    ) {
+        // current working methods
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+            document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT);
+        }
+    } else {
+        if (document.cancelFullScreen) {
+            document.cancelFullScreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.webkitCancelFullScreen) {
+            document.webkitCancelFullScreen();
+        }
+    }
+};
 
 onMounted(() => {
     profileStore.getProfile();
     notificationStore.getUnreadNotifications();
 })
 
-const {profile} = storeToRefs(profileStore);
-const {unreadNotifications: notifications} = storeToRefs(notificationStore);
+const { profile } = storeToRefs(profileStore);
+const { unreadNotifications: notifications } = storeToRefs(notificationStore);
 
 const logout = async () => {
     try {
         const res = await authStore.logout();
         toast(res.status, res.data.message);
-        await router.push({name: 'admin.login'});
+        await router.push({ name: 'admin.login' });
     } catch (e) {
         showErrors(e);
     }
@@ -141,16 +387,18 @@ const logout = async () => {
 
 const notificationClick = async (notification) => {
     try {
-        console.log('clicked'+notification)
+        await notificationStore.markAsRead(notification.id);
+        // Refresh notifications after marking as read
+        await notificationStore.getUnreadNotifications();
     } catch (e) {
         showErrors(e);
     }
 }
 
-const viewAllNotifications = () => {
+const markAllAsRead = async () => {
     try {
-        notificationStore.markAsRead();
-        router.push({name: 'admin.notification-list'})
+        await notificationStore.markAsRead();
+        await notificationStore.getUnreadNotifications();
     } catch (e) {
         showErrors(e);
     }

@@ -1,9 +1,7 @@
 <template>
-    <VModal
-        :show-modal="!!createModalOpened"
-        @close-click="createModalOpened=false"
-        modal-class="large-modal"
+    <VModal :show-modal="!!createModalOpened" @close-click="createModalOpened = false" modal-class="large-modal"
         title="Add New Product">
+
         <template #modal-body>
             <form @submit.prevent="storeProduct" class="row g-3">
                 <div v-for="type in productTypes" :key="type.id" class="col-6">
@@ -13,100 +11,46 @@
                     </label>
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="name"
-                        v-model="form.name"
-                        label="Name"
-                        @validate="validateField('name')"
-                        :error="errors.name"
-                    />
+                    <VInput id="name" v-model="form.name" label="Name" @validate="validateField('name')"
+                        :error="errors.name" />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="code"
-                        v-model="form.code"
-                        label="Code"
-                        @validate="validateField('code')"
-                        :error="errors.code"
-                    />
+                    <VInput id="code" v-model="form.code" label="Code" @validate="validateField('code')"
+                        :error="errors.code" />
                 </div>
                 <div class="col-md-6">
-                    <VMultiselect
-                        id="product_category_id"
-                        v-model="form.product_category_id"
-                        :options="productCategories.data"
-                        label="Category"
-                        @validate="validateField('product_category_id')"
-                        :error="errors.product_category_id"
-                    />
+                    <VMultiselect id="product_category_id" v-model="form.product_category_id"
+                        :options="productCategories.data" label="Category"
+                        @validate="validateField('product_category_id')" :error="errors.product_category_id" />
                 </div>
                 <div class="col-md-6">
-                    <VMultiselect
-                        id="unit_id"
-                        v-model="form.unit_id"
-                        :options="units.data"
-                        label="Unit"
-                        @validate="validateField('unit_id')"
-                        :error="errors.unit_id"
-                    />
+                    <VMultiselect id="unit_id" v-model="form.unit_id" :options="units.data" label="Unit"
+                        @validate="validateField('unit_id')" :error="errors.unit_id" />
                 </div>
                 <div class="col-md-6">
-                    <VMultiselect
-                        id="brand_id"
-                        v-model="form.brand_id"
-                        :options="brands.data"
-                        label="Brand"
-                        @validate="validateField('brand_id')"
-                        :error="errors.brand_id"
-                    />
+                    <VMultiselect id="brand_id" v-model="form.brand_id" :options="brands.data" label="Brand"
+                        @validate="validateField('brand_id')" :error="errors.brand_id" />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="sku"
-                        v-model="form.sku"
-                        label="SKU"
-                        @validate="validateField('sku')"
-                        :error="errors.sku"
-                    />
+                    <VInput id="sku" v-model="form.sku" label="SKU" @validate="validateField('sku')"
+                        :error="errors.sku" />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        input-type="number"
-                        id="reorder_quantity"
-                        v-model="form.reorder_quantity"
-                        label="Reorder Qty"
-                        @validate="validateField('reorder_quantity')"
-                        :error="errors.reorder_quantity"
-                    />
+                    <VInput input-type="number" id="reorder_quantity" v-model="form.reorder_quantity"
+                        label="Reorder Qty" @validate="validateField('reorder_quantity')"
+                        :error="errors.reorder_quantity" />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        input-type="number"
-                        id="purchase_price"
-                        v-model="form.purchase_price"
-                        label="Purchase Price"
-                        @validate="validateField('purchase_price')"
-                        :error="errors.purchase_price"
-                    />
+                    <VInput input-type="number" id="purchase_price" v-model="form.purchase_price" label="Purchase Price"
+                        @validate="validateField('purchase_price')" :error="errors.purchase_price" />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        input-type="number"
-                        id="sales_price"
-                        v-model="form.sales_price"
-                        label="Sales Price"
-                        @validate="validateField('sales_price')"
-                        :error="errors.sales_price"
-                    />
+                    <VInput input-type="number" id="sales_price" v-model="form.sales_price" label="Sales Price"
+                        @validate="validateField('sales_price')" :error="errors.sales_price" />
                 </div>
                 <div class="col-md-12">
-                    <VTextarea
-                        id="description"
-                        v-model="form.description"
-                        label="Description"
-                        @validate="validateField('description')"
-                        :error="errors.description"
-                    />
+                    <VTextarea id="description" v-model="form.description" label="Description"
+                        @validate="validateField('description')" :error="errors.description" />
                 </div>
                 <div class="col-12 text-end">
                     <button @click="closeCreateModal" class="btn btn-danger" type="button">

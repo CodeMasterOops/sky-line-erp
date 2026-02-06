@@ -1,21 +1,22 @@
-import {createApp} from 'vue'
-import App from './App.vue'
+import { createApp } from "vue";
+import App from "./App.vue";
+import DatePicker from "vue3-datepicker";
+import VueApexCharts from "vue3-apexcharts";
 
-import {createPinia} from 'pinia'
+import { createPinia } from "pinia";
 
 import router from "@/router";
 import Antd from "ant-design-vue";
 import "ant-design-vue/dist/reset.css";
 
 //multiselect css
-import '@vueform/multiselect/themes/default.css';
+import "@vueform/multiselect/themes/default.css";
 
 //bootstrap
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.js";
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
-import '@/assets/scss/app.scss'
-
+import "@/assets/scss/app.scss";
 
 //base components
 import VInput from "@/components/base/VInput.vue";
@@ -35,11 +36,17 @@ import VTimepicker from "@/components/base/VTimepicker.vue";
 import VDateTimePicker from "@/components/base/VDateTimePicker.vue";
 
 import ThemeSettings from "@/layouts/theme-settings.vue";
+import verticalSidebar from "@/layouts/admin/vertical-sidebar.vue";
+import PosLoader from "@/layouts/pos-loader.vue";
+import ProductHeader from "@/components/product/product-header.vue";
+
 //permission check helper
-import {permissionAccess} from "@/helpers/checkPermission";
+import { permissionAccess } from "@/helpers/checkPermission";
 
 //fontawesome
-import '@/assets/fontawesome/css/font-awesome.min.css'
+import "@/assets/fontawesome/css/font-awesome.min.css";
+import "@/assets/css/tabler-icons.css";
+import { IconHome } from "@tabler/icons-vue";
 
 //my plugins
 import myPlugins from "./plugins/my-plugins";
@@ -50,22 +57,28 @@ createApp(App)
     .use(createPinia())
     .use(myPlugins)
     .component("theme-settings", ThemeSettings)
-    .component('VInput', VInput)
-    .component('VTextarea', VTextarea)
-    .component('VSelect', VSelect)
-    .component('Multiselect', Multiselect)
-    .component('VMultiselect', VMultiselect)
-    .component('VCheckbox', VCheckbox)
-    .component('VDatepicker', VDatepicker)
-    .component('VTimepicker', VTimepicker)
-    .component('VDatetimepicker', VDateTimePicker)
-    .component('VFileUpload', VFileUpload)
-    .component('VButton', VButton)
-    .component('VLoader', VLoader)
-    .component('VDataTable', VDataTable)
-    .component('VModal', VModal)
-    .component('VPrint', VPrint)
-    .component('VExport', VExport)
-    .directive('can', permissionAccess)
+    .component("vertical-sidebar", verticalSidebar)
+    .component("PosLoader", PosLoader)
+    .component("IconHome", IconHome)
+    .component("VInput", VInput)
+    .component("VTextarea", VTextarea)
+    .component("VSelect", VSelect)
+    .component("Multiselect", Multiselect)
+    .component("VMultiselect", VMultiselect)
+    .component("ProductHeader", ProductHeader)
+    .component("VCheckbox", VCheckbox)
+    .component("VDatepicker", VDatepicker)
+    .component("VTimepicker", VTimepicker)
+    .component("VDatetimepicker", VDateTimePicker)
+    .component("VFileUpload", VFileUpload)
+    .component("VButton", VButton)
+    .component("VLoader", VLoader)
+    .component("VDataTable", VDataTable)
+    .component("VModal", VModal)
+    .component("VPrint", VPrint)
+    .component("VExport", VExport)
+    .component("DatePicker", DatePicker)
+    .directive("can", permissionAccess)
+    .use(VueApexCharts)
     .use(Antd)
-    .mount('#app')
+    .mount("#app");

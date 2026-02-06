@@ -1,27 +1,48 @@
 <template>
   <Transition name="modal">
-    <div v-if="showModal" class="modal-mask" role="document">
-      <div v-bind:class="{'modal-wrapper':modalClass!=='full-screen-modal'}">
-        <div class="modal-container" v-bind:class="[modalClass]">
-          <div class="v-modal-header">
-            <template v-if="$slots.header">
-              <slot name="header"/>
-            </template>
-            <template v-else>
-              <h5 class="v-modal-title">
-                {{ title }}
-              </h5>
-              <button
-                  v-if="$emit"
-                  class="btn-close"
+    <div
+      v-if="showModal"
+      class="modal fade show d-block"
+      tabindex="-1"
+      role="dialog"
+      style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; overflow-x: hidden; overflow-y: auto;"
+    >
+      <!-- Backdrop -->
+      <div class="modal-backdrop fade show" @click="handleBackdropClick"></div>
+      
+      <div
+        class="modal-dialog modal-dialog-centered"
+        :class="modalClass"
+        role="document"
+        @click.stop
+        style="position: relative; z-index: 1055;"
+      >
+        <div class="modal-content">
+          <div class="page-wrapper-new p-0">
+            <div class="content">
+              <!-- Header -->
+              <div class="modal-header border-0 custom-modal-header">
+                <slot name="header">
+                  <div class="page-title">
+                    <h4>{{ title }}</h4>
+                  </div>
+                </slot>
+
+                <button
                   type="button"
-                  @click.prevent="$emit('closeClick')"
+                  class="close"
                   aria-label="Close"
-              ></button>
-            </template>
-          </div>
-          <div class="v-modal-body">
-            <slot name="modal-body"/>
+                  @click="$emit('closeClick')"
+                >
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+
+              <!-- Body -->
+              <div class="modal-body custom-modal-body">
+                <slot name="modal-body" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -30,18 +51,41 @@
 </template>
 
 <script setup>
-defineEmits(['closeClick'])
-defineProps({
+import { watch } from 'vue'
+
+const props = defineProps({
   showModal: {
     type: Boolean,
-    default: false
+    default: false,
   },
   modalClass: {
     type: String,
-    default: 'medium-modal'
+    default: 'custom-modal-two',
   },
   title: {
-    type: String
-  }
+    type: String,
+    default: '',
+  },
+  closeOnBackdrop: {
+    type: Boolean,
+    default: true,
+  },
 })
+
+const emit = defineEmits(['closeClick'])
+
+const handleBackdropClick = () => {
+  if (props.closeOnBackdrop) {
+    emit('closeClick')
+  }
+}
+
+// Lock body scroll when modal is open
+watch(() => props.showModal, (isOpen) => {
+  if (isOpen) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+}, { immediate: true })
 </script>

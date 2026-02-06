@@ -40,7 +40,11 @@
 @use "layout/theme";
 @use "layout/theme-setting";
 @use "layout/theme-color";
-
+@use "layout/header";
+@use "layout/sidebar";
 
 /****** Pages ******/
 @use "pages/login";
+@use "pages/social-feed";
+@use "pages/admin-dashboard";
+@use "pages/vue";

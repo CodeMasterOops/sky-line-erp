@@ -1,266 +1,124 @@
 <template>
-    <aside id="sidebar" class="sidebar">
-        <ul class="sidebar-nav" id="sidebar-nav">
-            <li class="nav-item">
-                <router-link :to="{ name: 'admin.dashboard' }" class="nav-link">
-                    <i class="fa fa-dashboard"></i>
-                    <span>Dashboard</span>
-                </router-link>
-            </li>
-            <li v-can="'list_party'" class="nav-item">
-                <router-link :to="{ name: 'admin.party-list' }" class="nav-link">
-                    <i class="fa fa-user"></i>
-                    <span>Parties</span>
-                </router-link>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarSales"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-tags"></i>
-                    <span>Sales</span
-                    >
-                </a>
-                <ul
-                    id="sidebarSales"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarSales"
-                >
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Quotations</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Sales</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Invoice</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Customer Payment</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarPurchase"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-shopping-cart"></i>
-                    <span>Purchase </span
-                    >
-                </a>
-                <ul
-                    id="sidebarPurchase"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarPurchase"
-                >
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Purchase Order</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Sales</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Purchase Bills</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Supplier Payment</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarAccounting"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-file-text-o"></i>
-                    <span>Accounting</span
-                    >
-                </a>
-                <ul
-                    id="sidebarAccounting"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarAccounting"
-                >
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Chart Of Account</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarInventory"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-stack-exchange"></i>
-                    <span>Inventory</span
-                    >
-                </a>
-                <ul
-                    id="sidebarInventory"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarInventory"
-                >
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Products</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_unit'">
-                        <router-link :to="{ name: 'admin.unit-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Units</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product_category'">
-                        <router-link :to="{ name: 'admin.product-category-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Product Category</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_brand'">
-                        <router-link :to="{ name: 'admin.brand-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Brands</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_warehouse'">
-                        <router-link :to="{ name: 'admin.warehouse-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Warehouse</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarReport"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-bar-chart-o"></i>
-                    <span>Reports</span
-                    >
-                </a>
-                <ul
-                    id="sidebarReport"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarReport"
-                >
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Sales Report</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_product'">
-                        <router-link :to="{ name: 'admin.product-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Purchase Report</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarAuthorization"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-users"></i>
-                    <span>User & Role</span
-                    >
-                </a>
-                <ul
-                    id="sidebarAuthorization"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarAuthorization"
-                >
-                    <li v-can="'list_role'">
-                        <router-link :to="{ name: 'admin.role-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>Role List</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_user'">
-                        <router-link :to="{ name: 'admin.user-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span>User List</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarSettings"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-cogs"></i>
-                    <span>Settings</span
-                    >
-                </a>
-                <ul
-                    id="sidebarSettings"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarSettings"
-                >
-                    <li v-can="'list_setting'">
-                        <router-link :to="{ name: 'admin.setting' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span> Setting</span>
-                        </router-link>
-                    </li>
-                    <li v-can="'list_tax'">
-                        <router-link :to="{ name: 'admin.tax-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span> Tax</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-        </ul>
-    </aside>
+
+    <div :class="['sidebar', sidebarClass]" id="sidebar">
+        <div class="sidebar-logo active">
+            <router-link :to="{ name: 'admin.dashboard' }" class="logo logo-normal">
+                <img src="@/assets/images/logo.svg" alt="Img" />
+            </router-link>
+            <router-link :to="{ name: 'admin.dashboard' }" class="logo logo-white">
+                <img src="@/assets/images/logo-white.svg" alt="Img" />
+            </router-link>
+            <router-link :to="{ name: 'admin.dashboard' }" class="logo-small">
+                <img src="@/assets/images/logo-small.png" alt="Img" />
+            </router-link>
+            <router-link :to="{ name: 'admin.dashboard' }" class="logo-small-white">
+                <img src="@/assets/images/logo-small-white.png" alt="Img">
+            </router-link>
+            <a id="toggle_btn" href="javascript:void(0);" @click="toggleSidebar">
+                <i class="fa fa-chevron-left"></i>
+            </a>
+        </div>
+
+        <simplebar id="scrollbar" class="h-100" ref="scrollbar">
+            <div class="sidebar-inner slimscroll flex-fill">
+                <div id="sidebar-menu" class="sidebar-menu">
+                    <vertical-sidebar></vertical-sidebar>
+                </div>
+            </div>
+        </simplebar>
+    </div>
 </template>
-<script setup>
+<script>
+import simplebar from "simplebar-vue";
+import "simplebar-vue/dist/simplebar.min.css";
+
+export default {
+  components: {
+    simplebar,
+  },
+  data() {
+    return {
+      sidebarClass: "",
+    };
+  },
+  watch: {
+    "$route.path"(newPath) {
+      if (
+        newPath.startsWith("/pos")
+      ) {
+        this.sidebarClass = "d-none";
+      } else {
+        this.sidebarClass = "";
+      }
+    },
+  },
+  mounted() {
+    this.initMouseoverListener();
+    // Run once when the component is mounted
+    if (
+      this.$route.path.startsWith("/pos")
+    ) {
+      this.sidebarClass = "d-none";
+    }
+  },
+  methods: {
+    toggleSidebar() {
+      const body = document.body;
+      body.classList.toggle("mini-sidebar");
+    },
+    initMouseoverListener() {
+      document.addEventListener("mouseover", this.handleMouseover);
+    },
+    handleMouseover(e) {
+      e.stopPropagation();
+
+      const body = document.body;
+      const toggleBtn = document.getElementById("toggle_btn");
+
+      if (body.classList.contains("mini-sidebar") && this.isElementVisible(toggleBtn)) {
+        const target = e.target.closest(".sidebar, .header-left");
+
+        if (target) {
+          body.classList.add("expand-menu");
+          this.slideDownSubmenu();
+        } else {
+          body.classList.remove("expand-menu");
+          this.slideUpSubmenu();
+        }
+
+        e.preventDefault();
+      }
+    },
+    isElementVisible(element) {
+      return element && (element.offsetWidth > 0 || element.offsetHeight > 0);
+    },
+    slideDownSubmenu() {
+      // Force show all submenus when expanding in mini-sidebar mode
+      const subdropElements = document.querySelectorAll(".subdrop");
+      subdropElements.forEach((element) => {
+        const submenu = element.nextElementSibling;
+        if (submenu && submenu.tagName.toLowerCase() === "ul") {
+          submenu.style.display = "block";
+          submenu.classList.remove("d-none");
+          submenu.classList.add("d-block");
+        }
+      });
+    },
+    slideUpSubmenu() {
+      // Hide all submenus when collapsing in mini-sidebar mode
+      const subdropElements = document.querySelectorAll(".subdrop");
+      subdropElements.forEach((element) => {
+        const submenu = element.nextElementSibling;
+        if (submenu && submenu.tagName.toLowerCase() === "ul") {
+          submenu.style.display = "none";
+          submenu.classList.remove("d-block");
+          submenu.classList.add("d-none");
+        }
+      });
+    },
+  },
+  beforeUnmount() {
+    document.removeEventListener("mouseover", this.handleMouseover);
+  },
+};
 </script>

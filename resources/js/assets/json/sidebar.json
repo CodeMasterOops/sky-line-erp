@@ -1,0 +1,249 @@
+[
+    {
+        "tittle": "Main",
+        "showAsTab": true,
+        "separateRoute": false,
+        "hasSubRoute": true,
+        "showSubRoute": true,
+        "menu": [
+            {
+                "menuValue": "Dashboard",
+                "active_link": "/admin/dashboard",
+                "route": {
+                    "name": "admin.dashboard"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "icon": "ti ti-layout-dashboard"
+            }
+        ]
+    },
+    {
+        "tittle": "Inventory",
+        "active_link": "/inventory",
+        "showAsTab": true,
+        "separateRoute": false,
+        "menu": [
+            {
+                "menuValue": "Products",
+                "icon": "ti ti-box",
+                "active_link": "/admin/product",
+                "route": {
+                    "name": "admin.product-list"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false
+            },
+            {
+                "menuValue": "Category",
+                "icon": "ti ti-list-details",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/inventory/category-list",
+                "route": {
+                    "name": "admin.product-category-list"
+                },
+                "subRoutes": []
+            },
+            {
+                "menuValue": "Brands",
+                "icon": "ti ti-triangles",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/inventory/brand-list",
+                "route": {
+                    "name": "admin.brand-list"
+                },
+                "subRoutes": []
+            },
+            {
+                "menuValue": "Units",
+                "icon": "ti ti-brand-unity",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/inventory/units",
+                "route": {
+                    "name": "admin.unit-list"
+                },
+                "subRoutes": []
+            },
+            {
+                "menuValue": "Warranties",
+                "icon": "ti ti-certificate",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/inventory/warranty",
+                "route": "/inventory/warranty",
+                "subRoutes": []
+            }
+        ]
+    },
+    {
+        "tittle": "Parties & Sales",
+        "showAsTab": true,
+        "separateRoute": false,
+        "menu": [
+            {
+                "menuValue": "Parties",
+                "icon": "fa fa-user",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": {
+                    "name": "admin.party-list"
+                }
+            },
+            {
+                "menuValue": "Sales",
+                "icon": "fa fa-tags",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Quotations",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Sales",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Invoice",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Customer Payment",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "tittle": "Purchase & Accounts",
+        "showAsTab": true,
+        "separateRoute": false,
+        "menu": [
+            {
+                "menuValue": "Purchase",
+                "icon": "fa fa-shopping-cart",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Purchase Order",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Sales",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Purchase Bills",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Supplier Payment",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    }
+                ]
+            },
+            {
+                "menuValue": "Accounting",
+                "icon": "fa fa-file-text-o",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Chart Of Account",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "tittle": "Reports & Users",
+        "showAsTab": true,
+        "separateRoute": false,
+        "menu": [
+            {
+                "menuValue": "Reports",
+                "icon": "fa fa-bar-chart-o",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Sales Report",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Purchase Report",
+                        "route": {
+                            "name": "admin.product-list"
+                        }
+                    }
+                ]
+            },
+            {
+                "menuValue": "User & Role",
+                "icon": "fa fa-users",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Role List",
+                        "route": {
+                            "name": "admin.role-list"
+                        }
+                    },
+                    {
+                        "menuValue": "User List",
+                        "route": {
+                            "name": "admin.user-list"
+                        }
+                    }
+                ]
+            },
+            {
+                "menuValue": "Settings",
+                "icon": "fa fa-cogs",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Setting",
+                        "route": {
+                            "name": "admin.setting"
+                        }
+                    },
+                    {
+                        "menuValue": "Tax",
+                        "route": {
+                            "name": "admin.tax-list"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+]

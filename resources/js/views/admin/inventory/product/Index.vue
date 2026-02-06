@@ -1,14 +1,5 @@
 <template>
-    <div class="page-title">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <router-link :to="{name:'admin.dashboard'}">
-                    <i class="fa fa-home"> Home</i>
-                </router-link>
-            </li>
-            <li class="breadcrumb-item active">Products</li>
-        </ol>
-    </div>
+      <product-header v-model:create-modal-opened="createModalOpened" />
 
     <section class="section">
         <div class="card">
