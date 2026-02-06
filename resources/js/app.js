@@ -4,13 +4,18 @@ import App from './App.vue'
 import {createPinia} from 'pinia'
 
 import router from "@/router";
+import Antd from "ant-design-vue";
+import "ant-design-vue/dist/reset.css";
 
 //multiselect css
 import '@vueform/multiselect/themes/default.css';
 
 //bootstrap
+import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.js";
-import '@/assets/app.css';
+
+import '@/assets/scss/app.scss'
+
 
 //base components
 import VInput from "@/components/base/VInput.vue";
@@ -29,6 +34,7 @@ import VExport from "@/components/base/VExport.vue";
 import VTimepicker from "@/components/base/VTimepicker.vue";
 import VDateTimePicker from "@/components/base/VDateTimePicker.vue";
 
+import ThemeSettings from "@/layouts/theme-settings.vue";
 //permission check helper
 import {permissionAccess} from "@/helpers/checkPermission";
 
@@ -43,6 +49,7 @@ createApp(App)
     .use(router)
     .use(createPinia())
     .use(myPlugins)
+    .component("theme-settings", ThemeSettings)
     .component('VInput', VInput)
     .component('VTextarea', VTextarea)
     .component('VSelect', VSelect)
@@ -60,4 +67,5 @@ createApp(App)
     .component('VPrint', VPrint)
     .component('VExport', VExport)
     .directive('can', permissionAccess)
+    .use(Antd)
     .mount('#app')

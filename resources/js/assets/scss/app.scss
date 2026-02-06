@@ -1,60 +1,46 @@
-@use "../../../../node_modules/bootstrap/scss/bootstrap" with (
-  /* Base */
-  $body-bg: #f4f6f9,
-  $body-color: #333,
-  $font-family-base: ("Poppins", sans-serif),
+@use "utils/variables" as *;
+@use "utils/mixins" as *;
 
-  /* Theme colors */
-  $primary: #01399a,
+/******* Base *******/
+@use "base/base";
+@use "base/background";
 
-  /* Grid */
-  $grid-gutter-width: 0.7rem,
 
-  /* Cards */
-  $card-border-radius: .25rem,
-  $card-bg: #fff,
-  $card-cap-bg: #fff,
-  $card-cap-padding-y: 12px,
-  $card-title-spacer-y: 0,
-  $card-title-color: #111,
-  $card-spacer-x: 0.7rem,
-  $card-spacer-y: 0.7rem,
+/******* Components ******/
+@use "components/avatar";
+@use "components/boostrap";
+@use "components/button";
+@use "components/badge";
+@use "components/border";
+@use "components/calendar";
+@use "components/chart";
+@use "components/dropdown";
+@use "components/icons";
+@use "components/progress";
+@use "components/pagination";
+@use "components/font";
+@use "components/typography";
+@use "components/alerts";
+@use "components/popovers";
+@use "components/forms";
+@use "components/tables";
+@use "components/accordion";
+@use "components/breadcrumb";
+@use "components/cards";
+@use "components/tooltips";
+@use "components/navs-tabs";
+@use "components/ribbon";
+@use "components/popup";
+@use "components/grid";
 
-  /* Tables */
-  $table-bg: transparent,
+/****** Layout ******/
+@use "layout/darktheme";
+@use "layout/content";
+@use "layout/common";
+@use "layout/theme";
+@use "layout/theme-setting";
+@use "layout/theme-color";
 
-  /* Buttons */
-  $btn-border-radius: 2px,
-  $btn-font-family: initial,
 
-  /* Forms */
-  $form-label-font-size: 14px,
-  $form-label-font-weight: 700,
-  $input-bg: #fff,
-  $input-border-radius: 2px,
-  $input-padding-y: 0.51rem,
-  $form-select-padding-y: 0.51rem,
-  $form-select-disabled-bg: aliceblue,
-  $form-check-input-width: 1.3em,
-
-  /* Breadcrumb */
-  $breadcrumb-bg: transparent,
-  $breadcrumb-padding-y: 8px,
-  $breadcrumb-padding-x: 8px,
-  $breadcrumb-border-radius: 2px,
-  $breadcrumb-font-size: 14px,
-  $breadcrumb-active-color: #51678f,
-  $breadcrumb-margin-bottom: .5rem,
-
-  /* Dropdown */
-  $dropdown-bg: #fff,
-
-  /* Nav tabs */
-  $nav-tabs-link-active-bg: #fff,
-
-  /* Typography */
-  $legend-font-size: 16px
-);
-
-@use "base/variables";
-@use "style";
+/****** Pages ******/
+@use "pages/login";
