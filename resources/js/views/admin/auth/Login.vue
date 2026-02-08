@@ -7,7 +7,7 @@
                         <div class="login-content user-login">
                             <div class="login-logo">
                                 <img :src="appLogo" alt="img">
-                                <router-link to="/dashboard" class="login-logo logo-white">
+                                <router-link :to="{name: 'admin.dashboard'}" class="login-logo logo-white">
                                     <img :src="appLogoWhite" alt="Img">
                                 </router-link>
                             </div>
@@ -62,7 +62,7 @@
                                                     </div>
                                                     <div class="text-end">
                                                         <router-link class="text-orange fs-16 fw-medium"
-                                                            to="/authentication/forgot-password-3">Forgot
+                                                            :to="{ name: 'admin.forgot-password' }">Forgot
                                                             Password?</router-link>
                                                     </div>
                                                 </div>
@@ -78,7 +78,7 @@
                                         </div>
 
                                         <div class="signinform">
-                                            <h4>New on our platform?<router-link to="/authentication/register-3"
+                                            <h4>New on our platform?<router-link :to="{name: 'admin.register'}"
                                                     class="hover-a"> Create an account</router-link></h4>
                                         </div>
                                         <div class="form-setlogin or-text">

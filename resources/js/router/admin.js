@@ -16,6 +16,26 @@ const routes = [
         component: () => import('@/views/admin/auth/Login.vue')
     },
     {
+        path: '/admin/register',
+        name: 'admin.register',
+        meta: {
+            isGuest: true,
+            isAdmin: true,
+            pageTitle: 'Register'
+        },
+        component: () => import('@/views/admin/auth/Register.vue')
+    },
+    {
+        path: '/admin/forgot-password',
+        name: 'admin.forgot-password',
+        meta: {
+            isGuest: true,
+            isAdmin: true,
+            pageTitle: 'Forgot Password'
+        },
+        component: () => import('@/views/admin/auth/ForgotPassword.vue')
+    },
+    {
         path: '/admin',
         component: AdminLayout,
         redirect: '/admin/dashboard',
