@@ -1,27 +1,18 @@
 <template>
-    <div class="page-title">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <router-link :to="{name:'admin.dashboard'}">
-                    <i class="fa fa-home"> Home</i>
-                </router-link>
-            </li>
-            <li class="breadcrumb-item active">Warehouses</li>
-        </ol>
-    </div>
+    <PageHeader title="Warehouse List" subtitle="Manage your warehouses" @refresh="warehouseStore.getWarehouses()">
+        <template #actions>
+            <button
+                v-can="'create_warehouse'"
+                type="button"
+                @click.prevent="createModalOpened=true"
+                class="btn btn-primary d-flex align-items-center">
+                <i class="ti ti-circle-plus me-2"></i> Add New
+            </button>
+        </template>
+    </PageHeader>
 
     <section class="section">
         <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                <h5 class="card-title">Warehouse List</h5>
-                <button
-                    v-can="'create_warehouse'"
-                    type="button"
-                    @click.prevent="createModalOpened=true"
-                    class="btn btn-sm btn-outline-primary">
-                    <i class="fa fa-plus-circle"> Add New</i>
-                </button>
-            </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered">

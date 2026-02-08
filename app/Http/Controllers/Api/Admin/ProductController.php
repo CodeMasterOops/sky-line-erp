@@ -16,7 +16,8 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = Product::filter($request->all())
+        $products = Product::with(['productCategory', 'brand', 'unit'])
+            ->filter($request->all())
             ->paginate($request->limit ?? 25);
 
         return ProductResource::collection($products);

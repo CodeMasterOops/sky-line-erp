@@ -1,20 +1,8 @@
 <template>
-  <div class="page-title">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <router-link :to="{name:'admin.dashboard'}">
-          <i class="fa fa-home"> Home</i>
-        </router-link>
-      </li>
-      <li class="breadcrumb-item active">Notifications</li>
-    </ol>
-  </div>
+    <PageHeader title="Notifications" subtitle="View all notifications" @refresh="fetchNotifications" />
 
-  <section class="section">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between">
-        <h5 class="card-title">Notifications</h5>
-      </div>
+    <section class="section">
+        <div class="card">
       <div class="card-body">
         <VDataTable :meta="notifications.meta" v-model:filter="filter" :search-option="false">
           <table class="table table-bordered">

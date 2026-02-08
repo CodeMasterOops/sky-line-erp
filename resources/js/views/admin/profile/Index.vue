@@ -1,20 +1,5 @@
 <template>
-  <div class="row">
-    <div class="col-12">
-      <div class="page-title-box">
-        <div class="page-title">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <router-link :to="{name:'admin.dashboard'}">
-                <i class="fa fa-home"></i>  Home
-              </router-link>
-            </li>
-            <li class="breadcrumb-item active">Profile</li>
-          </ol>
-        </div>
-      </div>
-    </div>
-  </div>
+    <PageHeader title="Profile" subtitle="Manage your profile" @refresh="profileStore.getProfile()" />
 
   <div class="row">
     <div class="col-xl-4 col-lg-5">

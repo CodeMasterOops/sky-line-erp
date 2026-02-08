@@ -1,30 +1,17 @@
 <template>
-    <div class="page-title">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <router-link :to="{name:'super-admin.dashboard'}">
-                    <i class="fa fa-dashboard"> </i> Home
-                </router-link>
-            </li>
-            <li class="breadcrumb-item active">
-                Fiscal Year
-            </li>
-        </ol>
-    </div>
+    <PageHeader title="Fiscal Year" subtitle="Manage fiscal years" @refresh="fiscalYearStore.getFiscalYears()">
+        <template #actions>
+            <button
+                type="button"
+                @click.prevent="createModalOpened=true"
+                class="btn btn-primary d-flex align-items-center">
+                <i class="ti ti-circle-plus me-2"></i> Add New
+            </button>
+        </template>
+    </PageHeader>
 
     <section class="section">
         <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                <h5 class="card-title">
-                    Fiscal Year
-                </h5>
-                <button
-                    type="button"
-                    @click.prevent="createModalOpened=true"
-                    class="btn btn-sm btn-outline-primary">
-                    <i class="fa fa-plus-circle"> Add New</i>
-                </button>
-            </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-responsive table-bordered">

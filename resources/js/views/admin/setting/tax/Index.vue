@@ -1,27 +1,18 @@
 <template>
-  <div class="page-title">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <router-link :to="{name:'admin.dashboard'}">
-          <i class="fa fa-home"> Home</i>
-        </router-link>
-      </li>
-      <li class="breadcrumb-item active">Tax</li>
-    </ol>
-  </div>
+    <PageHeader title="Tax List" subtitle="Manage your taxes" @refresh="taxStore.getTaxes()">
+        <template #actions>
+            <button
+                v-can="'create_tax'"
+                type="button"
+                @click.prevent="createModalOpened=true"
+                class="btn btn-primary d-flex align-items-center">
+                <i class="ti ti-circle-plus me-2"></i> Add New
+            </button>
+        </template>
+    </PageHeader>
 
-  <section class="section">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between">
-        <h5 class="card-title">Tax List</h5>
-        <button
-            v-can="'create_tax'"
-            type="button"
-            @click.prevent="createModalOpened=true"
-            class="btn btn-sm btn-outline-primary">
-          <i class="fa fa-plus-circle"> Add New</i>
-        </button>
-      </div>
+    <section class="section">
+        <div class="card">
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-bordered">

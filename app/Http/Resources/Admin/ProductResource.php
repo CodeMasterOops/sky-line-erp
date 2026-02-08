@@ -23,6 +23,9 @@ class ProductResource extends JsonResource
             'purchase_price' => $this->purchase_price ?? 0,
             'reorder_quantity' => $this->reorder_quantity ?? 0,
             'description' => $this->description ?? '',
+            'category' => $this->productCategory ? $this->productCategory->name : '',
+            'brand' => $this->brand ? $this->brand->name : '',
+            'unit' => $this->unit ? $this->unit->name : '',
         ];
     }
 }

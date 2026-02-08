@@ -1,25 +1,16 @@
 <template>
-    <div class="page-title">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <router-link :to="{name:'super-admin.dashboard'}">
-                    <i class="fa fa-home"> Home</i>
-                </router-link>
-            </li>
-            <li class="breadcrumb-item active">Company</li>
-        </ol>
-    </div>
+    <PageHeader title="Company List" subtitle="Manage companies" @refresh="fetchCompanies">
+        <template #actions>
+            <router-link :to="{name:'super-admin.company-create'}">
+                <button class="btn btn-primary d-flex align-items-center">
+                    <i class="ti ti-circle-plus me-2"></i> Add New
+                </button>
+            </router-link>
+        </template>
+    </PageHeader>
 
     <section class="section">
         <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                <h5 class="card-title">Company List</h5>
-                <router-link :to="{name:'super-admin.company-create'}">
-                    <button class="btn btn-sm btn-outline-primary">
-                        <i class="fa fa-plus-circle"> Add New</i>
-                    </button>
-                </router-link>
-            </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <VDataTable :meta="companies.meta" v-model:filter="filter">

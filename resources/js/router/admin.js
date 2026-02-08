@@ -142,7 +142,7 @@ const routes = [
                 meta: {
                     pageTitle: 'Product List'
                 },
-                component: () => import('@/views/admin/inventory/product/Index.vue')
+                component: () => import('@/views/admin/inventory/product/ProductListV2.vue')
             },
             {
                 path: 'party',

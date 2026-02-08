@@ -1,23 +1,17 @@
 <template>
-  <div class="page-title">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <router-link :to="{name:'admin.dashboard'}">
-          <i class="fa fa-home"> Home</i>
-        </router-link>
-      </li>
-      <li class="breadcrumb-item active">Roles</li>
-    </ol>
-  </div>
+    <PageHeader title="Role List" subtitle="Manage user roles" @refresh="roleStore.getRoles()">
+        <template #actions>
+            <router-link
+                v-can="'create_role'"
+                :to="{name:'admin.role-create'}"
+                class="btn btn-primary d-flex align-items-center">
+                <i class="ti ti-circle-plus me-2"></i> Add New
+            </router-link>
+        </template>
+    </PageHeader>
 
-  <section class="section">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between">
-        <h5 class="card-title">Role List</h5>
-        <router-link v-can="'create_role'" :to="{name:'admin.role-create'}" class="btn btn-sm btn-outline-primary">
-          <i class="fa fa-plus-circle"> Add New</i>
-        </router-link>
-      </div>
+    <section class="section">
+        <div class="card">
       <div class="card-body">
         <div class="table-responsive">
           <table class="table table-bordered">

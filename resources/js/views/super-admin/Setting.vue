@@ -1,20 +1,8 @@
 <template>
-  <div class="page-title">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <router-link :to="{name:'super-admin.dashboard'}">
-          <i class="fa fa-home"> Home</i>
-        </router-link>
-      </li>
-      <li class="breadcrumb-item active"> Setting</li>
-    </ol>
-  </div>
+    <PageHeader title="Setting" subtitle="Manage your settings" @refresh="setSettingData()" />
 
-  <section class="section">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between">
-        <h5 class="card-title"> Setting</h5>
-      </div>
+    <section class="section">
+        <div class="card">
       <VLoader v-if="setting.loading" loader-type="progress"/>
       <div class="card-body">
         <div class="row">

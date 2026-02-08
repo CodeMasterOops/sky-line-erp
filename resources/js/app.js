@@ -39,12 +39,14 @@ import ThemeSettings from "@/layouts/theme-settings.vue";
 import verticalSidebar from "@/layouts/admin/vertical-sidebar.vue";
 import PosLoader from "@/layouts/pos-loader.vue";
 import ProductHeader from "@/components/product/product-header.vue";
+import PageHeader from "@/components/shared/PageHeader.vue";
 
 //permission check helper
 import { permissionAccess } from "@/helpers/checkPermission";
 
 //fontawesome
-import "@/assets/fontawesome/css/font-awesome.min.css";
+import "@fortawesome/fontawesome-free/css/fontawesome.min.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import "@/assets/css/tabler-icons.css";
 import { IconHome } from "@tabler/icons-vue";
 
@@ -66,6 +68,7 @@ createApp(App)
     .component("Multiselect", Multiselect)
     .component("VMultiselect", VMultiselect)
     .component("ProductHeader", ProductHeader)
+    .component("PageHeader", PageHeader)
     .component("VCheckbox", VCheckbox)
     .component("VDatepicker", VDatepicker)
     .component("VTimepicker", VTimepicker)
