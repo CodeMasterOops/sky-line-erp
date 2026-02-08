@@ -1,178 +1,232 @@
-import AdminLayout from '@/layouts/admin/AppLayout.vue';
+import AdminLayout from "@/layouts/admin/AppLayout.vue";
 
 const routes = [
     {
-        path: '/',
-        redirect: '/admin/dashboard'
+        path: "/",
+        redirect: "/admin/dashboard",
     },
     {
-        path: '/admin/login',
-        name: 'admin.login',
+        path: "/admin/login",
+        name: "admin.login",
         meta: {
             isGuest: true,
             isAdmin: true,
-            pageTitle: 'Login'
+            pageTitle: "Login",
         },
-        component: () => import('@/views/admin/auth/Login.vue')
+        component: () => import("@/views/admin/auth/Login.vue"),
     },
     {
-        path: '/admin/register',
-        name: 'admin.register',
+        path: "/admin/register",
+        name: "admin.register",
         meta: {
             isGuest: true,
             isAdmin: true,
-            pageTitle: 'Register'
+            pageTitle: "Register",
         },
-        component: () => import('@/views/admin/auth/Register.vue')
+        component: () => import("@/views/admin/auth/Register.vue"),
     },
     {
-        path: '/admin/forgot-password',
-        name: 'admin.forgot-password',
+        path: "/admin/forgot-password",
+        name: "admin.forgot-password",
         meta: {
             isGuest: true,
             isAdmin: true,
-            pageTitle: 'Forgot Password'
+            pageTitle: "Forgot Password",
         },
-        component: () => import('@/views/admin/auth/ForgotPassword.vue')
+        component: () => import("@/views/admin/auth/ForgotPassword.vue"),
     },
     {
-        path: '/admin',
+        path: "/admin",
         component: AdminLayout,
-        redirect: '/admin/dashboard',
-        meta: {requiresAuth: true, isAdmin: true},
+        redirect: "/admin/dashboard",
+        meta: { requiresAuth: true, isAdmin: true },
         children: [
             {
-                path: 'dashboard',
-                name: 'admin.dashboard',
+                path: "dashboard",
+                name: "admin.dashboard",
                 meta: {
-                    pageTitle: 'Dashboard'
+                    pageTitle: "Dashboard",
                 },
-                component: () => import('@/views/admin/Dashboard.vue')
+                component: () => import("@/views/admin/Dashboard.vue"),
             },
             {
-                path: 'profile',
-                name: 'admin.profile',
+                path: "profile",
+                name: "admin.profile",
                 meta: {
-                    pageTitle: 'Profile Update'
+                    pageTitle: "Profile Update",
                 },
-                component: () => import('@/views/admin/profile/Index.vue')
+                component: () => import("@/views/admin/profile/Index.vue"),
             },
             {
-                path: 'setting',
+                path: "/admin/settings",
+                component: () =>
+                    import("@/views/admin/settings/general-settings/settings-index.vue"), // a wrapper layout for settings
                 children: [
                     {
-                        path: 'setting',
-                        name: 'admin.setting',
-                        meta: {
-                            pageTitle: 'Site Setting'
-                        },
-                        component: () => import('@/views/admin/Setting.vue')
-                    }
-                ]
+                        path: "general-settings",
+                        name: "admin.general-settings",
+                        component: () =>
+                            import("@/views/admin/settings/general-settings/general-settings.vue"),
+                        meta: { pageTitle: "General Settings" },
+                    },
+                    {
+                        path: "security-settings",
+                        name: "admin.security-settings",
+                        component: () =>
+                            import("@/views/admin/settings/general-settings/security-settings.vue"),
+                        meta: { pageTitle: "Security Settings" },
+                    },
+                    {
+                        path: "notifications",
+                        name: "admin.notifications",
+                        component: () =>
+                            import("@/views/admin/settings/general-settings/notifications.vue"),
+                        meta: { pageTitle: "Notifications" },
+                    },
+                    {
+                        path: "", // default child route
+                        redirect: "general-settings", // redirect /admin/settings -> /admin/settings/general-settings
+                    },
+                ],
             },
+
             {
-                path: 'user-management',
-                redirect: '/admin/user-management/user',
+                path: "financial-settings",
+                meta: {
+                    pageTitle: "Financial Settings",
+                },
+                component: () =>
+                    import("@/views/admin/settings/financial-settings/financial-settings.vue"),
                 children: [
                     {
-                        path: 'role',
-                        name: 'admin.role-list',
-                        meta: {
-                            pageTitle: 'Role List'
-                        },
-                        component: () => import('@/views/admin/user-management/role/Index.vue')
+                        path: "tax-rates",
+                        name: "admin.tax-rates",
+                        component: () =>
+                            import("@/views/admin/settings/financial-settings/tax-rates.vue"),
+                        meta: { pageTitle: "Tax Rates" },
                     },
                     {
-                        path: 'role/create',
-                        name: 'admin.role-create',
+                        path: "",
+                        name: "admin.financial-settings",
                         meta: {
-                            pageTitle: 'Add Role'
+                            pageTitle: "Financial Settings",
                         },
-                        component: () => import('@/views/admin/user-management/role/Create.vue')
+                        redirect: "/admin/financial-settings",
+                    },
+                ],
+            },
+            {
+                path: "user-management",
+                redirect: "/admin/user-management/user",
+                children: [
+                    {
+                        path: "role",
+                        name: "admin.role-list",
+                        meta: {
+                            pageTitle: "Role List",
+                        },
+                        component: () =>
+                            import("@/views/admin/user-management/role/Index.vue"),
                     },
                     {
-                        path: 'role/:id/edit',
-                        name: 'admin.role-edit',
+                        path: "role/create",
+                        name: "admin.role-create",
                         meta: {
-                            pageTitle: 'Edit Role'
+                            pageTitle: "Add Role",
                         },
-                        component: () => import('@/views/admin/user-management/role/Edit.vue')
+                        component: () =>
+                            import("@/views/admin/user-management/role/Create.vue"),
                     },
                     {
-                        path: 'user',
-                        name: 'admin.user-list',
+                        path: "role/:id/edit",
+                        name: "admin.role-edit",
                         meta: {
-                            pageTitle: 'User List'
+                            pageTitle: "Edit Role",
                         },
-                        component: () => import('@/views/admin/user-management/user/Index.vue')
-                    }
-                ]
+                        component: () =>
+                            import("@/views/admin/user-management/role/Edit.vue"),
+                    },
+                    {
+                        path: "user",
+                        name: "admin.user-list",
+                        meta: {
+                            pageTitle: "User List",
+                        },
+                        component: () =>
+                            import("@/views/admin/user-management/user/Index.vue"),
+                    },
+                ],
             },
             {
-                path: 'notification',
-                name: 'admin.notification-list',
+                path: "notification",
+                name: "admin.notification-list",
                 meta: {
-                    pageTitle: 'Notifications'
+                    pageTitle: "Notifications",
                 },
-                component: () => import('@/views/admin/notification/Index.vue')
+                component: () => import("@/views/admin/notification/Index.vue"),
             },
             {
-                path: 'brand',
-                name: 'admin.brand-list',
+                path: "brand",
+                name: "admin.brand-list",
                 meta: {
-                    pageTitle: 'Brand List'
+                    pageTitle: "Brand List",
                 },
-                component: () => import('@/views/admin/inventory/brand/Index.vue')
+                component: () =>
+                    import("@/views/admin/inventory/brand/Index.vue"),
             },
             {
-                path: 'unit',
-                name: 'admin.unit-list',
+                path: "unit",
+                name: "admin.unit-list",
                 meta: {
-                    pageTitle: 'Unit List'
+                    pageTitle: "Unit List",
                 },
-                component: () => import('@/views/admin/inventory/unit/Index.vue')
+                component: () =>
+                    import("@/views/admin/inventory/unit/Index.vue"),
             },
             {
-                path: 'warehouse',
-                name: 'admin.warehouse-list',
+                path: "warehouse",
+                name: "admin.warehouse-list",
                 meta: {
-                    pageTitle: 'Warehouse List'
+                    pageTitle: "Warehouse List",
                 },
-                component: () => import('@/views/admin/inventory/warehouse/Index.vue')
+                component: () =>
+                    import("@/views/admin/inventory/warehouse/Index.vue"),
+            },
+            // {
+            //     path: 'tax',
+            //     name: 'admin.tax-list',
+            //     meta: {
+            //         pageTitle: 'Tax List'
+            //     },
+            //     component: () => import('@/views/admin/setting/tax/Index.vue')
+            // },
+            {
+                path: "product-category",
+                name: "admin.product-category-list",
+                meta: {
+                    pageTitle: "Product Category",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/product-category/Index.vue"),
             },
             {
-                path: 'tax',
-                name: 'admin.tax-list',
+                path: "product",
+                name: "admin.product-list",
                 meta: {
-                    pageTitle: 'Tax List'
+                    pageTitle: "Product List",
                 },
-                component: () => import('@/views/admin/setting/tax/Index.vue')
+                component: () =>
+                    import("@/views/admin/inventory/product/ProductListV2.vue"),
             },
             {
-                path: 'product-category',
-                name: 'admin.product-category-list',
+                path: "party",
+                name: "admin.party-list",
                 meta: {
-                    pageTitle: 'Product Category'
+                    pageTitle: "Party List",
                 },
-                component: () => import('@/views/admin/inventory/product-category/Index.vue')
+                component: () => import("@/views/admin/party/Index.vue"),
             },
-            {
-                path: 'product',
-                name: 'admin.product-list',
-                meta: {
-                    pageTitle: 'Product List'
-                },
-                component: () => import('@/views/admin/inventory/product/ProductListV2.vue')
-            },
-            {
-                path: 'party',
-                name: 'admin.party-list',
-                meta: {
-                    pageTitle: 'Party List'
-                },
-                component: () => import('@/views/admin/party/Index.vue')
-            },
-        ]
+        ],
     },
 ];
 

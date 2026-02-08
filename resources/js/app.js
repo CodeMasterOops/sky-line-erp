@@ -8,6 +8,7 @@ import { createPinia } from "pinia";
 import router from "@/router";
 import Antd from "ant-design-vue";
 import "ant-design-vue/dist/reset.css";
+import VueSelect from "vue3-select-component";
 
 //multiselect css
 import "@vueform/multiselect/themes/default.css";
@@ -40,6 +41,7 @@ import verticalSidebar from "@/layouts/admin/vertical-sidebar.vue";
 import PosLoader from "@/layouts/pos-loader.vue";
 import ProductHeader from "@/components/product/product-header.vue";
 import PageHeader from "@/components/shared/PageHeader.vue";
+import SettingsSidebar from "@/layouts/admin/settings-sidebar.vue";
 
 //permission check helper
 import { permissionAccess } from "@/helpers/checkPermission";
@@ -82,6 +84,8 @@ createApp(App)
     .component("VExport", VExport)
     .component("DatePicker", DatePicker)
     .directive("can", permissionAccess)
+    .component("SettingsSidebar", SettingsSidebar)
+    .component("VueSelect", VueSelect)
     .use(VueApexCharts)
     .use(Antd)
     .mount("#app");

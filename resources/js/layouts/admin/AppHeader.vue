@@ -270,7 +270,7 @@
             <!-- /Notifications -->
 
             <li class="nav-item nav-item-box">
-                <router-link to="/settings/general-settings"><i class="fa fa-cog"></i></router-link>
+                <router-link :to="{ name: 'admin.general-settings' }"><i class="fa fa-cog"></i></router-link>
             </li>
             <li class="nav-item dropdown has-arrow main-drop profile-nav">
                 <a href="javascript:void(0);" class="nav-link userset" data-bs-toggle="dropdown">
