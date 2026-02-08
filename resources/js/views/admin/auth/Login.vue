@@ -41,7 +41,7 @@
                                                     v-model="form.password" @blur="validateField('password')"
                                                     class="pass-input form-control">
                                                 <span class="ti toggle-password"
-                                                    :class="showPassword ? 'fa fa-eye text-gray-9' : 'fa fa-eye-slash text-gray-9'"
+                                                    :class="showPassword ? 'ti-eye text-gray-9' : 'ti-eye-off text-gray-9'"
                                                     @click="togglePassword"></span>
                                             </div>
                                             <p v-if="errors.password" class="text-danger">

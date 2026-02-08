@@ -1,9 +1,11 @@
 <template>
-    <AppHeader/>
-    <AppSidebar/>
-    <main id="main" class="main">
-        <router-view></router-view>
-    </main>
+    <AppHeader />
+    <AppSidebar />
+    <div class="page-wrapper">
+        <div class="content">
+            <router-view></router-view>
+        </div>
+    </div>
 </template>
 <script setup>
 import AppSidebar from "./AppSidebar.vue";

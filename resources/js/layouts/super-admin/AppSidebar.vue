@@ -1,50 +1,109 @@
 <template>
-    <aside id="sidebar" class="sidebar">
-        <ul class="sidebar-nav" id="sidebar-nav">
-            <li class="nav-item">
-                <router-link :to="{ name: 'super-admin.dashboard' }" class="nav-link">
-                    <i class="fa fa-dashboard"></i>
-                    <span>Dashboard</span>
-                </router-link>
-            </li>
-            <li class="nav-item">
-                <router-link :to="{ name: 'super-admin.company-list' }" class="nav-link">
-                    <i class="fa fa-building-o"></i>
-                    <span>Company</span>
-                </router-link>
-            </li>
-            <li class="nav-item">
-                <a
-                    class="nav-link collapsed"
-                    data-bs-target="#sidebarSettings"
-                    data-bs-toggle="collapse"
-                    href="#"
-                >
-                    <i class="fa fa-cogs"></i>
-                    <span>Settings</span
-                    >
-                </a>
-                <ul
-                    id="sidebarSettings"
-                    class="nav-content collapse"
-                    data-bs-parent="#sidebarSettings"
-                >
-                    <li>
-                        <router-link :to="{ name: 'super-admin.setting' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span> Setting</span>
-                        </router-link>
-                    </li>
-                    <li>
-                        <router-link :to="{ name: 'super-admin.fiscal-year-list' }">
-                            <i class="fa fa-angle-double-right"></i>
-                            <span> Fiscal Year</span>
-                        </router-link>
-                    </li>
-                </ul>
-            </li>
-        </ul>
-    </aside>
+
+    <div :class="['sidebar', sidebarClass]" id="sidebar">
+        <div class="sidebar-logo active">
+            <router-link :to="{ name: 'super-admin.dashboard' }" class="logo logo-normal">
+                <img src="@/assets/images/logo.svg" alt="Img" />
+            </router-link>
+            <router-link :to="{ name: 'super-admin.dashboard' }" class="logo logo-white">
+                <img src="@/assets/images/logo-white.svg" alt="Img" />
+            </router-link>
+            <router-link :to="{ name: 'super-admin.dashboard' }" class="logo-small">
+                <img src="@/assets/images/logo-small.png" alt="Img" />
+            </router-link>
+            <router-link :to="{ name: 'super-admin.dashboard' }" class="logo-small-white">
+                <img src="@/assets/images/logo-small-white.png" alt="Img">
+            </router-link>
+            <a id="toggle_btn" href="javascript:void(0);" @click="toggleSidebar">
+                <i class="fa fa-chevron-left"></i>
+            </a>
+        </div>
+
+        <simplebar id="scrollbar" class="h-100" ref="scrollbar">
+            <div class="sidebar-inner slimscroll flex-fill">
+                <div id="sidebar-menu" class="sidebar-menu">
+                    <vertical-sidebar></vertical-sidebar>
+                </div>
+            </div>
+        </simplebar>
+    </div>
 </template>
-<script setup>
+<script>
+import simplebar from "simplebar-vue";
+import "simplebar-vue/dist/simplebar.min.css";
+import VerticalSidebar from "./vertical-sidebar.vue";
+
+export default {
+  components: {
+    simplebar,
+    VerticalSidebar,
+  },
+  data() {
+    return {
+      sidebarClass: "",
+    };
+  },
+  methods: {
+    toggleSidebar() {
+      const body = document.body;
+      body.classList.toggle("mini-sidebar");
+    },
+    initMouseoverListener() {
+      document.addEventListener("mouseover", this.handleMouseover);
+    },
+    handleMouseover(e) {
+      e.stopPropagation();
+
+      const body = document.body;
+      const toggleBtn = document.getElementById("toggle_btn");
+
+      if (body.classList.contains("mini-sidebar") && this.isElementVisible(toggleBtn)) {
+        const target = e.target.closest(".sidebar, .header-left");
+
+        if (target) {
+          body.classList.add("expand-menu");
+          this.slideDownSubmenu();
+        } else {
+          body.classList.remove("expand-menu");
+          this.slideUpSubmenu();
+        }
+
+        e.preventDefault();
+      }
+    },
+    isElementVisible(element) {
+      return element && (element.offsetWidth > 0 || element.offsetHeight > 0);
+    },
+    slideDownSubmenu() {
+      // Force show all submenus when expanding in mini-sidebar mode
+      const subdropElements = document.querySelectorAll(".subdrop");
+      subdropElements.forEach((element) => {
+        const submenu = element.nextElementSibling;
+        if (submenu && submenu.tagName.toLowerCase() === "ul") {
+          submenu.style.display = "block";
+          submenu.classList.remove("d-none");
+          submenu.classList.add("d-block");
+        }
+      });
+    },
+    slideUpSubmenu() {
+      // Hide all submenus when collapsing in mini-sidebar mode
+      const subdropElements = document.querySelectorAll(".subdrop");
+      subdropElements.forEach((element) => {
+        const submenu = element.nextElementSibling;
+        if (submenu && submenu.tagName.toLowerCase() === "ul") {
+          submenu.style.display = "none";
+          submenu.classList.remove("d-block");
+          submenu.classList.add("d-none");
+        }
+      });
+    },
+  },
+  mounted() {
+    this.initMouseoverListener();
+  },
+  beforeUnmount() {
+    document.removeEventListener("mouseover", this.handleMouseover);
+  },
+};
 </script>

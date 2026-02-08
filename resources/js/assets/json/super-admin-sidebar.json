@@ -1,0 +1,66 @@
+[
+    {
+        "tittle": "Main",
+        "showAsTab": true,
+        "separateRoute": false,
+        "hasSubRoute": true,
+        "showSubRoute": true,
+        "menu": [
+            {
+                "menuValue": "Dashboard",
+                "active_link": "/super-admin/dashboard",
+                "route": {
+                    "name": "super-admin.dashboard"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "icon": "ti ti-layout-dashboard"
+            }
+        ]
+    },
+    {
+        "tittle": "Management",
+        "showAsTab": true,
+        "separateRoute": false,
+        "menu": [
+            {
+                "menuValue": "Company",
+                "icon": "ti ti-building",
+                "active_link": "/super-admin/company",
+                "route": {
+                    "name": "super-admin.company-list"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "subRoutes": []
+            }
+        ]
+    },
+    {
+        "tittle": "Settings",
+        "showAsTab": true,
+        "separateRoute": false,
+        "menu": [
+            {
+                "menuValue": "Settings",
+                "icon": "ti ti-settings",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "General Setting",
+                        "route": {
+                            "name": "super-admin.setting"
+                        }
+                    },
+                    {
+                        "menuValue": "Fiscal Year",
+                        "route": {
+                            "name": "super-admin.fiscal-year-list"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+]
