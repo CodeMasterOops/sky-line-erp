@@ -24,11 +24,33 @@
         "separateRoute": false,
         "menu": [
             {
-                "menuValue": "Company",
+                "menuValue": "Companies",
                 "icon": "ti ti-building",
                 "active_link": "/super-admin/company",
                 "route": {
                     "name": "super-admin.company-list"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "subRoutes": []
+            },
+            {
+                "menuValue": "Packages",
+                "icon": "ti ti-package",
+                "active_link": "/super-admin/package",
+                "route": {
+                    "name": "super-admin.packages"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "subRoutes": []
+            },
+            {
+                "menuValue": "Subscriptions",
+                "icon": "ti ti-wallet",
+                "active_link": "/super-admin/subscription",
+                "route": {
+                    "name": "super-admin.subscription"
                 },
                 "hasSubRoute": false,
                 "showSubRoute": false,

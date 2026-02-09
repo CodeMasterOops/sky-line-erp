@@ -166,6 +166,30 @@ const routes = [
                 component: () => import("@/views/admin/notification/Index.vue"),
             },
             {
+                path: "sales-list",
+                name: "admin.sales-list",
+                meta: {
+                    pageTitle: "Sales List",
+                },
+                component: () => import("@/views/admin/sales/list/Index.vue"),
+            },
+            {
+                path: "sales-returns",
+                name: "admin.sales-returns",
+                meta: {
+                    pageTitle: "Sales Returns",
+                },
+                component: () => import("@/views/admin/sales/returns/Index.vue"),
+            },
+            {
+                path: "quotation-list",
+                name: "admin.quotation-list",
+                meta: {
+                    pageTitle: "Quotation List",
+                },
+                component: () => import("@/views/admin/sales/quotation/Index.vue"),
+            },
+            {
                 path: "brand",
                 name: "admin.brand-list",
                 meta: {
@@ -225,6 +249,51 @@ const routes = [
                     pageTitle: "Party List",
                 },
                 component: () => import("@/views/admin/party/Index.vue"),
+            },
+            {
+                path: "variant-attributes",
+                name: "admin.variant-attributes",
+                meta: {
+                    pageTitle: "Variant Attributes",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/variant-attributes/Index.vue"),
+            },
+            {
+                path: "warranty",
+                name: "admin.warranty-list",
+                meta: {
+                    pageTitle: "Warranty",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/warranty/Index.vue"),
+            },
+            {
+                path: "barcode",
+                name: "admin.barcode",
+                meta: {
+                    pageTitle: "Print Barcode",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/barcode/Index.vue"),
+            },
+            {
+                path: "purchase-list",
+                name: "admin.purchase-list",
+                meta: {
+                    pageTitle: "Purchase List",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/list/Index.vue"),
+            },
+            {
+                path: "purchase-returns",
+                name: "admin.purchase-returns",
+                meta: {
+                    pageTitle: "Purchase Returns",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/returns/Index.vue"),
             },
         ],
     },

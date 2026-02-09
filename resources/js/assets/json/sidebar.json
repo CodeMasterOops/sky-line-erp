@@ -72,8 +72,32 @@
                 "icon": "ti ti-certificate",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "active_link": "/inventory/warranty",
-                "route": "/inventory/warranty",
+                "active_link": "/admin/warranty",
+                "route": {
+                    "name": "admin.warranty-list"
+                },
+                "subRoutes": []
+            },
+            {
+                "menuValue": "Variant Attributes",
+                "icon": "ti ti-versions",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/variant-attributes",
+                "route": {
+                    "name": "admin.variant-attributes"
+                },
+                "subRoutes": []
+            },
+            {
+                "menuValue": "Print Barcode",
+                "icon": "ti ti-barcode",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/barcode",
+                "route": {
+                    "name": "admin.barcode"
+                },
                 "subRoutes": []
             }
         ]
@@ -91,6 +115,68 @@
                 "active_link": "/admin/party-list",
                 "route": {
                     "name": "admin.party-list"
+                }
+            }
+        ]
+    },
+    {
+        "tittle": "Sales",
+        "icon": "shopping-cart",
+        "menu": [
+            {
+                "menuValue": "Sales List",
+                "icon": "ti ti-shopping-cart",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/sales-list",
+                "route": {
+                    "name": "admin.sales-list"
+                }
+            },
+            {
+                "menuValue": "Sales Returns",
+                "icon": "ti ti-receipt-refund",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/sales-returns",
+                "route": {
+                    "name": "admin.sales-returns"
+                }
+            },
+            {
+                "menuValue": "Quotation List",
+                "icon": "ti ti-file-diff",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/quotation-list",
+                "route": {
+                    "name": "admin.quotation-list"
+                }
+            }
+        ]
+    },
+    {
+        "tittle": "Purchase",
+        "icon": "shopping-cart",
+        "menu": [
+            {
+                "menuValue": "Purchase List",
+                "icon": "ti ti-shopping-cart",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-list",
+                "route": {
+                    "name": "admin.purchase-list"
+                }
+            },
+            {
+                "menuValue": "Purchase Returns",
+                "icon": "ti ti-receipt-refund",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-returns",
+                "route": {
+                    "name": "admin.purchase-returns"
                 }
             }
         ]

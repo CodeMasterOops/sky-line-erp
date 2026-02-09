@@ -78,6 +78,22 @@ const routes = [
                 },
                 component: () => import('@/views/super-admin/company/Edit.vue')
             },
+            {
+                path: 'subscription',
+                name: 'super-admin.subscription',
+                meta: {
+                    pageTitle: 'Subscription'
+                },
+                component: () => import('@/views/super-admin/subscription/Index.vue')
+            },
+            {
+                path: 'packages',
+                name: 'super-admin.packages',
+                meta: {
+                    pageTitle: 'Packages'
+                },
+                component: () => import('@/views/super-admin/packages/Index.vue')
+            },
         ]
     },
 ];
