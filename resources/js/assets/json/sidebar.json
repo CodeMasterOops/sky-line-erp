@@ -156,6 +156,22 @@
         ]
     },
     {
+        "tittle": "Accounting",
+        "icon": "shopping-cart",
+        "menu": [
+            {
+                "menuValue": "Chart Of Accounts",
+                "icon": "ti ti-shopping-cart",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/chart-of-accounts",
+                "route": {
+                    "name": "admin.chart-of-accounts"
+                }
+            }
+        ]
+    },
+    {
         "tittle": "Purchase",
         "icon": "shopping-cart",
         "menu": [

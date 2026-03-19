@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('account_group_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->foreignId('parent_id')->nullable()->constrained('accounts')->cascadeOnDelete();
             $table->string('name');
             $table->string('code');
             $table->string('category')->nullable();

@@ -39,7 +39,7 @@ const routes = [
         path: "/admin",
         component: AdminLayout,
         redirect: "/admin/dashboard",
-        meta: { requiresAuth: true, isAdmin: true },
+        meta: {requiresAuth: true, isAdmin: true},
         children: [
             {
                 path: "dashboard",
@@ -67,21 +67,21 @@ const routes = [
                         name: "admin.general-settings",
                         component: () =>
                             import("@/views/admin/settings/general-settings/general-settings.vue"),
-                        meta: { pageTitle: "General Settings" },
+                        meta: {pageTitle: "General Settings"},
                     },
                     {
                         path: "security-settings",
                         name: "admin.security-settings",
                         component: () =>
                             import("@/views/admin/settings/general-settings/security-settings.vue"),
-                        meta: { pageTitle: "Security Settings" },
+                        meta: {pageTitle: "Security Settings"},
                     },
                     {
                         path: "notifications",
                         name: "admin.notifications",
                         component: () =>
                             import("@/views/admin/settings/general-settings/notifications.vue"),
-                        meta: { pageTitle: "Notifications" },
+                        meta: {pageTitle: "Notifications"},
                     },
                     {
                         path: "", // default child route
@@ -103,7 +103,7 @@ const routes = [
                         name: "admin.tax-rates",
                         component: () =>
                             import("@/views/admin/settings/financial-settings/tax-rates.vue"),
-                        meta: { pageTitle: "Tax Rates" },
+                        meta: {pageTitle: "Tax Rates"},
                     },
                     {
                         path: "",
@@ -294,6 +294,15 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/purchase/returns/Index.vue"),
+            },
+            {
+                path: "chart-of-accounts",
+                name: "admin.chart-of-accounts",
+                meta: {
+                    pageTitle: "Chart Of Accounts",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/coa/Index.vue"),
             },
         ],
     },
