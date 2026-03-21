@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\AccountGroupController;
 use App\Http\Controllers\Api\Admin\AccountController;
+use App\Http\Controllers\Api\Admin\AccountSettingController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\ProfileController;
@@ -80,6 +81,9 @@ Route::middleware('auth:admin')->group(function () {
         // accounts
         Route::get('account/coa', [AccountController::class, 'coa'])->name('account.coa');
         Route::apiResource('account', AccountController::class);
+
+        // account settings
+        Route::apiResource('account-setting', AccountSettingController::class)->only('index', 'store');
     });
 
     // global settings

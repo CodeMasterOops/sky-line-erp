@@ -304,6 +304,15 @@ const routes = [
                 component: () =>
                     import("@/views/admin/accounting/coa/Index.vue"),
             },
+            {
+                path: "account-settings",
+                name: "admin.account-settings",
+                meta: {
+                    pageTitle: "Account Settings",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/account-setting/Index.vue"),
+            },
         ],
     },
 ];

@@ -161,12 +161,22 @@
         "menu": [
             {
                 "menuValue": "Chart Of Accounts",
-                "icon": "ti ti-shopping-cart",
+                "icon": "ti ti-list",
                 "hasSubRoute": false,
                 "showSubRoute": false,
                 "active_link": "/admin/chart-of-accounts",
                 "route": {
                     "name": "admin.chart-of-accounts"
+                }
+            },
+            {
+                "menuValue": "Account Settings",
+                "icon": "ti ti-settings",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/account-settings",
+                "route": {
+                    "name": "admin.account-settings"
                 }
             }
         ]
