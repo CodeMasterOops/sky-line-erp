@@ -251,13 +251,22 @@ const routes = [
                 component: () => import("@/views/admin/party/Index.vue"),
             },
             {
+                path: "variant-attributes-design",
+                name: "admin.variant-attributes-design",
+                meta: {
+                    pageTitle: "Variant Attributes",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/variant-attributes/Index.vue"),
+            },
+            {
                 path: "variant-attributes",
                 name: "admin.variant-attributes",
                 meta: {
                     pageTitle: "Variant Attributes",
                 },
                 component: () =>
-                    import("@/views/admin/inventory/variant-attributes/Index.vue"),
+                    import("@/views/admin/inventory/attribute/Index.vue"),
             },
             {
                 path: "warranty",

@@ -8,17 +8,18 @@ use App\Http\Controllers\Api\Admin\RoleController;
 use App\Http\Controllers\Api\Admin\UnitController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\BrandController;
-use App\Http\Controllers\Api\Admin\AccountGroupController;
-use App\Http\Controllers\Api\Admin\AccountController;
-use App\Http\Controllers\Api\Admin\AccountSettingController;
 use App\Http\Controllers\Api\Admin\PartyController;
+use App\Http\Controllers\Api\Admin\AccountController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\SettingController;
+use App\Http\Controllers\Api\Admin\AttributeController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
 use App\Http\Controllers\Api\Admin\PermissionController;
+use App\Http\Controllers\Api\Admin\AccountGroupController;
 use App\Http\Controllers\Api\Admin\AdminSettingController;
+use App\Http\Controllers\Api\Admin\AccountSettingController;
 use App\Http\Controllers\Api\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
 
@@ -71,6 +72,9 @@ Route::middleware('auth:admin')->group(function () {
 
         // product
         Route::apiResource('product', ProductController::class);
+
+        // product attribute
+        Route::apiResource('attribute', AttributeController::class);
 
         // parties
         Route::apiResource('party', PartyController::class);

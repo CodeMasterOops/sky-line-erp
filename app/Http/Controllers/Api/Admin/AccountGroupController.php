@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Annotation\Permissions;
 use App\Models\AccountGroup;
+use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\AccountGroupResource;
 use App\Http\Requests\Api\Admin\AccountGroupRequest;

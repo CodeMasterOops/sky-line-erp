@@ -42,10 +42,10 @@
                     />
                 </div>
                 <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger" type="button">
+                    <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
                         Close
                     </button>
-                    <VButton :loading="isSubmitting" />
+                    <VButton :loading="isSubmitting"/>
                 </div>
             </form>
         </template>
@@ -53,12 +53,12 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
-import { toast } from '@/helpers/toast';
+import {reactive, ref} from 'vue';
+import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import { object, string } from 'yup';
-import { useYup } from '@/helpers/yup';
-import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
+import {object, string} from 'yup';
+import {useYup} from '@/helpers/yup';
+import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 
 const warehouseStore = useWarehouseStore();
 
@@ -71,7 +71,7 @@ const initialState = {
     address: ''
 };
 
-const form = reactive({ ...initialState });
+const form = reactive({...initialState});
 const isSubmitting = ref(false);
 
 const validations = object({
@@ -81,7 +81,7 @@ const validations = object({
     address: string().nullable()
 });
 
-const { errors, validateField, validateForm } = useYup(form, validations);
+const {errors, validateField, validateForm} = useYup(form, validations);
 
 const storeWarehouse = async () => {
     let validated = await validateForm(validations, form);
@@ -105,7 +105,7 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
-    Object.assign(form, { ...initialState });
+    Object.assign(form, {...initialState});
     errors.value = {};
 }
 

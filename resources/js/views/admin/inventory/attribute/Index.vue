@@ -1,8 +1,8 @@
 <template>
-    <PageHeader title="Warehouse List" subtitle="Manage your warehouses" @refresh="fetchWarehouses(true)">
+    <PageHeader title="Variant Attributes" subtitle="Manage your variant attributes" @refresh="fetchWarehouses(true)">
         <template #actions>
             <button
-                v-can="'create_warehouse'"
+                v-can="'create_attribute'"
                 type="button"
                 @click.prevent="createModalOpened=true"
                 class="btn btn-primary d-flex align-items-center">
@@ -18,21 +18,25 @@
                     <a-table
                         class="table datanew table-hover table-center mb-0"
                         :columns="columns"
-                        :data-source="warehouses.data"
-                        :loading="warehouses.loading"
+                        :data-source="attributes.data"
+                        :loading="attributes.loading"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
                                 {{ index + 1 }}
                             </template>
+                            <template v-if="column.key==='values'">
+                                <span v-for="attrVal in record.values" :key="`${record.id}-${attrVal.id}`"
+                                      class="badge bg-secondary mx-1">{{ attrVal.value }}</span>
+                            </template>
                             <template v-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
                                     <a class="me-2" href="javascript:void(0);"
-                                       @click="edit_warehouse_id=record.id">
+                                       @click="edit_attribute_id=record.id">
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <a href="javascript:void(0);"
-                                       @click="deleteWarehouse(record.id)">
+                                       @click="deleteAttribute(record.id)">
                                         <i class="ti ti-trash"></i>
                                     </a>
                                 </div>
@@ -43,34 +47,31 @@
             </div>
         </div>
     </section>
-    <CreateWarehouse v-model:create-modal-opened="createModalOpened"/>
-    <EditWarehouse v-model:warehouse_id="edit_warehouse_id"/>
+
+    <CreateAttribute v-model:create-modal-opened="createModalOpened"/>
+    <EditAttribute v-model:attribute_id="edit_attribute_id"/>
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
-import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
-import CreateWarehouse from './Create.vue';
-import EditWarehouse from './Edit.vue';
-import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
+import {onMounted, ref} from "vue";
+import Swal from "sweetalert2";
+import {toast} from "@/helpers/toast.js";
+import showErrors from "@/helpers/showErrors.js";
+import {storeToRefs} from "pinia";
+import CreateAttribute from './Create.vue';
+import EditAttribute from './Edit.vue';
+import {useAttributeStore} from "@/stores/admin/inventory/attribute.js";
 
-const warehouseStore = useWarehouseStore();
+const attributeStore = useAttributeStore();
 
 onMounted(() => {
-    fetchWarehouses();
-});
+    attributeStore.getAttributes();
+})
 
-const edit_warehouse_id = ref('');
+const edit_attribute_id = ref('');
 const createModalOpened = ref(false);
 
-const {warehouses} = storeToRefs(warehouseStore);
-
-const fetchWarehouses = (refetch = false) => {
-    warehouseStore.getWarehouses(refetch);
-}
+const {attributes} = storeToRefs(attributeStore);
 
 const columns = [
     {
@@ -90,23 +91,8 @@ const columns = [
         },
     },
     {
-        title: 'Code',
-        dataIndex: 'code',
-        sorter: {
-            compare: (a, b) => {
-                a = a.code.toLowerCase();
-                b = b.code.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Phone',
-        dataIndex: 'phone',
-    },
-    {
-        title: 'Address',
-        dataIndex: 'address',
+        title: 'Values',
+        key: 'values',
     },
     {
         title: 'Action',
@@ -115,23 +101,23 @@ const columns = [
     },
 ];
 
-const deleteWarehouse = async (id) => {
+const deleteAttribute = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
-        text: 'If you delete this, it will be gone forever.',
+        text: "If you delete this, it will be gone forever.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: 'Yes'
+        confirmButtonText: "Yes",
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await warehouseStore.deleteWarehouse(id);
+                let res = await attributeStore.deleteAttribute(id);
                 toast(res.status, res.data.message);
             } catch (e) {
-                showErrors(e);
+                showErrors(e)
             }
         }
     });
-};
+}
 </script>

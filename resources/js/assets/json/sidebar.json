@@ -68,6 +68,16 @@
                 "subRoutes": []
             },
             {
+                "menuValue": "Warehouse",
+                "icon": "ti ti-home",
+                "active_link": "/admin/warehouse",
+                "route": {
+                    "name": "admin.warehouse-list"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false
+            },
+            {
                 "menuValue": "Warranties",
                 "icon": "ti ti-certificate",
                 "hasSubRoute": false,

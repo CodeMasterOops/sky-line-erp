@@ -17,8 +17,8 @@ export const useWarehouseStore = defineStore('warehouse', {
     }),
 
     actions: {
-        getWarehouses() {
-            if (!this.warehouses.data.length) {
+        getWarehouses(refetch = false) {
+            if (!this.warehouses.data.length || refetch) {
                 this.warehouses.loading = true;
                 return apiAdmin(`${apiUrl}`)
                     .then((res) => {

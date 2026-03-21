@@ -7,8 +7,8 @@ use App\Models\AccountGroup;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\AccountResource;
-use App\Http\Resources\Admin\AccountGroupTreeResource;
 use App\Http\Requests\Api\Admin\AccountRequest;
+use App\Http\Resources\Admin\AccountGroupTreeResource;
 
 class AccountController extends Controller
 {
