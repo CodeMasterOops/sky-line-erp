@@ -6,7 +6,10 @@ use App\Traits\MultiTenant;
 use App\Enums\ProductTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
 {
@@ -19,12 +22,10 @@ class Product extends Model
         'product_type',
         'name',
         'code',
-        'sku',
         'image',
         'unit_id',
         'brand_id',
-        'sales_price',
-        'purchase_price',
+        'has_variants',
         'reorder_quantity',
         'description',
     ];
@@ -34,6 +35,7 @@ class Product extends Model
         'sales_price' => 'float',
         'purchase_price' => 'float',
         'reorder_quantity' => 'integer',
+        'app:add-table-column' => 'boolean',
     ];
 
     public function scopeFilter($query, $param = [])
@@ -71,5 +73,21 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function defaultVariant(): HasOne
+    {
+        //        return $this->hasOne(ProductVariant::class)->where('is_default', true);
+        return $this->hasOne(ProductVariant::class);
+    }
+
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    public function attributeValues(): BelongsToMany
+    {
+        return $this->belongsToMany(AttributeValue::class, 'attribute_value_product', 'product_id', 'attribute_value_id');
     }
 }

@@ -15,17 +15,22 @@ class ProductResource extends JsonResource
             'product_type' => $this->product_type ?? '',
             'name' => $this->name ?? '',
             'code' => $this->code ?? '',
-            'sku' => $this->sku ?? '',
             'image' => $this->image ?? '',
             'unit_id' => $this->unit_id ?? '',
             'brand_id' => $this->brand_id ?? '',
-            'sales_price' => $this->sales_price ?? 0,
-            'purchase_price' => $this->purchase_price ?? 0,
             'reorder_quantity' => $this->reorder_quantity ?? 0,
             'description' => $this->description ?? '',
             'category' => $this->productCategory ? $this->productCategory->name : '',
             'brand' => $this->brand ? $this->brand->name : '',
             'unit' => $this->unit ? $this->unit->name : '',
+            'defaultVariant' => ProductVariantResource::make($this->defaultVariant),
+            'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
+            'attributes' => $this->whenLoaded('attributeValues', function () {
+                return $this->attributes ?? [];
+            }),
+            'attribute_value_ids' => $this->whenLoaded('attributeValues', function () {
+                return $this->attributeValues->pluck('id')->toArray();
+            }),
         ];
     }
 }

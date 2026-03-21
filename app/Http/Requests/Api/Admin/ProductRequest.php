@@ -22,22 +22,27 @@ class ProductRequest extends FormRequest
             'image' => ['nullable', 'image'],
             'unit_id' => ['required', TRule::exists('units', 'id')->withoutTrashed()],
             'brand_id' => ['nullable', TRule::exists('brands', 'id')->withoutTrashed()],
-            'sales_price' => ['required', 'numeric'],
-            'purchase_price' => ['required', 'numeric'],
             'reorder_quantity' => ['nullable', 'integer'],
             'description' => ['nullable'],
+            'has_variants' => ['nullable', 'boolean'],
+            'variants' => ['required', 'array'],
+            'variants.*.sku' => ['nullable'],
+            'variants.*.sales_price' => ['required', 'numeric'],
+            'variants.*.purchase_price' => ['required', 'numeric'],
+            'variants.*.is_default' => ['nullable', 'boolean'],
+            'variants.*.attribute_values' => ['nullable', 'array'],
+            'attribute_values' => ['nullable', 'array'],
+            'attribute_values.*' => [Rule::exists('attribute_values', 'id')->withoutTrashed()],
         ];
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
                 'name' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()],
                 'code' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()],
-                'sku' => ['nullable', 'string', 'max:255', TRule::unique('products')->withoutTrashed()],
             ]),
             'PUT' => array_merge($validations, [
                 'name' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()->ignore($this->product)],
                 'code' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()->ignore($this->product)],
-                'sku' => ['nullable', 'string', 'max:255', TRule::unique('products')->withoutTrashed()->ignore($this->product)],
             ])
         };
     }

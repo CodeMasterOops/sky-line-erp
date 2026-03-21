@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\ProductResource;
 use App\Http\Requests\Api\Admin\ProductRequest;
@@ -16,7 +17,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = Product::with(['productCategory', 'brand', 'unit'])
+        $products = Product::with(['productCategory', 'brand', 'unit', 'defaultVariant', 'variants'])
             ->filter($request->all())
             ->paginate($request->limit ?? 25);
 
@@ -28,7 +29,29 @@ class ProductController extends Controller
      */
     public function store(ProductRequest $request)
     {
-        $product = Product::create($request->validated());
+        $formData = $request->validated();
+
+        $product = DB::transaction(function () use ($request, $formData) {
+            $hasVariants = $request->boolean('has_variants');
+
+            $product = Product::create($formData);
+
+            $product->attributeValues()->attach($request->validated('attribute_values'));
+
+            foreach ($formData['variants'] ?? [] as $variant) {
+                $productVariant = $product->variants()->create([
+                    'vendor_id' => $product->vendor_id,
+                    'sku' => $variant['sku'] ?? null,
+                    'sales_price' => $variant['sales_price'] ?? 0,
+                    'purchase_price' => $variant['purchase_price'] ?? 0,
+                    'is_default' => $hasVariants ? $variant['is_default'] : true,
+                ]);
+
+                $productVariant->variantOptions()->attach($variant['attribute_values'] ?? []);
+            }
+
+            return $product;
+        });
 
         return response()->json([
             'data' => ProductResource::make($product),
@@ -41,6 +64,11 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
+        $product->load([
+            'variants.variantOptions.attribute',
+            'attributeValues.attribute',
+        ]);
+
         return ProductResource::make($product);
     }
 

@@ -16,12 +16,10 @@ return new class extends Migration
             $table->string('product_type', 20)->default(ProductTypeEnum::PRODUCT->value);
             $table->string('name');
             $table->string('code');
-            $table->string('sku')->nullable();
             $table->string('image')->nullable();
             $table->foreignId('unit_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('brand_id')->nullable()->constrained()->nullOnDelete();
-            $table->decimal('sales_price', 12, 2)->default(0);
-            $table->decimal('purchase_price', 12, 2)->default(0);
+            $table->boolean('has_variants')->default(false);
             $table->integer('reorder_quantity')->default(0);
             $table->text('description')->nullable();
             $table->timestamps();

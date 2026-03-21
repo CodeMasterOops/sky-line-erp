@@ -5,7 +5,6 @@
 @use "base/base";
 @use "base/background";
 
-
 /******* Components ******/
 @use "components/avatar";
 @use "components/boostrap";
@@ -32,6 +31,7 @@
 @use "components/ribbon";
 @use "components/popup";
 @use "components/grid";
+@use "components/modal";
 
 /****** Layout ******/
 @use "layout/darktheme";

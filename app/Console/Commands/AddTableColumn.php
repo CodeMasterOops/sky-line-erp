@@ -27,8 +27,14 @@ class AddTableColumn extends Command
      */
     public function handle()
     {
-        Schema::table('companies', function (Blueprint $table) {
-            $table->foreignId('fiscal_year_id')->nullable()->after('id')->constrained()->nullOnDelete();
+        Schema::table('products', function (Blueprint $table) {
+            if (Schema::hasColumn('products', 'sku')) {
+                $table->dropColumn('sku', 'sales_price', 'purchase_price');
+            }
+
+            if (! Schema::hasColumn('products', 'has_variants')) {
+                $table->boolean('has_variants')->default(false)->after('brand_id');
+            }
         });
 
         $this->output->success('Column added');
