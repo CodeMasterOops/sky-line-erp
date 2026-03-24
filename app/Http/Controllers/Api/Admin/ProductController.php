@@ -90,6 +90,7 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        $product->variants()->delete();
         $product->delete();
 
         return response()->json([
