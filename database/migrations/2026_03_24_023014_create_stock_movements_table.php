@@ -13,7 +13,8 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->noActionOnDelete();
             $table->foreignId('product_variant_id')->constrained()->cascadeOnDelete();
             $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete();
-            $table->string('type', 30);
+            $table->string('type', 20);
+            $table->string('direction', 20);
             $table->integer('quantity');
             $table->nullableMorphs('reference');
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();

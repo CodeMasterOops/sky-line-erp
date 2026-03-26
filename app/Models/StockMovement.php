@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Traits\MultiTenant;
 use App\Enums\ChangeTypeEnum;
+use App\Enums\StockDirectionEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class StockMovement extends Model
 {
@@ -17,6 +19,7 @@ class StockMovement extends Model
         'product_variant_id',
         'warehouse_id',
         'type',
+        'direction',
         'quantity',
         'reference_type',
         'reference_id',
@@ -27,5 +30,11 @@ class StockMovement extends Model
     protected $casts = [
         'quantity' => 'integer',
         'type' => ChangeTypeEnum::class,
+        'direction' => StockDirectionEnum::class,
     ];
+
+    public function reference(): MorphTo
+    {
+        return $this->morphTo();
+    }
 }

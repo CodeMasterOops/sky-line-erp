@@ -78,6 +78,26 @@
                 "showSubRoute": false
             },
             {
+                "menuValue": "Stock Transfer",
+                "icon": "ti ti-truck",
+                "active_link": "/admin/stock-transfer",
+                "route": {
+                    "name": "admin.stock-transfer"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false
+            },
+            {
+                "menuValue": "Stock Adjustment",
+                "icon": "ti ti-adjustments",
+                "active_link": "/admin/stock-adjustment",
+                "route": {
+                    "name": "admin.stock-adjustment"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false
+            },
+            {
                 "menuValue": "Warranties",
                 "icon": "ti ti-certificate",
                 "hasSubRoute": false,

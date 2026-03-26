@@ -4,14 +4,27 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Models\ProductVariant;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\ProductResource;
 use App\Http\Requests\Api\Admin\ProductRequest;
+use App\Http\Resources\Admin\ProductVariantResource;
 
 class ProductController extends Controller
 {
+    /**
+     * @Permissions("list_product_variant", group="product", desc="List Product Variant")
+     */
+    public function productVariants(Request $request)
+    {
+        $variants = ProductVariant::with(['product:id,name', 'variantOptions'])
+            ->get();
+
+        return ProductVariantResource::collection($variants);
+    }
+
     /**
      * @Permissions("list_product", group="product", desc="List Product")
      */

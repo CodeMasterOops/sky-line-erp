@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\AccountController;
 use App\Http\Controllers\Api\Admin\ProductController;
+use App\Http\Controllers\Api\Admin\StockTransferController;
+use App\Http\Controllers\Api\Admin\StockAdjustmentController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\AttributeController;
@@ -71,10 +73,19 @@ Route::middleware('auth:admin')->group(function () {
         Route::apiResource('product-category', ProductCategoryController::class);
 
         // product
+        Route::get('product/variant/all', [ProductController::class, 'productVariants'])->name('product.variant.all');
         Route::apiResource('product', ProductController::class);
 
         // product attribute
         Route::apiResource('attribute', AttributeController::class);
+
+        // stock transfer
+        Route::post('stock-transfer/{stockTransfer}/approve', [StockTransferController::class, 'approve'])->name('stock-transfer.approve');
+        Route::apiResource('stock-transfer', StockTransferController::class);
+
+        // stock adjustment
+        Route::post('stock-adjustment/{stockAdjustment}/approve', [StockAdjustmentController::class, 'approve'])->name('stock-adjustment.approve');
+        Route::apiResource('stock-adjustment', StockAdjustmentController::class);
 
         // parties
         Route::apiResource('party', PartyController::class);

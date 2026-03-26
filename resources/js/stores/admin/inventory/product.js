@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia';
-import { apiAdmin } from '@/helpers/api.js';
+import {defineStore} from 'pinia';
+import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 
 const apiUrl = 'product';
@@ -14,10 +14,28 @@ export const useProductStore = defineStore('product', {
         product: {
             data: {},
             loading: false
-        }
+        },
+        productVariants: {
+            data: [],
+            meta: {},
+            loading: false
+        },
     }),
 
     actions: {
+        getProductVariants() {
+            if (!this.productVariants.data.length) {
+                this.productVariants.loading = true;
+                return apiAdmin(`${apiUrl}/variant/all`)
+                    .then((res) => {
+                        this.productVariants.data = res.data.data;
+                    }).catch((err) => {
+                        showErrors(err);
+                    }).finally(() => {
+                        this.productVariants.loading = false;
+                    });
+            }
+        },
         getProducts({filter}) {
             this.products.loading = true;
             return apiAdmin(`${apiUrl}?${new URLSearchParams(filter).toString()}`)

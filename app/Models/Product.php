@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
 {
@@ -45,7 +44,6 @@ class Product extends Model
             $query->where(function ($q) use ($key) {
                 $q->where('name', 'like', $key);
                 $q->orWhere('code', 'like', $key);
-                $q->orWhere('sku', 'like', $key);
             });
         }
 
@@ -84,10 +82,5 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
-    }
-
-    public function attributeValues(): BelongsToMany
-    {
-        return $this->belongsToMany(AttributeValue::class, 'attribute_value_product', 'product_id', 'attribute_value_id');
     }
 }

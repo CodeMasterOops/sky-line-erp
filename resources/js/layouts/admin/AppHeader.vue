@@ -171,7 +171,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/stock/stock-transfer" class="link-item">
+                            <router-link to="/admin/stock-transfer" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-truck"></i>
                                 </span>

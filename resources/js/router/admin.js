@@ -216,6 +216,24 @@ const routes = [
                 component: () =>
                     import("@/views/admin/inventory/warehouse/Index.vue"),
             },
+            {
+                path: "stock-transfer",
+                name: "admin.stock-transfer",
+                meta: {
+                    pageTitle: "Stock Transfer",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/stock-transfer/Index.vue"),
+            },
+            {
+                path: "stock-adjustment",
+                name: "admin.stock-adjustment",
+                meta: {
+                    pageTitle: "Stock Adjustment",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/stock-adjustment/Index.vue"),
+            },
             // {
             //     path: 'tax',
             //     name: 'admin.tax-list',

@@ -8,13 +8,13 @@ enum ChangeTypeEnum: string
     case SALE = 'sale';
     case DAMAGE = 'damage';
     case LOST = 'lost';
-    // transfer_in
-    // transfer_out
-    // adjustment_add
-    // adjustment_sub
-    // return_in
-    // return_out
-    // opening_stock
+    case TRANSFER_IN = 'transfer-in';
+    case TRANSFER_OUT = 'transfer-out';
+    case ADJUSTMENT_IN = 'adjustment-in';
+    case ADJUSTMENT_OUT = 'adjustment-out';
+    case RETURN_IN = 'return-in';
+    case RETURN_OUT = 'return-out';
+    case OPENING_STOCK = 'opening-stock';
 
     public function label(): string
     {
@@ -28,6 +28,13 @@ enum ChangeTypeEnum: string
             self::SALE => 'Sale',
             self::DAMAGE => 'Damage',
             self::LOST => 'Lost',
+            self::TRANSFER_IN => 'Transfer In',
+            self::TRANSFER_OUT => 'Transfer Out',
+            self::ADJUSTMENT_IN => 'Adjustment In',
+            self::ADJUSTMENT_OUT => 'Adjustment Out',
+            self::RETURN_IN => 'Return In',
+            self::RETURN_OUT => 'Return Out',
+            self::OPENING_STOCK => 'Opening Stock',
         };
     }
 

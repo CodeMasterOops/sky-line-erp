@@ -25,12 +25,6 @@ class ProductResource extends JsonResource
             'unit' => $this->unit ? $this->unit->name : '',
             'defaultVariant' => ProductVariantResource::make($this->defaultVariant),
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
-            'attributes' => $this->whenLoaded('attributeValues', function () {
-                return $this->attributes ?? [];
-            }),
-            'attribute_value_ids' => $this->whenLoaded('attributeValues', function () {
-                return $this->attributeValues->pluck('id')->toArray();
-            }),
         ];
     }
 }
