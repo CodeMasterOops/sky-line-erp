@@ -49,8 +49,6 @@ class ProductController extends Controller
 
             $product = Product::create($formData);
 
-            $product->attributeValues()->attach($request->validated('attribute_values'));
-
             foreach ($formData['variants'] ?? [] as $variant) {
                 $productVariant = $product->variants()->create([
                     'vendor_id' => $product->vendor_id,
