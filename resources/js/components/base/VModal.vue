@@ -11,8 +11,8 @@
             <div class="modal-backdrop fade show" @click="handleBackdropClick"></div>
 
             <div
-                class="modal-dialog modal-lg modal-dialog-centered"
-                :class="modalClass"
+                class="modal-dialog modal-dialog-centered"
+                :class="[sizeClass, modalClass]"
                 role="document"
                 @click.stop
                 style="position: relative; z-index: 1055;"
@@ -51,16 +51,21 @@
 </template>
 
 <script setup>
-import {watch} from 'vue'
+import { computed, watch } from 'vue'
 
 const props = defineProps({
     showModal: {
         type: Boolean,
         default: false,
     },
+    size: {
+        type: String,
+        default: 'lg',
+        validator: (val) => ['sm', 'md', 'lg', 'xl', 'fullscreen'].includes(val),
+    },
     modalClass: {
         type: String,
-        default: 'custom-modal-two',
+        default: '',
     },
     title: {
         type: String,
@@ -71,6 +76,16 @@ const props = defineProps({
         default: true,
     },
 })
+
+const sizeClassMap = {
+    sm: 'modal-sm',
+    md: '',
+    lg: 'modal-lg',
+    xl: 'modal-xl',
+    fullscreen: 'modal-fullscreen',
+}
+
+const sizeClass = computed(() => sizeClassMap[props.size] ?? 'modal-lg')
 
 const emit = defineEmits(['closeClick'])
 
