@@ -20,7 +20,8 @@ class JournalVoucherController extends Controller
     public function index(Request $request)
     {
         $query = Journal::where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)
-            ->orderByDesc('date');
+            ->orderByDesc('date')
+            ->orderBy('id');
 
         if (! empty($request->search)) {
             $key = '%'.trim($request->search).'%';
@@ -40,12 +41,17 @@ class JournalVoucherController extends Controller
         $formData = $request->validated();
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $fiscalYearId = $user->company?->fiscal_year_id;
+        $setting = $user->company;
+        $fiscalYearId = $setting->fiscal_year_id;
 
-        $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId) {
+        $voucherCount = Journal::where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)->where('fiscal_year_id', $fiscalYearId)->withTrashed()->count();
+        $voucherNo = 'JV-'.($voucherCount + 1).'/'.($setting->fiscalYear->year_code ?? '');
+
+        $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $voucherNo) {
             $journal = Journal::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'type' => JournalTypeEnum::JOURNAL_VOUCHER->value,
+                'voucher_no' => $voucherNo,
                 'reference_no' => $formData['reference_no'] ?? null,
                 'date' => $formData['date'],
                 'remarks' => $formData['remarks'] ?? null,
@@ -55,16 +61,7 @@ class JournalVoucherController extends Controller
                 'status' => $status,
             ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'account_id' => $item['account_id'],
-                    'dr_amount' => $item['dr_amount'] ?? 0,
-                    'cr_amount' => $item['cr_amount'] ?? 0,
-                    'remarks' => $item['remarks'] ?? null,
-                ];
-            })->all();
-
-            $journal->journalItems()->createMany($items);
+            $journal->journalItems()->createMany($formData['items']);
 
             return $journal;
         });

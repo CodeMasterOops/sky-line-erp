@@ -22,6 +22,7 @@ class Journal extends Model
         'type',
         'reference_type',
         'reference_id',
+        'voucher_no',
         'reference_no',
         'date',
         'remarks',
@@ -33,7 +34,6 @@ class Journal extends Model
 
     protected $casts = [
         'fiscal_year_id' => 'integer',
-        'date' => 'date',
         'approved_at' => 'datetime',
         'type' => JournalTypeEnum::class,
         'status' => StatusEnum::class,

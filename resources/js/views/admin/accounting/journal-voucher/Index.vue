@@ -123,13 +123,18 @@ const columns = [
         width: 60,
     },
     {
-        title: 'Reference',
-        dataIndex: 'reference_no',
+        title: 'Date',
+        dataIndex: 'date',
         sorter: true,
     },
     {
-        title: 'Date',
-        dataIndex: 'date',
+        title: 'Entry no',
+        dataIndex: 'voucher_no',
+        sorter: true,
+    },
+    {
+        title: 'Reference',
+        dataIndex: 'reference_no',
         sorter: true,
     },
     {

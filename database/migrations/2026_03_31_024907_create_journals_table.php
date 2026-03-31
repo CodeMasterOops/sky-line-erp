@@ -15,6 +15,7 @@ return new class extends Migration
             $table->foreignId('fiscal_year_id')->nullable()->constrained()->nullOnDelete();
             $table->string('type', 30);
             $table->nullableMorphs('reference');
+            $table->string('voucher_no');
             $table->string('reference_no')->nullable();
             $table->date('date');
             $table->text('remarks')->nullable();

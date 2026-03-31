@@ -63,6 +63,13 @@ const routes = [
                     import("@/views/admin/settings/general-settings/settings-index.vue"), // a wrapper layout for settings
                 children: [
                     {
+                        path: "setting",
+                        name: "admin.setting",
+                        component: () =>
+                            import("@/views/admin/settings/general-settings/Setting.vue"),
+                        meta: {pageTitle: "Company Setting"},
+                    },
+                    {
                         path: "general-settings",
                         name: "admin.general-settings",
                         component: () =>

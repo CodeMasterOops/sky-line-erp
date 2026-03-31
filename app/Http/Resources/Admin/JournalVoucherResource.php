@@ -11,6 +11,7 @@ class JournalVoucherResource extends JsonResource
     {
         return [
             'id' => $this->id ?? '',
+            'voucher_no' => $this->voucher_no ?? '',
             'reference_no' => $this->reference_no ?? '',
             'date' => $this->date ?? '',
             'remarks' => $this->remarks ?? '',

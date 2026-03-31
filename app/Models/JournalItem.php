@@ -25,6 +25,16 @@ class JournalItem extends Model
         'cr_amount' => 'float',
     ];
 
+    public function setDrAmountAttribute($value): void
+    {
+        $this->attributes['dr_amount']=(float)$value;
+    }
+
+    public function setCrAmountAttribute($value): void
+    {
+        $this->attributes['cr_amount']=(float)$value;
+    }
+
     public function journal(): BelongsTo
     {
         return $this->belongsTo(Journal::class);

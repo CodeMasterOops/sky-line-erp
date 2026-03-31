@@ -29,6 +29,7 @@
                         id="start_date"
                         v-model="form.start_date"
                         label="Start Date"
+                        default-date="en"
                         :show-switcher="false"
                         @validate="validateField('start_date')"
                         :error="errors.start_date"
@@ -40,12 +41,13 @@
                         v-model="form.end_date"
                         label="End Date"
                         :show-switcher="false"
+                        default-date="en"
                         @validate="validateField('end_date')"
                         :error="errors.end_date"
                     />
                 </div>
                 <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger" type="button">
+                    <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
                         Close
                     </button>
                     <VButton :loading="isSubmitting"/>
@@ -61,7 +63,7 @@ import {toast} from "@/helpers/toast";
 import showErrors from "@/helpers/showErrors";
 import {object, string} from "yup";
 import {useYup} from "@/helpers/yup";
-import { useFiscalYearStore } from '@/stores/super-admin/fiscal-year.js';
+import {useFiscalYearStore} from '@/stores/super-admin/fiscal-year.js';
 
 const fiscalYearStore = useFiscalYearStore();
 
