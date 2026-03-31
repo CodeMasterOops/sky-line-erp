@@ -208,6 +208,16 @@
                 "route": {
                     "name": "admin.account-settings"
                 }
+            },
+            {
+                "menuValue": "Journal Voucher",
+                "icon": "ti ti-receipt",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/journal-voucher",
+                "route": {
+                    "name": "admin.journal-voucher"
+                }
             }
         ]
     },

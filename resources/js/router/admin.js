@@ -331,6 +331,15 @@ const routes = [
                 component: () =>
                     import("@/views/admin/accounting/account-setting/Index.vue"),
             },
+            {
+                path: "journal-voucher",
+                name: "admin.journal-voucher",
+                meta: {
+                    pageTitle: "Journal Voucher",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/journal-voucher/Index.vue"),
+            },
         ],
     },
 ];
