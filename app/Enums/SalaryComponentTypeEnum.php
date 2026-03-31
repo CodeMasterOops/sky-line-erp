@@ -1,0 +1,17 @@
+<?php
+
+namespace App\Enums;
+
+enum SalaryComponentTypeEnum: string
+{
+    case EARNING = 'earning';
+    case DEDUCTION = 'deduction';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::EARNING => 'Earning',
+            self::DEDUCTION => 'Deduction',
+        };
+    }
+}

@@ -15,6 +15,7 @@ class FiscalYearResource extends JsonResource
             'year_code' => $this->year_code ?? '',
             'start_date' => $this->start_date ?? '',
             'end_date' => $this->end_date ?? '',
+            'is_current' => $this->is_current ?? false,
         ];
     }
 }

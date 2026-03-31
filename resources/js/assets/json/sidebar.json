@@ -238,6 +238,104 @@
         ]
     },
     {
+        "tittle": "HR & Payroll",
+        "showAsTab": true,
+        "separateRoute": false,
+        "menu": [
+            {
+                "menuValue": "Employees",
+                "icon": "ti ti-users",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-employee-list" }
+            },
+            {
+                "menuValue": "Departments",
+                "icon": "ti ti-building",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-department-list" }
+            },
+            {
+                "menuValue": "Designations",
+                "icon": "ti ti-id-badge",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-designation-list" }
+            },
+            {
+                "menuValue": "Attendance",
+                "icon": "ti ti-calendar-check",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-attendance" }
+            },
+            {
+                "menuValue": "Leave Applications",
+                "icon": "ti ti-file-time",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-leave-applications" }
+            },
+            {
+                "menuValue": "Leave Types",
+                "icon": "ti ti-list-check",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-leave-types" }
+            },
+            {
+                "menuValue": "Holidays",
+                "icon": "ti ti-calendar-event",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-holidays" }
+            },
+            {
+                "menuValue": "Salary Components",
+                "icon": "ti ti-coin",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-salary-components" }
+            },
+            {
+                "menuValue": "Salary Structure",
+                "icon": "ti ti-table",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-salary-structure" }
+            },
+            {
+                "menuValue": "Payroll Runs",
+                "icon": "ti ti-cash",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-payroll" }
+            },
+            {
+                "menuValue": "Payroll Summary",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-report-payroll" }
+            },
+            {
+                "menuValue": "Attendance Report",
+                "icon": "ti ti-report",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-report-attendance" }
+            },
+            {
+                "menuValue": "Leave Balance",
+                "icon": "ti ti-chart-bar",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "route": { "name": "admin.hr-report-leave" }
+            }
+        ]
+    },
+    {
         "tittle": "User Management",
         "showAsTab": true,
         "separateRoute": false,
