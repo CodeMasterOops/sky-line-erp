@@ -154,13 +154,33 @@
         "icon": "shopping-cart",
         "menu": [
             {
-                "menuValue": "Sales List",
+                "menuValue": "Sales Order",
                 "icon": "ti ti-shopping-cart",
                 "hasSubRoute": false,
                 "showSubRoute": false,
                 "active_link": "/admin/sales-list",
                 "route": {
                     "name": "admin.sales-list"
+                }
+            },
+            {
+                "menuValue": "Invoices",
+                "icon": "ti ti-file-invoice",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/sales-invoice",
+                "route": {
+                    "name": "admin.invoice-list"
+                }
+            },
+            {
+                "menuValue": "Receipts",
+                "icon": "ti ti-receipt",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/sales-receipt",
+                "route": {
+                    "name": "admin.receipt-list"
                 }
             },
             {
@@ -174,7 +194,7 @@
                 }
             },
             {
-                "menuValue": "Quotation List",
+                "menuValue": "Quotations",
                 "icon": "ti ti-file-diff",
                 "hasSubRoute": false,
                 "showSubRoute": false,
@@ -217,16 +237,6 @@
                 "active_link": "/admin/journal-voucher",
                 "route": {
                     "name": "admin.journal-voucher"
-                }
-            },
-            {
-                "menuValue": "Invoice List",
-                "icon": "ti ti-file-invoice",
-                "hasSubRoute": false,
-                "showSubRoute": false,
-                "active_link": "/admin/invoice",
-                "route": {
-                    "name": "admin.invoice-list"
                 }
             }
         ]

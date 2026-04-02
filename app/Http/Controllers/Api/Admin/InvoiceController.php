@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Invoice;
-use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\InvoiceResource;
 use App\Http\Requests\Api\Admin\InvoiceRequest;
+use App\Enums\StatusEnum;
 
 class InvoiceController extends Controller
 {
@@ -205,6 +205,69 @@ class InvoiceController extends Controller
         return response()->json([
             'data' => InvoiceResource::make($invoice),
             'message' => 'Invoice Approved Successfully',
+        ]);
+    }
+
+    /**
+     * @Permissions("list_due_invoices", group="invoice", desc="List Due Invoices By Party")
+     */
+    public function dueInvoices(Request $request)
+    {
+        $partyId = (int) $request->get('party_id');
+        if (! $partyId) {
+            return response()->json([
+                'message' => 'party_id is required.',
+            ], 422);
+        }
+
+        $itemsSub = DB::table('invoice_items')
+            ->selectRaw('invoice_id, SUM(quantity * rate) as subtotal, SUM(discount_amount) as discount_total, SUM(tax_amount) as tax_total')
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id');
+
+        $paidSub = DB::table('receipt_allocations')
+            ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
+            ->selectRaw('receipt_allocations.invoice_id, SUM(receipt_allocations.amount) as paid_total')
+            ->whereNull('receipt_allocations.deleted_at')
+            ->whereNull('receipts.deleted_at')
+            ->where('receipts.status', StatusEnum::APPROVED->value)
+            ->groupBy('receipt_allocations.invoice_id');
+
+        $rows = DB::table('invoices')
+            ->leftJoinSub($itemsSub, 'item_totals', function ($join) {
+                $join->on('invoices.id', '=', 'item_totals.invoice_id');
+            })
+            ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
+                $join->on('invoices.id', '=', 'paid_totals.invoice_id');
+            })
+            ->where('invoices.party_id', $partyId)
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.deleted_at')
+            ->select([
+                'invoices.id',
+                'invoices.invoice_no',
+                'invoices.invoice_date',
+                'invoices.due_date',
+                DB::raw('COALESCE(item_totals.subtotal, 0) as subtotal'),
+                DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
+                DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
+                DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+            ])
+            ->get()
+            ->map(function ($row) {
+                $grandTotal = (float) $row->subtotal - (float) $row->discount_total + (float) $row->tax_total;
+                $paidTotal = (float) $row->paid_total;
+                $due = max($grandTotal - $paidTotal, 0);
+                $row->grand_total = round($grandTotal, 2);
+                $row->paid_total = round($paidTotal, 2);
+                $row->due_amount = round($due, 2);
+                return $row;
+            })
+            ->filter(fn ($row) => $row->due_amount > 0)
+            ->values();
+
+        return response()->json([
+            'data' => $rows,
         ]);
     }
 

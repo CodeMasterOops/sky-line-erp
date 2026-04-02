@@ -61,6 +61,13 @@
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <a
+                                        v-if="record.status === 'approved'"
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        @click="recordPayment(record.id)">
+                                        <i class="ti ti-receipt"></i>
+                                    </a>
+                                    <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 p-2"
                                         href="javascript:void(0);"
@@ -82,6 +89,7 @@
 
     <CreateInvoice v-model:create-modal-opened="createModalOpened"/>
     <EditInvoice v-model:invoice_id="edit_invoice_id"/>
+    <ReceiptModal v-model:open="receiptModalOpened" v-model:invoice-id="receiptInvoiceId" @saved="fetchInvoices"/>
 </template>
 
 <script setup>
@@ -93,7 +101,8 @@ import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
 import CreateInvoice from './Create.vue';
 import EditInvoice from './Edit.vue';
-import {useInvoiceStore} from '@/stores/admin/accounting/invoice.js';
+import ReceiptModal from '@/views/admin/sales/receipt/ReceiptModal.vue';
+import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 
 const invoiceStore = useInvoiceStore();
 
@@ -101,6 +110,8 @@ const {invoices} = storeToRefs(invoiceStore);
 
 const createModalOpened = ref(false);
 const edit_invoice_id = ref('');
+const receiptModalOpened = ref(false);
+const receiptInvoiceId = ref('');
 
 const filter = reactive({
     search: '',
@@ -220,5 +231,10 @@ const approveInvoice = async (id) => {
             }
         }
     });
+};
+
+const recordPayment = (id) => {
+    receiptInvoiceId.value = id;
+    receiptModalOpened.value = true;
 };
 </script>

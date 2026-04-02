@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Admin\QuotationController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\SalesOrderController;
 use App\Http\Controllers\Api\Admin\InvoiceController;
+use App\Http\Controllers\Api\Admin\ReceiptController;
 use App\Http\Controllers\Api\Admin\StockTransferController;
 use App\Http\Controllers\Api\Admin\StockAdjustmentController;
 use App\Http\Controllers\Api\Admin\ProfileController;
@@ -117,8 +118,13 @@ Route::middleware('auth:admin')->group(function () {
         Route::apiResource('sales-order', SalesOrderController::class);
 
         // invoice
+        Route::get('invoice/due', [InvoiceController::class, 'dueInvoices'])->name('invoice.due');
         Route::post('invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
         Route::apiResource('invoice', InvoiceController::class);
+
+        // receipt
+        Route::post('receipt/{receipt}/approve', [ReceiptController::class, 'approve'])->name('receipt.approve');
+        Route::apiResource('receipt', ReceiptController::class);
 
         // account settings
         Route::apiResource('account-setting', AccountSettingController::class)->only('index', 'store');

@@ -201,7 +201,7 @@ import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
-import {useInvoiceStore} from '@/stores/admin/accounting/invoice.js';
+import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 
 const invoiceStore = useInvoiceStore();
 const unitStore = useUnitStore();

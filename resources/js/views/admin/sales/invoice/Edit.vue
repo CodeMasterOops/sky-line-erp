@@ -1,12 +1,12 @@
 <template>
     <VModal
-        :show-modal="!!open"
-        @close-click="closeModal"
+        :show-modal="!!edit_invoice_id"
+        @close-click="closeEditModal"
         modal-class="large-modal"
-        title="Create Invoice">
+        title="Update Invoice">
         <template #modal-body>
-            <VLoader v-if="loading" loader-type="progress"/>
-            <form v-else @submit.prevent="storeInvoice" class="row g-3">
+            <VLoader v-if="invoice.loading" loader-type="progress"/>
+            <form @submit.prevent="updateInvoice(invoice.data.id)" class="row g-3">
                 <div class="col-md-6">
                     <VInput
                         id="invoice_date"
@@ -167,22 +167,12 @@
                 </div>
 
                 <div class="col-12 text-end">
-                    <button @click="closeModal" class="btn btn-danger me-1" type="button">
+                    <button @click="closeEditModal" class="btn btn-danger me-1" type="button">
                         Close
                     </button>
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary me-1"
-                        :disabled="isSubmitting"
-                        @click="storeInvoice">
-                        Create
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        :disabled="isSubmitting"
-                        @click="storeInvoice('approved')">
-                        Create & Approve
+                    <VButton v-if="isDraft" :loading="isSubmitting"/>
+                    <button v-else type="button" class="btn btn-secondary" disabled>
+                        Approved
                     </button>
                 </div>
             </form>
@@ -197,13 +187,12 @@ import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {apiAdmin} from '@/helpers/api.js';
 import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
-import {useInvoiceStore} from '@/stores/admin/accounting/invoice.js';
+import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 
 const invoiceStore = useInvoiceStore();
 const unitStore = useUnitStore();
@@ -212,17 +201,14 @@ const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
 
-const open = defineModel('open');
-const referenceId = defineModel('referenceId');
-const referenceType = defineModel('referenceType');
+const edit_invoice_id = defineModel('invoice_id');
 
+const {invoice} = storeToRefs(invoiceStore);
 const {units} = storeToRefs(unitStore);
 const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
-
-const loading = ref(false);
 
 onMounted(() => {
     unitStore.getUnits();
@@ -233,13 +219,11 @@ onMounted(() => {
 });
 
 const initialState = {
-    invoice_date: new Date().toISOString().slice(0, 10),
+    invoice_date: '',
     due_date: '',
     party_id: '',
     warehouse_id: '',
     remarks: '',
-    reference_type: '',
-    reference_id: '',
     status: 'draft',
     items: [
         {
@@ -271,6 +255,30 @@ const removeItem = (index) => {
     if (form.items.length === 1) return;
     form.items.splice(index, 1);
 };
+
+watch(() => edit_invoice_id.value, async (id) => {
+    if (id) {
+        await invoiceStore.getInvoice(id);
+        Object.keys(form).forEach(key => {
+            if (key === 'items') {
+                form.items = (invoice.value.data.items || []).map(item => ({
+                    product_variant_id: item.product_variant_id || '',
+                    unit_id: item.unit_id || '',
+                    quantity: item.quantity || '',
+                    rate: item.rate || '',
+                    tax_id: item.tax_id || '',
+                    discount_amount: item.discount_amount || '',
+                }));
+            } else if (key === 'warehouse_id') {
+                form.warehouse_id = invoice.value.data.items?.[0]?.warehouse_id || '';
+            } else {
+                form[key] = invoice.value.data[key] || '';
+            }
+        });
+    }
+});
+
+const isDraft = computed(() => invoice.value.data.status === 'draft');
 
 const validations = object({
     invoice_date: string().required('Invoice date is required.'),
@@ -357,57 +365,18 @@ const syncLineItems = () => {
     });
 };
 
-const loadReference = async () => {
-    if (!referenceId.value || !referenceType.value) {
+const updateInvoice = async (id) => {
+    if (!isDraft.value) {
         return;
     }
-    loading.value = true;
-    try {
-        const endpoint = referenceType.value === 'quotation' ? `quotation/${referenceId.value}` : `sales-order/${referenceId.value}`;
-        const res = await apiAdmin(endpoint);
-        const data = res.data.data || {};
-
-        form.invoice_date = new Date().toISOString().slice(0, 10);
-        form.due_date = '';
-        form.party_id = data.party_id || '';
-        form.remarks = data.remarks || '';
-        form.reference_type = referenceType.value === 'quotation' ? 'App\\Models\\Quotation' : 'App\\Models\\SalesOrder';
-        form.reference_id = referenceId.value;
-        form.items = (data.items || []).map(item => ({
-            product_variant_id: item.product_variant_id || '',
-            unit_id: item.unit_id || '',
-            quantity: item.quantity || '',
-            rate: item.rate || '',
-            tax_id: item.tax_id || '',
-            discount_amount: item.discount_amount || '',
-        }));
-
-        if (!form.items.length) {
-            form.items = [...initialState.items];
-        }
-    } catch (e) {
-        showErrors(e);
-    } finally {
-        loading.value = false;
-    }
-};
-
-watch(() => [referenceId.value, referenceType.value, open.value], ([id, type, isOpen]) => {
-    if (id && type && isOpen) {
-        loadReference();
-    }
-});
-
-const storeInvoice = async (status = 'draft') => {
-    form.status = status;
     let validated = await validateForm(validations, form);
     if (validated) {
         isSubmitting.value = true;
         try {
             syncLineItems();
-            let res = await invoiceStore.storeInvoice(form);
+            let res = await invoiceStore.updateInvoice(id, form);
             toast(res.status, res.data.message);
-            closeModal();
+            closeEditModal();
         } catch (e) {
             showErrors(e);
         } finally {
@@ -416,11 +385,9 @@ const storeInvoice = async (status = 'draft') => {
     }
 };
 
-const closeModal = () => {
+const closeEditModal = () => {
     resetForm();
-    open.value = false;
-    referenceId.value = '';
-    referenceType.value = '';
+    edit_invoice_id.value = '';
 };
 
 function resetForm() {

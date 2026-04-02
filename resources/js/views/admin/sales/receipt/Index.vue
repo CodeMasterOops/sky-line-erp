@@ -1,13 +1,13 @@
 <template>
-    <PageHeader title="Sales Orders" subtitle="Manage your sales orders" @refresh="fetchOrders">
+    <PageHeader title="Receipts" subtitle="Manage customer receipts" @refresh="fetchReceipts">
         <template #actions>
             <button
-                v-can="'create_sales_order'"
+                v-can="'create_receipt'"
                 type="button"
                 @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
-                Add Sales Order
+                Add Receipt
             </button>
         </template>
     </PageHeader>
@@ -23,7 +23,7 @@
                         type="search"
                         v-model="filter.search"
                         class="form-control form-control-sm"
-                        placeholder="Search order"
+                        placeholder="Search receipt"
                         @input="debouncedFetch"
                     >
                 </div>
@@ -34,9 +34,9 @@
                 <a-table
                     class="table datanew table-hover table-center mb-0"
                     :columns="columns"
-                    :data-source="orders.data"
+                    :data-source="receipts.data"
                     :pagination="pagination"
-                    :loading="orders.loading"
+                    :loading="receipts.loading"
                     @change="handleTableChange"
                 >
                     <template #bodyCell="{ column, record, index }">
@@ -55,27 +55,13 @@
                                 <div class="edit-delete-action">
                                     <a
                                         v-if="record.status === 'draft'"
-                                        class="me-2 edit-icon p-2"
-                                        href="javascript:void(0);"
-                                        @click="editOrder(record.id)">
-                                        <i class="ti ti-edit"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'draft'"
                                         class="me-2 p-2"
                                         href="javascript:void(0);"
-                                        @click="approveOrder(record.id)">
+                                        @click="approveReceipt(record.id)">
                                         <i class="ti ti-check"></i>
                                     </a>
-                                    <a
-                                        v-if="record.status === 'approved' && !record.invoice_count"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="convertToInvoice(record.id)">
-                                        <i class="ti ti-file-invoice"></i>
-                                    </a>
                                     <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
-                                       @click="deleteOrder(record.id)">
+                                       @click="deleteReceipt(record.id)">
                                         <i class="ti ti-trash"></i>
                                     </a>
                                 </div>
@@ -87,13 +73,7 @@
         </div>
     </div>
 
-    <CreateSalesOrder v-model:create-modal-opened="createModalOpened"/>
-    <EditSalesOrder v-model:order_id="edit_order_id"/>
-    <CreateInvoiceFromReference
-        v-model:open="invoiceModalOpened"
-        v-model:reference-id="invoiceReferenceId"
-        v-model:reference-type="invoiceReferenceType"
-    />
+    <ReceiptModal v-model:open="createModalOpened" @saved="fetchReceipts"/>
 </template>
 
 <script setup>
@@ -103,19 +83,14 @@ import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
-import CreateSalesOrder from './Create.vue';
-import EditSalesOrder from './Edit.vue';
-import CreateInvoiceFromReference from '@/views/admin/accounting/invoice/CreateFromReference.vue';
-import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import ReceiptModal from './ReceiptModal.vue';
+import {useReceiptStore} from '@/stores/admin/sales/receipt.js';
 
-const salesOrderStore = useSalesOrderStore();
-const {orders} = storeToRefs(salesOrderStore);
+const receiptStore = useReceiptStore();
+
+const {receipts} = storeToRefs(receiptStore);
 
 const createModalOpened = ref(false);
-const edit_order_id = ref('');
-const invoiceModalOpened = ref(false);
-const invoiceReferenceId = ref('');
-const invoiceReferenceType = ref('');
 
 const filter = reactive({
     search: '',
@@ -124,9 +99,9 @@ const filter = reactive({
 });
 
 const pagination = computed(() => ({
-    total: orders.value.meta.total || 0,
-    current: orders.value.meta.current_page || 1,
-    pageSize: orders.value.meta.per_page || filter.limit,
+    total: receipts.value.meta.total || 0,
+    current: receipts.value.meta.current_page || 1,
+    pageSize: receipts.value.meta.per_page || filter.limit,
     showSizeChanger: true,
     showQuickJumper: true,
 }));
@@ -138,13 +113,13 @@ const columns = [
         width: 60,
     },
     {
-        title: 'Order No',
-        dataIndex: 'order_no',
+        title: 'Receipt No',
+        dataIndex: 'receipt_no',
         sorter: true,
     },
     {
         title: 'Date',
-        dataIndex: 'order_date',
+        dataIndex: 'receipt_date',
         sorter: true,
     },
     {
@@ -153,8 +128,18 @@ const columns = [
         sorter: true,
     },
     {
-        title: 'Grand Total',
-        dataIndex: 'grand_total',
+        title: 'Payment Method',
+        dataIndex: 'payment_method',
+        sorter: true,
+    },
+    {
+        title: 'Account',
+        dataIndex: 'account_name',
+        sorter: true,
+    },
+    {
+        title: 'Total Amount',
+        dataIndex: 'total_amount',
         sorter: true,
     },
     {
@@ -168,29 +153,25 @@ const columns = [
 ];
 
 onMounted(() => {
-    fetchOrders();
+    fetchReceipts();
 });
 
-const fetchOrders = () => {
-    salesOrderStore.getOrders({filter});
+const fetchReceipts = () => {
+    receiptStore.getReceipts({filter});
 };
 
 const debouncedFetch = debounce(() => {
     filter.page = 1;
-    fetchOrders();
+    fetchReceipts();
 }, 300);
 
 const handleTableChange = (pagination) => {
     filter.page = pagination.current;
     filter.limit = pagination.pageSize;
-    fetchOrders();
+    fetchReceipts();
 };
 
-const editOrder = (id) => {
-    edit_order_id.value = id;
-};
-
-const deleteOrder = async (id) => {
+const deleteReceipt = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
         text: 'If you delete this, it will be gone forever.',
@@ -201,9 +182,9 @@ const deleteOrder = async (id) => {
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await salesOrderStore.deleteOrder(id);
+                let res = await receiptStore.deleteReceipt(id);
                 toast(res.status, res.data.message);
-                fetchOrders();
+                fetchReceipts();
             } catch (e) {
                 showErrors(e);
             }
@@ -211,10 +192,10 @@ const deleteOrder = async (id) => {
     });
 };
 
-const approveOrder = async (id) => {
+const approveReceipt = async (id) => {
     Swal.fire({
-        title: 'Approve Sales Order?',
-        text: 'This will mark the order as approved.',
+        title: 'Approve Receipt?',
+        text: 'This will mark the receipt as approved.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: 'green',
@@ -222,19 +203,13 @@ const approveOrder = async (id) => {
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await salesOrderStore.approveOrder(id);
+                let res = await receiptStore.approveReceipt(id);
                 toast(res.status, res.data.message);
-                fetchOrders();
+                fetchReceipts();
             } catch (e) {
                 showErrors(e);
             }
         }
     });
-};
-
-const convertToInvoice = (id) => {
-    invoiceReferenceId.value = id;
-    invoiceReferenceType.value = 'sales-order';
-    invoiceModalOpened.value = true;
 };
 </script>

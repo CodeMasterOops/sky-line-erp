@@ -176,9 +176,27 @@ const routes = [
                 path: "sales-list",
                 name: "admin.sales-list",
                 meta: {
-                    pageTitle: "Sales List",
+                    pageTitle: "Sales Order",
                 },
-                component: () => import("@/views/admin/sales/list/Index.vue"),
+                component: () => import("@/views/admin/sales/sales-order/Index.vue"),
+            },
+            {
+                path: "sales-invoice",
+                name: "admin.invoice-list",
+                meta: {
+                    pageTitle: "Invoice",
+                },
+                component: () =>
+                    import("@/views/admin/sales/invoice/Index.vue"),
+            },
+            {
+                path: "sales-receipt",
+                name: "admin.receipt-list",
+                meta: {
+                    pageTitle: "Receipt List",
+                },
+                component: () =>
+                    import("@/views/admin/sales/receipt/Index.vue"),
             },
             {
                 path: "sales-returns",
@@ -346,15 +364,6 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/accounting/journal-voucher/Index.vue"),
-            },
-            {
-                path: "invoice",
-                name: "admin.invoice-list",
-                meta: {
-                    pageTitle: "Invoice List",
-                },
-                component: () =>
-                    import("@/views/admin/accounting/invoice/Index.vue"),
             },
         ],
     },
