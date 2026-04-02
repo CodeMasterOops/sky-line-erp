@@ -1,13 +1,13 @@
 <template>
-    <PageHeader title="Sales Orders" subtitle="Manage your sales orders" @refresh="fetchOrders">
+    <PageHeader title="Invoices" subtitle="Manage your invoices" @refresh="fetchInvoices">
         <template #actions>
             <button
-                v-can="'create_sales_order'"
+                v-can="'create_invoice'"
                 type="button"
                 @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
-                Add Sales Order
+                Add Invoice
             </button>
         </template>
     </PageHeader>
@@ -23,7 +23,7 @@
                         type="search"
                         v-model="filter.search"
                         class="form-control form-control-sm"
-                        placeholder="Search order"
+                        placeholder="Search invoice"
                         @input="debouncedFetch"
                     >
                 </div>
@@ -34,9 +34,9 @@
                 <a-table
                     class="table datanew table-hover table-center mb-0"
                     :columns="columns"
-                    :data-source="orders.data"
+                    :data-source="invoices.data"
                     :pagination="pagination"
-                    :loading="orders.loading"
+                    :loading="invoices.loading"
                     @change="handleTableChange"
                 >
                     <template #bodyCell="{ column, record, index }">
@@ -57,25 +57,18 @@
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
                                         href="javascript:void(0);"
-                                        @click="editOrder(record.id)">
+                                        @click="editInvoice(record.id)">
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 p-2"
                                         href="javascript:void(0);"
-                                        @click="approveOrder(record.id)">
+                                        @click="approveInvoice(record.id)">
                                         <i class="ti ti-check"></i>
                                     </a>
-                                    <a
-                                        v-if="record.status === 'approved' && !record.invoice_count"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="convertToInvoice(record.id)">
-                                        <i class="ti ti-file-invoice"></i>
-                                    </a>
                                     <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
-                                       @click="deleteOrder(record.id)">
+                                       @click="deleteInvoice(record.id)">
                                         <i class="ti ti-trash"></i>
                                     </a>
                                 </div>
@@ -87,13 +80,8 @@
         </div>
     </div>
 
-    <CreateSalesOrder v-model:create-modal-opened="createModalOpened"/>
-    <EditSalesOrder v-model:order_id="edit_order_id"/>
-    <CreateInvoiceFromReference
-        v-model:open="invoiceModalOpened"
-        v-model:reference-id="invoiceReferenceId"
-        v-model:reference-type="invoiceReferenceType"
-    />
+    <CreateInvoice v-model:create-modal-opened="createModalOpened"/>
+    <EditInvoice v-model:invoice_id="edit_invoice_id"/>
 </template>
 
 <script setup>
@@ -103,19 +91,16 @@ import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
-import CreateSalesOrder from './Create.vue';
-import EditSalesOrder from './Edit.vue';
-import CreateInvoiceFromReference from '@/views/admin/accounting/invoice/CreateFromReference.vue';
-import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import CreateInvoice from './Create.vue';
+import EditInvoice from './Edit.vue';
+import {useInvoiceStore} from '@/stores/admin/accounting/invoice.js';
 
-const salesOrderStore = useSalesOrderStore();
-const {orders} = storeToRefs(salesOrderStore);
+const invoiceStore = useInvoiceStore();
+
+const {invoices} = storeToRefs(invoiceStore);
 
 const createModalOpened = ref(false);
-const edit_order_id = ref('');
-const invoiceModalOpened = ref(false);
-const invoiceReferenceId = ref('');
-const invoiceReferenceType = ref('');
+const edit_invoice_id = ref('');
 
 const filter = reactive({
     search: '',
@@ -124,9 +109,9 @@ const filter = reactive({
 });
 
 const pagination = computed(() => ({
-    total: orders.value.meta.total || 0,
-    current: orders.value.meta.current_page || 1,
-    pageSize: orders.value.meta.per_page || filter.limit,
+    total: invoices.value.meta.total || 0,
+    current: invoices.value.meta.current_page || 1,
+    pageSize: invoices.value.meta.per_page || filter.limit,
     showSizeChanger: true,
     showQuickJumper: true,
 }));
@@ -138,13 +123,18 @@ const columns = [
         width: 60,
     },
     {
-        title: 'Order No',
-        dataIndex: 'order_no',
+        title: 'Invoice No',
+        dataIndex: 'invoice_no',
         sorter: true,
     },
     {
-        title: 'Date',
-        dataIndex: 'order_date',
+        title: 'Invoice Date',
+        dataIndex: 'invoice_date',
+        sorter: true,
+    },
+    {
+        title: 'Due Date',
+        dataIndex: 'due_date',
         sorter: true,
     },
     {
@@ -168,29 +158,29 @@ const columns = [
 ];
 
 onMounted(() => {
-    fetchOrders();
+    fetchInvoices();
 });
 
-const fetchOrders = () => {
-    salesOrderStore.getOrders({filter});
+const fetchInvoices = () => {
+    invoiceStore.getInvoices({filter});
 };
 
 const debouncedFetch = debounce(() => {
     filter.page = 1;
-    fetchOrders();
+    fetchInvoices();
 }, 300);
 
 const handleTableChange = (pagination) => {
     filter.page = pagination.current;
     filter.limit = pagination.pageSize;
-    fetchOrders();
+    fetchInvoices();
 };
 
-const editOrder = (id) => {
-    edit_order_id.value = id;
+const editInvoice = (id) => {
+    edit_invoice_id.value = id;
 };
 
-const deleteOrder = async (id) => {
+const deleteInvoice = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
         text: 'If you delete this, it will be gone forever.',
@@ -201,9 +191,9 @@ const deleteOrder = async (id) => {
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await salesOrderStore.deleteOrder(id);
+                let res = await invoiceStore.deleteInvoice(id);
                 toast(res.status, res.data.message);
-                fetchOrders();
+                fetchInvoices();
             } catch (e) {
                 showErrors(e);
             }
@@ -211,10 +201,10 @@ const deleteOrder = async (id) => {
     });
 };
 
-const approveOrder = async (id) => {
+const approveInvoice = async (id) => {
     Swal.fire({
-        title: 'Approve Sales Order?',
-        text: 'This will mark the order as approved.',
+        title: 'Approve Invoice?',
+        text: 'This will mark the invoice as approved.',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: 'green',
@@ -222,19 +212,13 @@ const approveOrder = async (id) => {
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await salesOrderStore.approveOrder(id);
+                let res = await invoiceStore.approveInvoice(id);
                 toast(res.status, res.data.message);
-                fetchOrders();
+                fetchInvoices();
             } catch (e) {
                 showErrors(e);
             }
         }
     });
-};
-
-const convertToInvoice = (id) => {
-    invoiceReferenceId.value = id;
-    invoiceReferenceType.value = 'sales-order';
-    invoiceModalOpened.value = true;
 };
 </script>

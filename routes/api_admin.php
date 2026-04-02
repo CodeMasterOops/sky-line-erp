@@ -11,7 +11,10 @@ use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\AccountController;
 use App\Http\Controllers\Api\Admin\JournalVoucherController;
+use App\Http\Controllers\Api\Admin\QuotationController;
 use App\Http\Controllers\Api\Admin\ProductController;
+use App\Http\Controllers\Api\Admin\SalesOrderController;
+use App\Http\Controllers\Api\Admin\InvoiceController;
 use App\Http\Controllers\Api\Admin\StockTransferController;
 use App\Http\Controllers\Api\Admin\StockAdjustmentController;
 use App\Http\Controllers\Api\Admin\ProfileController;
@@ -101,6 +104,21 @@ Route::middleware('auth:admin')->group(function () {
         // journal voucher
         Route::post('journal-voucher/{journalVoucher}/approve', [JournalVoucherController::class, 'approve'])->name('journal-voucher.approve');
         Route::apiResource('journal-voucher', JournalVoucherController::class);
+
+        // quotation
+        Route::post('quotation/{quotation}/convert-to-sale', [QuotationController::class, 'convertToSale'])->name('quotation.convert-to-sale');
+        Route::post('quotation/{quotation}/convert-to-invoice', [QuotationController::class, 'convertToInvoice'])->name('quotation.convert-to-invoice');
+        Route::post('quotation/{quotation}/approve', [QuotationController::class, 'approve'])->name('quotation.approve');
+        Route::apiResource('quotation', QuotationController::class);
+
+        // sales order
+        Route::post('sales-order/{salesOrder}/approve', [SalesOrderController::class, 'approve'])->name('sales-order.approve');
+        Route::post('sales-order/{salesOrder}/convert-to-invoice', [SalesOrderController::class, 'convertToInvoice'])->name('sales-order.convert-to-invoice');
+        Route::apiResource('sales-order', SalesOrderController::class);
+
+        // invoice
+        Route::post('invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
+        Route::apiResource('invoice', InvoiceController::class);
 
         // account settings
         Route::apiResource('account-setting', AccountSettingController::class)->only('index', 'store');

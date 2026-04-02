@@ -218,6 +218,16 @@
                 "route": {
                     "name": "admin.journal-voucher"
                 }
+            },
+            {
+                "menuValue": "Invoice List",
+                "icon": "ti ti-file-invoice",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/invoice",
+                "route": {
+                    "name": "admin.invoice-list"
+                }
             }
         ]
     },

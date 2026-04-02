@@ -347,6 +347,15 @@ const routes = [
                 component: () =>
                     import("@/views/admin/accounting/journal-voucher/Index.vue"),
             },
+            {
+                path: "invoice",
+                name: "admin.invoice-list",
+                meta: {
+                    pageTitle: "Invoice List",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/invoice/Index.vue"),
+            },
         ],
     },
 ];

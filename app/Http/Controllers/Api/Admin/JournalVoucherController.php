@@ -19,16 +19,12 @@ class JournalVoucherController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Journal::where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)
-            ->orderByDesc('date')
-            ->orderBy('id');
+        $filters = $request->all();
 
-        if (! empty($request->search)) {
-            $key = '%'.trim($request->search).'%';
-            $query->where('reference_no', 'like', $key);
-        }
-
-        $journals = $query->paginate($request->limit ?? 25);
+        $journals = Journal::filter($filters)
+            ->where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)
+            ->latest('date')
+            ->paginate($request->limit ?? 25);
 
         return JournalVoucherResource::collection($journals);
     }
@@ -45,7 +41,7 @@ class JournalVoucherController extends Controller
         $fiscalYearId = $setting->fiscal_year_id;
 
         $voucherCount = Journal::where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)->where('fiscal_year_id', $fiscalYearId)->withTrashed()->count();
-        $voucherNo = 'JV-'.($voucherCount + 1).'/'.($setting->fiscalYear->year_code ?? '');
+        $voucherNo = 'JV-' . ($voucherCount + 1) . '/' . ($setting->fiscalYear->year_code ?? '');
 
         $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $voucherNo) {
             $journal = Journal::create([

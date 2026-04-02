@@ -51,7 +51,7 @@ class StockTransferController extends Controller
                 'to_warehouse_id' => $formData['to_warehouse_id'],
                 'remarks' => $formData['remarks'] ?? null,
                 'create_user_id' => $user->id,
-                'approve_user_id' => $user->id,
+                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
                 'status' => $status,
             ]);

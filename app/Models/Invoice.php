@@ -3,15 +3,14 @@
 namespace App\Models;
 
 use App\Enums\StatusEnum;
-use App\Enums\JournalTypeEnum;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class Journal extends Model
+class Invoice extends Model
 {
     use MultiTenant;
     use SoftDeletes;
@@ -19,12 +18,12 @@ class Journal extends Model
     protected $fillable = [
         'company_id',
         'fiscal_year_id',
-        'type',
+        'party_id',
         'reference_type',
         'reference_id',
-        'voucher_no',
-        'reference_no',
-        'date',
+        'invoice_no',
+        'invoice_date',
+        'due_date',
         'remarks',
         'create_user_id',
         'approve_user_id',
@@ -34,8 +33,11 @@ class Journal extends Model
 
     protected $casts = [
         'fiscal_year_id' => 'integer',
+        'party_id' => 'integer',
+        'reference_id' => 'integer',
+        'invoice_date' => 'date',
+        'due_date' => 'date',
         'approved_at' => 'datetime',
-        'type' => JournalTypeEnum::class,
         'status' => StatusEnum::class,
     ];
 
@@ -43,26 +45,28 @@ class Journal extends Model
     {
         if (! empty($param['search'])) {
             $key = '%'.trim($param['search']).'%';
-            $query->where(function ($q) use ($key) {
-                $q->where('voucher_no', 'like', $key);
-                $q->orWhere('reference_no', 'like', $key);
-            });
+            $query->where('invoice_no', 'like', $key);
         }
 
-        if (! empty($param['product_category_id'])) {
-            $query->where('product_category_id', $param['product_category_id']);
+        if (! empty($param['party_id'])) {
+            $query->where('party_id', $param['party_id']);
         }
 
-        if (! empty($param['brand_id'])) {
-            $query->where('brand_id', $param['brand_id']);
+        if (! empty($param['status'])) {
+            $query->where('status', $param['status']);
         }
 
         return $query;
     }
 
-    public function journalItems(): HasMany
+    public function invoiceItems(): HasMany
     {
-        return $this->hasMany(JournalItem::class);
+        return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function party(): BelongsTo
+    {
+        return $this->belongsTo(Party::class);
     }
 
     public function reference(): MorphTo
