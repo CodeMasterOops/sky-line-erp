@@ -15,6 +15,11 @@ use App\Http\Controllers\Api\Admin\QuotationController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\SalesOrderController;
 use App\Http\Controllers\Api\Admin\InvoiceController;
+use App\Http\Controllers\Api\Admin\PurchaseOrderController;
+use App\Http\Controllers\Api\Admin\BillController;
+use App\Http\Controllers\Api\Admin\PaymentController;
+use App\Http\Controllers\Api\Admin\DebitNoteController;
+use App\Http\Controllers\Api\Admin\CreditNoteController;
 use App\Http\Controllers\Api\Admin\ReceiptController;
 use App\Http\Controllers\Api\Admin\StockTransferController;
 use App\Http\Controllers\Api\Admin\StockAdjustmentController;
@@ -122,9 +127,37 @@ Route::middleware('auth:admin')->group(function () {
         Route::post('invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
         Route::apiResource('invoice', InvoiceController::class);
 
+        // credit note
+        Route::post('credit-note/{creditNote}/approve', [CreditNoteController::class, 'approve'])->name('credit-note.approve');
+        Route::apiResource('credit-note', CreditNoteController::class)->parameters([
+            'credit-note' => 'creditNote',
+        ]);
+
         // receipt
         Route::post('receipt/{receipt}/approve', [ReceiptController::class, 'approve'])->name('receipt.approve');
         Route::apiResource('receipt', ReceiptController::class);
+
+        // purchase order
+        Route::post('purchase-order/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-order.approve');
+        Route::post('purchase-order/{purchaseOrder}/convert-to-bill', [PurchaseOrderController::class, 'convertToBill'])->name('purchase-order.convert-to-bill');
+        Route::apiResource('purchase-order', PurchaseOrderController::class);
+
+        // bill
+        Route::get('bill/due', [BillController::class, 'dueBills'])->name('bill.due');
+        Route::post('bill/{bill}/approve', [BillController::class, 'approve'])->name('bill.approve');
+        Route::apiResource('bill', BillController::class);
+
+        // payment
+        Route::post('payment/{payment}/approve', [PaymentController::class, 'approve'])->name('payment.approve');
+        Route::apiResource('payment', PaymentController::class)->parameters([
+            'payment' => 'payment',
+        ]);
+
+        // debit note
+        Route::post('debit-note/{debitNote}/approve', [DebitNoteController::class, 'approve'])->name('debit-note.approve');
+        Route::apiResource('debit-note', DebitNoteController::class)->parameters([
+            'debit-note' => 'debitNote',
+        ]);
 
         // account settings
         Route::apiResource('account-setting', AccountSettingController::class)->only('index', 'store');

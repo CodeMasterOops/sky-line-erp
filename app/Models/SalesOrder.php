@@ -33,7 +33,6 @@ class SalesOrder extends Model
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
         'quotation_id' => 'integer',
-        'order_date' => 'date',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
     ];

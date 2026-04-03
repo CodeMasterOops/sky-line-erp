@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class Invoice extends Model
+class Bill extends Model
 {
     use MultiTenant;
     use SoftDeletes;
@@ -19,10 +18,9 @@ class Invoice extends Model
         'company_id',
         'fiscal_year_id',
         'party_id',
-        'reference_type',
-        'reference_id',
-        'invoice_no',
-        'invoice_date',
+        'purchase_order_id',
+        'bill_no',
+        'bill_date',
         'due_date',
         'remarks',
         'create_user_id',
@@ -34,7 +32,7 @@ class Invoice extends Model
     protected $casts = [
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
-        'reference_id' => 'integer',
+        'purchase_order_id' => 'integer',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
@@ -43,7 +41,7 @@ class Invoice extends Model
     {
         if (! empty($param['search'])) {
             $key = '%'.trim($param['search']).'%';
-            $query->where('invoice_no', 'like', $key);
+            $query->where('bill_no', 'like', $key);
         }
 
         if (! empty($param['party_id'])) {
@@ -57,9 +55,9 @@ class Invoice extends Model
         return $query;
     }
 
-    public function invoiceItems(): HasMany
+    public function billItems(): HasMany
     {
-        return $this->hasMany(InvoiceItem::class);
+        return $this->hasMany(BillItem::class);
     }
 
     public function party(): BelongsTo
@@ -67,14 +65,14 @@ class Invoice extends Model
         return $this->belongsTo(Party::class);
     }
 
-    public function reference(): MorphTo
+    public function purchaseOrder(): BelongsTo
     {
-        return $this->morphTo();
+        return $this->belongsTo(PurchaseOrder::class);
     }
 
-    public function receiptAllocations(): HasMany
+    public function paymentAllocations(): HasMany
     {
-        return $this->hasMany(ReceiptAllocation::class);
+        return $this->hasMany(PaymentAllocation::class);
     }
 
     public function fiscalYear(): BelongsTo

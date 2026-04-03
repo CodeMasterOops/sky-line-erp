@@ -174,6 +174,16 @@
                 }
             },
             {
+                "menuValue": "Credit Notes",
+                "icon": "ti ti-receipt-refund",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/credit-notes",
+                "route": {
+                    "name": "admin.credit-note-list"
+                }
+            },
+            {
                 "menuValue": "Receipts",
                 "icon": "ti ti-receipt",
                 "hasSubRoute": false,
@@ -184,16 +194,6 @@
                 }
             },
             {
-                "menuValue": "Sales Returns",
-                "icon": "ti ti-receipt-refund",
-                "hasSubRoute": false,
-                "showSubRoute": false,
-                "active_link": "/admin/sales-returns",
-                "route": {
-                    "name": "admin.sales-returns"
-                }
-            },
-            {
                 "menuValue": "Quotations",
                 "icon": "ti ti-file-diff",
                 "hasSubRoute": false,
@@ -201,6 +201,72 @@
                 "active_link": "/admin/quotation-list",
                 "route": {
                     "name": "admin.quotation-list"
+                }
+            }
+        ]
+    },
+    {
+        "tittle": "Purchase",
+        "icon": "shopping-cart",
+        "menu": [
+            {
+                "menuValue": "Purchase List",
+                "icon": "ti ti-shopping-cart",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-list",
+                "route": {
+                    "name": "admin.purchase-list"
+                }
+            },
+            {
+                "menuValue": "Purchase Orders",
+                "icon": "ti ti-shopping-cart",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-orders",
+                "route": {
+                    "name": "admin.purchase-order-list"
+                }
+            },
+            {
+                "menuValue": "Bills",
+                "icon": "ti ti-file-invoice",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-bills",
+                "route": {
+                    "name": "admin.bill-list"
+                }
+            },
+            {
+                "menuValue": "Payments",
+                "icon": "ti ti-receipt",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/payments",
+                "route": {
+                    "name": "admin.payment-list"
+                }
+            },
+            {
+                "menuValue": "Debit Notes",
+                "icon": "ti ti-receipt-refund",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/debit-notes",
+                "route": {
+                    "name": "admin.debit-note-list"
+                }
+            },
+            {
+                "menuValue": "Purchase Returns",
+                "icon": "ti ti-receipt-refund",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-returns",
+                "route": {
+                    "name": "admin.purchase-returns"
                 }
             }
         ]
@@ -237,32 +303,6 @@
                 "active_link": "/admin/journal-voucher",
                 "route": {
                     "name": "admin.journal-voucher"
-                }
-            }
-        ]
-    },
-    {
-        "tittle": "Purchase",
-        "icon": "shopping-cart",
-        "menu": [
-            {
-                "menuValue": "Purchase List",
-                "icon": "ti ti-shopping-cart",
-                "hasSubRoute": false,
-                "showSubRoute": false,
-                "active_link": "/admin/purchase-list",
-                "route": {
-                    "name": "admin.purchase-list"
-                }
-            },
-            {
-                "menuValue": "Purchase Returns",
-                "icon": "ti ti-receipt-refund",
-                "hasSubRoute": false,
-                "showSubRoute": false,
-                "active_link": "/admin/purchase-returns",
-                "route": {
-                    "name": "admin.purchase-returns"
                 }
             }
         ]

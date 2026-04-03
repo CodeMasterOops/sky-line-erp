@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('reference_no')->nullable();
             $table->text('remarks')->nullable();
             $table->foreignId('create_user_id')->constrained('users');
-            $table->foreignId('approve_user_id')->constrained('users');
+            $table->foreignId('approve_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('approved_at')->nullable();
             $table->enum('status', [StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])->default(StatusEnum::DRAFT->value);
             $table->timestamps();

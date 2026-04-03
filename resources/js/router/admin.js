@@ -190,6 +190,15 @@ const routes = [
                     import("@/views/admin/sales/invoice/Index.vue"),
             },
             {
+                path: "credit-notes",
+                name: "admin.credit-note-list",
+                meta: {
+                    pageTitle: "Credit Notes",
+                },
+                component: () =>
+                    import("@/views/admin/sales/credit-note/Index.vue"),
+            },
+            {
                 path: "sales-receipt",
                 name: "admin.receipt-list",
                 meta: {
@@ -328,6 +337,42 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/purchase/list/Index.vue"),
+            },
+            {
+                path: "purchase-orders",
+                name: "admin.purchase-order-list",
+                meta: {
+                    pageTitle: "Purchase Orders",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/order/Index.vue"),
+            },
+            {
+                path: "purchase-bills",
+                name: "admin.bill-list",
+                meta: {
+                    pageTitle: "Bills",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/bill/Index.vue"),
+            },
+            {
+                path: "payments",
+                name: "admin.payment-list",
+                meta: {
+                    pageTitle: "Payments",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/payment/Index.vue"),
+            },
+            {
+                path: "debit-notes",
+                name: "admin.debit-note-list",
+                meta: {
+                    pageTitle: "Debit Notes",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/debit-note/Index.vue"),
             },
             {
                 path: "purchase-returns",

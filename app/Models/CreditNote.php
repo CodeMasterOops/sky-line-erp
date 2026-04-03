@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 
-class Invoice extends Model
+class CreditNote extends Model
 {
     use MultiTenant;
     use SoftDeletes;
@@ -19,11 +18,9 @@ class Invoice extends Model
         'company_id',
         'fiscal_year_id',
         'party_id',
-        'reference_type',
-        'reference_id',
-        'invoice_no',
-        'invoice_date',
-        'due_date',
+        'invoice_id',
+        'credit_note_no',
+        'credit_note_date',
         'remarks',
         'create_user_id',
         'approve_user_id',
@@ -34,7 +31,7 @@ class Invoice extends Model
     protected $casts = [
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
-        'reference_id' => 'integer',
+        'invoice_id' => 'integer',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
@@ -43,11 +40,15 @@ class Invoice extends Model
     {
         if (! empty($param['search'])) {
             $key = '%'.trim($param['search']).'%';
-            $query->where('invoice_no', 'like', $key);
+            $query->where('credit_note_no', 'like', $key);
         }
 
         if (! empty($param['party_id'])) {
             $query->where('party_id', $param['party_id']);
+        }
+
+        if (! empty($param['invoice_id'])) {
+            $query->where('invoice_id', $param['invoice_id']);
         }
 
         if (! empty($param['status'])) {
@@ -57,9 +58,9 @@ class Invoice extends Model
         return $query;
     }
 
-    public function invoiceItems(): HasMany
+    public function creditNoteItems(): HasMany
     {
-        return $this->hasMany(InvoiceItem::class);
+        return $this->hasMany(CreditNoteItem::class);
     }
 
     public function party(): BelongsTo
@@ -67,14 +68,9 @@ class Invoice extends Model
         return $this->belongsTo(Party::class);
     }
 
-    public function reference(): MorphTo
+    public function invoice(): BelongsTo
     {
-        return $this->morphTo();
-    }
-
-    public function receiptAllocations(): HasMany
-    {
-        return $this->hasMany(ReceiptAllocation::class);
+        return $this->belongsTo(Invoice::class);
     }
 
     public function fiscalYear(): BelongsTo

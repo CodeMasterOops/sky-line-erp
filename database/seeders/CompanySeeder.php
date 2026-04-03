@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
+use App\Services\CoaInsertService;
 use Illuminate\Database\Seeder;
 
 class CompanySeeder extends Seeder
@@ -26,6 +27,8 @@ class CompanySeeder extends Seeder
                 'password' => '1234567',
                 'user_type' => UserTypeEnum::ADMIN->value,
             ]);
+
+            (new CoaInsertService($company))->saveCoaData();
         }
     }
 }

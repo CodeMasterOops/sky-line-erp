@@ -9,15 +9,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('invoices', function (Blueprint $table) {
+        Schema::create('debit_notes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->noActionOnDelete();
             $table->foreignId('fiscal_year_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('party_id')->nullable()->constrained()->nullOnDelete();
-            $table->nullableMorphs('reference');
-            $table->string('invoice_no');
-            $table->date('invoice_date');
-            $table->date('due_date')->nullable();
+            $table->foreignId('bill_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('debit_note_no');
+            $table->date('debit_note_date');
             $table->text('remarks')->nullable();
             $table->foreignId('create_user_id')->constrained('users');
             $table->foreignId('approve_user_id')->nullable()->constrained('users')->nullOnDelete();
@@ -30,6 +29,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('invoices');
+        Schema::dropIfExists('debit_notes');
     }
 };
