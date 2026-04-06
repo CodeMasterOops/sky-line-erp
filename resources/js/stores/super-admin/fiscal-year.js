@@ -68,6 +68,18 @@ export const useFiscalYearStore = defineStore('fiscal-year', {
                 }).catch((err) => {
                     throw err;
                 })
+        },
+        setCurrentFiscalYear(id) {
+            return apiSuperAdmin(`${apiUrl}/${id}/set-current`, 'post')
+                .then((res) => {
+                    this.fiscalYears.data = this.fiscalYears.data.map(fy => ({
+                        ...fy,
+                        is_current: fy.id === id,
+                    }));
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                })
         }
     }
 })

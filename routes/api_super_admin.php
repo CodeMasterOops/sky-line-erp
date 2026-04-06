@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SuperAdmin\AuthController;
 use App\Http\Controllers\Api\SuperAdmin\CompanyController;
 use App\Http\Controllers\Api\SuperAdmin\ProfileController;
@@ -26,6 +27,7 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::apiResource('setting', SettingController::class)->only('index', 'store');
 
     // fiscal year
+    Route::post('fiscal-year/{fiscalYear}/set-current', [FiscalYearController::class, 'setCurrent'])->name('fiscal-year.set-current');
     Route::apiResource('fiscal-year', FiscalYearController::class);
 
     // company

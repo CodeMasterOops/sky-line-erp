@@ -410,6 +410,110 @@ const routes = [
                 component: () =>
                     import("@/views/admin/accounting/journal-voucher/Index.vue"),
             },
+
+            // HR & Payroll Module
+            {
+                path: "hr/employees",
+                name: "admin.hr-employee-list",
+                meta: {pageTitle: "Employees"},
+                component: () => import("@/views/admin/hr/employees/Index.vue"),
+            },
+            {
+                path: "hr/employees/create",
+                name: "admin.hr-employee-create",
+                meta: {pageTitle: "Add Employee"},
+                component: () => import("@/views/admin/hr/employees/Form.vue"),
+            },
+            {
+                path: "hr/employees/:id/edit",
+                name: "admin.hr-employee-edit",
+                meta: {pageTitle: "Edit Employee"},
+                component: () => import("@/views/admin/hr/employees/Form.vue"),
+            },
+            {
+                path: "hr/departments",
+                name: "admin.hr-department-list",
+                meta: {pageTitle: "Departments"},
+                component: () => import("@/views/admin/hr/departments/Index.vue"),
+            },
+            {
+                path: "hr/designations",
+                name: "admin.hr-designation-list",
+                meta: {pageTitle: "Designations"},
+                component: () => import("@/views/admin/hr/designations/Index.vue"),
+            },
+            {
+                path: "hr/attendance",
+                name: "admin.hr-attendance",
+                meta: {pageTitle: "Attendance"},
+                component: () => import("@/views/admin/hr/attendance/Index.vue"),
+            },
+            {
+                path: "hr/leave-applications",
+                name: "admin.hr-leave-applications",
+                meta: {pageTitle: "Leave Applications"},
+                component: () => import("@/views/admin/hr/leave/Applications.vue"),
+            },
+            {
+                path: "hr/leave-types",
+                name: "admin.hr-leave-types",
+                meta: {pageTitle: "Leave Types"},
+                component: () => import("@/views/admin/hr/leave/Types.vue"),
+            },
+            {
+                path: "hr/holidays",
+                name: "admin.hr-holidays",
+                meta: {pageTitle: "Holidays"},
+                component: () => import("@/views/admin/hr/holidays/Index.vue"),
+            },
+            {
+                path: "hr/salary-components",
+                name: "admin.hr-salary-components",
+                meta: {pageTitle: "Salary Components"},
+                component: () => import("@/views/admin/hr/salary/Components.vue"),
+            },
+            {
+                path: "hr/salary-structure",
+                name: "admin.hr-salary-structure",
+                meta: {pageTitle: "Salary Structure"},
+                component: () => import("@/views/admin/hr/salary/Structure.vue"),
+            },
+            {
+                path: "hr/payroll",
+                name: "admin.hr-payroll",
+                meta: {pageTitle: "Payroll Runs"},
+                component: () => import("@/views/admin/hr/payroll/Run.vue"),
+            },
+            {
+                path: "hr/payroll/:id",
+                name: "admin.hr-payroll-detail",
+                meta: {pageTitle: "Payroll Detail"},
+                component: () => import("@/views/admin/hr/payroll/Detail.vue"),
+            },
+            {
+                path: "hr/payslip/:id",
+                name: "admin.hr-payslip",
+                meta: {pageTitle: "Payslip"},
+                component: () => import("@/views/admin/hr/payroll/Payslip.vue"),
+            },
+            {
+                path: "hr/reports/payroll-summary",
+                name: "admin.hr-report-payroll",
+                meta: {pageTitle: "Payroll Summary Report"},
+                component: () => import("@/views/admin/hr/reports/PayrollSummary.vue"),
+            },
+            {
+                path: "hr/reports/attendance-summary",
+                name: "admin.hr-report-attendance",
+                meta: {pageTitle: "Attendance Summary Report"},
+                component: () => import("@/views/admin/hr/reports/AttendanceSummary.vue"),
+            },
+            {
+                path: "hr/reports/leave-balance",
+                name: "admin.hr-report-leave",
+                meta: {pageTitle: "Leave Balance Report"},
+                component: () => import("@/views/admin/hr/reports/LeaveBalance.vue"),
+            },
         ],
     },
 ];

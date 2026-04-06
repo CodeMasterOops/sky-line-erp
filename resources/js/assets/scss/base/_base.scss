@@ -1,6 +1,10 @@
 @use "../utils/mixins";
 @use "../utils/variables";
 
+.ndp-container {
+    z-index: 9999 !important;
+}
+
 body {
 	font-family: variables.$font-family-primary;
 	font-size: variables.$font-size-14;

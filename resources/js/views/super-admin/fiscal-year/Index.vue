@@ -64,6 +64,7 @@ onMounted(() => {
 
 const edit_fiscal_year_id = ref('');
 const createModalOpened = ref(false);
+const settingCurrent = ref(false);
 
 const fetchFiscalYears = (refetch = false) => {
     fiscalYearStore.getFiscalYears(refetch);
@@ -118,5 +119,17 @@ const deleteFiscalYear = async (id) => {
             }
         }
     });
+}
+
+const setCurrentFiscalYear = async (id) => {
+    settingCurrent.value = true;
+    try {
+        const res = await fiscalYearStore.setCurrentFiscalYear(id);
+        toast(res.status, res.data.message);
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        settingCurrent.value = false;
+    }
 }
 </script>

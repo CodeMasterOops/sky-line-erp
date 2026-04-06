@@ -49,4 +49,15 @@ class FiscalYearController extends Controller
             'message' => 'Fiscal Year Deleted Successfully',
         ]);
     }
+
+    public function setCurrent(FiscalYear $fiscalYear)
+    {
+        FiscalYear::query()->update(['is_current' => false]);
+        $fiscalYear->update(['is_current' => true]);
+
+        return response()->json([
+            'data' => FiscalYearResource::make($fiscalYear),
+            'message' => 'Current Fiscal Year Updated Successfully',
+        ]);
+    }
 }
