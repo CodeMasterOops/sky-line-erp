@@ -1,135 +1,88 @@
 <template>
-    <PageHeader title="Quotation List" subtitle="Manage Your Quotation">
+    <PageHeader title="Quotations" subtitle="Manage your quotations" @refresh="fetchQuotations">
         <template #actions>
-            <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#add-units">
-                <i class="ti ti-circle-plus me-2"></i>Add Quotation
-            </a>
+            <button
+                v-can="'create_quotation'"
+                type="button"
+                @click.prevent="createModalOpened = true"
+                class="btn btn-primary d-flex align-items-center">
+                <i class="ti ti-circle-plus me-2"></i>
+                Add Quotation
+            </button>
         </template>
     </PageHeader>
 
-    <!-- /product list -->
     <div class="card table-list-card">
         <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
             <div class="search-set">
                 <div class="search-input">
-                    <a href="javascript:void(0);" class="btn-searchset"><i class="ti ti-search"></i></a>
-                    <input type="search" class="form-control form-control-sm" placeholder="Search" />
-                </div>
-            </div>
-            <div class="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
-                <div class="dropdown me-2">
-                    <a href="javascript:void(0);" class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                        Product
+                    <a href="javascript:void(0);" class="btn-searchset">
+                        <i class="ti ti-search fs-14 feather-search"></i>
                     </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Lenovo IdeaPad 3</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Beats Pro</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Nike Jordan</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Apple Series 5 Watch</a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="dropdown me-2">
-                    <a href="javascript:void(0);" class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                        Customer
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Carl Evans</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Minerva Rameriz</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Robert Lamon</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Patricia Lewis</a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="dropdown me-2">
-                    <a href="javascript:void(0);" class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                        Status
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Sent</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Pending</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Ordered</a>
-                        </li>
-                    </ul>
-                </div>
-                <div class="dropdown">
-                    <a href="javascript:void(0);" class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center" data-bs-toggle="dropdown">
-                        Sort By : Last 7 Days
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Recently Added</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Ascending</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Desending</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Last Month</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1">Last 7 Days</a>
-                        </li>
-                    </ul>
+                    <input
+                        type="search"
+                        v-model="filter.search"
+                        class="form-control form-control-sm"
+                        placeholder="Search quotation"
+                        @input="debouncedFetch"
+                    >
                 </div>
             </div>
         </div>
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
-                <a-table class="table datanew" :columns="columns" :data-source="data" :row-selection="{}">
-                    <template #bodyCell="{ column, record }">
-                        <template v-if="column.key === 'ProductName'">
-                            <div class="d-flex align-items-center me-2">
-                                <a href="javascript:void(0);" class="avatar avatar-md me-2">
-                                    <img :src="getImageUrl(record.Image)" alt="product" />
-                                </a>
-                                <a href="javascript:void(0);">{{ record.ProductName }}</a>
-                            </div>
+                <a-table
+                    class="table datanew table-hover table-center mb-0"
+                    :columns="columns"
+                    :data-source="quotations.data"
+                    :pagination="pagination"
+                    :loading="quotations.loading"
+                    @change="handleTableChange"
+                >
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.key === 'sn'">
+                            {{ index + 1 }}
                         </template>
-                        <template v-if="column.key === 'CustomerName'">
-                            <div class="d-flex align-items-center">
-                                <a href="javascript:void(0);" class="avatar avatar-md me-2">
-                                    <img :src="getImageUrlOne(record.CustmerImage)" alt="product" />
-                                </a>
-                                <a href="javascript:void(0);">{{ record.CustomerName }}</a>
-                            </div>
+                        <template v-else-if="column.key === 'status'">
+                            <span
+                                class="badge"
+                                :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
+                                {{ record.status }}
+                            </span>
                         </template>
-                        <template v-if="column.key === 'Status'">
-                            <div>
-                                <span :class="record.StatusClass">{{ record.Status }}</span>
-                            </div>
-                        </template>
-                        <template v-if="column.key === 'action'">
+                        <template v-else-if="column.key === 'action'">
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
-                                    <a class="me-2 p-2 mb-0" href="javascript:void(0);">
-                                        <i class="ti ti-eye"></i>
-                                    </a>
-                                    <a class="me-2 p-2 mb-0" data-bs-toggle="modal" data-bs-target="#edit-units">
+                                    <a
+                                        v-if="record.status === 'draft'"
+                                        class="me-2 edit-icon p-2"
+                                        href="javascript:void(0);"
+                                        @click="editQuotation(record.id)">
                                         <i class="ti ti-edit"></i>
                                     </a>
-                                    <a class="p-2 mb-0" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#delete">
+                                    <a
+                                        v-if="record.status === 'approved' && !record.sales_order_count"
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        @click="convertToSale(record.id)">
+                                        <i class="ti ti-shopping-cart"></i>
+                                    </a>
+                                    <a
+                                        v-if="record.status === 'approved' && !record.invoice_count"
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        @click="convertToInvoice(record.id)">
+                                        <i class="ti ti-file-invoice"></i>
+                                    </a>
+                                    <a
+                                        v-if="record.status === 'draft'"
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        @click="approveQuotation(record.id)">
+                                        <i class="ti ti-check"></i>
+                                    </a>
+                                    <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
+                                       @click="deleteQuotation(record.id)">
                                         <i class="ti ti-trash"></i>
                                     </a>
                                 </div>
@@ -140,184 +93,171 @@
             </div>
         </div>
     </div>
-    <!-- /product list -->
 
-    <quotation-list-modal></quotation-list-modal>
+    <CreateQuotation v-model:create-modal-opened="createModalOpened"/>
+    <EditQuotation v-model:quotation_id="edit_quotation_id"/>
+    <CreateInvoiceFromReference
+        v-model:open="invoiceModalOpened"
+        v-model:reference-id="invoiceReferenceId"
+        v-model:reference-type="invoiceReferenceType"
+    />
 </template>
 
 <script setup>
+import {computed, onMounted, reactive, ref} from 'vue';
+import Swal from 'sweetalert2';
+import {toast} from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import {storeToRefs} from 'pinia';
+import debounce from 'lodash/debounce';
+import CreateQuotation from './Create.vue';
+import EditQuotation from './Edit.vue';
+import CreateInvoiceFromReference from '@/views/admin/sales/invoice/CreateFromReference.vue';
+import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 
+const quotationStore = useQuotationStore();
+const {quotations} = storeToRefs(quotationStore);
 
+const createModalOpened = ref(false);
+const edit_quotation_id = ref('');
+const invoiceModalOpened = ref(false);
+const invoiceReferenceId = ref('');
+const invoiceReferenceType = ref('');
 
+const filter = reactive({
+    search: '',
+    page: 1,
+    limit: 10
+});
+
+const pagination = computed(() => ({
+    total: quotations.value.meta.total || 0,
+    current: quotations.value.meta.current_page || 1,
+    pageSize: quotations.value.meta.per_page || filter.limit,
+    showSizeChanger: true,
+    showQuickJumper: true,
+}));
 
 const columns = [
-  {
-    title: "Product Name",
-    dataIndex: "ProductName",
-    key: "ProductName",
-    sorter: {
-      compare: (a, b) => {
-        a = a.ProductName.toLowerCase();
-        b = b.ProductName.toLowerCase();
-        return a > b ? -1 : b > a ? 1 : 0;
-      },
+    {
+        title: 'SN',
+        key: 'sn',
+        width: 60,
     },
-  },
-  {
-    title: "Customer Name",
-    dataIndex: "CustomerName",
-    key: "CustomerName",
-    sorter: {
-      compare: (a, b) => {
-        a = a.CustomerName.toLowerCase();
-        b = b.CustomerName.toLowerCase();
-        return a > b ? -1 : b > a ? 1 : 0;
-      },
+    {
+        title: 'Quotation No',
+        dataIndex: 'quotation_no',
+        sorter: true,
     },
-  },
-  {
-    title: "Status",
-    dataIndex: "Status",
-    key: "Status",
-    sorter: {
-      compare: (a, b) => {
-        a = a.Status.toLowerCase();
-        b = b.Status.toLowerCase();
-        return a > b ? -1 : b > a ? 1 : 0;
-      },
+    {
+        title: 'Date',
+        dataIndex: 'quotation_date',
+        sorter: true,
     },
-  },
-  {
-    title: "Total",
-    dataIndex: "Total",
-    sorter: {
-      compare: (a, b) => {
-        a = a.Total.toLowerCase();
-        b = b.Total.toLowerCase();
-        return a > b ? -1 : b > a ? 1 : 0;
-      },
+    {
+        title: 'Customer',
+        dataIndex: 'party_name',
+        sorter: true,
     },
-  },
-  {
-    title: "Action",
-    key: "action",
-    sorter: true,
-  },
+    {
+        title: 'Status',
+        key: 'status',
+    },
+    {
+        title: 'Action',
+        key: 'action',
+    },
 ];
-const data = [
-  {
-    ProductName: "Lenovo 3rd Generation",
-    Image: "stock-img-01.png",
-    CustomerName: "Carl Evans",
-    CustmerImage: "user-27.jpg",
-    Status: "Sent",
-    StatusClass: "badge badge-success",
-    Total: "$550",
-  },
-  {
-    ProductName: "Bold V3.2",
-    Image: "stock-img-06.png",
-    CustomerName: "Minerva Rameriz",
-    CustmerImage: "user-02.jpg",
-    Status: "Sent",
-    StatusClass: "badge badge-success",
-    Total: "$430",
-  },
-  {
-    ProductName: "Nike Jordan",
-    Image: "stock-img-02.png",
-    CustomerName: "Robert Lamon",
-    CustmerImage: "user-05.jpg",
-    Status: "Ordered",
-    StatusClass: "badge badge-warning",
-    Total: "$260",
-  },
-  {
-    ProductName: "Apple Series 5 Watch",
-    Image: "stock-img-03.png",
-    CustomerName: "Mark Joslyn",
-    CustmerImage: "user-03.jpg",
-    Status: "sent",
-    StatusClass: "badge badge-success",
-    Total: "$470",
-  },
-  {
-    ProductName: "Amazon Echo Dot",
-    Image: "stock-img-04.png",
-    CustomerName: "Patricia Lewis",
-    CustmerImage: "user-22.jpg",
-    Status: "Pending",
-    StatusClass: "badge badge-cyan",
-    Total: "$380",
-  },
-  {
-    ProductName: "Lobar Handy",
-    Image: "stock-img-05.png",
-    CustomerName: "Marsha Betts",
-    CustmerImage: "user-12.jpg",
-    Status: "Sent",
-    StatusClass: "badge badge-success",
-    Total: "$190",
-  },
-  {
-    ProductName: "Red Premium Handy",
-    Image: "expire-product-01.png",
-    CustomerName: "Daniel Jude",
-    CustmerImage: "user-06.jpg",
-    Status: "Pending",
-    StatusClass: "badge badge-cyan",
-    Total: "$540",
-  },
-  {
-    ProductName: "Iphone 14 Pro",
-    Image: "expire-product-02.png",
-    CustomerName: "Emma Bates",
-    CustmerImage: "user-21.jpg",
-    Status: "Ordered",
-    StatusClass: "badge badge-warning",
-    Total: "$610",
-  },
-  {
-    ProductName: "Black Slim 200",
-    Image: "expire-product-03.png",
-    CustomerName: "Richard Fralick",
-    CustmerImage: "user-16.jpg",
-    Status: "Pending",
-    StatusClass: "badge badge-cyan",
-    Total: "$220",
-  },
-  {
-    ProductName: "Woodcraft Sandal",
-    Image: "expire-product-04.png",
-    CustomerName: "Michelle Robison",
-    CustmerImage: "user-26.jpg",
-    Status: "Sent",
-    StatusClass: "badge badge-success",
-    Total: "$460",
-  },
-  {
-    ProductName: "Lobar Handy",
-    Image: "expire-product-01.png",
-    CustomerName: "Mark Joslyn",
-    CustmerImage: "user-03.jpg",
-    Status: "Pending",
-    StatusClass: "badge badge-cyan",
-    Total: "$250",
-  },
-  {
-    ProductName: "Iphone 15 Pro",
-    Image: "expire-product-02.png",
-    CustomerName: "Robert Lamon",
-    CustmerImage: "user-05.jpg",
-    Status: "Sent",
-    StatusClass: "badge badge-success",
-    Total: "$550",
-  },
-];
-const getImageUrl = (imageName) => {
-  return new URL(`/src/assets/img/products/${imageName}`, import.meta.url).href;
+
+onMounted(() => {
+    fetchQuotations();
+});
+
+const fetchQuotations = () => {
+    quotationStore.getQuotations({filter});
 };
-const getImageUrlOne = (imageName) => {
-  return new URL(`/src/assets/img/users/${imageName}`, import.meta.url).href;
+
+const debouncedFetch = debounce(() => {
+    filter.page = 1;
+    fetchQuotations();
+}, 300);
+
+const handleTableChange = (pagination) => {
+    filter.page = pagination.current;
+    filter.limit = pagination.pageSize;
+    fetchQuotations();
+};
+
+const editQuotation = (id) => {
+    edit_quotation_id.value = id;
+};
+
+const deleteQuotation = async (id) => {
+    Swal.fire({
+        title: 'Are You Sure to Delete ? ',
+        text: 'If you delete this, it will be gone forever.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'red',
+        confirmButtonText: 'Yes'
+    }).then(async (result) => {
+        if (result.value) {
+            try {
+                let res = await quotationStore.deleteQuotation(id);
+                toast(res.status, res.data.message);
+                fetchQuotations();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
+};
+
+const approveQuotation = async (id) => {
+    Swal.fire({
+        title: 'Approve Quotation?',
+        text: 'This will mark the quotation as approved.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: 'green',
+        confirmButtonText: 'Yes'
+    }).then(async (result) => {
+        if (result.value) {
+            try {
+                let res = await quotationStore.approveQuotation(id);
+                toast(res.status, res.data.message);
+                fetchQuotations();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
+};
+
+const convertToSale = async (id) => {
+    Swal.fire({
+        title: 'Convert to Sale?',
+        text: 'This will create a sales order from the quotation.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: 'green',
+        confirmButtonText: 'Yes'
+    }).then(async (result) => {
+        if (result.value) {
+            try {
+                let res = await quotationStore.convertToSale(id);
+                toast(res.status, res.data.message);
+                fetchQuotations();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
+};
+
+const convertToInvoice = (id) => {
+    invoiceReferenceId.value = id;
+    invoiceReferenceType.value = 'quotation';
+    invoiceModalOpened.value = true;
 };
 </script>

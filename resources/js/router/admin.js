@@ -63,6 +63,13 @@ const routes = [
                     import("@/views/admin/settings/general-settings/settings-index.vue"), // a wrapper layout for settings
                 children: [
                     {
+                        path: "setting",
+                        name: "admin.setting",
+                        component: () =>
+                            import("@/views/admin/settings/general-settings/Setting.vue"),
+                        meta: {pageTitle: "Company Setting"},
+                    },
+                    {
                         path: "general-settings",
                         name: "admin.general-settings",
                         component: () =>
@@ -169,9 +176,36 @@ const routes = [
                 path: "sales-list",
                 name: "admin.sales-list",
                 meta: {
-                    pageTitle: "Sales List",
+                    pageTitle: "Sales Order",
                 },
-                component: () => import("@/views/admin/sales/list/Index.vue"),
+                component: () => import("@/views/admin/sales/sales-order/Index.vue"),
+            },
+            {
+                path: "sales-invoice",
+                name: "admin.invoice-list",
+                meta: {
+                    pageTitle: "Invoice",
+                },
+                component: () =>
+                    import("@/views/admin/sales/invoice/Index.vue"),
+            },
+            {
+                path: "credit-notes",
+                name: "admin.credit-note-list",
+                meta: {
+                    pageTitle: "Credit Notes",
+                },
+                component: () =>
+                    import("@/views/admin/sales/credit-note/Index.vue"),
+            },
+            {
+                path: "sales-receipt",
+                name: "admin.receipt-list",
+                meta: {
+                    pageTitle: "Receipt List",
+                },
+                component: () =>
+                    import("@/views/admin/sales/receipt/Index.vue"),
             },
             {
                 path: "sales-returns",
@@ -305,6 +339,42 @@ const routes = [
                     import("@/views/admin/purchase/list/Index.vue"),
             },
             {
+                path: "purchase-orders",
+                name: "admin.purchase-order-list",
+                meta: {
+                    pageTitle: "Purchase Orders",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/order/Index.vue"),
+            },
+            {
+                path: "purchase-bills",
+                name: "admin.bill-list",
+                meta: {
+                    pageTitle: "Bills",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/bill/Index.vue"),
+            },
+            {
+                path: "payments",
+                name: "admin.payment-list",
+                meta: {
+                    pageTitle: "Payments",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/payment/Index.vue"),
+            },
+            {
+                path: "debit-notes",
+                name: "admin.debit-note-list",
+                meta: {
+                    pageTitle: "Debit Notes",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/debit-note/Index.vue"),
+            },
+            {
                 path: "purchase-returns",
                 name: "admin.purchase-returns",
                 meta: {
@@ -330,6 +400,15 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/accounting/account-setting/Index.vue"),
+            },
+            {
+                path: "journal-voucher",
+                name: "admin.journal-voucher",
+                meta: {
+                    pageTitle: "Journal Voucher",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/journal-voucher/Index.vue"),
             },
         ],
     },

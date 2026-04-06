@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Fiscal Year" subtitle="Manage fiscal years" @refresh="fiscalYearStore.getFiscalYears()">
+    <PageHeader title="Fiscal Year" subtitle="Manage fiscal years" @refresh="fetchFiscalYears(true)">
         <template #actions>
             <button
                 type="button"
@@ -14,48 +14,30 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-responsive table-bordered">
-                        <thead>
-                        <tr>
-                            <th>SN</th>
-                            <th>Year</th>
-                            <th>Code</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                        <VLoader v-if="fiscalYears.loading" :colspan="6"/>
-                        <template v-else-if="fiscalYears.data.length">
-                            <tr v-for="(fiscalYear,index) in fiscalYears.data" :key="index">
-                                <th>{{ index + 1 }}</th>
-                                <td> {{ fiscalYear.year_name }}</td>
-                                <td> {{ fiscalYear.year_code }}</td>
-                                <td> {{ adToBs(fiscalYear.start_date) }}</td>
-                                <td> {{ adToBs(fiscalYear.end_date) }}</td>
-                                <td style="width:90px;">
-                                    <button
-                                        type="button"
-                                        @click.prevent="edit_fiscal_year_id=fiscalYear.id"
-                                        class="btn btn-sm btn-outline-primary">
-                                        <i class="fa fa-edit"> </i>
-                                    </button>
-                                    <button  @click="deleteFiscalYear(fiscalYear.id)"
-                                            type="button"
-                                            class="btn btn-sm btn-outline-danger">
-                                        <i class="fa fa-trash"> </i>
-                                    </button>
-                                </td>
-                            </tr>
+                    <a-table
+                        class="table datanew table-hover table-center mb-0"
+                        :columns="columns"
+                        :data-source="fiscalYears.data"
+                        :loading="fiscalYears.loading"
+                    >
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ index + 1 }}
+                            </template>
+                            <template v-if="column.key === 'action'">
+                                <div class="action-icon d-inline-flex">
+                                    <a class="me-2" href="javascript:void(0);"
+                                       @click="edit_fiscal_year_id=record.id">
+                                        <i class="ti ti-edit"></i>
+                                    </a>
+                                    <a href="javascript:void(0);"
+                                       @click="deleteFiscalYear(record.id)">
+                                        <i class="ti ti-trash"></i>
+                                    </a>
+                                </div>
+                            </template>
                         </template>
-                        <tr v-else>
-                            <td colspan="6" class="text-center">
-                                No Result Found.
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                    </a-table>
                 </div>
             </div>
         </div>
@@ -72,20 +54,51 @@ import showErrors from "@/helpers/showErrors";
 import {storeToRefs} from "pinia";
 import CreateFiscalYear from './Create.vue';
 import EditFiscalYear from './Edit.vue';
-import {useDateHelper} from "@/composables/dateHelper.js";
-import { useFiscalYearStore } from '@/stores/super-admin/fiscal-year.js';
+import {useFiscalYearStore} from '@/stores/super-admin/fiscal-year.js';
 
-const {adToBs} = useDateHelper();
 const fiscalYearStore = useFiscalYearStore();
 
 onMounted(() => {
-    fiscalYearStore.getFiscalYears();
+    fetchFiscalYears();
 })
 
 const edit_fiscal_year_id = ref('');
 const createModalOpened = ref(false);
 
+const fetchFiscalYears = (refetch = false) => {
+    fiscalYearStore.getFiscalYears(refetch);
+}
+
 const {fiscalYears} = storeToRefs(fiscalYearStore);
+
+const columns = [
+    {
+        title: 'SN',
+        key: 'sn',
+        width: 60,
+    },
+    {
+        title: 'Year',
+        dataIndex: 'year_name',
+    },
+    {
+        title: 'Code',
+        dataIndex: 'year_code',
+    },
+    {
+        title: 'Start Date',
+        dataIndex: 'start_date',
+    },
+    {
+        title: 'End Date',
+        dataIndex: 'end_date',
+    },
+    {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+    },
+];
 
 const deleteFiscalYear = async (id) => {
     Swal.fire({

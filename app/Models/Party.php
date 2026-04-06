@@ -49,4 +49,9 @@ class Party extends Model
 
         return $query;
     }
+
+    public function setCreditLimitAttribute($value): void
+    {
+        $this->attributes['credit_limit'] = floatval($value);
+    }
 }

@@ -18,8 +18,8 @@ export const useFiscalYearStore = defineStore('fiscal-year', {
     }),
 
     actions: {
-        getFiscalYears() {
-            if (!this.fiscalYears.data.length) {
+        getFiscalYears(refetch = false) {
+            if (!this.fiscalYears.data.length || refetch) {
                 this.fiscalYears.loading = true;
                 return apiSuperAdmin(`${apiUrl}`)
                     .then((res) => {

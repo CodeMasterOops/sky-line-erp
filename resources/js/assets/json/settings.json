@@ -1,20 +1,36 @@
 [
-  {
-    "icon": "settings",
-    "title": "General Settings",
-    "page": "settings",
-    "subMenu": [
-      { "title": "Profile", "routes": "/admin/settings/general-settings" },
-      { "title": "Security", "routes": "/admin/settings/security-settings" },
-      { "title": "Notifications", "routes": "/admin/settings/notifications" }
-    ]
-  },
-  {
-    "icon": "credit-card",
-    "title": "Financial Settings",
-    "page": "financial-settings",
-    "subMenu": [
-      { "title": "Tax Rates", "routes": "/admin/financial-settings/tax-rates" }
-    ]
-  }
+    {
+        "icon": "settings",
+        "title": "General Settings",
+        "page": "settings",
+        "subMenu": [
+            {
+                "title": "Setting",
+                "routes": "/admin/settings/setting"
+            },
+            {
+                "title": "Profile",
+                "routes": "/admin/settings/general-settings"
+            },
+            {
+                "title": "Security",
+                "routes": "/admin/settings/security-settings"
+            },
+            {
+                "title": "Notifications",
+                "routes": "/admin/settings/notifications"
+            }
+        ]
+    },
+    {
+        "icon": "credit-card",
+        "title": "Financial Settings",
+        "page": "financial-settings",
+        "subMenu": [
+            {
+                "title": "Tax Rates",
+                "routes": "/admin/financial-settings/tax-rates"
+            }
+        ]
+    }
 ]

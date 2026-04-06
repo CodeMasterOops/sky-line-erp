@@ -37,6 +37,12 @@ class AddTableColumn extends Command
             }
         });
 
+        Schema::table('companies', function (Blueprint $table) {
+            if (! Schema::hasColumn('companies', 'fiscal_year_id')) {
+                $table->foreignId('fiscal_year_id')->nullable()->after('id')->constrained()->nullOnDelete();
+            }
+        });
+
         $this->output->success('Column added');
     }
 }
