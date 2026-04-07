@@ -190,6 +190,15 @@ const routes = [
                     import("@/views/admin/sales/invoice/Index.vue"),
             },
             {
+                path: "sales-invoice/view",
+                name: "admin.invoice-view",
+                meta: {
+                    pageTitle: "Invoice view",
+                },
+                component: () =>
+                    import("@/views/admin/sales/invoice/View.vue"),
+            },
+            {
                 path: "credit-notes",
                 name: "admin.credit-note-list",
                 meta: {

@@ -1,6 +1,12 @@
 <template>
     <PageHeader title="Invoices" subtitle="Manage your invoices" @refresh="fetchInvoices">
         <template #actions>
+            <router-link
+                :to="{ name: 'admin.invoice-view' }"
+                class="btn btn-outline-secondary d-flex align-items-center me-2">
+                <i class="ti ti-file-invoice me-2"></i>
+                Demo: invoice view page
+            </router-link>
             <button
                 v-can="'create_invoice'"
                 type="button"
