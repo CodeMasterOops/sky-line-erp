@@ -1,7 +1,7 @@
 <template>
   <div class="row">
     <div
-      class="col-sm-6 col-md-6 col-lg-6 col-xl-4 col-xxl-3"
+      class="col-sm-6 col-md-6 col-lg-4 col-xl-3"
       v-for="(product, index) in products"
       :key="index"
     >
@@ -20,10 +20,8 @@
           <a href="javascript:void(0);">{{ product.modal }}</a>
         </h6>
         <div class="d-flex align-items-center justify-content-between price">
-          <p class="text-gray-9 mb-0">${{ product.price }}</p>
-          <div class="qty-item m-0">
-            <pos-counter></pos-counter>
-          </div>
+          <span>{{ product.quantity }} Pcs</span>
+          <p>${{ product.price }}</p>
         </div>
       </div>
     </div>
@@ -91,7 +89,7 @@ export default {
       product.isActive = !product.isActive;
     },
     getImageUrl(imageName) {
-      return new URL(`/src/assets/img/products/${imageName}`, import.meta.url).href;
+      return `/img/products/${imageName}`;
     },
   },
 };

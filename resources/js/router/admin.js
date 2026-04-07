@@ -525,6 +525,23 @@ const routes = [
             },
         ],
     },
+    {
+        path: "/pos",
+        component: () => import("@/layouts/PosLayout.vue"),
+        meta: {
+            requiresAuth: true,
+            isAdmin: true,
+            pageTitle: "POS",
+        },
+        children: [
+            {
+                path: "",
+                name: "admin.pos",
+                meta: { pageTitle: "POS" },
+                component: () => import("@/views/admin/pos/pos-two.vue"),
+            },
+        ],
+    },
 ];
 
 export default routes;

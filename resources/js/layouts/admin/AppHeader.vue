@@ -183,7 +183,7 @@
             </li>
 
             <li class="nav-item pos-nav">
-                <router-link to="/pos/pos-1" class="btn btn-dark btn-md d-inline-flex align-items-center">
+                <router-link :to="{ name: 'admin.pos' }" class="btn btn-dark btn-md d-inline-flex align-items-center">
                     <i class="fa fa-laptop me-1"></i>POS
                 </router-link>
             </li>

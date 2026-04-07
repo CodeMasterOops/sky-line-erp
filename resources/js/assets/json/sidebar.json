@@ -15,6 +15,16 @@
                 "hasSubRoute": false,
                 "showSubRoute": false,
                 "icon": "ti ti-layout-dashboard"
+            },
+            {
+                "menuValue": "POS",
+                "active_link": "/pos",
+                "route": {
+                    "name": "admin.pos"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "icon": "ti ti-device-laptop"
             }
         ]
     },
