@@ -233,6 +233,14 @@ const routes = [
                 component: () => import("@/views/admin/sales/quotation/Index.vue"),
             },
             {
+                path: "sales-report",
+                name: "admin.sales-report",
+                meta: {
+                    pageTitle: "Sales Report",
+                },
+                component: () => import("@/views/admin/sales/SalesReport.vue"),
+            },
+            {
                 path: "brand",
                 name: "admin.brand-list",
                 meta: {
@@ -393,6 +401,15 @@ const routes = [
                     import("@/views/admin/purchase/returns/Index.vue"),
             },
             {
+                path: "purchase-report",
+                name: "admin.purchase-report",
+                meta: {
+                    pageTitle: "Purchase Report",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/PurchaseReport.vue"),
+            },
+            {
                 path: "chart-of-accounts",
                 name: "admin.chart-of-accounts",
                 meta: {
@@ -418,6 +435,51 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/accounting/journal-voucher/Index.vue"),
+            },
+            {
+                path: "trial-balance",
+                name: "admin.trial-balance",
+                meta: {
+                    pageTitle: "Trial Balance",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/TrialBalance.vue"),
+            },
+            {
+                path: "balance-sheet",
+                name: "admin.balance-sheet",
+                meta: {
+                    pageTitle: "Balance Sheet",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/BalanceSheet.vue"),
+            },
+            {
+                path: "profit-and-loss",
+                name: "admin.profit-and-loss",
+                meta: {
+                    pageTitle: "Profit and Loss",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/ProfitLoss.vue"),
+            },
+            {
+                path: "cash-flow",
+                name: "admin.cash-flow",
+                meta: {
+                    pageTitle: "Cash Flow",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/CashFlow.vue"),
+            },
+            {
+                path: "tax-report",
+                name: "admin.tax-report",
+                meta: {
+                    pageTitle: "Tax Report",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/TaxReport.vue"),
             },
 
             // HR & Payroll Module

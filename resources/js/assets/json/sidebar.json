@@ -212,6 +212,16 @@
                 "route": {
                     "name": "admin.quotation-list"
                 }
+            },
+            {
+                "menuValue": "Sales Report",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/sales-report",
+                "route": {
+                    "name": "admin.sales-report"
+                }
             }
         ]
     },
@@ -278,6 +288,16 @@
                 "route": {
                     "name": "admin.purchase-returns"
                 }
+            },
+            {
+                "menuValue": "Purchase Report",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-report",
+                "route": {
+                    "name": "admin.purchase-report"
+                }
             }
         ]
     },
@@ -314,6 +334,44 @@
                 "route": {
                     "name": "admin.journal-voucher"
                 }
+            },
+            {
+                "menuValue": "Financial Reports",
+                "icon": "ti ti-chart-dots",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Trial Balance",
+                        "route": {
+                            "name": "admin.trial-balance"
+                        }
+                    },
+                    {
+                        "menuValue": "Balance Sheet",
+                        "route": {
+                            "name": "admin.balance-sheet"
+                        }
+                    },
+                    {
+                        "menuValue": "Profit and Loss",
+                        "route": {
+                            "name": "admin.profit-and-loss"
+                        }
+                    },
+                    {
+                        "menuValue": "Cash Flow",
+                        "route": {
+                            "name": "admin.cash-flow"
+                        }
+                    },
+                    {
+                        "menuValue": "Tax Report",
+                        "route": {
+                            "name": "admin.tax-report"
+                        }
+                    }
+                ]
             }
         ]
     },
