@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\AccountController;
 use App\Http\Controllers\Api\Admin\JournalVoucherController;
+use App\Http\Controllers\Api\Admin\PaymentVoucherController;
 use App\Http\Controllers\Api\Admin\QuotationController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\SalesOrderController;
@@ -122,6 +123,12 @@ Route::middleware('auth:admin')->group(function () {
         // journal voucher
         Route::post('journal-voucher/{journalVoucher}/approve', [JournalVoucherController::class, 'approve'])->name('journal-voucher.approve');
         Route::apiResource('journal-voucher', JournalVoucherController::class);
+
+        // payment voucher
+        Route::post('payment-voucher/{paymentVoucher}/approve', [PaymentVoucherController::class, 'approve'])->name('payment-voucher.approve');
+        Route::apiResource('payment-voucher', PaymentVoucherController::class)->parameters([
+            'payment-voucher' => 'paymentVoucher',
+        ]);
 
         // quotation
         Route::post('quotation/{quotation}/convert-to-sale', [QuotationController::class, 'convertToSale'])->name('quotation.convert-to-sale');

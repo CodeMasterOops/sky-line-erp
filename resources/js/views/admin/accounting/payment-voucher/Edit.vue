@@ -1,0 +1,255 @@
+<template>
+    <VModal
+        :show-modal="!!edit_voucher_id"
+        @close-click="closeEditModal"
+        modal-class="large-modal"
+        title="Update Payment Voucher">
+        <template #modal-body>
+            <VLoader v-if="voucher.loading" loader-type="progress"/>
+            <form @submit.prevent="updateVoucher(voucher.data.id)" class="row g-3">
+                <div class="col-md-6">
+                    <VInput
+                        id="reference_no"
+                        v-model="form.reference_no"
+                        label="Reference No"
+                        @validate="validateField('reference_no')"
+                        :error="errors.reference_no"
+                    />
+                </div>
+                <div class="col-md-6">
+                    <VDatepicker
+                        id="date"
+                        v-model="form.date"
+                        :show-switcher="false"
+                        label="Date"
+                        @validate="validateField('date')"
+                        :error="errors.date"
+                    />
+                </div>
+                <div class="col-md-6">
+                    <VSelect
+                        id="paid_from_account_id"
+                        v-model="form.paid_from_account_id"
+                        :options="accounts.data"
+                        label="Paid From Account"
+                        @validate="validateField('paid_from_account_id')"
+                        :error="errors.paid_from_account_id"
+                    />
+                </div>
+                <div class="col-md-12">
+                    <VTextarea
+                        id="remarks"
+                        v-model="form.remarks"
+                        label="Remarks"
+                        @validate="validateField('remarks')"
+                        :error="errors.remarks"
+                    />
+                </div>
+
+                <div class="col-12">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                            <tr>
+                                <th style="width: 50px;">SN</th>
+                                <th>Account</th>
+                                <th style="width: 160px;">Amount</th>
+                                <th>Remarks</th>
+                                <th style="width: 60px;">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="(item, index) in form.items" :key="index">
+                                <td>{{ index + 1 }}</td>
+                                <td>
+                                    <VSelect
+                                        v-model="form.items[index].account_id"
+                                        :options="accounts.data"
+                                        @validate="validateField(`items[${index}].account_id`)"
+                                        :error="errors[`items[${index}].account_id`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VInput
+                                        input-type="number"
+                                        v-model="form.items[index].amount"
+                                        @validate="validateField(`items[${index}].amount`)"
+                                        :error="errors[`items[${index}].amount`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VInput
+                                        v-model="form.items[index].remarks"
+                                        @validate="validateField(`items[${index}].remarks`)"
+                                        :error="errors[`items[${index}].remarks`]"
+                                    />
+                                </td>
+                                <td class="text-center">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        @click="removeItem(index)"
+                                        :disabled="form.items.length === 1">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
+                            Add Item
+                        </button>
+                        <div class="text-muted small">
+                            Total Amount: {{ totalAmount.toFixed(2) }}
+                        </div>
+                    </div>
+                    <div v-if="errors.items" class="text-danger small mt-2">
+                        {{ errors.items }}
+                    </div>
+                </div>
+
+                <div class="col-12 text-end">
+                    <button @click="closeEditModal" class="btn btn-danger me-1" type="button">
+                        Close
+                    </button>
+                    <VButton v-if="isDraft" :loading="isSubmitting"/>
+                    <button v-else type="button" class="btn btn-secondary" disabled>
+                        Approved
+                    </button>
+                </div>
+            </form>
+        </template>
+    </VModal>
+</template>
+
+<script setup>
+import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {toast} from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import {array, number, object, string} from 'yup';
+import {useYup} from '@/helpers/yup';
+import {storeToRefs} from 'pinia';
+import {useAccountStore} from '@/stores/admin/accounting/account.js';
+import {usePaymentVoucherStore} from '@/stores/admin/accounting/payment-voucher.js';
+
+const paymentVoucherStore = usePaymentVoucherStore();
+const accountStore = useAccountStore();
+
+const edit_voucher_id = defineModel('voucher_id');
+
+const {voucher} = storeToRefs(paymentVoucherStore);
+const {accounts} = storeToRefs(accountStore);
+
+onMounted(() => {
+    accountStore.getAccounts();
+});
+
+const initialState = {
+    reference_no: '',
+    date: '',
+    paid_from_account_id: '',
+    remarks: '',
+    status: 'draft',
+    items: [
+        {
+            account_id: '',
+            amount: '',
+            remarks: '',
+        }
+    ],
+};
+
+const form = reactive({...initialState});
+const isSubmitting = ref(false);
+
+const addItem = () => {
+    form.items.push({
+        account_id: '',
+        amount: '',
+        remarks: '',
+    });
+};
+
+const removeItem = (index) => {
+    if (form.items.length === 1) return;
+    form.items.splice(index, 1);
+};
+
+const parseAmount = (value) => {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const totalAmount = computed(() => form.items.reduce((sum, item) => sum + parseAmount(item.amount), 0));
+
+watch(() => edit_voucher_id.value, async (id) => {
+    if (id) {
+        await paymentVoucherStore.getVoucher(id);
+        Object.keys(form).forEach(key => {
+            if (key === 'items') {
+                form.items = (voucher.value.data.items || []).map(item => ({
+                    account_id: item.account_id || '',
+                    amount: item.amount || '',
+                    remarks: item.remarks || '',
+                }));
+            } else {
+                form[key] = voucher.value.data[key] || '';
+            }
+        });
+    }
+});
+
+const isDraft = computed(() => voucher.value.data.status === 'draft');
+
+const itemSchema = object({
+    account_id: string().required('Account is required.'),
+    amount: number().typeError('Amount must be a number.').required('Amount is required.').min(0.01, 'Amount must be greater than zero.'),
+    remarks: string().nullable(),
+});
+
+const validations = object({
+    date: string().required('Date is required.'),
+    paid_from_account_id: string().required('Paid from account is required.'),
+    items: array().of(itemSchema).min(1, 'At least one item is required.'),
+}).test('total', 'Total amount must be greater than zero.', function (value) {
+    const items = value?.items || [];
+    const total = items.reduce((sum, item) => sum + parseAmount(item.amount), 0);
+    if (total <= 0) {
+        return this.createError({path: 'items', message: 'Total amount must be greater than zero.'});
+    }
+    return true;
+});
+
+const {errors, validateField, validateForm} = useYup(form, validations);
+
+const updateVoucher = async (id) => {
+    if (!isDraft.value) {
+        return;
+    }
+    let validated = await validateForm(validations, form);
+    if (validated) {
+        isSubmitting.value = true;
+        try {
+            let res = await paymentVoucherStore.updateVoucher(id, form);
+            toast(res.status, res.data.message);
+            closeEditModal();
+        } catch (e) {
+            showErrors(e);
+        } finally {
+            isSubmitting.value = false;
+        }
+    }
+};
+
+const closeEditModal = () => {
+    resetForm();
+    edit_voucher_id.value = '';
+};
+
+function resetForm() {
+    Object.assign(form, {...initialState});
+    errors.value = {};
+}
+</script>

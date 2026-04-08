@@ -304,6 +304,16 @@
                 "route": {
                     "name": "admin.journal-voucher"
                 }
+            },
+            {
+                "menuValue": "Payment Voucher",
+                "icon": "ti ti-cash",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/payment-voucher",
+                "route": {
+                    "name": "admin.payment-voucher"
+                }
             }
         ]
     },
