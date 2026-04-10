@@ -419,6 +419,15 @@ const routes = [
                 component: () =>
                     import("@/views/admin/accounting/payment-voucher/Index.vue"),
             },
+            {
+                path: "receipt-voucher",
+                name: "admin.receipt-voucher",
+                meta: {
+                    pageTitle: "Receipt Voucher",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/receipt-voucher/Index.vue"),
+            },
 
             // HR & Payroll Module
             {

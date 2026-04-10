@@ -314,6 +314,16 @@
                 "route": {
                     "name": "admin.payment-voucher"
                 }
+            },
+            {
+                "menuValue": "Receipt Voucher",
+                "icon": "ti ti-receipt",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/receipt-voucher",
+                "route": {
+                    "name": "admin.receipt-voucher"
+                }
             }
         ]
     },

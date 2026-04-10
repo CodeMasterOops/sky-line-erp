@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\AccountController;
 use App\Http\Controllers\Api\Admin\JournalVoucherController;
 use App\Http\Controllers\Api\Admin\PaymentVoucherController;
+use App\Http\Controllers\Api\Admin\ReceiptVoucherController;
 use App\Http\Controllers\Api\Admin\QuotationController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\SalesOrderController;
@@ -128,6 +129,12 @@ Route::middleware('auth:admin')->group(function () {
         Route::post('payment-voucher/{paymentVoucher}/approve', [PaymentVoucherController::class, 'approve'])->name('payment-voucher.approve');
         Route::apiResource('payment-voucher', PaymentVoucherController::class)->parameters([
             'payment-voucher' => 'paymentVoucher',
+        ]);
+
+        // receipt voucher
+        Route::post('receipt-voucher/{receiptVoucher}/approve', [ReceiptVoucherController::class, 'approve'])->name('receipt-voucher.approve');
+        Route::apiResource('receipt-voucher', ReceiptVoucherController::class)->parameters([
+            'receipt-voucher' => 'receiptVoucher',
         ]);
 
         // quotation
