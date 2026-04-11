@@ -12,12 +12,12 @@
                 </li>
                 <li v-else class="submenu">
                     <a href="javascript:void(0);" @click="expandSubMenus(menu)" 
-                    :class="{ subdrop: menu.showSubRoute, active: isActive(menu) }">
+                    :class="{ subdrop: menu.showSubRoute || isActive(menu), active: isActive(menu) }">
                         <i :class="menu.icon" class="fs-16 me-2"></i>
                         <span>{{ menu.menuValue }}</span>
                         <span class="menu-arrow"></span>
                     </a>
-                    <ul :class="menu.showSubRoute ? 'd-block' : 'd-none'">
+                    <ul :class="menu.showSubRoute || isActive(menu) ? 'd-block' : 'd-none'">
                         <li v-for="(subMenu, index) in menu.subMenus" :key="index">
                             <router-link v-if="subMenu.route" :to="subMenu.route">{{ subMenu.menuValue }}</router-link>
                         </li>
@@ -90,6 +90,14 @@ export default {
       },
       isActive(){
           return (menu) => {
+              if (menu.subMenus && Array.isArray(menu.subMenus)) {
+                  const childNames = menu.subMenus
+                      .map((s) => s.route && s.route.name)
+                      .filter(Boolean);
+                  if (childNames.includes(this.$route.name)) {
+                      return true;
+                  }
+              }
               let result = this.$route.path.split('/').filter(part => part);
               let base = result[0];
               return base === menu.active_link || 

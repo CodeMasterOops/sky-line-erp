@@ -15,6 +15,16 @@
                 "hasSubRoute": false,
                 "showSubRoute": false,
                 "icon": "ti ti-layout-dashboard"
+            },
+            {
+                "menuValue": "POS",
+                "active_link": "/pos",
+                "route": {
+                    "name": "admin.pos"
+                },
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "icon": "ti ti-device-laptop"
             }
         ]
     },
@@ -202,6 +212,16 @@
                 "route": {
                     "name": "admin.quotation-list"
                 }
+            },
+            {
+                "menuValue": "Sales Report",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/sales-report",
+                "route": {
+                    "name": "admin.sales-report"
+                }
             }
         ]
     },
@@ -247,6 +267,16 @@
                 "active_link": "/admin/debit-notes",
                 "route": {
                     "name": "admin.debit-note-list"
+                }
+            },
+            {
+                "menuValue": "Purchase Report",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-report",
+                "route": {
+                    "name": "admin.purchase-report"
                 }
             }
         ]
@@ -304,6 +334,44 @@
                 "route": {
                     "name": "admin.receipt-voucher"
                 }
+            },
+            {
+                "menuValue": "Financial Reports",
+                "icon": "ti ti-chart-dots",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Trial Balance",
+                        "route": {
+                            "name": "admin.trial-balance"
+                        }
+                    },
+                    {
+                        "menuValue": "Balance Sheet",
+                        "route": {
+                            "name": "admin.balance-sheet"
+                        }
+                    },
+                    {
+                        "menuValue": "Profit and Loss",
+                        "route": {
+                            "name": "admin.profit-and-loss"
+                        }
+                    },
+                    {
+                        "menuValue": "Cash Flow",
+                        "route": {
+                            "name": "admin.cash-flow"
+                        }
+                    },
+                    {
+                        "menuValue": "Tax Report",
+                        "route": {
+                            "name": "admin.tax-report"
+                        }
+                    }
+                ]
             }
         ]
     },

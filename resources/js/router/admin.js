@@ -190,6 +190,15 @@ const routes = [
                     import("@/views/admin/sales/invoice/Index.vue"),
             },
             {
+                path: "sales-invoice/view",
+                name: "admin.invoice-view",
+                meta: {
+                    pageTitle: "Invoice view",
+                },
+                component: () =>
+                    import("@/views/admin/sales/invoice/View.vue"),
+            },
+            {
                 path: "credit-notes",
                 name: "admin.credit-note-list",
                 meta: {
@@ -222,6 +231,14 @@ const routes = [
                     pageTitle: "Quotation List",
                 },
                 component: () => import("@/views/admin/sales/quotation/Index.vue"),
+            },
+            {
+                path: "sales-report",
+                name: "admin.sales-report",
+                meta: {
+                    pageTitle: "Sales Report",
+                },
+                component: () => import("@/views/admin/sales/SalesReport.vue"),
             },
             {
                 path: "brand",
@@ -375,6 +392,15 @@ const routes = [
                     import("@/views/admin/purchase/debit-note/Index.vue"),
             },
             {
+                path: "purchase-report",
+                name: "admin.purchase-report",
+                meta: {
+                    pageTitle: "Purchase Report",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/PurchaseReport.vue"),
+            },
+            {
                 path: "chart-of-accounts",
                 name: "admin.chart-of-accounts",
                 meta: {
@@ -418,6 +444,51 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/accounting/receipt-voucher/Index.vue"),
+            },
+            {
+                path: "trial-balance",
+                name: "admin.trial-balance",
+                meta: {
+                    pageTitle: "Trial Balance",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/TrialBalance.vue"),
+            },
+            {
+                path: "balance-sheet",
+                name: "admin.balance-sheet",
+                meta: {
+                    pageTitle: "Balance Sheet",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/BalanceSheet.vue"),
+            },
+            {
+                path: "profit-and-loss",
+                name: "admin.profit-and-loss",
+                meta: {
+                    pageTitle: "Profit and Loss",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/ProfitLoss.vue"),
+            },
+            {
+                path: "cash-flow",
+                name: "admin.cash-flow",
+                meta: {
+                    pageTitle: "Cash Flow",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/CashFlow.vue"),
+            },
+            {
+                path: "tax-report",
+                name: "admin.tax-report",
+                meta: {
+                    pageTitle: "Tax Report",
+                },
+                component: () =>
+                    import("@/views/admin/accounting/reports/TaxReport.vue"),
             },
 
             // HR & Payroll Module
@@ -522,6 +593,23 @@ const routes = [
                 name: "admin.hr-report-leave",
                 meta: {pageTitle: "Leave Balance Report"},
                 component: () => import("@/views/admin/hr/reports/LeaveBalance.vue"),
+            },
+        ],
+    },
+    {
+        path: "/pos",
+        component: () => import("@/layouts/PosLayout.vue"),
+        meta: {
+            requiresAuth: true,
+            isAdmin: true,
+            pageTitle: "POS",
+        },
+        children: [
+            {
+                path: "",
+                name: "admin.pos",
+                meta: {pageTitle: "POS"},
+                component: () => import("@/views/admin/pos/pos-two.vue"),
             },
         ],
     },

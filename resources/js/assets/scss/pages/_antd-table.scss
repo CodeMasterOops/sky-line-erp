@@ -1,0 +1,315 @@
+.ant-table-thead .ant-table-cell{
+	color: #1F2020 ;
+    font-size: 15px;
+    font-weight: 600 !important;
+    padding: 8px 17px 8px 16px !important;
+    background: #F7F8F9 !important;
+}
+.ant-table-cell{
+	color: var(--cf-gray-900) ;
+    background: var(--cf-light) !important;
+    border-bottom: 1px solid #E2E4E6 !important;
+    // padding: 8px 24px 8px 16px !important;
+}
+// .ant-table-column-sorter.ant-table-column-sorter-full
+[data-theme="dark"] .ant-table-cell {
+    background: #0D0D0D !important;
+    border-bottom: 1px solid #1F2228 !important;
+    border-top: #1F2228 !important;
+    color: #ffffff !important;
+}
+// .ant-table-column-title {
+//     font-weight: 600 !important;
+// }
+[data-theme="dark"] .ant-table-column-title {
+    color: #aab8c5 !important;
+}
+[data-theme="dark"] .ant-table-cell.ant-table-cell-row-hover {
+    background: #0D0D0D !important;
+}
+[data-theme="dark"] .ant-table {
+    border: #0D0D0D !important;
+}
+[data-theme="dark"] .ant-table-cell.ant-table-column-sort.ant-table-cell-row-hover {
+    background: #0D0D0D !important;
+    color: #D9DCFF  !important;
+}
+[data-bs-theme=dark] .ant-table-tbody tr .ant-table-cell.ant-table-column-sort{
+    background: #0D0D0D !important;
+}
+[data-theme="dark"] .ant-table-tbody tr .ant-table-cell.ant-table-column-sort {
+    background: #0D0D0D !important;
+}
+
+[data-theme="dark"] .table-responsive {
+    border-color: #1F2228 !important;
+    background-color: #0D0D0D;
+    background-clip: padding-box;
+    border: #161641;
+}
+[data-theme="dark"] .ant-table-row.ant-table-row-selected {
+    background: #0D0D0D !important;
+}
+[data-theme="dark"] .ant-table-row-selected .ant-table-cell{
+    background: #0D0D0D !important;
+}
+[data-theme="dark"] .ant-table-cell.ant-table-column-has-sorters::before{
+    background-color: #0D0D0D !important;
+}
+[data-theme="dark"] .ant-table-content{
+	border: 1px solid #1F2228;
+    border-right: none !important;
+}
+[data-theme="dark"] .ant-table-wrapper .ant-table-pagination.ant-pagination {
+   background: #0D0D0D;
+}
+[data-theme="dark"] .table.table-nowrap tbody tr {
+    border: #0D0D0D;
+}
+[data-theme="dark"] .anticon.anticon-caret-up.ant-table-column-sorter-up{
+	// color: #37394d;
+    display: none;
+}
+[data-theme="dark"] .anticon.anticon-caret-down.ant-table-column-sorter-down{
+	// color: #37394d;
+    display: none;
+}
+.anticon.anticon-caret-up.ant-table-column-sorter-up{
+	color: #788585;
+    // display: none;
+}
+.anticon.anticon-caret-down.ant-table-column-sorter-down{
+	color: #788585;
+    // display: none;
+}
+// .ant-tooltip {
+// 	display: none;
+// }
+
+.table.table-nowrap tbody tr {
+    border: #e3e3e3;
+}
+.table{
+    border: none;
+    // border-bottom: 1px solid #E8E8E8;
+}
+.ant-table-content{
+	// border: 1px solid #E2E4E6;
+    border-right: none !important;
+}
+.ant-table .ant-table-selection .ant-checkbox-checked .ant-checkbox-inner {
+	background-color: #030318;
+	border: 0px solid #B9B9C3;
+}
+.ant-table-tbody>tr.ant-table-row-selected>td {
+	background: transparent !important;
+}
+.ant-table-cell.ant-table-cell-row-hover {
+	background: transparent !important;
+}
+.ant-table-tbody tr .ant-table-cell.ant-table-column-sort{
+	background: transparent !important;
+}
+.ant-table-cell.ant-table-column-sort.ant-table-cell-row-hover{
+	background: transparent !important;
+}
+.ant-pagination-item.ant-pagination-item-1.ant-pagination-item-active{
+    width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 400;
+    background-color: #e41f07;
+    border-color: #e41f07;
+}
+.ant-pagination-item.ant-pagination-item-2.ant-pagination-item-active{
+	width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 400;
+    background-color: #e41f07;
+    border-color: #e41f07;
+}
+.ant-pagination-item.ant-pagination-item-3.ant-pagination-item-active{
+	width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 400;
+    background-color: #e41f07;
+    border-color: #e41f07;
+}
+.ant-pagination-item.ant-pagination-item-2{
+	width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #030318;
+    font-weight: 400;
+    background-color: #fff;
+    border:1px solid #E8E8E8;
+    border-color: #E8E8E8;
+}
+.ant-pagination-item.ant-pagination-item-3{
+	width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #030318;
+    font-weight: 400;
+    background-color: #fff;
+    border:1px solid #E8E8E8;
+    border-color: #E8E8E8;
+}
+.ant-pagination-item.ant-pagination-item-1{
+	width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #030318;
+    font-weight: 400;
+    background-color: #fff;
+    border:1px solid #E8E8E8;
+    border-color: #E8E8E8;
+}
+.ant-pagination li{  
+    align-items: center;
+}
+
+.ant-pagination-prev.ant-pagination-disabled{
+   width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    align-items: center;
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    color: var(--crms-gray-500);
+    font-weight: 400;
+     background-color: #fff;
+     border:1px solid #E8E8E8;
+    border-color: #E8E8E8;
+}
+.ant-pagination .ant-pagination-prev{
+   width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    align-items: center;
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    color: var(--crms-gray-500);
+    font-weight: 400;
+     background-color: #fff;
+     border:1px solid #E8E8E8;
+    border-color: #E8E8E8;
+    margin: 0px;
+}
+.anticon .anticon-left{
+    align-items: center;
+}
+.ant-pagination .ant-pagination-next{
+    width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    align-items: center;
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    color: var(--crms-gray-500);
+    font-weight: 400;
+    background-color: #fff;
+     border:1px solid #E8E8E8;
+    border-color: #E8E8E8;
+}
+.ant-pagination-next.ant-pagination-disabled{
+   width: 38px;
+    height: 38px;
+    box-shadow: var(--crms-box-shadow);
+    align-items: center;
+    border-radius: 5px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    color: var(--crms-gray-500);
+    font-weight: 400;
+    background-color: #fff;
+     border:1px solid #E8E8E8;
+    border-color: #E8E8E8;
+}
+.ant-table-wrapper .ant-table-pagination.ant-pagination{
+	margin: 1px 0;
+	justify-content: end !important;
+}
+.ant-table .ant-table-container .ant-table-content .ant-table-thead{
+    font-family: "Nunito", sans-serif,
+}
+.ant-table .ant-table-container .ant-table-content .ant-table-tbody{
+    font-family: "Nunito", sans-serif,
+}
+.ant-picker-suffix span{
+    display: none;
+}
+.ant-picker-dropdown{
+    z-index: 1055 !important;
+}
+.ant-table-wrapper.table.table-nowrap{
+    border-right: none !important;
+}
+.ant-table-wrapper {
+    background: #fff;
+}
+.table-responsive {
+    border: 1px solid #e8e8e8;
+}
+.ant-table-wrapper .ant-table-pagination.ant-pagination {
+   background: #fff;
+   align-items: center;
+}
+.ant-pagination .ant-pagination-prev .ant-pagination-item-link{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ant-pagination .ant-pagination-next .ant-pagination-item-link{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ant-table-wrapper .ant-table-pagination{
+    gap: 3px
+}
+.ant-pagination .ant-pagination-item{
+    margin-inline-end: 2px;
+}
