@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Enums\StatusEnum;
 use App\Tenancy\TRule;
+use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -17,15 +17,15 @@ class JournalVoucherRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reference_no' => ['nullable', 'string', 'max:255'],
             'date' => ['required', 'date'],
-            'remarks' => ['nullable', 'string'],
+            'reference_no' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:2'],
-            'items.*.account_id' => ['required', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'items.*.account_id' => ['required', 'distinct', TRule::exists('accounts', 'id')->withoutTrashed()],
             'items.*.dr_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.cr_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string'],
+            'remarks' => ['nullable', 'string'],
         ];
     }
 

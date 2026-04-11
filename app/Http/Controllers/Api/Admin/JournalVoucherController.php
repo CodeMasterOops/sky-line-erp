@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Journal;
 use App\Enums\StatusEnum;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
@@ -35,6 +36,13 @@ class JournalVoucherController extends Controller
     public function store(JournalVoucherRequest $request)
     {
         $formData = $request->validated();
+
+        if (collect($formData['items'])->sum('dr_amount') !== collect($formData['items'])->sum('cr_amount')) {
+            return response()->json([
+                'message' => 'Dr Amount & Cr Amount must be equal',
+            ], 400);
+        }
+
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
@@ -43,19 +51,16 @@ class JournalVoucherController extends Controller
         $voucherCount = Journal::where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)->where('fiscal_year_id', $fiscalYearId)->withTrashed()->count();
         $voucherNo = 'JV-' . ($voucherCount + 1) . '/' . ($setting->fiscalYear->year_code ?? '');
 
-        $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $voucherNo) {
-            $journal = Journal::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'type' => JournalTypeEnum::JOURNAL_VOUCHER->value,
-                'voucher_no' => $voucherNo,
-                'reference_no' => $formData['reference_no'] ?? null,
-                'date' => $formData['date'],
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
+        $formData['fiscal_year_id'] = $fiscalYearId;
+        $formData['type'] = JournalTypeEnum::JOURNAL_VOUCHER->value;
+        $formData['voucher_no'] = $voucherNo;
+        $formData['create_user_id'] = $user->id;
+        $formData['approve_user_id'] = $status === StatusEnum::APPROVED->value ? $user->id : null;
+        $formData['approved_at'] = $status === StatusEnum::APPROVED->value ? now() : null;
+        $formData['status'] = $status;
+
+        $journal = DB::transaction(function () use ($formData) {
+            $journal = Journal::create($formData);
 
             $journal->journalItems()->createMany($formData['items']);
 
@@ -98,24 +103,22 @@ class JournalVoucherController extends Controller
         $formData = $request->validated();
 
         $journalVoucher = DB::transaction(function () use ($journalVoucher, $formData) {
-            $journalVoucher->update([
-                'reference_no' => $formData['reference_no'] ?? null,
-                'date' => $formData['date'],
-                'remarks' => $formData['remarks'] ?? null,
-            ]);
+            $journalVoucher->update($formData);
 
-            $journalVoucher->journalItems()->delete();
+            $accountIds = Arr::pluck($formData['items'], 'account_id');
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'account_id' => $item['account_id'],
-                    'dr_amount' => $item['dr_amount'] ?? 0,
-                    'cr_amount' => $item['cr_amount'] ?? 0,
-                    'remarks' => $item['remarks'] ?? null,
-                ];
-            })->all();
+            $journalVoucher->journalItems()->whereNotIn('account_id', $accountIds)->delete();
 
-            $journalVoucher->journalItems()->createMany($items);
+            foreach ($formData['items'] as $item) {
+                $journalVoucher->journalItems()->updateOrCreate(
+                    ['account_id' => $item['account_id']],
+                    [
+                        'dr_amount' => $item['dr_amount'] ?? 0,
+                        'cr_amount' => $item['cr_amount'] ?? 0,
+                        'remarks' => $item['remarks'] ?? null,
+                    ]
+                );
+            }
 
             return $journalVoucher;
         });

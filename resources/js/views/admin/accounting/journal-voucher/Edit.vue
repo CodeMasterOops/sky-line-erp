@@ -8,6 +8,15 @@
             <VLoader v-if="voucher.loading" loader-type="progress"/>
             <form @submit.prevent="updateVoucher(voucher.data.id)" class="row g-3">
                 <div class="col-md-6">
+                    <VDatepicker
+                        id="date"
+                        v-model="form.date"
+                        label="Date"
+                        @validate="validateField('date')"
+                        :error="errors.date"
+                    />
+                </div>
+                <div class="col-md-6">
                     <VInput
                         id="reference_no"
                         v-model="form.reference_no"
@@ -16,83 +25,66 @@
                         :error="errors.reference_no"
                     />
                 </div>
-                <div class="col-md-6">
-                    <VInput
-                        id="date"
-                        input-type="date"
-                        v-model="form.date"
-                        label="Date"
-                        @validate="validateField('date')"
-                        :error="errors.date"
-                    />
-                </div>
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
-                    />
-                </div>
 
                 <div class="col-12">
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead>
-                                <tr>
-                                    <th style="width: 50px;">SN</th>
-                                    <th>Account</th>
-                                    <th style="width: 140px;">Dr Amount</th>
-                                    <th style="width: 140px;">Cr Amount</th>
-                                    <th>Remarks</th>
-                                    <th style="width: 60px;">Action</th>
-                                </tr>
+                            <tr>
+                                <th style="width: 50px;">SN</th>
+                                <th>Account</th>
+                                <th style="width: 140px;">Dr Amount</th>
+                                <th style="width: 140px;">Cr Amount</th>
+                                <th>Remarks</th>
+                                <th style="width: 60px;">Action</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(item, index) in form.items" :key="index">
-                                    <td>{{ index + 1 }}</td>
-                                    <td>
-                                        <VSelect
-                                            v-model="form.items[index].account_id"
-                                            :options="accounts.data"
-                                            @validate="validateField(`items[${index}].account_id`)"
-                                            :error="errors[`items[${index}].account_id`]"
-                                        />
-                                    </td>
-                                    <td>
-                                        <VInput
-                                            input-type="number"
-                                            v-model="form.items[index].dr_amount"
-                                            @validate="validateField(`items[${index}].dr_amount`)"
-                                            :error="errors[`items[${index}].dr_amount`]"
-                                        />
-                                    </td>
-                                    <td>
-                                        <VInput
-                                            input-type="number"
-                                            v-model="form.items[index].cr_amount"
-                                            @validate="validateField(`items[${index}].cr_amount`)"
-                                            :error="errors[`items[${index}].cr_amount`]"
-                                        />
-                                    </td>
-                                    <td>
-                                        <VInput
-                                            v-model="form.items[index].remarks"
-                                            @validate="validateField(`items[${index}].remarks`)"
-                                            :error="errors[`items[${index}].remarks`]"
-                                        />
-                                    </td>
-                                    <td class="text-center">
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            @click="removeItem(index)"
-                                            :disabled="form.items.length === 2">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
+                            <tr v-for="(item, index) in form.items" :key="index">
+                                <td>{{ index + 1 }}</td>
+                                <td style="width: 300px;min-width: 300px;">
+                                    <VMultiselect
+                                        v-model="form.items[index].account_id"
+                                        :options="accounts.data"
+                                        @validate="validateField(`items[${index}].account_id`)"
+                                        :error="errors[`items[${index}].account_id`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VInput
+                                        input-type="number"
+                                        v-model="form.items[index].dr_amount"
+                                        @on-input="setLedgerAmount('dr',index)"
+                                        @validate="validateField(`items[${index}].dr_amount`)"
+                                        :error="errors[`items[${index}].dr_amount`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VInput
+                                        input-type="number"
+                                        v-model="form.items[index].cr_amount"
+                                        @on-input="setLedgerAmount('cr',index)"
+                                        @validate="validateField(`items[${index}].cr_amount`)"
+                                        :error="errors[`items[${index}].cr_amount`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VInput
+                                        v-model="form.items[index].remarks"
+                                        @validate="validateField(`items[${index}].remarks`)"
+                                        :error="errors[`items[${index}].remarks`]"
+                                    />
+                                </td>
+                                <td class="text-center">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        @click="removeItem(index)"
+                                        :disabled="form.items.length === 2">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
                             </tbody>
                         </table>
                     </div>
@@ -107,6 +99,16 @@
                     <div v-if="errors.items" class="text-danger small mt-2">
                         {{ errors.items }}
                     </div>
+                </div>
+
+                <div class="col-md-12">
+                    <VTextarea
+                        id="remarks"
+                        v-model="form.remarks"
+                        label="Remarks"
+                        @validate="validateField('remarks')"
+                        :error="errors.remarks"
+                    />
                 </div>
 
                 <div class="col-12 text-end">
@@ -183,6 +185,16 @@ const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
+const setLedgerAmount = (type, index) => {
+    const drAmount = form.items[index].dr_amount;
+    const crAmount = form.items[index].cr_amount;
+    if (type === "dr" && drAmount > 0) {
+        form.items[index].cr_amount = 0;
+    } else if (type === 'cr' && crAmount > 0) {
+        form.items[index].dr_amount = 0;
+    }
+};
+
 const parseAmount = (value) => {
     const parsed = parseFloat(value);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -224,6 +236,7 @@ const itemSchema = object({
 
 const validations = object({
     date: string().required('Date is required.'),
+    reference_no: string().nullable(),
     items: array().of(itemSchema).min(2, 'At least two items are required.'),
 }).test('balance', 'Total Dr amount must be equal to Total Cr amount.', function (value) {
     const items = value?.items || [];

@@ -7,7 +7,7 @@
                 @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
-                Add Payment Voucher
+                Add New
             </button>
         </template>
     </PageHeader>

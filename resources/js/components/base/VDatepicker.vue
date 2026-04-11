@@ -65,7 +65,7 @@ const props = defineProps({
     },
     showSwitcher: {
         type: Boolean,
-        default: true
+        default: false
     },
     disableAfter: {
         type: String

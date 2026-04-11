@@ -8,12 +8,13 @@
             <VLoader v-if="voucher.loading" loader-type="progress"/>
             <form @submit.prevent="updateVoucher(voucher.data.id)" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
-                        id="reference_no"
-                        v-model="form.reference_no"
-                        label="Reference No"
-                        @validate="validateField('reference_no')"
-                        :error="errors.reference_no"
+                    <VMultiselect
+                        id="deposited_to_account_id"
+                        v-model="form.deposited_to_account_id"
+                        :options="accounts.data"
+                        label="Deposited To"
+                        @validate="validateField('deposited_to_account_id')"
+                        :error="errors.deposited_to_account_id"
                     />
                 </div>
                 <div class="col-md-6">
@@ -27,22 +28,12 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
-                        id="deposited_to_account_id"
-                        v-model="form.deposited_to_account_id"
-                        :options="accounts.data"
-                        label="Deposited To Account"
-                        @validate="validateField('deposited_to_account_id')"
-                        :error="errors.deposited_to_account_id"
-                    />
-                </div>
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
+                    <VInput
+                        id="reference_no"
+                        v-model="form.reference_no"
+                        label="Reference No"
+                        @validate="validateField('reference_no')"
+                        :error="errors.reference_no"
                     />
                 </div>
 
@@ -108,6 +99,16 @@
                     <div v-if="errors.items" class="text-danger small mt-2">
                         {{ errors.items }}
                     </div>
+                </div>
+
+                <div class="col-md-12">
+                    <VTextarea
+                        id="remarks"
+                        v-model="form.remarks"
+                        label="Remarks"
+                        @validate="validateField('remarks')"
+                        :error="errors.remarks"
+                    />
                 </div>
 
                 <div class="col-12 text-end">

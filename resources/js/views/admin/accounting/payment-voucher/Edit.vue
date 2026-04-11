@@ -8,12 +8,13 @@
             <VLoader v-if="voucher.loading" loader-type="progress"/>
             <form @submit.prevent="updateVoucher(voucher.data.id)" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
-                        id="reference_no"
-                        v-model="form.reference_no"
-                        label="Reference No"
-                        @validate="validateField('reference_no')"
-                        :error="errors.reference_no"
+                    <VMultiselect
+                        id="paid_from_account_id"
+                        v-model="form.paid_from_account_id"
+                        :options="accounts.data"
+                        label="Paid From"
+                        @validate="validateField('paid_from_account_id')"
+                        :error="errors.paid_from_account_id"
                     />
                 </div>
                 <div class="col-md-6">
@@ -27,22 +28,12 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
-                        id="paid_from_account_id"
-                        v-model="form.paid_from_account_id"
-                        :options="accounts.data"
-                        label="Paid From Account"
-                        @validate="validateField('paid_from_account_id')"
-                        :error="errors.paid_from_account_id"
-                    />
-                </div>
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
+                    <VInput
+                        id="reference_no"
+                        v-model="form.reference_no"
+                        label="Reference No"
+                        @validate="validateField('reference_no')"
+                        :error="errors.reference_no"
                     />
                 </div>
 
@@ -61,8 +52,8 @@
                             <tbody>
                             <tr v-for="(item, index) in form.items" :key="index">
                                 <td>{{ index + 1 }}</td>
-                                <td>
-                                    <VSelect
+                                <td style="width: 300px;min-width: 300px;">
+                                    <VMultiselect
                                         v-model="form.items[index].account_id"
                                         :options="accounts.data"
                                         @validate="validateField(`items[${index}].account_id`)"
@@ -108,6 +99,16 @@
                     <div v-if="errors.items" class="text-danger small mt-2">
                         {{ errors.items }}
                     </div>
+                </div>
+
+                <div class="col-md-12">
+                    <VTextarea
+                        id="remarks"
+                        v-model="form.remarks"
+                        label="Remarks"
+                        @validate="validateField('remarks')"
+                        :error="errors.remarks"
+                    />
                 </div>
 
                 <div class="col-12 text-end">
@@ -210,8 +211,9 @@ const itemSchema = object({
 });
 
 const validations = object({
-    date: string().required('Date is required.'),
     paid_from_account_id: string().required('Paid from account is required.'),
+    date: string().required('Date is required.'),
+    reference_no: string().nullable(),
     items: array().of(itemSchema).min(1, 'At least one item is required.'),
 }).test('total', 'Total amount must be greater than zero.', function (value) {
     const items = value?.items || [];

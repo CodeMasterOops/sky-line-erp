@@ -7,12 +7,13 @@
         <template #modal-body>
             <form @submit.prevent="storeVoucherWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
-                        id="reference_no"
-                        v-model="form.reference_no"
-                        label="Reference No"
-                        @validate="validateField('reference_no')"
-                        :error="errors.reference_no"
+                    <VMultiselect
+                        id="paid_from_account_id"
+                        v-model="form.paid_from_account_id"
+                        :options="accounts.data"
+                        label="Paid From"
+                        @validate="validateField('paid_from_account_id')"
+                        :error="errors.paid_from_account_id"
                     />
                 </div>
                 <div class="col-md-6">
@@ -26,22 +27,12 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
-                        id="paid_from_account_id"
-                        v-model="form.paid_from_account_id"
-                        :options="accounts.data"
-                        label="Paid From Account"
-                        @validate="validateField('paid_from_account_id')"
-                        :error="errors.paid_from_account_id"
-                    />
-                </div>
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
+                    <VInput
+                        id="reference_no"
+                        v-model="form.reference_no"
+                        label="Reference No"
+                        @validate="validateField('reference_no')"
+                        :error="errors.reference_no"
                     />
                 </div>
 
@@ -60,8 +51,8 @@
                             <tbody>
                             <tr v-for="(item, index) in form.items" :key="index">
                                 <td>{{ index + 1 }}</td>
-                                <td>
-                                    <VSelect
+                                <td style="width: 300px;min-width: 300px;">
+                                    <VMultiselect
                                         v-model="form.items[index].account_id"
                                         :options="accounts.data"
                                         @validate="validateField(`items[${index}].account_id`)"
@@ -109,6 +100,16 @@
                     </div>
                 </div>
 
+                <div class="col-md-12">
+                    <VTextarea
+                        id="remarks"
+                        v-model="form.remarks"
+                        label="Remarks"
+                        @validate="validateField('remarks')"
+                        :error="errors.remarks"
+                    />
+                </div>
+
                 <div class="col-12 text-end">
                     <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
                         Close
@@ -142,9 +143,11 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePaymentVoucherStore} from '@/stores/admin/accounting/payment-voucher.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const paymentVoucherStore = usePaymentVoucherStore();
 const accountStore = useAccountStore();
+const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
 
@@ -156,7 +159,7 @@ onMounted(() => {
 
 const initialState = {
     reference_no: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: currentAdDate,
     paid_from_account_id: '',
     remarks: '',
     status: 'draft',
@@ -199,8 +202,9 @@ const itemSchema = object({
 });
 
 const validations = object({
-    date: string().required('Date is required.'),
     paid_from_account_id: string().required('Paid from account is required.'),
+    date: string().required('Date is required.'),
+    reference_no: string().nullable(),
     items: array().of(itemSchema).min(1, 'At least one item is required.'),
 }).test('total', 'Total amount must be greater than zero.', function (value) {
     const items = value?.items || [];
