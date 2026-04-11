@@ -30,14 +30,14 @@
                     </a>
                     <form action="#" class="dropdown">
                         <div class="searchinputs input-group dropdown-toggle" id="dropdownMenuClickable"
-                            data-bs-toggle="dropdown" data-bs-auto-close="false">
+                             data-bs-toggle="dropdown" data-bs-auto-close="false">
                             <input type="text" placeholder="Search">
                             <div class="search-addon">
                                 <span><i class="ti ti-search"></i></span>
                             </div>
                             <span class="input-group-text">
                                 <kbd class="d-flex align-items-center"><img src="@/assets/images/icons/command.svg"
-                                        alt="img" class="me-1">K</kbd>
+                                                                            alt="img" class="me-1">K</kbd>
                             </span>
                         </div>
                         <div class="dropdown-menu search-dropdown" aria-labelledby="dropdownMenuClickable">
@@ -59,15 +59,15 @@
                                 <h6><span><i data-feather="user" class="feather-16"></i></span>Customers</h6>
                                 <ul class="customers">
                                     <li><a href="javascript:void(0);">Aron Varu<img
-                                                src="@/assets/images/profiles/avator1.jpg" alt="" class="img-fluid"></a>
+                                        src="@/assets/images/profiles/avator1.jpg" alt="" class="img-fluid"></a>
                                     </li>
                                     <li><a href="javascript:void(0);">Jonita<img
-                                                src="@/assets/images/profiles/avatar-01.jpg" alt=""
-                                                class="img-fluid"></a>
+                                        src="@/assets/images/profiles/avatar-01.jpg" alt=""
+                                        class="img-fluid"></a>
                                     </li>
                                     <li><a href="javascript:void(0);">Aaron<img
-                                                src="@/assets/images/profiles/avatar-10.jpg" alt=""
-                                                class="img-fluid"></a>
+                                        src="@/assets/images/profiles/avatar-10.jpg" alt=""
+                                        class="img-fluid"></a>
                                     </li>
                                 </ul>
                             </div>
@@ -77,13 +77,13 @@
             </li>
             <li class="nav-item dropdown link-nav">
                 <a href="javascript:void(0);" class="btn btn-primary btn-md d-inline-flex align-items-center"
-                    data-bs-toggle="dropdown">
+                   data-bs-toggle="dropdown">
                     <i class="fa fa-plus-circle me-1"></i>Add New
                 </a>
                 <div class="dropdown-menu dropdown-xl dropdown-menu-center">
                     <div class="row g-2">
                         <div class="col-md-2">
-                            <router-link to="/inventory/category-list" class="link-item">
+                            <router-link :to="{name:'admin.product-category-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-brand-codepen"></i>
                                 </span>
@@ -91,7 +91,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/inventory/add-product" class="link-item">
+                            <router-link :to="{name:'admin.product-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-square-plus"></i>
                                 </span>
@@ -99,7 +99,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/inventory/category-list" class="link-item">
+                            <router-link :to="{name:'admin.purchase-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-shopping-bag"></i>
                                 </span>
@@ -107,7 +107,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/sales/online-orders" class="link-item">
+                            <router-link :to="{name:'admin.sales-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-shopping-cart"></i>
                                 </span>
@@ -123,7 +123,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/quotation-list" class="link-item">
+                            <router-link :to="{name:'admin.quotation-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-device-floppy"></i>
                                 </span>
@@ -139,7 +139,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/users/users-list" class="link-item">
+                            <router-link :to="{name:'admin.user-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-user"></i>
                                 </span>
@@ -147,7 +147,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/ecommerce/customers" class="link-item">
+                            <router-link :to="{name:'admin.party-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-users"></i>
                                 </span>
@@ -155,7 +155,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/sales-report/sales-report" class="link-item">
+                            <router-link :to="{name:'admin.party-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-shield"></i>
                                 </span>
@@ -163,7 +163,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/people/suppliers" class="link-item">
+                            <router-link :to="{name:'admin.party-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-user-check"></i>
                                 </span>
@@ -309,7 +309,7 @@
 
         <div class="dropdown mobile-user-menu">
             <a href="javascript:void(0);" class="nav-link dropdown-toggle" data-bs-toggle="dropdown"
-                aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
+               aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
             <div class="dropdown-menu dropdown-menu-right">
                 <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">My Profile</router-link>
                 <router-link class="dropdown-item" to="/settings/general-settings">Settings</router-link>
@@ -321,14 +321,14 @@
 
 <script setup>
 import userIcon from '@/assets/images/user-icon.png';
-import { onMounted } from "vue";
-import { useProfileStore } from "@/stores/admin/profile";
-import { storeToRefs } from "pinia";
-import { useAdminAuthStore } from "@/stores/admin/auth";
+import {onMounted} from "vue";
+import {useProfileStore} from "@/stores/admin/profile";
+import {storeToRefs} from "pinia";
+import {useAdminAuthStore} from "@/stores/admin/auth";
 import showErrors from "@/helpers/showErrors";
-import { toast } from "@/helpers/toast";
-import { useRouter } from "vue-router";
-import { useAdminNotificationStore } from "@/stores/admin/notification";
+import {toast} from "@/helpers/toast";
+import {useRouter} from "vue-router";
+import {useAdminNotificationStore} from "@/stores/admin/notification";
 
 const notificationStore = useAdminNotificationStore();
 const profileStore = useProfileStore();
@@ -372,14 +372,14 @@ onMounted(() => {
     notificationStore.getUnreadNotifications();
 })
 
-const { profile } = storeToRefs(profileStore);
-const { unreadNotifications: notifications } = storeToRefs(notificationStore);
+const {profile} = storeToRefs(profileStore);
+const {unreadNotifications: notifications} = storeToRefs(notificationStore);
 
 const logout = async () => {
     try {
         const res = await authStore.logout();
         toast(res.status, res.data.message);
-        await router.push({ name: 'admin.login' });
+        await router.push({name: 'admin.login'});
     } catch (e) {
         showErrors(e);
     }

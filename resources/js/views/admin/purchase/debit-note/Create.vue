@@ -2,14 +2,13 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Debit Note">
         <template #modal-body>
             <form @submit.prevent="storeDebitNoteWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="debit_note_date"
-                        input-type="date"
                         v-model="form.debit_note_date"
                         label="Debit Note Date"
                         @validate="validateField('debit_note_date')"
@@ -17,7 +16,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
@@ -38,7 +37,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="warehouse_id"
                         v-model="form.warehouse_id"
                         :options="warehouses.data"
@@ -54,7 +53,7 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product/Service</th>
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
@@ -204,6 +203,7 @@ import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const billStore = useBillStore();
 const debitNoteStore = useDebitNoteStore();
@@ -214,6 +214,8 @@ const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
 
 const createModalOpened = defineModel('createModalOpened');
+
+const {currentAdDate} = useDateHelper();
 
 const {units} = storeToRefs(unitStore);
 const {productVariants} = storeToRefs(productStore);
@@ -232,7 +234,7 @@ onMounted(() => {
 });
 
 const initialState = {
-    debit_note_date: new Date().toISOString().slice(0, 10),
+    debit_note_date: currentAdDate,
     party_id: '',
     bill_id: '',
     warehouse_id: '',

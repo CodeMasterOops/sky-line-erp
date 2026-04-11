@@ -2,14 +2,13 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Bill">
         <template #modal-body>
             <form @submit.prevent="storeBillWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="bill_date"
-                        input-type="date"
                         v-model="form.bill_date"
                         label="Bill Date"
                         @validate="validateField('bill_date')"
@@ -17,9 +16,8 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="due_date"
-                        input-type="date"
                         v-model="form.due_date"
                         label="Due Date"
                         @validate="validateField('due_date')"
@@ -27,7 +25,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
@@ -37,7 +35,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="warehouse_id"
                         v-model="form.warehouse_id"
                         :options="warehouses.data"
@@ -53,7 +51,7 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product/Service</th>
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>

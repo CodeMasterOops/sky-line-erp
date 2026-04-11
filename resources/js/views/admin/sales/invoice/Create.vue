@@ -2,14 +2,13 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Invoice">
         <template #modal-body>
             <form @submit.prevent="storeInvoiceWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="invoice_date"
-                        input-type="date"
                         v-model="form.invoice_date"
                         label="Invoice Date"
                         @validate="validateField('invoice_date')"
@@ -17,9 +16,8 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="due_date"
-                        input-type="date"
                         v-model="form.due_date"
                         label="Due Date"
                         @validate="validateField('due_date')"
@@ -53,7 +51,7 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product/Service</th>
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
@@ -202,6 +200,7 @@ import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const invoiceStore = useInvoiceStore();
 const unitStore = useUnitStore();
@@ -211,6 +210,8 @@ const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
 
 const createModalOpened = defineModel('createModalOpened');
+
+const {currentAdDate} = useDateHelper();
 
 const {units} = storeToRefs(unitStore);
 const {productVariants} = storeToRefs(productStore);
@@ -227,7 +228,7 @@ onMounted(() => {
 });
 
 const initialState = {
-    invoice_date: new Date().toISOString().slice(0, 10),
+    invoice_date: currentAdDate,
     due_date: '',
     party_id: '',
     warehouse_id: '',

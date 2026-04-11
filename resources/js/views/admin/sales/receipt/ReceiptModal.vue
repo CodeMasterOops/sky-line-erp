@@ -2,15 +2,14 @@
     <VModal
         :show-modal="!!open"
         @close-click="closeModal"
-        modal-class="large-modal"
+        size="xl"
         title="Record Receipt">
         <template #modal-body>
             <VLoader v-if="loading" loader-type="progress"/>
             <form v-else @submit.prevent="storeReceipt" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="receipt_date"
-                        input-type="date"
                         v-model="form.receipt_date"
                         label="Receipt Date"
                         @validate="validateField('receipt_date')"

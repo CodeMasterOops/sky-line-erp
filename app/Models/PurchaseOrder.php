@@ -36,17 +36,19 @@ class PurchaseOrder extends Model
 
     public function scopeFilter($query, $param = [])
     {
-        if (! empty($param['search'])) {
-            $key = '%'.trim($param['search']).'%';
-            $query->where('order_no', 'like', $key);
-        }
-
         if (! empty($param['party_id'])) {
             $query->where('party_id', $param['party_id']);
         }
 
         if (! empty($param['status'])) {
             $query->where('status', $param['status']);
+        }
+
+        if (! empty($param['search'])) {
+            $key = '%'.trim($param['search']).'%';
+            $query->where(function ($query) use ($key) {
+                $query->where('order_no', 'like', $key);
+            });
         }
 
         return $query;

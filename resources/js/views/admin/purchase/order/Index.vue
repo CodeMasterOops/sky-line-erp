@@ -7,7 +7,7 @@
                 @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
-                Add Purchase Order
+                Add New
             </button>
         </template>
     </PageHeader>
@@ -151,7 +151,7 @@ const columns = [
         sorter: true,
     },
     {
-        title: 'Grand Total',
+        title: 'Amount',
         dataIndex: 'grand_total',
         sorter: true,
     },

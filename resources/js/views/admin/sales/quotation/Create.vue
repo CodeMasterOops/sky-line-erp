@@ -2,14 +2,13 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Quotation">
         <template #modal-body>
             <form @submit.prevent="storeQuotationWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="quotation_date"
-                        input-type="date"
                         v-model="form.quotation_date"
                         label="Quotation Date"
                         @validate="validateField('quotation_date')"
@@ -17,9 +16,8 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="expiry_date"
-                        input-type="date"
                         v-model="form.expiry_date"
                         label="Expiry Date"
                         @validate="validateField('expiry_date')"
@@ -27,7 +25,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
@@ -42,7 +40,7 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product/Service</th>
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
@@ -190,12 +188,15 @@ import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const quotationStore = useQuotationStore();
 const unitStore = useUnitStore();
 const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
+
+const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
 
@@ -212,7 +213,7 @@ onMounted(() => {
 });
 
 const initialState = {
-    quotation_date: new Date().toISOString().slice(0, 10),
+    quotation_date: currentAdDate,
     expiry_date: '',
     party_id: '',
     remarks: '',

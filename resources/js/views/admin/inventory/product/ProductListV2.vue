@@ -80,15 +80,11 @@
                         <template v-if="column.key === 'Product'">
                             <div class="productimgname">
                                 <a href="javascript:void(0);" class="avatar avatar-md me-2">
-                                    <img :src="record.image || '/assets/img/product-placeholder.png'" alt="product"
+                                    <img :src="record.image || 'https://placehold.co/40x40'" alt="product"
                                          style="width: 40px; height: 40px; object-fit: cover;">
                                 </a>
                                 <a href="javascript:void(0);">{{ record.name }}</a>
                             </div>
-                        </template>
-
-                        <template v-else-if="column.key === 'sales_price'">
-                            {{ record.defaultVariant?.sales_price }}
                         </template>
 
                         <template v-else-if="column.key === 'action'">
@@ -165,7 +161,7 @@ const pagination = computed(() => ({
 
 const columns = [
     {
-        title: "Product Name",
+        title: "Name",
         dataIndex: "name",
         key: "Product",
         sorter: true
@@ -187,7 +183,7 @@ const columns = [
     },
     {
         title: "Price",
-        key: "sales_price",
+        customRender: ({record}) => record.defaultVariant?.sales_price,
         sorter: true,
     },
     {

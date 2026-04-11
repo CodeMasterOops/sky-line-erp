@@ -2,14 +2,13 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Credit Note">
         <template #modal-body>
             <form @submit.prevent="storeCreditNoteWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="credit_note_date"
-                        input-type="date"
                         v-model="form.credit_note_date"
                         label="Credit Note Date"
                         @validate="validateField('credit_note_date')"

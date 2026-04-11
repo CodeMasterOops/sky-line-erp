@@ -2,28 +2,29 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Purchase Order">
         <template #modal-body>
             <form @submit.prevent="storeOrderWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
-                        id="order_date"
-                        input-type="date"
-                        v-model="form.order_date"
-                        label="Order Date"
-                        @validate="validateField('order_date')"
-                        :error="errors.order_date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VSelect
+                    <i @click="createSupplierOpened=true" class="fa fa-plus-circle text-primary"
+                       title="Add Supplier"></i>&nbsp;
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
                         label="Supplier"
                         @validate="validateField('party_id')"
                         :error="errors.party_id"
+                    />
+                </div>
+                <div class="col-md-6">
+                    <VDatepicker
+                        id="order_date"
+                        v-model="form.order_date"
+                        label="Order Date"
+                        @validate="validateField('order_date')"
+                        :error="errors.order_date"
                     />
                 </div>
 
@@ -33,20 +34,20 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product/Service</th>
                                 <th style="width: 160px;">Unit</th>
-                                <th style="width: 120px;">Quantity</th>
+                                <th style="width: 120px;">Qty</th>
                                 <th style="width: 140px;">Rate</th>
                                 <th style="width: 160px;">Tax</th>
-                                <th style="width: 170px;">Discount Amount</th>
+                                <th style="width: 170px;">Discount</th>
                                 <th style="width: 60px;">Action</th>
                             </tr>
                             </thead>
                             <tbody>
                             <tr v-for="(item, index) in form.items" :key="index">
                                 <td>{{ index + 1 }}</td>
-                                <td>
-                                    <VSelect
+                                <td style="width: 300px;min-width: 300px;">
+                                    <VMultiselect
                                         v-model="form.items[index].product_variant_id"
                                         :options="productVariants.data"
                                         @onInput="setRate(index, $event)"
@@ -54,7 +55,7 @@
                                         :error="errors[`items[${index}].product_variant_id`]"
                                     />
                                 </td>
-                                <td>
+                                <td style="width: 130px;min-width: 130px;">
                                     <VSelect
                                         v-model="form.items[index].unit_id"
                                         :options="units.data"
@@ -62,7 +63,7 @@
                                         :error="errors[`items[${index}].unit_id`]"
                                     />
                                 </td>
-                                <td>
+                                <td style="width: 120px;min-width: 120px;">
                                     <VInput
                                         input-type="number"
                                         v-model="form.items[index].quantity"
@@ -70,7 +71,7 @@
                                         :error="errors[`items[${index}].quantity`]"
                                     />
                                 </td>
-                                <td>
+                                <td style="width: 150px;min-width: 150px;">
                                     <VInput
                                         input-type="number"
                                         v-model="form.items[index].rate"
@@ -78,7 +79,7 @@
                                         :error="errors[`items[${index}].rate`]"
                                     />
                                 </td>
-                                <td>
+                                <td style="width: 130px;min-width: 130px;">
                                     <VSelect
                                         v-model="form.items[index].tax_id"
                                         :options="taxes.data"
@@ -86,7 +87,7 @@
                                         :error="errors[`items[${index}].tax_id`]"
                                     />
                                 </td>
-                                <td>
+                                <td style="width: 130px;min-width: 130px;">
                                     <VInput
                                         input-type="number"
                                         v-model="form.items[index].discount_amount"
@@ -167,6 +168,11 @@
             </form>
         </template>
     </VModal>
+    <CreateSupplier
+        v-if="createSupplierOpened"
+        v-model:createModalOpened="createSupplierOpened"
+        type="supplier"
+    />
 </template>
 
 <script setup>
@@ -181,6 +187,8 @@ import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
+import CreateSupplier from "@/views/admin/party/Create.vue";
 
 const purchaseOrderStore = usePurchaseOrderStore();
 const unitStore = useUnitStore();
@@ -188,7 +196,10 @@ const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 
+const {currentAdDate} = useDateHelper();
+
 const createModalOpened = defineModel('createModalOpened');
+const createSupplierOpened = ref(false);
 
 const {units} = storeToRefs(unitStore);
 const {productVariants} = storeToRefs(productStore);
@@ -203,7 +214,7 @@ onMounted(() => {
 });
 
 const initialState = {
-    order_date: new Date().toISOString().slice(0, 10),
+    order_date: currentAdDate,
     party_id: '',
     remarks: '',
     status: 'draft',
@@ -211,7 +222,7 @@ const initialState = {
         {
             product_variant_id: '',
             unit_id: '',
-            quantity: '',
+            quantity: 1,
             rate: '',
             tax_id: '',
             discount_amount: '',
@@ -226,7 +237,7 @@ const addItem = () => {
     form.items.push({
         product_variant_id: '',
         unit_id: '',
-        quantity: '',
+        quantity: 1,
         rate: '',
         tax_id: '',
         discount_amount: '',
@@ -264,6 +275,7 @@ const setRate = (index, value) => {
     const variant = getVariantById(value);
     if (variant) {
         form.items[index].rate = variant.purchase_price ?? '';
+        form.items[index].unit_id = variant.unit_id ?? '';
     }
 };
 

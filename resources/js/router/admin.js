@@ -375,15 +375,6 @@ const routes = [
                     import("@/views/admin/purchase/debit-note/Index.vue"),
             },
             {
-                path: "purchase-returns",
-                name: "admin.purchase-returns",
-                meta: {
-                    pageTitle: "Purchase Returns",
-                },
-                component: () =>
-                    import("@/views/admin/purchase/returns/Index.vue"),
-            },
-            {
                 path: "chart-of-accounts",
                 name: "admin.chart-of-accounts",
                 meta: {

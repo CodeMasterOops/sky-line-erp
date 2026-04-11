@@ -2,15 +2,14 @@
     <VModal
         :show-modal="!!open"
         @close-click="closeModal"
-        modal-class="large-modal"
+        size="xl"
         title="Create Bill">
         <template #modal-body>
             <VLoader v-if="loading" loader-type="progress"/>
             <form v-else @submit.prevent="storeBill" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="bill_date"
-                        input-type="date"
                         v-model="form.bill_date"
                         label="Bill Date"
                         @validate="validateField('bill_date')"
@@ -18,9 +17,8 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="due_date"
-                        input-type="date"
                         v-model="form.due_date"
                         label="Due Date"
                         @validate="validateField('due_date')"
@@ -28,7 +26,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
@@ -38,7 +36,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="warehouse_id"
                         v-model="form.warehouse_id"
                         :options="warehouses.data"
@@ -54,7 +52,7 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product/Service</th>
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
@@ -204,6 +202,7 @@ import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const billStore = useBillStore();
 const unitStore = useUnitStore();
@@ -214,6 +213,8 @@ const warehouseStore = useWarehouseStore();
 
 const open = defineModel('open');
 const purchaseOrderId = defineModel('purchaseOrderId');
+
+const {currentAdDate} = useDateHelper();
 
 const {units} = storeToRefs(unitStore);
 const {productVariants} = storeToRefs(productStore);
@@ -232,7 +233,7 @@ onMounted(() => {
 });
 
 const initialState = {
-    bill_date: new Date().toISOString().slice(0, 10),
+    bill_date: currentAdDate,
     due_date: '',
     party_id: '',
     warehouse_id: '',

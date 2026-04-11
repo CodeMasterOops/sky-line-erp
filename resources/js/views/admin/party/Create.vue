@@ -77,7 +77,7 @@
                     />
                 </div>
                 <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger" type="button">
+                    <button @click="closeCreateModal" class="btn btn-danger me-2" type="button">
                         Close
                     </button>
                     <VButton :loading="isSubmitting"/>
@@ -88,12 +88,18 @@
 </template>
 
 <script setup>
-import {reactive, ref} from 'vue';
+import {reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {usePartyStore} from "@/stores/admin/party.js";
+
+const props = defineProps({
+    type: {
+        type: String
+    }
+});
 
 const partyStore = usePartyStore();
 
@@ -106,7 +112,7 @@ const partyTypes = [
 ];
 
 const initialState = {
-    type: 'customer',
+    type: props.type || 'customer',
     name: '',
     code: '',
     phone: '',
@@ -118,6 +124,12 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+
+watch(() => createModalOpened.value, (opened) => {
+    if (opened && props.type) {
+        form.type = props.type;
+    }
+})
 
 const validations = object({
     type: string().required('Party Type is required.'),

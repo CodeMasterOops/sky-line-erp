@@ -210,16 +210,6 @@
         "icon": "shopping-cart",
         "menu": [
             {
-                "menuValue": "Purchase List",
-                "icon": "ti ti-shopping-cart",
-                "hasSubRoute": false,
-                "showSubRoute": false,
-                "active_link": "/admin/purchase-list",
-                "route": {
-                    "name": "admin.purchase-list"
-                }
-            },
-            {
                 "menuValue": "Purchase Orders",
                 "icon": "ti ti-shopping-cart",
                 "hasSubRoute": false,
@@ -257,16 +247,6 @@
                 "active_link": "/admin/debit-notes",
                 "route": {
                     "name": "admin.debit-note-list"
-                }
-            },
-            {
-                "menuValue": "Purchase Returns",
-                "icon": "ti ti-receipt-refund",
-                "hasSubRoute": false,
-                "showSubRoute": false,
-                "active_link": "/admin/purchase-returns",
-                "route": {
-                    "name": "admin.purchase-returns"
                 }
             }
         ]
@@ -337,91 +317,117 @@
                 "icon": "ti ti-users",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-employee-list" }
+                "route": {
+                    "name": "admin.hr-employee-list"
+                }
             },
             {
                 "menuValue": "Departments",
                 "icon": "ti ti-building",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-department-list" }
+                "route": {
+                    "name": "admin.hr-department-list"
+                }
             },
             {
                 "menuValue": "Designations",
                 "icon": "ti ti-id-badge",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-designation-list" }
+                "route": {
+                    "name": "admin.hr-designation-list"
+                }
             },
             {
                 "menuValue": "Attendance",
                 "icon": "ti ti-calendar-check",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-attendance" }
+                "route": {
+                    "name": "admin.hr-attendance"
+                }
             },
             {
                 "menuValue": "Leave Applications",
                 "icon": "ti ti-file-time",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-leave-applications" }
+                "route": {
+                    "name": "admin.hr-leave-applications"
+                }
             },
             {
                 "menuValue": "Leave Types",
                 "icon": "ti ti-list-check",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-leave-types" }
+                "route": {
+                    "name": "admin.hr-leave-types"
+                }
             },
             {
                 "menuValue": "Holidays",
                 "icon": "ti ti-calendar-event",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-holidays" }
+                "route": {
+                    "name": "admin.hr-holidays"
+                }
             },
             {
                 "menuValue": "Salary Components",
                 "icon": "ti ti-coin",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-salary-components" }
+                "route": {
+                    "name": "admin.hr-salary-components"
+                }
             },
             {
                 "menuValue": "Salary Structure",
                 "icon": "ti ti-table",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-salary-structure" }
+                "route": {
+                    "name": "admin.hr-salary-structure"
+                }
             },
             {
                 "menuValue": "Payroll Runs",
                 "icon": "ti ti-cash",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-payroll" }
+                "route": {
+                    "name": "admin.hr-payroll"
+                }
             },
             {
                 "menuValue": "Payroll Summary",
                 "icon": "ti ti-report-analytics",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-report-payroll" }
+                "route": {
+                    "name": "admin.hr-report-payroll"
+                }
             },
             {
                 "menuValue": "Attendance Report",
                 "icon": "ti ti-report",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-report-attendance" }
+                "route": {
+                    "name": "admin.hr-report-attendance"
+                }
             },
             {
                 "menuValue": "Leave Balance",
                 "icon": "ti ti-chart-bar",
                 "hasSubRoute": false,
                 "showSubRoute": false,
-                "route": { "name": "admin.hr-report-leave" }
+                "route": {
+                    "name": "admin.hr-report-leave"
+                }
             }
         ]
     },

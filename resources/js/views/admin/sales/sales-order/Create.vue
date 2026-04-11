@@ -2,12 +2,12 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Sales Order">
         <template #modal-body>
             <form @submit.prevent="storeOrderWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="order_date"
                         input-type="date"
                         v-model="form.order_date"
@@ -17,7 +17,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
@@ -33,7 +33,7 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product/Service</th>
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
@@ -181,12 +181,15 @@ import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const salesOrderStore = useSalesOrderStore();
 const unitStore = useUnitStore();
 const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
+
+const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
 
@@ -203,7 +206,7 @@ onMounted(() => {
 });
 
 const initialState = {
-    order_date: new Date().toISOString().slice(0, 10),
+    order_date: currentAdDate,
     party_id: '',
     remarks: '',
     status: 'draft',

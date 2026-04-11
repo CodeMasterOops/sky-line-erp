@@ -8,9 +8,8 @@
             <VLoader v-if="loading" loader-type="progress"/>
             <form v-else @submit.prevent="storePayment" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="payment_date"
-                        input-type="date"
                         v-model="form.payment_date"
                         label="Payment Date"
                         @validate="validateField('payment_date')"
@@ -27,7 +26,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="account_id"
                         v-model="form.account_id"
                         :options="accounts.data"
@@ -46,7 +45,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
@@ -141,6 +140,7 @@ import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePaymentStore} from '@/stores/admin/purchase/payment.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const emit = defineEmits(['saved']);
 
@@ -150,6 +150,8 @@ const billId = defineModel('billId', {default: ''});
 const paymentStore = usePaymentStore();
 const partyStore = usePartyStore();
 const accountStore = useAccountStore();
+
+const {currentAdDate} = useDateHelper();
 
 const {parties} = storeToRefs(partyStore);
 const {accounts} = storeToRefs(accountStore);
@@ -164,7 +166,7 @@ onMounted(() => {
 });
 
 const initialState = {
-    payment_date: new Date().toISOString().slice(0, 10),
+    payment_date: currentAdDate,
     party_id: '',
     payment_method: '',
     account_id: '',

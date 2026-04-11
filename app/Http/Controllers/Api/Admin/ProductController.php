@@ -19,7 +19,7 @@ class ProductController extends Controller
      */
     public function productVariants(Request $request)
     {
-        $variants = ProductVariant::with(['product:id,name', 'variantOptions'])
+        $variants = ProductVariant::with(['product:id,name,unit_id', 'variantOptions'])
             ->get();
 
         return ProductVariantResource::collection($variants);
@@ -77,7 +77,6 @@ class ProductController extends Controller
     {
         $product->load([
             'variants.variantOptions.attribute',
-            'attributeValues.attribute',
         ]);
 
         return ProductResource::make($product);
