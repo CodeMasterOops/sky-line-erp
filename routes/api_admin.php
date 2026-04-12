@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\TaxController;
+use App\Http\Controllers\Api\Admin\PaymentModeController;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\EnumController;
 use App\Http\Controllers\Api\Admin\RoleController;
@@ -92,6 +93,9 @@ Route::middleware('auth:admin')->group(function () {
 
         // tax
         Route::apiResource('tax', TaxController::class);
+
+        // payment mode
+        Route::apiResource('payment-mode', PaymentModeController::class);
 
         // product category
         Route::apiResource('product-category', ProductCategoryController::class);

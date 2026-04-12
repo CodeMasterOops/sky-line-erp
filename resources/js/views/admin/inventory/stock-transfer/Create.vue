@@ -6,7 +6,16 @@
         title="Add Stock Transfer">
         <template #modal-body>
             <form @submit.prevent="storeTransferWithStatus('draft')" class="row g-3">
-                <div class="col-md-12">
+                <div class="col-md-6">
+                    <VDatepicker
+                        id="date"
+                        v-model="form.date"
+                        label="Date"
+                        @validate="validateField('date')"
+                        :error="errors.date"
+                    />
+                </div>
+                <div class="col-md-6">
                     <VInput
                         id="reference_no"
                         v-model="form.reference_no"
@@ -16,17 +25,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="date"
-                        input-type="date"
-                        v-model="form.date"
-                        label="Date"
-                        @validate="validateField('date')"
-                        :error="errors.date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="from_warehouse_id"
                         v-model="form.from_warehouse_id"
                         :options="warehouses.data"
@@ -36,7 +35,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="to_warehouse_id"
                         v-model="form.to_warehouse_id"
                         :options="toWarehouses"
@@ -45,7 +44,65 @@
                         :error="errors.to_warehouse_id"
                     />
                 </div>
-                <div class="col-md-6">
+
+                <div class="col-12">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                            <tr>
+                                <th style="width: 50px;">SN</th>
+                                <th>Product Variant</th>
+                                <th style="width: 180px;">Unit</th>
+                                <th style="width: 140px;">Quantity</th>
+                                <th style="width: 60px;">Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="(item, index) in form.items" :key="index">
+                                <td>{{ index + 1 }}</td>
+                                <td>
+                                    <VSelect
+                                        v-model="form.items[index].product_variant_id"
+                                        :options="productVariants.data"
+                                        @validate="validateField(`items[${index}].product_variant_id`)"
+                                        :error="errors[`items[${index}].product_variant_id`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VSelect
+                                        v-model="form.items[index].unit_id"
+                                        :options="units.data"
+                                        @validate="validateField(`items[${index}].unit_id`)"
+                                        :error="errors[`items[${index}].unit_id`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VInput
+                                        input-type="number"
+                                        v-model="form.items[index].quantity"
+                                        @validate="validateField(`items[${index}].quantity`)"
+                                        :error="errors[`items[${index}].quantity`]"
+                                    />
+                                </td>
+                                <td class="text-center">
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        @click="removeItem(index)"
+                                        :disabled="form.items.length === 1">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
+                        Add Item
+                    </button>
+                </div>
+
+                <div class="col-12">
                     <VTextarea
                         id="remarks"
                         v-model="form.remarks"
@@ -53,63 +110,6 @@
                         @validate="validateField('remarks')"
                         :error="errors.remarks"
                     />
-                </div>
-
-                <div class="col-12">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;">SN</th>
-                                    <th>Product Variant</th>
-                                    <th style="width: 180px;">Unit</th>
-                                    <th style="width: 140px;">Quantity</th>
-                                    <th style="width: 60px;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(item, index) in form.items" :key="index">
-                                    <td>{{ index + 1 }}</td>
-                                    <td>
-                                        <VSelect
-                                            v-model="form.items[index].product_variant_id"
-                                            :options="productVariants.data"
-                                            @validate="validateField(`items[${index}].product_variant_id`)"
-                                            :error="errors[`items[${index}].product_variant_id`]"
-                                        />
-                                    </td>
-                                    <td>
-                                        <VSelect
-                                            v-model="form.items[index].unit_id"
-                                            :options="units.data"
-                                            @validate="validateField(`items[${index}].unit_id`)"
-                                            :error="errors[`items[${index}].unit_id`]"
-                                        />
-                                    </td>
-                                    <td>
-                                        <VInput
-                                            input-type="number"
-                                            v-model="form.items[index].quantity"
-                                            @validate="validateField(`items[${index}].quantity`)"
-                                            :error="errors[`items[${index}].quantity`]"
-                                        />
-                                    </td>
-                                    <td class="text-center">
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-outline-danger"
-                                            @click="removeItem(index)"
-                                            :disabled="form.items.length === 1">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
-                        Add Item
-                    </button>
                 </div>
 
                 <div class="col-12 text-end">
@@ -147,11 +147,14 @@ import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {useStockTransferStore} from '@/stores/admin/inventory/stock-transfer.js';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 const stockTransferStore = useStockTransferStore();
 const warehouseStore = useWarehouseStore();
 const unitStore = useUnitStore();
 const productStore = useProductStore();
+
+const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
 
@@ -167,7 +170,7 @@ onMounted(() => {
 
 const initialState = {
     reference_no: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: currentAdDate,
     from_warehouse_id: '',
     to_warehouse_id: '',
     remarks: '',
@@ -206,6 +209,7 @@ const removeItem = (index) => {
 
 const validations = object({
     date: string().required('Date is required.'),
+    reference_no: string().nullable(),
     from_warehouse_id: string().required('From warehouse is required.'),
     to_warehouse_id: string().required('To warehouse is required.'),
     items: array().of(

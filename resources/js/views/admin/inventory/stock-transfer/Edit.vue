@@ -8,6 +8,15 @@
             <VLoader v-if="transfer.loading" loader-type="progress"/>
             <form @submit.prevent="updateTransfer(transfer.data.id)" class="row g-3">
                 <div class="col-md-6">
+                    <VDatepicker
+                        id="date"
+                        v-model="form.date"
+                        label="Date"
+                        @validate="validateField('date')"
+                        :error="errors.date"
+                    />
+                </div>
+                <div class="col-md-6">
                     <VInput
                         id="reference_no"
                         v-model="form.reference_no"
@@ -17,17 +26,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="date"
-                        input-type="date"
-                        v-model="form.date"
-                        label="Date"
-                        @validate="validateField('date')"
-                        :error="errors.date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="from_warehouse_id"
                         v-model="form.from_warehouse_id"
                         :options="warehouses.data"
@@ -37,22 +36,13 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="to_warehouse_id"
                         v-model="form.to_warehouse_id"
                         :options="toWarehouses"
                         label="To Warehouse"
                         @validate="validateField('to_warehouse_id')"
                         :error="errors.to_warehouse_id"
-                    />
-                </div>
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
                     />
                 </div>
 
@@ -111,6 +101,16 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
                         Add Item
                     </button>
+                </div>
+
+                <div class="col-12">
+                    <VTextarea
+                        id="remarks"
+                        v-model="form.remarks"
+                        label="Remarks"
+                        @validate="validateField('remarks')"
+                        :error="errors.remarks"
+                    />
                 </div>
 
                 <div class="col-12 text-end">
@@ -217,6 +217,7 @@ const isDraft = computed(() => transfer.value.data.status === 'draft');
 
 const validations = object({
     date: string().required('Date is required.'),
+    reference_no: string().nullable(),
     from_warehouse_id: string().required('From warehouse is required.'),
     to_warehouse_id: string().required('To warehouse is required.'),
     items: array().of(

@@ -8,6 +8,15 @@
             <VLoader v-if="adjustment.loading" loader-type="progress"/>
             <form @submit.prevent="updateAdjustment(adjustment.data.id)" class="row g-3">
                 <div class="col-md-6">
+                    <VDatepicker
+                        id="date"
+                        v-model="form.date"
+                        label="Date"
+                        @validate="validateField('date')"
+                        :error="errors.date"
+                    />
+                </div>
+                <div class="col-md-6">
                     <VInput
                         id="reference_no"
                         v-model="form.reference_no"
@@ -17,32 +26,13 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="date"
-                        input-type="date"
-                        v-model="form.date"
-                        label="Date"
-                        @validate="validateField('date')"
-                        :error="errors.date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="warehouse_id"
                         v-model="form.warehouse_id"
                         :options="warehouses.data"
                         label="Warehouse"
                         @validate="validateField('warehouse_id')"
                         :error="errors.warehouse_id"
-                    />
-                </div>
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
                     />
                 </div>
 
@@ -52,7 +42,7 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
+                                <th>Product</th>
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Type</th>
                                 <th style="width: 140px;">Quantity</th>
@@ -110,6 +100,16 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
                         Add Item
                     </button>
+                </div>
+
+                <div class="col-md-12">
+                    <VTextarea
+                        id="remarks"
+                        v-model="form.remarks"
+                        label="Remarks"
+                        @validate="validateField('remarks')"
+                        :error="errors.remarks"
+                    />
                 </div>
 
                 <div class="col-12 text-end">
@@ -216,6 +216,7 @@ const isDraft = computed(() => adjustment.value.data.status === 'draft');
 
 const validations = object({
     date: string().required('Date is required.'),
+    reference_no: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
     items: array().of(
         object({

@@ -99,6 +99,14 @@ const routes = [
                         component: () => import('@/views/admin/settings/tax/Index.vue')
                     },
                     {
+                        path: 'payment-mode',
+                        name: 'admin.payment-mode-list',
+                        meta: {
+                            pageTitle: 'Payment Modes'
+                        },
+                        component: () => import('@/views/admin/settings/payment-mode/Index.vue')
+                    },
+                    {
                         path: "", // default child route
                         redirect: "general-settings", // redirect /admin/settings -> /admin/settings/general-settings
                     },

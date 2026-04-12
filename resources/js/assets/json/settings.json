@@ -30,6 +30,10 @@
             {
                 "title": "Tax Rates",
                 "routes": "/admin/settings/tax"
+            },
+            {
+                "title": "Payment Modes",
+                "routes": "/admin/settings/payment-mode"
             }
         ]
     }
