@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Category List" subtitle="Manage your product categories" @refresh="categoryStore.getProductCategories()">
+    <PageHeader title="Category List" subtitle="Manage your product categories" @refresh="fetchProductCategories(true)">
         <template #actions>
             <button
                 v-can="'create_product_category'"
@@ -15,48 +15,30 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>SN</th>
-                            <th>Name</th>
-                            <th>Description</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                        <VLoader v-if="productCategories.loading" :colspan="4" />
-                        <template v-else-if="productCategories.data.length">
-                            <tr v-for="(category,index) in productCategories.data" :key="index">
-                                <th>{{ index + 1 }}</th>
-                                <td>
-                                    {{ category.name }}
-                                </td>
-                                <td>
-                                    {{ category.description }}
-                                </td>
-                                <td style="width:90px;">
-                                    <button
-                                        v-can="'edit_product_category'"
-                                        type="button"
-                                        @click.prevent="edit_product_category_id=category.id"
-                                        class="btn btn-sm btn-outline-primary">
-                                        <i class="fa fa-edit"> </i>
-                                    </button>
-                                    <button v-can="'delete_product_category'" @click="deleteProductCategory(category.id)" type="button"
-                                            class="btn btn-sm btn-outline-danger">
-                                        <i class="fa fa-trash"> </i>
-                                    </button>
-                                </td>
-                            </tr>
+                    <a-table
+                        class="table datanew table-hover table-center mb-0"
+                        :columns="columns"
+                        :data-source="productCategories.data"
+                        :loading="productCategories.loading"
+                    >
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ index + 1 }}
+                            </template>
+                            <template v-if="column.key === 'action'">
+                                <div class="action-icon d-inline-flex">
+                                    <a class="me-2" href="javascript:void(0);"
+                                       @click="edit_product_category_id=record.id">
+                                        <i class="ti ti-edit"></i>
+                                    </a>
+                                    <a href="javascript:void(0);"
+                                       @click="deleteProductCategory(record.id)">
+                                        <i class="ti ti-trash"></i>
+                                    </a>
+                                </div>
+                            </template>
                         </template>
-                        <tr v-else>
-                            <td colspan="4" class="text-center">
-                                No Result Found.
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                    </a-table>
                 </div>
             </div>
         </div>
@@ -78,13 +60,45 @@ import { useProductCategoryStore } from '@/stores/admin/inventory/product-catego
 const categoryStore = useProductCategoryStore();
 
 onMounted(() => {
-    categoryStore.getProductCategories();
+    fetchProductCategories();
 });
 
 const edit_product_category_id = ref('');
 const createModalOpened = ref(false);
 
 const { productCategories } = storeToRefs(categoryStore);
+
+const columns = [
+    {
+        title: 'SN',
+        key: 'sn',
+        width: 60,
+    },
+    {
+        title: 'Name',
+        dataIndex: 'name',
+        sorter: {
+            compare: (a, b) => {
+                a = a.name.toLowerCase();
+                b = b.name.toLowerCase();
+                return a > b ? -1 : b > a ? 1 : 0;
+            },
+        },
+    },
+    {
+        title: 'Description',
+        dataIndex: 'description',
+    },
+    {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+    },
+];
+
+const fetchProductCategories = (refetch = false) => {
+    categoryStore.getProductCategories(refetch);
+};
 
 const deleteProductCategory = async (id) => {
     Swal.fire({

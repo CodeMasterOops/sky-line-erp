@@ -4,7 +4,7 @@
         @close-click="closeEditModal"
         title="Update Unit">
         <template #modal-body>
-            <VLoader v-if="unit.loading" loader-type="progress" />
+            <VLoader v-if="unit.loading" loader-type="progress"/>
             <form @submit.prevent="updateUnit(unit.data.id)" class="row g-3">
                 <div class="col-md-6">
                     <VInput
@@ -25,10 +25,10 @@
                     />
                 </div>
                 <div class="col-12 text-end">
-                    <button @click="closeEditModal" class="btn btn-danger" type="button">
+                    <button @click="closeEditModal" class="btn btn-danger me-2" type="button">
                         Close
                     </button>
-                    <VButton :loading="isSubmitting" />
+                    <VButton :loading="isSubmitting"/>
                 </div>
             </form>
         </template>
@@ -36,26 +36,26 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
-import { toast } from '@/helpers/toast';
+import {reactive, ref, watch} from 'vue';
+import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import { object, string } from 'yup';
-import { useYup } from '@/helpers/yup';
-import { storeToRefs } from 'pinia';
-import { useUnitStore } from '@/stores/admin/inventory/unit.js';
+import {object, string} from 'yup';
+import {useYup} from '@/helpers/yup';
+import {storeToRefs} from 'pinia';
+import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 
 const unitStore = useUnitStore();
 
 const edit_unit_id = defineModel('unit_id');
 
-const { unit } = storeToRefs(unitStore);
+const {unit} = storeToRefs(unitStore);
 
 const initialState = {
     name: '',
     code: ''
 };
 
-const form = reactive({ ...initialState });
+const form = reactive({...initialState});
 const isSubmitting = ref(false);
 
 watch(() => edit_unit_id.value, async (id) => {
@@ -72,7 +72,7 @@ const validations = object({
     code: string().required('Code is required.')
 });
 
-const { errors, validateField, validateForm } = useYup(form, validations);
+const {errors, validateField, validateForm} = useYup(form, validations);
 
 const updateUnit = async (id) => {
     let validated = await validateForm(validations, form);
@@ -96,7 +96,7 @@ const closeEditModal = () => {
 };
 
 function resetForm() {
-    Object.assign(form, { ...initialState });
+    Object.assign(form, {...initialState});
     errors.value = {};
 }
 

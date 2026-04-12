@@ -17,8 +17,8 @@ export const useBrandStore = defineStore('brand', {
     }),
 
     actions: {
-        getBrands() {
-            if (!this.brands.data.length) {
+        getBrands(refetch = false) {
+            if (!this.brands.data.length || refetch) {
                 this.brands.loading = true;
                 return apiAdmin(`${apiUrl}`)
                     .then((res) => {

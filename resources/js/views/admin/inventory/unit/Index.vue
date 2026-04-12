@@ -1,5 +1,5 @@
 <template>
-  <PageHeader title="Unit List" subtitle="Manage your units" @refresh="unitStore.getUnits()">
+  <PageHeader title="Unit List" subtitle="Manage your units" @refresh="fetchUnits(true)">
     <template #actions>
       <button
           v-can="'create_unit'"
@@ -15,48 +15,30 @@
     <div class="card">
       <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead>
-            <tr>
-              <th>SN</th>
-              <th>Name</th>
-              <th>Code</th>
-              <th class="text-center">Action</th>
-            </tr>
-            </thead>
-            <tbody class="align-middle">
-            <VLoader v-if="units.loading" :colspan="4"/>
-            <template v-else-if="units.data.length">
-              <tr v-for="(unit,index) in units.data" :key="index">
-                <th>{{ index + 1 }}</th>
-                <td>
-                  {{ unit.name }}
-                </td>
-                  <td>
-                  {{ unit.code }}
-                </td>
-                <td style="width:90px;">
-                  <button
-                      v-can="'edit_unit'"
-                      type="button"
-                      @click.prevent="edit_unit_id=unit.id"
-                      class="btn btn-sm btn-outline-primary">
-                    <i class="fa fa-edit"> </i>
-                  </button>
-                  <button v-can="'delete_unit'" @click="deleteUnit(unit.id)" type="button"
-                          class="btn btn-sm btn-outline-danger">
-                    <i class="fa fa-trash"> </i>
-                  </button>
-                </td>
-              </tr>
+          <a-table
+              class="table datanew table-hover table-center mb-0"
+              :columns="columns"
+              :data-source="units.data"
+              :loading="units.loading"
+          >
+            <template #bodyCell="{ column, record, index }">
+              <template v-if="column.key === 'sn'">
+                {{ index + 1 }}
+              </template>
+              <template v-if="column.key === 'action'">
+                <div class="action-icon d-inline-flex">
+                  <a class="me-2" href="javascript:void(0);"
+                     @click="edit_unit_id=record.id">
+                    <i class="ti ti-edit"></i>
+                  </a>
+                  <a href="javascript:void(0);"
+                     @click="deleteUnit(record.id)">
+                    <i class="ti ti-trash"></i>
+                  </a>
+                </div>
+              </template>
             </template>
-            <tr v-else>
-              <td colspan="4" class="text-center">
-                No Result Found.
-              </td>
-            </tr>
-            </tbody>
-          </table>
+          </a-table>
         </div>
       </div>
     </div>
@@ -78,13 +60,52 @@ import { useUnitStore } from '@/stores/admin/inventory/unit.js';
 const unitStore = useUnitStore();
 
 onMounted(() => {
-  unitStore.getUnits();
+  fetchUnits();
 })
 
 const edit_unit_id = ref('');
 const createModalOpened = ref(false);
 
 const {units} = storeToRefs(unitStore);
+
+const columns = [
+  {
+    title: 'SN',
+    key: 'sn',
+    width: 60,
+  },
+  {
+    title: 'Name',
+    dataIndex: 'name',
+    sorter: {
+      compare: (a, b) => {
+        a = a.name.toLowerCase();
+        b = b.name.toLowerCase();
+        return a > b ? -1 : b > a ? 1 : 0;
+      },
+    },
+  },
+  {
+    title: 'Code',
+    dataIndex: 'code',
+    sorter: {
+      compare: (a, b) => {
+        a = a.code.toLowerCase();
+        b = b.code.toLowerCase();
+        return a > b ? -1 : b > a ? 1 : 0;
+      },
+    },
+  },
+  {
+    title: 'Action',
+    key: 'action',
+    align: 'center',
+  },
+];
+
+const fetchUnits = (refetch = false) => {
+  unitStore.getUnits(refetch);
+};
 
 const deleteUnit = async (id) => {
   Swal.fire({

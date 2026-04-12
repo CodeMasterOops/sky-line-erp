@@ -17,8 +17,8 @@ export const useUnitStore = defineStore('unit', {
     }),
 
     actions: {
-        getUnits() {
-            if (!this.units.data.length) {
+        getUnits(refetch = false) {
+            if (!this.units.data.length || refetch) {
                 this.units.loading = true;
                 return apiAdmin(`${apiUrl}`)
                     .then((res) => {

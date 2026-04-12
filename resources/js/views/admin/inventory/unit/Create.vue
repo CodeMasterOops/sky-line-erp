@@ -1,37 +1,37 @@
 <template>
-  <VModal
-      :show-modal="!!createModalOpened"
-      @close-click="createModalOpened=false"
-      title="Add New Unit">
-    <template #modal-body>
-      <form @submit.prevent="storeUnit" class="row g-3">
-        <div class="col-md-6">
-          <VInput
-              id="name"
-              v-model="form.name"
-              label="Name"
-              @validate="validateField('name')"
-              :error="errors.name"
-          />
-        </div>
-        <div class="col-md-6">
-          <VInput
-              id="code"
-              v-model="form.code"
-              label="Code"
-              @validate="validateField('code')"
-              :error="errors.code"
-          />
-        </div>
-        <div class="col-12 text-end">
-          <button @click="closeCreateModal" class="btn btn-danger" type="button">
-            Close
-          </button>
-          <VButton :loading="isSubmitting"/>
-        </div>
-      </form>
-    </template>
-  </VModal>
+    <VModal
+        :show-modal="!!createModalOpened"
+        @close-click="createModalOpened=false"
+        title="Add New Unit">
+        <template #modal-body>
+            <form @submit.prevent="storeUnit" class="row g-3">
+                <div class="col-md-6">
+                    <VInput
+                        id="name"
+                        v-model="form.name"
+                        label="Name"
+                        @validate="validateField('name')"
+                        :error="errors.name"
+                    />
+                </div>
+                <div class="col-md-6">
+                    <VInput
+                        id="code"
+                        v-model="form.code"
+                        label="Code"
+                        @validate="validateField('code')"
+                        :error="errors.code"
+                    />
+                </div>
+                <div class="col-12 text-end">
+                    <button @click="closeCreateModal" class="btn btn-danger me-2" type="button">
+                        Close
+                    </button>
+                    <VButton :loading="isSubmitting"/>
+                </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
@@ -40,51 +40,51 @@ import {toast} from "@/helpers/toast";
 import showErrors from "@/helpers/showErrors";
 import {object, string} from "yup";
 import {useYup} from "@/helpers/yup";
-import { useUnitStore } from '@/stores/admin/inventory/unit.js';
+import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 
-const unitStore=useUnitStore();
+const unitStore = useUnitStore();
 
 const createModalOpened = defineModel('createModalOpened');
 
 const initialState = {
-  name: '',
-  code: '',
+    name: '',
+    code: '',
 };
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
 
 const validations = object({
-  name: string().required('Name is required.'),
-  code: string().required('Code is required.')
+    name: string().required('Name is required.'),
+    code: string().required('Code is required.')
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
 const storeUnit = async () => {
-  let validated = await validateForm(validations, form)
-  if (validated) {
-    isSubmitting.value = true;
-    try {
-      let res = await unitStore.storeUnit(form);
-      toast(res.status, res.data.message);
-      closeCreateModal();
-    } catch (e) {
-      showErrors(e);
-    } finally {
-      isSubmitting.value = false;
+    let validated = await validateForm(validations, form)
+    if (validated) {
+        isSubmitting.value = true;
+        try {
+            let res = await unitStore.storeUnit(form);
+            toast(res.status, res.data.message);
+            closeCreateModal();
+        } catch (e) {
+            showErrors(e);
+        } finally {
+            isSubmitting.value = false;
+        }
     }
-  }
 }
 
 const closeCreateModal = () => {
-  resetForm();
-  createModalOpened.value = false;
+    resetForm();
+    createModalOpened.value = false;
 }
 
 function resetForm() {
-  Object.assign(form, {...initialState});
-  errors.value = {};
+    Object.assign(form, {...initialState});
+    errors.value = {};
 }
 
 </script>

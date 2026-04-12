@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Brand List" subtitle="Manage your brands" @refresh="brandStore.getBrands()">
+    <PageHeader title="Brand List" subtitle="Manage your brands" @refresh="fetchBrands(true)">
         <template #actions>
             <button
                 v-can="'create_brand'"
@@ -15,48 +15,30 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>SN</th>
-                            <th>Name</th>
-                            <th>Code</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                        <VLoader v-if="brands.loading" :colspan="4" />
-                        <template v-else-if="brands.data.length">
-                            <tr v-for="(brand,index) in brands.data" :key="index">
-                                <th>{{ index + 1 }}</th>
-                                <td>
-                                    {{ brand.name }}
-                                </td>
-                                <td>
-                                    {{ brand.code }}
-                                </td>
-                                <td style="width:90px;">
-                                    <button
-                                        v-can="'edit_brand'"
-                                        type="button"
-                                        @click.prevent="edit_brand_id=brand.id"
-                                        class="btn btn-sm btn-outline-primary">
-                                        <i class="fa fa-edit"> </i>
-                                    </button>
-                                    <button v-can="'delete_brand'" @click="deleteBrand(brand.id)" type="button"
-                                            class="btn btn-sm btn-outline-danger">
-                                        <i class="fa fa-trash"> </i>
-                                    </button>
-                                </td>
-                            </tr>
+                    <a-table
+                        class="table datanew table-hover table-center mb-0"
+                        :columns="columns"
+                        :data-source="brands.data"
+                        :loading="brands.loading"
+                    >
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ index + 1 }}
+                            </template>
+                            <template v-if="column.key === 'action'">
+                                <div class="action-icon d-inline-flex">
+                                    <a class="me-2" href="javascript:void(0);"
+                                       @click="edit_brand_id=record.id">
+                                        <i class="ti ti-edit"></i>
+                                    </a>
+                                    <a href="javascript:void(0);"
+                                       @click="deleteBrand(record.id)">
+                                        <i class="ti ti-trash"></i>
+                                    </a>
+                                </div>
+                            </template>
                         </template>
-                        <tr v-else>
-                            <td colspan="4" class="text-center">
-                                No Result Found.
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                    </a-table>
                 </div>
             </div>
         </div>
@@ -78,13 +60,52 @@ import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 const brandStore = useBrandStore();
 
 onMounted(() => {
-    brandStore.getBrands();
+    fetchBrands();
 });
 
 const edit_brand_id = ref('');
 const createModalOpened = ref(false);
 
 const { brands } = storeToRefs(brandStore);
+
+const columns = [
+    {
+        title: 'SN',
+        key: 'sn',
+        width: 60,
+    },
+    {
+        title: 'Name',
+        dataIndex: 'name',
+        sorter: {
+            compare: (a, b) => {
+                a = a.name.toLowerCase();
+                b = b.name.toLowerCase();
+                return a > b ? -1 : b > a ? 1 : 0;
+            },
+        },
+    },
+    {
+        title: 'Code',
+        dataIndex: 'code',
+        sorter: {
+            compare: (a, b) => {
+                a = a.code.toLowerCase();
+                b = b.code.toLowerCase();
+                return a > b ? -1 : b > a ? 1 : 0;
+            },
+        },
+    },
+    {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+    },
+];
+
+const fetchBrands = (refetch = false) => {
+    brandStore.getBrands(refetch);
+};
 
 const deleteBrand = async (id) => {
     Swal.fire({

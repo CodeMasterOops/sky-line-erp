@@ -13,63 +13,51 @@
 
     <section class="section">
         <div class="card">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+                <div class="search-set">
+                    <div class="search-input">
+                        <a href="javascript:void(0);" class="btn-searchset">
+                            <i class="ti ti-search fs-14 feather-search"></i>
+                        </a>
+                        <input
+                            type="search"
+                            v-model="filter.search"
+                            class="form-control form-control-sm"
+                            placeholder="Search party"
+                            @input="debouncedFetch"
+                        >
+                    </div>
+                </div>
+            </div>
             <div class="card-body">
-                <VDataTable :meta="parties.meta" v-model:filter="filter">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>SN</th>
-                            <th>Name</th>
-                            <th>Code</th>
-                            <th>Type</th>
-                            <th>Phone</th>
-                            <th>Email</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                        <VLoader v-if="parties.loading" :colspan="6"/>
-                        <template v-else-if="parties.data.length">
-                            <tr v-for="(party,index) in parties.data" :key="index">
-                                <th>{{ parties.meta.from + index }}</th>
-                                <td>
-                                    {{ party.name }}
-                                </td>
-                                <td>
-                                    {{ party.code }}
-                                </td>
-                                <td>
-                                    {{ party.type_label }}
-                                </td>
-                                <td>
-                                    {{ party.phone }}
-                                </td>
-                                <td>
-                                    {{ party.email }}
-                                </td>
-                                <td style="width:90px;">
-                                    <button
-                                        v-can="'edit_party'"
-                                        type="button"
-                                        @click.prevent="edit_party_id=party.id"
-                                        class="btn btn-sm btn-outline-primary">
-                                        <i class="fa fa-edit"> </i>
-                                    </button>
-                                    <button v-can="'delete_party'" @click="deleteParty(party.id)" type="button"
-                                            class="btn btn-sm btn-outline-danger">
-                                        <i class="fa fa-trash"> </i>
-                                    </button>
-                                </td>
-                            </tr>
+                <div class="table-responsive">
+                    <a-table
+                        class="table datanew table-hover table-center mb-0"
+                        :columns="columns"
+                        :data-source="parties.data"
+                        :pagination="pagination"
+                        :loading="parties.loading"
+                        @change="handleTableChange"
+                    >
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ (parties.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                            </template>
+                            <template v-else-if="column.key === 'action'">
+                                <div class="action-icon d-inline-flex">
+                                    <a class="me-2" href="javascript:void(0);"
+                                       @click="edit_party_id=record.id">
+                                        <i class="ti ti-edit"></i>
+                                    </a>
+                                    <a href="javascript:void(0);"
+                                       @click="deleteParty(record.id)">
+                                        <i class="ti ti-trash"></i>
+                                    </a>
+                                </div>
+                            </template>
                         </template>
-                        <tr v-else>
-                            <td colspan="6" class="text-center">
-                                No Result Found.
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </VDataTable>
+                    </a-table>
+                </div>
             </div>
         </div>
     </section>
@@ -78,7 +66,8 @@
 </template>
 
 <script setup>
-import {onMounted, reactive, ref, watch} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
+import debounce from 'lodash/debounce';
 import Swal from 'sweetalert2';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -99,15 +88,74 @@ const createModalOpened = ref(false);
 const {parties} = storeToRefs(partyStore);
 
 const filter = reactive({
-    type: ''
+    type: '',
+    search: '',
+    page: 1,
+    limit: 10
 });
 
-watch(() => filter, () => {
+watch(() => filter.type, () => {
+    filter.page = 1;
     fetchParties();
-}, {deep: true});
+});
 
 const fetchParties = () => {
     partyStore.getParties({filter});
+};
+
+const debouncedFetch = debounce(() => {
+    filter.page = 1;
+    fetchParties();
+}, 300);
+
+const pagination = computed(() => ({
+    total: parties.value.meta.total || 0,
+    current: parties.value.meta.current_page || 1,
+    pageSize: parties.value.meta.per_page || filter.limit,
+    showSizeChanger: true,
+    showQuickJumper: true,
+}));
+
+const columns = [
+    {
+        title: 'SN',
+        key: 'sn',
+        width: 60,
+    },
+    {
+        title: 'Name',
+        dataIndex: 'name',
+        sorter: true,
+    },
+    {
+        title: 'Code',
+        dataIndex: 'code',
+        sorter: true,
+    },
+    {
+        title: 'Type',
+        dataIndex: 'type_label',
+        sorter: true,
+    },
+    {
+        title: 'Phone',
+        dataIndex: 'phone',
+    },
+    {
+        title: 'Email',
+        dataIndex: 'email',
+    },
+    {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+    },
+];
+
+const handleTableChange = (pagination) => {
+    filter.page = pagination.current;
+    filter.limit = pagination.pageSize;
+    fetchParties();
 };
 
 const deleteParty = async (id) => {

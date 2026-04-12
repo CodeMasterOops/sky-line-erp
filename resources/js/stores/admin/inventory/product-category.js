@@ -17,8 +17,8 @@ export const useProductCategoryStore = defineStore('product-category', {
     }),
 
     actions: {
-        getProductCategories() {
-            if (!this.productCategories.data.length) {
+        getProductCategories(refetch = false) {
+            if (!this.productCategories.data.length || refetch) {
                 this.productCategories.loading = true;
                 return apiAdmin(`${apiUrl}`)
                     .then((res) => {

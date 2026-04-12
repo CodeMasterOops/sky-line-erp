@@ -78,7 +78,7 @@
                     />
                 </div>
                 <div class="col-12 text-end">
-                    <button @click="closeEditModal" class="btn btn-danger" type="button">
+                    <button @click="closeEditModal" class="btn btn-danger me-2" type="button">
                         Close
                     </button>
                     <VButton :loading="isSubmitting"/>
