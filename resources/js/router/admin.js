@@ -357,6 +357,15 @@ const routes = [
                     import("@/views/admin/purchase/bill/Index.vue"),
             },
             {
+                path: "purchase-expenses",
+                name: "admin.expense-list",
+                meta: {
+                    pageTitle: "Expenses",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/expense/Index.vue"),
+            },
+            {
                 path: "payments",
                 name: "admin.payment-list",
                 meta: {

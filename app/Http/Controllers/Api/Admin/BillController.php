@@ -225,18 +225,19 @@ class BillController extends Controller
 
         $paidSub = DB::table('payment_allocations')
             ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
-            ->selectRaw('payment_allocations.bill_id, SUM(payment_allocations.amount) as paid_total')
+            ->selectRaw('payment_allocations.payable_id, SUM(payment_allocations.amount) as paid_total')
             ->whereNull('payment_allocations.deleted_at')
             ->whereNull('payments.deleted_at')
             ->where('payments.status', StatusEnum::APPROVED->value)
-            ->groupBy('payment_allocations.bill_id');
+            ->where('payment_allocations.payable_type', 'bill')
+            ->groupBy('payment_allocations.payable_id');
 
         $rows = DB::table('bills')
             ->leftJoinSub($itemsSub, 'item_totals', function ($join) {
                 $join->on('bills.id', '=', 'item_totals.bill_id');
             })
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
-                $join->on('bills.id', '=', 'paid_totals.bill_id');
+                $join->on('bills.id', '=', 'paid_totals.payable_id');
             })
             ->where('bills.party_id', $partyId)
             ->where('bills.status', StatusEnum::APPROVED->value)

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class PaymentAllocation extends Model
 {
@@ -12,13 +13,14 @@ class PaymentAllocation extends Model
 
     protected $fillable = [
         'payment_id',
-        'bill_id',
+        'payable_type',
+        'payable_id',
         'amount',
     ];
 
     protected $casts = [
         'payment_id' => 'integer',
-        'bill_id' => 'integer',
+        'payable_id' => 'integer',
         'amount' => 'float',
     ];
 
@@ -27,8 +29,8 @@ class PaymentAllocation extends Model
         return $this->belongsTo(Payment::class);
     }
 
-    public function bill(): BelongsTo
+    public function payable(): MorphTo
     {
-        return $this->belongsTo(Bill::class);
+        return $this->morphTo();
     }
 }

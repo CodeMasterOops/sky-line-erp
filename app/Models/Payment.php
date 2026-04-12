@@ -20,7 +20,7 @@ class Payment extends Model
         'party_id',
         'payment_no',
         'payment_date',
-        'payment_method',
+        'payment_mode_id',
         'account_id',
         'reference_no',
         'remarks',
@@ -33,6 +33,7 @@ class Payment extends Model
     protected $casts = [
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
+        'payment_mode_id' => 'integer',
         'account_id' => 'integer',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
@@ -69,6 +70,11 @@ class Payment extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function paymentMode(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMode::class);
     }
 
     public function fiscalYear(): BelongsTo

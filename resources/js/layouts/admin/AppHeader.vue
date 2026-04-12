@@ -115,7 +115,7 @@
                             </router-link>
                         </div>
                         <div class="col-md-2">
-                            <router-link to="/expenses/expenses-list" class="link-item">
+                            <router-link :to="{name:'admin.expense-list'}" class="link-item">
                                 <span class="link-icon">
                                     <i class="ti ti-file-text"></i>
                                 </span>

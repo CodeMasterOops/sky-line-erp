@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Http\Resources\Admin;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+class ExpenseItemResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        return [
+            'id' => $this->id ?? '',
+            'expense_id' => $this->expense_id ?? '',
+            'account_id' => $this->account_id ?? '',
+            'account' => $this->whenLoaded('account', function () {
+                return [
+                    'id' => $this->account->id,
+                    'name' => $this->account->name ?? '',
+                ];
+            }),
+            'amount' => $this->amount ?? 0,
+            'tax_id' => $this->tax_id ?? '',
+            'tax' => TaxResource::make($this->whenLoaded('tax')),
+            'tax_amount' => $this->tax_amount ?? 0,
+            'discount_amount' => $this->discount_amount ?? 0,
+        ];
+    }
+}

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Bill extends Model
+class Expense extends Model
 {
     use MultiTenant;
     use SoftDeletes;
@@ -19,10 +19,10 @@ class Bill extends Model
         'company_id',
         'fiscal_year_id',
         'party_id',
-        'purchase_order_id',
-        'bill_no',
-        'bill_date',
+        'expense_no',
+        'date',
         'due_date',
+        'reference_no',
         'remarks',
         'create_user_id',
         'approve_user_id',
@@ -33,7 +33,6 @@ class Bill extends Model
     protected $casts = [
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
-        'purchase_order_id' => 'integer',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
@@ -42,11 +41,22 @@ class Bill extends Model
     {
         if (! empty($param['search'])) {
             $key = '%'.trim($param['search']).'%';
-            $query->where('bill_no', 'like', $key);
+            $query->where(function ($q) use ($key) {
+                $q->where('expense_no', 'like', $key)
+                  ->orWhere('reference_no', 'like', $key);
+            });
         }
 
         if (! empty($param['party_id'])) {
             $query->where('party_id', $param['party_id']);
+        }
+
+        if (! empty($param['date_from'])) {
+            $query->whereDate('date', '>=', $param['date_from']);
+        }
+
+        if (! empty($param['date_to'])) {
+            $query->whereDate('date', '<=', $param['date_to']);
         }
 
         if (! empty($param['status'])) {
@@ -56,19 +66,14 @@ class Bill extends Model
         return $query;
     }
 
-    public function billItems(): HasMany
+    public function expenseItems(): HasMany
     {
-        return $this->hasMany(BillItem::class);
+        return $this->hasMany(ExpenseItem::class);
     }
 
     public function party(): BelongsTo
     {
         return $this->belongsTo(Party::class);
-    }
-
-    public function purchaseOrder(): BelongsTo
-    {
-        return $this->belongsTo(PurchaseOrder::class);
     }
 
     public function paymentAllocations(): MorphMany

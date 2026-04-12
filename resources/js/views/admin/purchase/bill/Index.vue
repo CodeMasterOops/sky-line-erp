@@ -89,7 +89,13 @@
 
     <CreateBill v-model:create-modal-opened="createModalOpened"/>
     <EditBill v-model:bill_id="edit_bill_id"/>
-    <PaymentModal v-model:open="paymentModalOpened" v-model:bill-id="paymentBillId" @saved="fetchBills"/>
+    <PaymentModal
+        v-model:open="paymentModalOpened"
+        v-model:payable-id="paymentBillId"
+        :payable-type="'bill'"
+        :lock-payable-type="true"
+        @saved="fetchBills"
+    />
 </template>
 
 <script setup>

@@ -17,12 +17,13 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="payment_method"
-                        v-model="form.payment_method"
-                        label="Payment Method"
-                        @validate="validateField('payment_method')"
-                        :error="errors.payment_method"
+                    <VMultiselect
+                        id="payment_mode_id"
+                        v-model="form.payment_mode_id"
+                        :options="paymentModes.data"
+                        label="Payment Mode"
+                        @validate="validateField('payment_mode_id')"
+                        :error="errors.payment_mode_id"
                     />
                 </div>
                 <div class="col-md-6">
@@ -54,6 +55,14 @@
                         :error="errors.party_id"
                     />
                 </div>
+                <div v-if="!lockPayableType" class="col-md-6">
+                    <VSelect
+                        id="payable_type"
+                        v-model="selectedPayableType"
+                        :options="payableTypeOptions"
+                        label="Payable Type"
+                    />
+                </div>
 
                 <div class="col-12">
                     <div class="table-responsive">
@@ -61,8 +70,8 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Bill No</th>
-                                <th>Bill Date</th>
+                                <th>{{ payableLabels.ref }}</th>
+                                <th>{{ payableLabels.date }}</th>
                                 <th>Due Date</th>
                                 <th>Grand Total</th>
                                 <th>Paid</th>
@@ -71,24 +80,24 @@
                             </tr>
                             </thead>
                             <tbody>
-                            <tr v-for="(bill, index) in dueBills" :key="bill.id">
+                            <tr v-for="(item, index) in dueItems" :key="item.id">
                                 <td>{{ index + 1 }}</td>
-                                <td>{{ bill.bill_no }}</td>
-                                <td>{{ bill.bill_date }}</td>
-                                <td>{{ bill.due_date }}</td>
-                                <td>{{ bill.grand_total }}</td>
-                                <td>{{ bill.paid_total }}</td>
-                                <td>{{ bill.due_amount }}</td>
+                                <td>{{ item.reference_no }}</td>
+                                <td>{{ item.date }}</td>
+                                <td>{{ item.due_date }}</td>
+                                <td>{{ item.grand_total }}</td>
+                                <td>{{ item.paid_total }}</td>
+                                <td>{{ item.due_amount }}</td>
                                 <td>
                                     <VInput
                                         input-type="number"
-                                        v-model="bill.allocate_amount"
-                                        :max="bill.due_amount"
+                                        v-model="item.allocate_amount"
+                                        :max="item.due_amount"
                                     />
                                 </td>
                             </tr>
-                            <tr v-if="!dueBills.length">
-                                <td colspan="8" class="text-center">No due bills found.</td>
+                            <tr v-if="!dueItems.length">
+                                <td colspan="8" class="text-center">No due items found.</td>
                             </tr>
                             </tbody>
                         </table>
@@ -130,7 +139,7 @@
 </template>
 
 <script setup>
-import {onMounted, reactive, ref, watch} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
@@ -140,35 +149,63 @@ import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePaymentStore} from '@/stores/admin/purchase/payment.js';
+import {usePaymentModeStore} from '@/stores/admin/setting/payment-mode.js';
 import {useDateHelper} from "@/composables/dateHelper.js";
 
 const emit = defineEmits(['saved']);
 
 const open = defineModel('open', {default: false});
-const billId = defineModel('billId', {default: ''});
+const payableId = defineModel('payableId', {default: ''});
 
 const paymentStore = usePaymentStore();
 const partyStore = usePartyStore();
 const accountStore = useAccountStore();
+const paymentModeStore = usePaymentModeStore();
 
 const {currentAdDate} = useDateHelper();
 
 const {parties} = storeToRefs(partyStore);
 const {accounts} = storeToRefs(accountStore);
+const {paymentModes} = storeToRefs(paymentModeStore);
+
+const props = defineProps({
+    payableType: {
+        type: String,
+        default: ''
+    },
+    lockPayableType: {
+        type: Boolean,
+        default: false
+    }
+});
 
 const loading = ref(false);
 const isSubmitting = ref(false);
-const dueBills = ref([]);
+const dueItems = ref([]);
+
+const payableTypeOptions = [
+    {id: 'bill', name: 'Bill'},
+    {id: 'expense', name: 'Expense'},
+];
+
+const selectedPayableType = ref(props.payableType || 'bill');
+
+const payableLabels = computed(() => {
+    return selectedPayableType.value === 'expense'
+        ? {ref: 'Reference No', date: 'Expense Date'}
+        : {ref: 'Bill No', date: 'Bill Date'};
+});
 
 onMounted(() => {
     partyStore.getParties({filter: {type: 'supplier'}});
     accountStore.getAccounts();
+    paymentModeStore.getPaymentModes();
 });
 
 const initialState = {
     payment_date: currentAdDate,
     party_id: '',
-    payment_method: '',
+    payment_mode_id: '',
     account_id: '',
     reference_no: '',
     remarks: '',
@@ -180,7 +217,7 @@ const form = reactive({...initialState});
 const validations = object({
     payment_date: string().required('Payment date is required.'),
     party_id: string().required('Supplier is required.'),
-    payment_method: string().required('Payment method is required.'),
+    payment_mode_id: string().required('Payment mode is required.'),
     account_id: string().required('Account is required.'),
     reference_no: string().nullable(),
     remarks: string().nullable(),
@@ -188,17 +225,30 @@ const validations = object({
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const loadDueBills = async () => {
+const loadDueItems = async () => {
     if (!form.party_id) {
-        dueBills.value = [];
+        dueItems.value = [];
         return;
     }
     try {
-        const res = await apiAdmin(`bill/due?party_id=${form.party_id}`);
-        dueBills.value = (res.data.data || []).map(bill => ({
-            ...bill,
-            allocate_amount: 0,
-        }));
+        const endpoint = selectedPayableType.value === 'expense' ? 'expense/due' : 'bill/due';
+        const res = await apiAdmin(`${endpoint}?party_id=${form.party_id}`);
+        dueItems.value = (res.data.data || []).map(item => {
+            const normalized = selectedPayableType.value === 'expense'
+                ? {
+                    ...item,
+                    reference_no: item.expense_no ?? item.reference_no,
+                }
+                : {
+                    ...item,
+                    reference_no: item.bill_no ?? item.reference_no,
+                    date: item.bill_date ?? item.date,
+                };
+            return {
+                ...normalized,
+                allocate_amount: 0,
+            };
+        });
     } catch (e) {
         showErrors(e);
     }
@@ -206,23 +256,24 @@ const loadDueBills = async () => {
 
 const setPrefillAllocation = (id) => {
     if (!id) return;
-    const target = dueBills.value.find(item => item.id === id);
+    const target = dueItems.value.find(item => item.id === id);
     if (target) {
         target.allocate_amount = target.due_amount;
     }
 };
 
-const loadBillPrefill = async () => {
-    if (!billId.value) {
+const loadPrefill = async () => {
+    if (!payableId.value) {
         return;
     }
     loading.value = true;
     try {
-        const res = await apiAdmin(`bill/${billId.value}`);
+        const endpoint = selectedPayableType.value === 'expense' ? 'expense' : 'bill';
+        const res = await apiAdmin(`${endpoint}/${payableId.value}`);
         const data = res.data.data || {};
         form.party_id = data.party_id || '';
-        await loadDueBills();
-        setPrefillAllocation(billId.value);
+        await loadDueItems();
+        setPrefillAllocation(payableId.value);
     } catch (e) {
         showErrors(e);
     } finally {
@@ -231,12 +282,28 @@ const loadBillPrefill = async () => {
 };
 
 watch(() => form.party_id, async () => {
-    await loadDueBills();
+    await loadDueItems();
 });
 
-watch(() => [billId.value, open.value], ([id, isOpen]) => {
+watch(() => [payableId.value, open.value], ([id, isOpen]) => {
     if (id && isOpen) {
-        loadBillPrefill();
+        loadPrefill();
+    }
+});
+
+watch(() => selectedPayableType.value, async () => {
+    await loadDueItems();
+    if (props.lockPayableType) {
+        const id = payableId.value;
+        if (id && open.value) {
+            setPrefillAllocation(id);
+        }
+    }
+});
+
+watch(() => props.payableType, (val) => {
+    if (val) {
+        selectedPayableType.value = val;
     }
 });
 
@@ -244,15 +311,16 @@ const storePayment = async (status = 'draft') => {
     form.status = status;
     let validated = await validateForm(validations, form);
     if (validated) {
-        const allocations = dueBills.value
-            .filter(bill => Number(bill.allocate_amount || 0) > 0)
-            .map(bill => ({
-                bill_id: bill.id,
-                amount: bill.allocate_amount,
+        const allocations = dueItems.value
+            .filter(item => Number(item.allocate_amount || 0) > 0)
+            .map(item => ({
+                payable_type: selectedPayableType.value,
+                payable_id: item.id,
+                amount: item.allocate_amount,
             }));
 
         if (!allocations.length) {
-            toast('error', 'Please allocate amount to at least one bill.');
+            toast('error', 'Please allocate amount to at least one item.');
             return;
         }
 
@@ -277,12 +345,13 @@ const storePayment = async (status = 'draft') => {
 const closeModal = () => {
     resetForm();
     open.value = false;
-    billId.value = '';
+    payableId.value = '';
 };
 
 function resetForm() {
     Object.assign(form, {...initialState});
-    dueBills.value = [];
+    selectedPayableType.value = props.payableType || 'bill';
+    dueItems.value = [];
     errors.value = {};
 }
 </script>

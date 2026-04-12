@@ -250,6 +250,16 @@
                 }
             },
             {
+                "menuValue": "Expenses",
+                "icon": "ti ti-receipt",
+                "hasSubRoute": false,
+                "showSubRoute": false,
+                "active_link": "/admin/purchase-expenses",
+                "route": {
+                    "name": "admin.expense-list"
+                }
+            },
+            {
                 "menuValue": "Payments",
                 "icon": "ti ti-receipt",
                 "hasSubRoute": false,

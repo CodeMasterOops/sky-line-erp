@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Admin\SalesOrderController;
 use App\Http\Controllers\Api\Admin\InvoiceController;
 use App\Http\Controllers\Api\Admin\PurchaseOrderController;
 use App\Http\Controllers\Api\Admin\BillController;
+use App\Http\Controllers\Api\Admin\ExpenseController;
 use App\Http\Controllers\Api\Admin\PaymentController;
 use App\Http\Controllers\Api\Admin\DebitNoteController;
 use App\Http\Controllers\Api\Admin\CreditNoteController;
@@ -176,6 +177,11 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('bill/due', [BillController::class, 'dueBills'])->name('bill.due');
         Route::post('bill/{bill}/approve', [BillController::class, 'approve'])->name('bill.approve');
         Route::apiResource('bill', BillController::class);
+
+        // expense
+        Route::get('expense/due', [ExpenseController::class, 'dueExpenses'])->name('expense.due');
+        Route::post('expense/{expense}/approve', [ExpenseController::class, 'approve'])->name('expense.approve');
+        Route::apiResource('expense', ExpenseController::class);
 
         // payment
         Route::post('payment/{payment}/approve', [PaymentController::class, 'approve'])->name('payment.approve');

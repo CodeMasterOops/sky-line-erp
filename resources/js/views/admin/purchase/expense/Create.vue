@@ -1,26 +1,23 @@
 <template>
     <VModal
-        :show-modal="!!edit_bill_id"
-        @close-click="closeEditModal"
+        :show-modal="!!createModalOpened"
+        @close-click="createModalOpened = false"
         size="xl"
-        title="Update Bill">
+        title="Add Expense">
         <template #modal-body>
-            <VLoader v-if="bill.loading" loader-type="progress"/>
-            <form @submit.prevent="updateBill(bill.data.id)" class="row g-3">
+            <form @submit.prevent="storeExpenseWithStatus('draft')" class="row g-3">
                 <div class="col-md-6">
-                    <VInput
-                        id="bill_date"
-                        input-type="date"
-                        v-model="form.bill_date"
-                        label="Bill Date"
-                        @validate="validateField('bill_date')"
-                        :error="errors.bill_date"
+                    <VDatepicker
+                        id="date"
+                        v-model="form.date"
+                        label="Date"
+                        @validate="validateField('date')"
+                        :error="errors.date"
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
+                    <VDatepicker
                         id="due_date"
-                        input-type="date"
                         v-model="form.due_date"
                         label="Due Date"
                         @validate="validateField('due_date')"
@@ -28,7 +25,7 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
@@ -38,13 +35,12 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
-                        id="warehouse_id"
-                        v-model="form.warehouse_id"
-                        :options="warehouses.data"
-                        label="Warehouse"
-                        @validate="validateField('warehouse_id')"
-                        :error="errors.warehouse_id"
+                    <VInput
+                        id="reference_no"
+                        v-model="form.reference_no"
+                        label="Reference No"
+                        @validate="validateField('reference_no')"
+                        :error="errors.reference_no"
                     />
                 </div>
 
@@ -54,10 +50,8 @@
                             <thead>
                             <tr>
                                 <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
-                                <th style="width: 160px;">Unit</th>
-                                <th style="width: 120px;">Quantity</th>
-                                <th style="width: 140px;">Rate</th>
+                                <th>Account</th>
+                                <th style="width: 160px;">Amount</th>
                                 <th style="width: 160px;">Tax</th>
                                 <th style="width: 170px;">Discount Amount</th>
                                 <th style="width: 60px;">Action</th>
@@ -68,35 +62,18 @@
                                 <td>{{ index + 1 }}</td>
                                 <td>
                                     <VSelect
-                                        v-model="form.items[index].product_variant_id"
-                                        :options="productVariants.data"
-                                        @onInput="setRate(index, $event)"
-                                        @validate="validateField(`items[${index}].product_variant_id`)"
-                                        :error="errors[`items[${index}].product_variant_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].unit_id"
-                                        :options="units.data"
-                                        @validate="validateField(`items[${index}].unit_id`)"
-                                        :error="errors[`items[${index}].unit_id`]"
+                                        v-model="form.items[index].account_id"
+                                        :options="accounts.data"
+                                        @validate="validateField(`items[${index}].account_id`)"
+                                        :error="errors[`items[${index}].account_id`]"
                                     />
                                 </td>
                                 <td>
                                     <VInput
                                         input-type="number"
-                                        v-model="form.items[index].quantity"
-                                        @validate="validateField(`items[${index}].quantity`)"
-                                        :error="errors[`items[${index}].quantity`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].rate"
-                                        @validate="validateField(`items[${index}].rate`)"
-                                        :error="errors[`items[${index}].rate`]"
+                                        v-model="form.items[index].amount"
+                                        @validate="validateField(`items[${index}].amount`)"
+                                        :error="errors[`items[${index}].amount`]"
                                     />
                                 </td>
                                 <td>
@@ -167,12 +144,22 @@
                 </div>
 
                 <div class="col-12 text-end">
-                    <button @click="closeEditModal" class="btn btn-danger me-1" type="button">
+                    <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
                         Close
                     </button>
-                    <VButton v-if="isDraft" :loading="isSubmitting"/>
-                    <button v-else type="button" class="btn btn-secondary" disabled>
-                        Approved
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary me-1"
+                        :disabled="isSubmitting"
+                        @click="storeExpenseWithStatus('draft')">
+                        Create
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-primary"
+                        :disabled="isSubmitting"
+                        @click="storeExpenseWithStatus('approved')">
+                        Create & Approve
                     </button>
                 </div>
             </form>
@@ -181,56 +168,45 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {computed, onMounted, reactive, ref} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useUnitStore} from '@/stores/admin/inventory/unit.js';
-import {useProductStore} from '@/stores/admin/inventory/product.js';
+import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
-import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
-import {useBillStore} from '@/stores/admin/purchase/bill.js';
+import {useExpenseStore} from '@/stores/admin/purchase/expense.js';
 
-const billStore = useBillStore();
-const unitStore = useUnitStore();
-const productStore = useProductStore();
+const expenseStore = useExpenseStore();
+const accountStore = useAccountStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
-const warehouseStore = useWarehouseStore();
 
-const edit_bill_id = defineModel('bill_id');
+const createModalOpened = defineModel('createModalOpened');
 
-const {bill} = storeToRefs(billStore);
-const {units} = storeToRefs(unitStore);
-const {productVariants} = storeToRefs(productStore);
+const {accounts} = storeToRefs(accountStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
-const {warehouses} = storeToRefs(warehouseStore);
 
 onMounted(() => {
-    unitStore.getUnits();
-    productStore.getProductVariants();
+    accountStore.getAccounts();
     partyStore.getParties({filter: {type: 'supplier'}});
     taxStore.getTaxes();
-    warehouseStore.getWarehouses();
 });
 
 const initialState = {
-    bill_date: '',
+    date: new Date().toISOString().slice(0, 10),
     due_date: '',
     party_id: '',
-    warehouse_id: '',
+    reference_no: '',
     remarks: '',
     status: 'draft',
     items: [
         {
-            product_variant_id: '',
-            unit_id: '',
-            quantity: '',
-            rate: '',
+            account_id: '',
+            amount: '',
             tax_id: '',
             discount_amount: '',
         }
@@ -242,10 +218,8 @@ const isSubmitting = ref(false);
 
 const addItem = () => {
     form.items.push({
-        product_variant_id: '',
-        unit_id: '',
-        quantity: '',
-        rate: '',
+        account_id: '',
+        amount: '',
         tax_id: '',
         discount_amount: '',
     });
@@ -256,41 +230,15 @@ const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
-watch(() => edit_bill_id.value, async (id) => {
-    if (id) {
-        await billStore.getBill(id);
-        Object.keys(form).forEach(key => {
-            if (key === 'items') {
-                form.items = (bill.value.data.items || []).map(item => ({
-                    product_variant_id: item.product_variant_id || '',
-                    unit_id: item.unit_id || '',
-                    quantity: item.quantity || '',
-                    rate: item.rate || '',
-                    tax_id: item.tax_id || '',
-                    discount_amount: item.discount_amount || '',
-                }));
-            } else if (key === 'warehouse_id') {
-                form.warehouse_id = bill.value.data.items?.[0]?.warehouse_id || '';
-            } else {
-                form[key] = bill.value.data[key] || '';
-            }
-        });
-    }
-});
-
-const isDraft = computed(() => bill.value.data.status === 'draft');
-
 const validations = object({
-    bill_date: string().required('Bill date is required.'),
+    date: string().required('Date is required.'),
     due_date: string().nullable(),
     party_id: string().nullable(),
-    warehouse_id: string().required('Warehouse is required.'),
+    reference_no: string().nullable(),
     items: array().of(
         object({
-            product_variant_id: string().required('Product is required.'),
-            quantity: string().required('Quantity is required.'),
-            rate: string().required('Rate is required.'),
-            unit_id: string().nullable(),
+            account_id: string().required('Account is required.'),
+            amount: string().required('Amount is required.'),
             tax_id: string().nullable(),
             discount_amount: string().nullable(),
         })
@@ -298,18 +246,6 @@ const validations = object({
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
-
-const getVariantById = (id) => {
-    const numericId = parseInt(id, 10);
-    return productVariants.value.data.find(v => v.id === numericId);
-};
-
-const setRate = (index, value) => {
-    const variant = getVariantById(value);
-    if (variant) {
-        form.items[index].rate = variant.purchase_price ?? '';
-    }
-};
 
 const getTaxRate = (taxId) => {
     if (!taxId) return 0;
@@ -324,15 +260,13 @@ const summary = computed(() => {
     let tax = 0;
 
     form.items.forEach((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
+        const amount = Number(item.amount || 0);
         const lineDiscount = Number(item.discount_amount || 0);
         const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(lineSubtotal - lineDiscount, 0);
+        const taxable = Math.max(amount - lineDiscount, 0);
         const lineTax = taxable * taxRate / 100;
 
-        subtotal += lineSubtotal;
+        subtotal += amount;
         discount += lineDiscount;
         tax += lineTax;
     });
@@ -349,34 +283,29 @@ const summary = computed(() => {
 
 const syncLineItems = () => {
     form.items = form.items.map((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
+        const amount = Number(item.amount || 0);
         const lineDiscount = Number(item.discount_amount || 0);
         const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(lineSubtotal - lineDiscount, 0);
+        const taxable = Math.max(amount - lineDiscount, 0);
         const lineTax = taxable * taxRate / 100;
 
         return {
             ...item,
-            warehouse_id: form.warehouse_id,
             tax_amount: lineTax,
         };
     });
 };
 
-const updateBill = async (id) => {
-    if (!isDraft.value) {
-        return;
-    }
+const storeExpenseWithStatus = async (status) => {
+    form.status = status;
     let validated = await validateForm(validations, form);
     if (validated) {
         isSubmitting.value = true;
         try {
             syncLineItems();
-            let res = await billStore.updateBill(id, form);
+            let res = await expenseStore.storeExpense(form);
             toast(res.status, res.data.message);
-            closeEditModal();
+            closeCreateModal();
         } catch (e) {
             showErrors(e);
         } finally {
@@ -385,9 +314,9 @@ const updateBill = async (id) => {
     }
 };
 
-const closeEditModal = () => {
+const closeCreateModal = () => {
     resetForm();
-    edit_bill_id.value = '';
+    createModalOpened.value = false;
 };
 
 function resetForm() {
