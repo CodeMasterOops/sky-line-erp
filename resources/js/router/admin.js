@@ -91,37 +91,20 @@ const routes = [
                         meta: {pageTitle: "Notifications"},
                     },
                     {
+                        path: 'tax',
+                        name: 'admin.tax-list',
+                        meta: {
+                            pageTitle: 'Tax List'
+                        },
+                        component: () => import('@/views/admin/settings/tax/Index.vue')
+                    },
+                    {
                         path: "", // default child route
                         redirect: "general-settings", // redirect /admin/settings -> /admin/settings/general-settings
                     },
                 ],
             },
 
-            {
-                path: "financial-settings",
-                meta: {
-                    pageTitle: "Financial Settings",
-                },
-                component: () =>
-                    import("@/views/admin/settings/financial-settings/financial-settings.vue"),
-                children: [
-                    {
-                        path: "tax-rates",
-                        name: "admin.tax-rates",
-                        component: () =>
-                            import("@/views/admin/settings/financial-settings/tax-rates.vue"),
-                        meta: {pageTitle: "Tax Rates"},
-                    },
-                    {
-                        path: "",
-                        name: "admin.financial-settings",
-                        meta: {
-                            pageTitle: "Financial Settings",
-                        },
-                        redirect: "/admin/financial-settings",
-                    },
-                ],
-            },
             {
                 path: "user-management",
                 redirect: "/admin/user-management/user",
@@ -285,14 +268,6 @@ const routes = [
                 component: () =>
                     import("@/views/admin/inventory/stock-adjustment/Index.vue"),
             },
-            // {
-            //     path: 'tax',
-            //     name: 'admin.tax-list',
-            //     meta: {
-            //         pageTitle: 'Tax List'
-            //     },
-            //     component: () => import('@/views/admin/setting/tax/Index.vue')
-            // },
             {
                 path: "product-category",
                 name: "admin.product-category-list",

@@ -17,8 +17,8 @@ export const useTaxStore = defineStore('tax', {
     }),
 
     actions: {
-        getTaxes() {
-            if (!this.taxes.data.length) {
+        getTaxes(refetch = false) {
+            if (!this.taxes.data.length || refetch) {
                 this.taxes.loading = true;
                 return apiAdmin(`${apiUrl}`)
                     .then((res) => {

@@ -29,7 +29,7 @@
         "subMenu": [
             {
                 "title": "Tax Rates",
-                "routes": "/admin/financial-settings/tax-rates"
+                "routes": "/admin/settings/tax"
             }
         ]
     }
