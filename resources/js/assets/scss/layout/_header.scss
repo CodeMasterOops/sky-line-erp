@@ -882,9 +882,93 @@ hr{
             display: none;
         }
     }
-    .nav-searchinputs {
+    .nav-searchinputs,
+    .fiscal-year-nav {
         margin-right: auto;
         margin-left: 24px;
+    }
+    .fiscal-year-nav {
+        display: flex;
+        align-items: center;
+        max-width: min(300px, 40vw);
+        @include mixins.respond-below(custom1199) {
+            max-width: 240px;
+        }
+        .fiscal-year-link {
+            display: -webkit-inline-box;
+            display: -ms-inline-flexbox;
+            display: inline-flex;
+            align-items: center;
+            -webkit-box-align: center;
+            -ms-flex-align: center;
+            gap: 10px;
+            min-width: 0;
+            max-width: 100%;
+            padding: 0;
+            text-decoration: none;
+            color: variables.$secondary;
+            background: transparent;
+            border: 0;
+            line-height: normal;
+            transition: color 0.2s ease;
+            &:hover {
+                color: variables.$primary;
+                .fiscal-year-icon-wrap {
+                    background: variables.$light-900;
+                    color: variables.$primary;
+                }
+            }
+            &:focus-visible {
+                outline: 2px solid variables.$primary-300;
+                outline-offset: 2px;
+                border-radius: 6px;
+            }
+        }
+        .fiscal-year-icon-wrap {
+            flex-shrink: 0;
+            display: -webkit-box;
+            display: -ms-flexbox;
+            display: flex;
+            align-items: center;
+            -webkit-box-align: center;
+            -ms-flex-align: center;
+            justify-content: center;
+            -webkit-justify-content: center;
+            -ms-flex-pack: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: variables.$light-500;
+            color: variables.$gray-600;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            i {
+                font-size: variables.$font-size-16;
+                line-height: 1;
+            }
+        }
+        .fiscal-year-label {
+            min-width: 0;
+            line-height: 1.2;
+            text-align: left;
+        }
+        .fiscal-year-title {
+            font-size: variables.$font-size-13;
+            font-weight: variables.$font-weight-semibold;
+            color: inherit;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+        .fiscal-year-sub {
+            font-size: variables.$font-size-11;
+            font-weight: variables.$font-weight-normal;
+            color: variables.$gray-600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
     }
     .nav-item-box > a {
         display: -webkit-box;
@@ -1048,6 +1132,7 @@ hr{
         }
     }
 }
+
 .searchinputs {
     @include mixins.margin-padding(null,  0);
     position: relative;

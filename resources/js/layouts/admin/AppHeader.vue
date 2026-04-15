@@ -22,58 +22,21 @@
 
         <ul class="nav user-menu">
 
-            <!-- Search -->
-            <li class="nav-item nav-searchinputs">
-                <div class="top-nav-search">
-                    <a href="javascript:void(0);" class="responsive-search">
-                        <i class="fa fa-search"></i>
-                    </a>
-                    <form action="#" class="dropdown">
-                        <div class="searchinputs input-group dropdown-toggle" id="dropdownMenuClickable"
-                             data-bs-toggle="dropdown" data-bs-auto-close="false">
-                            <input type="text" placeholder="Search">
-                            <div class="search-addon">
-                                <span><i class="ti ti-search"></i></span>
-                            </div>
-                            <span class="input-group-text">
-                                <kbd class="d-flex align-items-center"><img src="@/assets/images/icons/command.svg"
-                                                                            alt="img" class="me-1">K</kbd>
-                            </span>
-                        </div>
-                        <div class="dropdown-menu search-dropdown" aria-labelledby="dropdownMenuClickable">
-                            <div class="search-info">
-                                <h6><span><i data-feather="search" class="feather-16"></i></span>Recent Searches
-                                </h6>
-                                <ul class="search-tags">
-                                    <li><a href="javascript:void(0);">Products</a></li>
-                                    <li><a href="javascript:void(0);">Sales</a></li>
-                                    <li><a href="javascript:void(0);">Applications</a></li>
-                                </ul>
-                            </div>
-                            <div class="search-info">
-                                <h6><span><i data-feather="help-circle" class="feather-16"></i></span>Help</h6>
-                                <p>How to Change Product Volume from 0 to 200 on Inventory management</p>
-                                <p>Change Product Name</p>
-                            </div>
-                            <div class="search-info">
-                                <h6><span><i data-feather="user" class="feather-16"></i></span>Customers</h6>
-                                <ul class="customers">
-                                    <li><a href="javascript:void(0);">Aron Varu<img
-                                        src="@/assets/images/profiles/avator1.jpg" alt="" class="img-fluid"></a>
-                                    </li>
-                                    <li><a href="javascript:void(0);">Jonita<img
-                                        src="@/assets/images/profiles/avatar-01.jpg" alt=""
-                                        class="img-fluid"></a>
-                                    </li>
-                                    <li><a href="javascript:void(0);">Aaron<img
-                                        src="@/assets/images/profiles/avatar-10.jpg" alt=""
-                                        class="img-fluid"></a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+            <!-- Fiscal year: static label until wired to API — see constants / TODO below -->
+            <li class="nav-item fiscal-year-nav">
+                <router-link
+                    class="fiscal-year-link"
+                    :to="{ name: 'admin.general-settings' }"
+                    :title="STATIC_FISCAL_YEAR_TOOLTIP"
+                >
+                    <span class="fiscal-year-icon-wrap" aria-hidden="true">
+                        <i class="fa fa-calendar"></i>
+                    </span>
+                    <span class="fiscal-year-label d-none d-md-flex flex-column">
+                        <span class="fiscal-year-title">{{ STATIC_FISCAL_YEAR_TITLE }}</span>
+                        <span class="fiscal-year-sub">{{ STATIC_FISCAL_YEAR_SUB }}</span>
+                    </span>
+                </router-link>
             </li>
             <li class="nav-item dropdown link-nav">
                 <a href="javascript:void(0);" class="btn btn-primary btn-md d-inline-flex align-items-center"
@@ -374,6 +337,12 @@ onMounted(() => {
 
 const {profile} = storeToRefs(profileStore);
 const {unreadNotifications: notifications} = storeToRefs(notificationStore);
+
+// TODO(backend): Load current fiscal year from API (`GET admin-setting/fiscal-year`, `is_current`, etc.).
+// Replace STATIC_FISCAL_YEAR_TITLE / STATIC_FISCAL_YEAR_SUB (and tooltip) with computed values + loading state.
+const STATIC_FISCAL_YEAR_TITLE = '2025-26';
+const STATIC_FISCAL_YEAR_SUB = 'Apr 2025 – Mar 2026';
+const STATIC_FISCAL_YEAR_TOOLTIP = `Fiscal year · ${STATIC_FISCAL_YEAR_TITLE} · ${STATIC_FISCAL_YEAR_SUB} (static — connect to backend)`;
 
 const logout = async () => {
     try {

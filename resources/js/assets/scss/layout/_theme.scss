@@ -117,7 +117,8 @@
                                 }
                             }
                         }
-                        .nav-searchinputs {
+                        .nav-searchinputs,
+                        .fiscal-year-nav {
                             @include mixins.respond-below(custom1199) {
                                 margin: 0;
                             }
@@ -11455,7 +11456,8 @@ body.layout-mode-rtl {
         margin-left: 0;
     }
     .user-menu {
-        .nav-searchinputs {
+        .nav-searchinputs,
+        .fiscal-year-nav {
             margin-right: 25px;
             margin-left: auto;
         }
