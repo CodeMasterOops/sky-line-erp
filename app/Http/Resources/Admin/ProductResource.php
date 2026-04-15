@@ -18,6 +18,7 @@ class ProductResource extends JsonResource
             'image' => $this->image ?? '',
             'unit_id' => $this->unit_id ?? '',
             'brand_id' => $this->brand_id ?? '',
+            'has_variants' => (bool) ($this->has_variants ?? false),
             'reorder_quantity' => $this->reorder_quantity ?? 0,
             'description' => $this->description ?? '',
             'category' => $this->productCategory ? $this->productCategory->name : '',

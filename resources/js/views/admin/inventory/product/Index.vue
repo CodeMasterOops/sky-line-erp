@@ -1,17 +1,16 @@
 <template>
-      <product-header v-model:create-modal-opened="createModalOpened" />
+      <product-header />
 
     <section class="section">
         <div class="card">
             <div class="card-header d-flex justify-content-between">
                 <h5 class="card-title">Product List</h5>
-                <button
+                <router-link
                     v-can="'create_product'"
-                    type="button"
-                    @click.prevent="createModalOpened=true"
+                    :to="{ name: 'admin.product-create' }"
                     class="btn btn-sm btn-outline-primary">
                     <i class="fa fa-plus-circle"> Add New</i>
-                </button>
+                </router-link>
             </div>
             <div class="card-body">
                 <VDataTable :meta="products.meta" v-model:filter="filter">
@@ -44,13 +43,12 @@
                                     {{ product.purchase_price }}
                                 </td>
                                 <td style="width:90px;">
-                                    <button
+                                    <router-link
                                         v-can="'edit_product'"
-                                        type="button"
-                                        @click.prevent="edit_product_id=product.id"
+                                        :to="{ name: 'admin.product-edit', params: { id: String(product.id) } }"
                                         class="btn btn-sm btn-outline-primary">
                                         <i class="fa fa-edit"> </i>
-                                    </button>
+                                    </router-link>
                                     <button v-can="'delete_product'" @click="deleteProduct(product.id)" type="button"
                                             class="btn btn-sm btn-outline-danger">
                                         <i class="fa fa-trash"> </i>
@@ -69,18 +67,14 @@
             </div>
         </div>
     </section>
-    <CreateProduct v-model:create-modal-opened="createModalOpened" />
-    <EditProduct v-model:product_id="edit_product_id" />
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue';
+import { onMounted, reactive, watch } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
-import CreateProduct from './Create.vue';
-import EditProduct from './Edit.vue';
 import { useProductStore } from '@/stores/admin/inventory/product.js';
 
 const productStore = useProductStore();
@@ -88,9 +82,6 @@ const productStore = useProductStore();
 onMounted(() => {
     fetchProducts();
 });
-
-const edit_product_id = ref('');
-const createModalOpened = ref(false);
 
 const { products } = storeToRefs(productStore);
 

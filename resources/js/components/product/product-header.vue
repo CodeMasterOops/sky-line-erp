@@ -24,10 +24,10 @@
       </li>
     </ul>
     <div class="page-btn d-flex">
-      <button type="button" @click.prevent="$emit('update:createModalOpened', true)" v-can="'create_product'"
+      <router-link :to="{ name: 'admin.product-create' }" v-can="'create_product'"
         class="btn btn-primary d-flex align-items-center">
         <vue-feather type="plus-circle" class="me-2"></vue-feather>
-        Add Product</button>
+        Add Product</router-link>
     </div>
     <div class="page-btn import d-flex">
       <a href="#" class="btn btn-secondary color d-flex align-items-center" data-bs-toggle="modal"
@@ -37,10 +37,6 @@
 </template>
 <script>
 export default {
-  props: {
-    createModalOpened: Boolean,
-  },
-  emits: ['update:createModalOpened'],
   data() {
     return {};
   },

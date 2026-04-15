@@ -34,6 +34,7 @@ class Product extends Model
         'sales_price' => 'float',
         'purchase_price' => 'float',
         'reorder_quantity' => 'integer',
+        'has_variants' => 'boolean',
         'app:add-table-column' => 'boolean',
     ];
 

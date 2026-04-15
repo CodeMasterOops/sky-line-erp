@@ -24,8 +24,37 @@ class ProductRequest extends FormRequest
             'brand_id' => ['nullable', TRule::exists('brands', 'id')->withoutTrashed()],
             'reorder_quantity' => ['nullable', 'integer'],
             'description' => ['nullable'],
-            'has_variants' => ['nullable', 'boolean'],
-            'variants' => ['required', 'array'],
+            'has_variants' => [
+                'nullable',
+                'boolean',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($this->input('product_type') === ProductTypeEnum::SERVICE->value && $this->boolean('has_variants')) {
+                        $fail(__('Services cannot have variants.'));
+                    }
+                },
+            ],
+            'variants' => [
+                'required',
+                'array',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! is_array($value)) {
+                        return;
+                    }
+                    if ($this->input('product_type') === ProductTypeEnum::SERVICE->value && count($value) !== 1) {
+                        $fail(__('A service must have exactly one price row.'));
+                    }
+                    if ($this->input('product_type') === ProductTypeEnum::PRODUCT->value && $this->boolean('has_variants')) {
+                        foreach ($value as $i => $row) {
+                            $ids = $row['attribute_values'] ?? [];
+                            if (! is_array($ids) || $ids === []) {
+                                $fail(__('Each variant must include option values (row :row).', ['row' => $i + 1]));
+
+                                return;
+                            }
+                        }
+                    }
+                },
+            ],
             'variants.*.sku' => ['nullable'],
             'variants.*.sales_price' => ['required', 'numeric'],
             'variants.*.purchase_price' => ['required', 'numeric'],
@@ -43,6 +72,14 @@ class ProductRequest extends FormRequest
             'PUT' => array_merge($validations, [
                 'name' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()->ignore($this->product)],
                 'code' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()->ignore($this->product)],
+                'variants.*.id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('product_variants', 'id')->where(fn ($query) => $query->where(
+                        'product_id',
+                        $this->route('product')->id
+                    )),
+                ],
             ])
         };
     }
