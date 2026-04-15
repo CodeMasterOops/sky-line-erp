@@ -330,15 +330,6 @@ const routes = [
                     import("@/views/admin/inventory/attribute/Index.vue"),
             },
             {
-                path: "warranty",
-                name: "admin.warranty-list",
-                meta: {
-                    pageTitle: "Warranty",
-                },
-                component: () =>
-                    import("@/views/admin/inventory/warranty/Index.vue"),
-            },
-            {
                 path: "barcode",
                 name: "admin.barcode",
                 meta: {

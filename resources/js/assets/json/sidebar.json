@@ -108,17 +108,6 @@
                 "showSubRoute": false
             },
             {
-                "menuValue": "Warranties",
-                "icon": "ti ti-certificate",
-                "hasSubRoute": false,
-                "showSubRoute": false,
-                "active_link": "/admin/warranty",
-                "route": {
-                    "name": "admin.warranty-list"
-                },
-                "subRoutes": []
-            },
-            {
                 "menuValue": "Variant Attributes",
                 "icon": "ti ti-versions",
                 "hasSubRoute": false,
