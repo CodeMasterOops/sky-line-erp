@@ -54,6 +54,13 @@
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
                                     <a
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        title="View"
+                                        @click="openDetail(record.id)">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                    <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
                                         href="javascript:void(0);"
@@ -82,6 +89,7 @@
 
     <CreateCreditNote v-model:create-modal-opened="createModalOpened"/>
     <EditCreditNote v-model:credit_note_id="edit_credit_note_id"/>
+    <CreditNoteDetailModal v-model:detail-credit-note-id="detail_credit_note_id"/>
 </template>
 
 <script setup>
@@ -93,6 +101,7 @@ import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
 import CreateCreditNote from './Create.vue';
 import EditCreditNote from './Edit.vue';
+import CreditNoteDetailModal from './DetailModal.vue';
 import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
 
 const creditNoteStore = useCreditNoteStore();
@@ -101,6 +110,7 @@ const {creditNotes} = storeToRefs(creditNoteStore);
 
 const createModalOpened = ref(false);
 const edit_credit_note_id = ref('');
+const detail_credit_note_id = ref('');
 
 const filter = reactive({
     search: '',
@@ -173,6 +183,10 @@ const handleTableChange = (pagination) => {
 
 const editCreditNote = (id) => {
     edit_credit_note_id.value = id;
+};
+
+const openDetail = (id) => {
+    detail_credit_note_id.value = id;
 };
 
 const deleteCreditNote = async (id) => {

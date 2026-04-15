@@ -7,7 +7,7 @@
       v-bind:class="[inputClass, { 'is-invalid': error }]"
       v-bind:min="minValue"
       v-bind:max="maxValue ? maxValue: null"
-      :value="modelValue"
+      :value="displayValue"
       @input="updateInputValue"
       :placeholder="placeholder || label"
       :disabled="disabled"
@@ -20,10 +20,11 @@
 </template>
 
 <script setup>
+import {computed} from 'vue';
 
 const emit = defineEmits(['update:modelValue', 'validate','onInput']);
 
-defineProps({
+const props = defineProps({
   id: {
     type: String,
   },
@@ -63,8 +64,20 @@ defineProps({
 
   modelValue: {
     type: [String, Number],
-    required: true,
+    default: '',
   },
+});
+
+/** Avoid blank controlled inputs when parent passes null/undefined; normalize number fields to string. */
+const displayValue = computed(() => {
+    const v = props.modelValue;
+    if (v === null || v === undefined) {
+        return '';
+    }
+    if (props.inputType === 'number') {
+        return String(v);
+    }
+    return v;
 });
 
 const updateInputValue = (event) => {

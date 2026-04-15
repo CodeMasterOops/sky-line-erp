@@ -3,262 +3,347 @@
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
         size="xl"
+        modal-class="add-centered"
         title="Add Bill">
         <template #modal-body>
-            <form @submit.prevent="storeBillWithStatus('draft')" class="row g-3">
-                <div class="col-md-6">
-                    <VDatepicker
-                        id="bill_date"
-                        v-model="form.bill_date"
-                        label="Bill Date"
-                        @validate="validateField('bill_date')"
-                        :error="errors.bill_date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VDatepicker
-                        id="due_date"
-                        v-model="form.due_date"
-                        label="Due Date"
-                        @validate="validateField('due_date')"
-                        :error="errors.due_date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VMultiselect
-                        id="party_id"
-                        v-model="form.party_id"
-                        :options="parties.data"
-                        label="Supplier"
-                        @validate="validateField('party_id')"
-                        :error="errors.party_id"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VMultiselect
-                        id="warehouse_id"
-                        v-model="form.warehouse_id"
-                        :options="warehouses.data"
-                        label="Warehouse"
-                        @validate="validateField('warehouse_id')"
-                        :error="errors.warehouse_id"
-                    />
-                </div>
-
-                <div class="col-12">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                            <tr>
-                                <th style="width: 50px;">SN</th>
-                                <th>Product/Service</th>
-                                <th style="width: 160px;">Unit</th>
-                                <th style="width: 120px;">Quantity</th>
-                                <th style="width: 140px;">Rate</th>
-                                <th style="width: 160px;">Tax</th>
-                                <th style="width: 170px;">Discount Amount</th>
-                                <th style="width: 60px;">Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr v-for="(item, index) in form.items" :key="index">
-                                <td>{{ index + 1 }}</td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].product_variant_id"
-                                        :options="productVariants.data"
-                                        @onInput="setRate(index, $event)"
-                                        @validate="validateField(`items[${index}].product_variant_id`)"
-                                        :error="errors[`items[${index}].product_variant_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].unit_id"
-                                        :options="units.data"
-                                        @validate="validateField(`items[${index}].unit_id`)"
-                                        :error="errors[`items[${index}].unit_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].quantity"
-                                        @validate="validateField(`items[${index}].quantity`)"
-                                        :error="errors[`items[${index}].quantity`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].rate"
-                                        @validate="validateField(`items[${index}].rate`)"
-                                        :error="errors[`items[${index}].rate`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].tax_id"
-                                        :options="taxes.data"
-                                        @validate="validateField(`items[${index}].tax_id`)"
-                                        :error="errors[`items[${index}].tax_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].discount_amount"
-                                        @validate="validateField(`items[${index}].discount_amount`)"
-                                        :error="errors[`items[${index}].discount_amount`]"
-                                    />
-                                </td>
-                                <td class="text-center">
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-danger"
-                                        @click="removeItem(index)"
-                                        :disabled="form.items.length === 1">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
-                        Add Item
-                    </button>
-                </div>
-
-                <div class="col-12">
-                    <div class="card bg-light">
-                        <div class="card-body py-2">
-                            <div class="d-flex justify-content-between">
-                                <span>Sub Total</span>
-                                <strong>{{ summary.subtotal }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Discount</span>
-                                <strong>{{ summary.discount }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Tax</span>
-                                <strong>{{ summary.tax }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between border-top pt-2 mt-2">
-                                <span>Grand Total</span>
-                                <strong>{{ summary.grandTotal }}</strong>
+            <div class="card border-0 shadow-none mb-0">
+                <div class="card-body p-0 border-0">
+                    <form @submit.prevent="storeBillWithStatus('draft')" class="row g-3">
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <VDatepicker
+                                    id="bill_date"
+                                    input-type="date"
+                                    v-model="form.bill_date"
+                                    label="Bill Date"
+                                    @validate="validateField('bill_date')"
+                                    :error="errors.bill_date"
+                                />
                             </div>
                         </div>
-                    </div>
-                </div>
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <VDatepicker
+                                    id="due_date"
+                                    input-type="date"
+                                    v-model="form.due_date"
+                                    label="Due Date"
+                                    @validate="validateField('due_date')"
+                                    :error="errors.due_date"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <div class="input-blocks d-flex align-items-end gap-2 flex-wrap">
+                                <a
+                                    href="javascript:void(0);"
+                                    class="mb-2 text-primary"
+                                    title="Add supplier"
+                                    @click.prevent="createSupplierOpened = true">
+                                    <i class="ti ti-circle-plus"></i>
+                                </a>
+                                <div class="flex-grow-1">
+                                    <VMultiselect
+                                        id="party_id"
+                                        v-model="form.party_id"
+                                        :options="parties.data"
+                                        label="Supplier"
+                                        :filter-results="false"
+                                        @validate="validateField('party_id')"
+                                        @search-change="debouncedSupplierSearch"
+                                        :error="errors.party_id"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <VMultiselect
+                                    id="warehouse_id"
+                                    v-model="form.warehouse_id"
+                                    :options="warehouses.data"
+                                    label="Warehouse"
+                                    @validate="validateField('warehouse_id')"
+                                    :error="errors.warehouse_id"
+                                />
+                            </div>
+                        </div>
 
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
-                    />
-                </div>
+                        <div class="col-12">
+                            <ProductVariantSearchInput
+                                label="Product *"
+                                @select="onVariantSelected"
+                            />
+                        </div>
 
-                <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
-                        Close
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary me-1"
-                        :disabled="isSubmitting"
-                        @click="storeBillWithStatus('draft')">
-                        Create
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        :disabled="isSubmitting"
-                        @click="storeBillWithStatus('approved')">
-                        Create & Approve
-                    </button>
+                        <div class="col-12">
+                            <div class="table-responsive no-pagination">
+                                <table class="table datanew table-bordered mb-0 order-lines-table">
+                                    <thead>
+                                    <tr>
+                                        <th class="po-col-sn">SN</th>
+                                        <th class="po-col-product">Product</th>
+                                        <th class="po-col-unit">Unit</th>
+                                        <th class="po-col-qty">Qty</th>
+                                        <th class="po-col-rate">Rate (purchase)</th>
+                                        <th class="po-col-ref">Sale (ref)</th>
+                                        <th class="po-col-disc">Discount</th>
+                                        <th class="po-col-tax">Tax</th>
+                                        <th class="po-col-amt">Tax amt</th>
+                                        <th class="po-col-line">Line total</th>
+                                        <th class="text-center po-col-action">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-if="!form.items.length">
+                                        <td colspan="11" class="text-center text-muted py-4">
+                                            Search and select a product to add lines.
+                                        </td>
+                                    </tr>
+                                    <tr v-for="(item, index) in form.items" :key="`${index}-${item.product_variant_id}`">
+                                        <td>{{ index + 1 }}</td>
+                                        <td
+                                            class="text-start text-truncate po-col-product"
+                                            :title="item.product_label">
+                                            {{ item.product_label }}
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-model="form.items[index].unit_id"
+                                                select-class="form-select form-select-sm"
+                                                :options="units.data"
+                                                @validate="validateField(`items[${index}].unit_id`)"
+                                                :error="errors[`items[${index}].unit_id`]"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].quantity"
+                                                @validate="validateField(`items[${index}].quantity`)"
+                                                :error="errors[`items[${index}].quantity`]"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].rate"
+                                                @validate="validateField(`items[${index}].rate`)"
+                                                :error="errors[`items[${index}].rate`]"
+                                            />
+                                        </td>
+                                        <td class="text-end">{{ formatMoney(item.list_sale_snapshot) }}</td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].discount_amount"
+                                                @validate="validateField(`items[${index}].discount_amount`)"
+                                                :error="errors[`items[${index}].discount_amount`]"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-model="form.items[index].tax_id"
+                                                select-class="form-select form-select-sm"
+                                                :options="taxes.data"
+                                                @validate="validateField(`items[${index}].tax_id`)"
+                                                :error="errors[`items[${index}].tax_id`]"
+                                            />
+                                        </td>
+                                        <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
+                                        <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
+                                        <td class="text-center">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                @click="removeItem(index)">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 ms-auto">
+                            <div class="total-order w-100 max-widthauto m-auto mb-4">
+                                <ul>
+                                    <li>
+                                        <h4>Sub total</h4>
+                                        <h5>{{ summary.subtotal }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Discount</h4>
+                                        <h5>{{ summary.discount }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Tax</h4>
+                                        <h5>{{ summary.tax }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Grand total</h4>
+                                        <h5>{{ summary.grandTotal }}</h5>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="input-blocks">
+                                <VTextarea
+                                    id="remarks"
+                                    v-model="form.remarks"
+                                    label="Remarks"
+                                    @validate="validateField('remarks')"
+                                    :error="errors.remarks"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="col-12 text-end">
+                            <button @click="closeCreateModal" class="btn btn-cancel add-cancel me-2" type="button">
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-outline-primary me-2"
+                                :disabled="isSubmitting"
+                                @click="storeBillWithStatus('draft')">
+                                Create
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-submit add-sale btn-primary"
+                                :disabled="isSubmitting"
+                                @click="storeBillWithStatus('approved')">
+                                Create &amp; Approve
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </template>
     </VModal>
+    <CreateSupplier
+        v-if="createSupplierOpened"
+        v-model:createModalOpened="createSupplierOpened"
+        type="supplier"
+    />
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
+import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useUnitStore} from '@/stores/admin/inventory/unit.js';
-import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
+import {useDateHelper} from '@/composables/dateHelper.js';
+import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import CreateSupplier from '@/views/admin/party/Create.vue';
 
 const billStore = useBillStore();
 const unitStore = useUnitStore();
-const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
 
+const {currentAdDate} = useDateHelper();
+
 const createModalOpened = defineModel('createModalOpened');
+const createSupplierOpened = ref(false);
 
 const {units} = storeToRefs(unitStore);
-const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 
-onMounted(() => {
-    unitStore.getUnits();
-    productStore.getProductVariants();
-    partyStore.getParties({filter: {type: 'supplier'}});
-    taxStore.getTaxes();
-    warehouseStore.getWarehouses();
-});
+const debouncedSupplierSearch = debounce((query) => {
+    partyStore.getParties({
+        filter: {
+            type: 'supplier',
+            limit: 50,
+            search: query || '',
+        },
+    });
+}, 300);
 
-const initialState = {
-    bill_date: new Date().toISOString().slice(0, 10),
+watch(
+    createModalOpened,
+    (opened) => {
+        if (opened) {
+            unitStore.getUnits();
+            taxStore.getTaxes();
+            warehouseStore.getWarehouses();
+            partyStore.getParties({
+                filter: {
+                    type: 'supplier',
+                    limit: 50,
+                    search: '',
+                },
+            });
+        }
+    },
+    {flush: 'post'}
+);
+
+const getInitialState = () => ({
+    bill_date: currentAdDate,
     due_date: '',
     party_id: '',
     warehouse_id: '',
     remarks: '',
     status: 'draft',
-    items: [
-        {
-            product_variant_id: '',
-            unit_id: '',
-            quantity: '',
-            rate: '',
-            tax_id: '',
-            discount_amount: '',
-        }
-    ],
-};
+    items: [],
+});
 
-const form = reactive({...initialState});
+const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
-const addItem = () => {
+function variantLabel(variant) {
+    let label = variant.name || '';
+    if (variant.sku) {
+        label += ` (${variant.sku})`;
+    }
+    return label;
+}
+
+function defaultLineRateString(variant) {
+    const n = Number(variant.purchase_price ?? variant.sales_price ?? 0);
+    return String(Number.isFinite(n) ? n : 0);
+}
+
+const onVariantSelected = (variant) => {
+    const vid = variant.id;
+    const existing = form.items.findIndex((i) => String(i.product_variant_id) === String(vid));
+    if (existing !== -1) {
+        const nextQty = Number(form.items[existing].quantity || 0) + 1;
+        form.items[existing].quantity = String(nextQty);
+        return;
+    }
     form.items.push({
-        product_variant_id: '',
-        unit_id: '',
-        quantity: '',
-        rate: '',
+        product_variant_id: vid,
+        product_label: variantLabel(variant),
+        list_sale_snapshot: variant.sales_price ?? 0,
+        unit_id: variant.unit_id ?? '',
+        quantity: '1',
+        rate: defaultLineRateString(variant),
         tax_id: '',
-        discount_amount: '',
+        discount_amount: '0',
     });
 };
 
 const removeItem = (index) => {
-    if (form.items.length === 1) return;
     form.items.splice(index, 1);
 };
 
@@ -267,37 +352,54 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
-    items: array().of(
-        object({
-            product_variant_id: string().required('Product is required.'),
-            quantity: string().required('Quantity is required.'),
-            rate: string().required('Rate is required.'),
-            unit_id: string().nullable(),
-            tax_id: string().nullable(),
-            discount_amount: string().nullable(),
-        })
-    ).min(1, 'At least one item is required.'),
+    items: array()
+        .of(
+            object({
+                product_variant_id: string().required('Product is required.'),
+                quantity: string().required('Quantity is required.'),
+                rate: string().required('Rate is required.'),
+                unit_id: string().nullable(),
+                tax_id: string().nullable(),
+                discount_amount: string().nullable(),
+            })
+        )
+        .min(1, 'At least one item is required.'),
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getVariantById = (id) => {
-    const numericId = parseInt(id, 10);
-    return productVariants.value.data.find(v => v.id === numericId);
-};
-
-const setRate = (index, value) => {
-    const variant = getVariantById(value);
-    if (variant) {
-        form.items[index].rate = variant.purchase_price ?? '';
-    }
-};
-
 const getTaxRate = (taxId) => {
-    if (!taxId) return 0;
+    if (!taxId) {
+        return 0;
+    }
     const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find(t => t.id === numericId);
+    const tax = taxes.value.data.find((t) => t.id === numericId);
     return tax ? Number(tax.rate || 0) : 0;
+};
+
+const calcLineTax = (item) => {
+    const qty = Number(item.quantity || 0);
+    const rate = Number(item.rate || 0);
+    const lineSubtotal = qty * rate;
+    const lineDiscount = Number(item.discount_amount || 0);
+    const taxRate = getTaxRate(item.tax_id);
+    const taxable = Math.max(lineSubtotal - lineDiscount, 0);
+    return taxable * (taxRate / 100);
+};
+
+const calcLineTotal = (item) => {
+    const qty = Number(item.quantity || 0);
+    const rate = Number(item.rate || 0);
+    const lineSubtotal = qty * rate;
+    const lineDiscount = Number(item.discount_amount || 0);
+    return lineSubtotal - lineDiscount + calcLineTax(item);
+};
+
+const formatMoney = (value) => {
+    if (value === '' || value === null || value === undefined) {
+        return '—';
+    }
+    return Number(value).toFixed(2);
 };
 
 const summary = computed(() => {
@@ -310,13 +412,9 @@ const summary = computed(() => {
         const rate = Number(item.rate || 0);
         const lineSubtotal = qty * rate;
         const lineDiscount = Number(item.discount_amount || 0);
-        const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-        const lineTax = taxable * taxRate / 100;
-
         subtotal += lineSubtotal;
         discount += lineDiscount;
-        tax += lineTax;
+        tax += calcLineTax(item);
     });
 
     const grandTotal = subtotal - discount + tax;
@@ -329,32 +427,50 @@ const summary = computed(() => {
     };
 });
 
-const syncLineItems = () => {
-    form.items = form.items.map((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
-        const lineDiscount = Number(item.discount_amount || 0);
-        const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-        const lineTax = taxable * taxRate / 100;
+const syncTaxAmounts = () => {
+    form.items = form.items.map((item) => ({
+        ...item,
+        tax_amount: calcLineTax(item),
+    }));
+};
 
-        return {
-            ...item,
-            warehouse_id: form.warehouse_id,
-            tax_amount: lineTax,
-        };
-    });
+const lineQtyInt = (q) => {
+    const n = parseInt(String(q ?? '0'), 10);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+};
+
+const buildBillPayload = () => {
+    syncTaxAmounts();
+    const wid = form.warehouse_id;
+    return {
+        bill_date: form.bill_date,
+        due_date: form.due_date || null,
+        party_id: form.party_id || null,
+        remarks: form.remarks,
+        status: form.status,
+        items: form.items.map((item) => ({
+            product_variant_id: item.product_variant_id,
+            warehouse_id: wid,
+            unit_id: item.unit_id || null,
+            quantity: lineQtyInt(item.quantity),
+            rate: Number(item.rate || 0),
+            tax_id: item.tax_id || null,
+            tax_amount: item.tax_amount ?? 0,
+            discount_amount:
+                item.discount_amount === '' || item.discount_amount == null
+                    ? null
+                    : Number(item.discount_amount),
+        })),
+    };
 };
 
 const storeBillWithStatus = async (status) => {
     form.status = status;
-    let validated = await validateForm(validations, form);
+    const validated = await validateForm(validations, form);
     if (validated) {
         isSubmitting.value = true;
         try {
-            syncLineItems();
-            let res = await billStore.storeBill(form);
+            const res = await billStore.storeBill(buildBillPayload());
             toast(res.status, res.data.message);
             closeCreateModal();
         } catch (e) {
@@ -371,7 +487,34 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
-    Object.assign(form, {...initialState});
+    Object.assign(form, getInitialState());
     errors.value = {};
 }
 </script>
+
+<style scoped>
+.order-lines-table :deep(.form-control),
+.order-lines-table :deep(.form-select) {
+    min-width: 4.25rem;
+}
+.order-lines-table th,
+.order-lines-table td {
+    vertical-align: middle;
+}
+.order-lines-table .po-col-product {
+    min-width: 11rem;
+    max-width: 16rem;
+}
+.order-lines-table .po-col-unit {
+    min-width: 7rem;
+}
+.order-lines-table .po-col-tax {
+    min-width: 7.5rem;
+}
+.order-lines-table .po-col-sn {
+    width: 2.5rem;
+}
+.order-lines-table .po-col-action {
+    width: 3rem;
+}
+</style>

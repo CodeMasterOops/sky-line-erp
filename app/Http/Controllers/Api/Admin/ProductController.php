@@ -27,6 +27,48 @@ class ProductController extends Controller
     }
 
     /**
+     * Paginated product variant search by SKU, product name, or product code (for sales order / POS pickers).
+     *
+     * @Permissions("list_product_variant", group="product", desc="List Product Variant")
+     */
+    public function searchProductVariants(Request $request)
+    {
+        $perPage = min(max((int) $request->get('limit', 20), 1), 50);
+        $q = trim((string) $request->get('q', ''));
+        $barcode = trim((string) $request->get('barcode', ''));
+
+        $query = ProductVariant::query()
+            ->with([
+                'product:id,name,code,unit_id',
+                'variantOptions.attribute',
+            ]);
+
+        if ($barcode !== '') {
+            $query->where(function ($sub) use ($barcode) {
+                $sub->where('sku', $barcode)
+                    ->orWhereHas('product', function ($product) use ($barcode) {
+                        $product->where('code', $barcode);
+                    });
+            });
+        } elseif (mb_strlen($q) >= 2) {
+            $like = '%'.$q.'%';
+            $query->where(function ($sub) use ($like) {
+                $sub->where('sku', 'like', $like)
+                    ->orWhereHas('product', function ($product) use ($like) {
+                        $product->where('name', 'like', $like)
+                            ->orWhere('code', 'like', $like);
+                    });
+            });
+        } else {
+            $query->whereRaw('0 = 1');
+        }
+
+        $variants = $query->latest('product_variants.id')->paginate($perPage);
+
+        return ProductVariantResource::collection($variants);
+    }
+
+    /**
      * @Permissions("list_product", group="product", desc="List Product")
      */
     public function index(Request $request)

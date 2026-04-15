@@ -54,6 +54,13 @@
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
                                     <a
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        title="View"
+                                        @click="openDetail(record.id)">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                    <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
                                         href="javascript:void(0);"
@@ -89,6 +96,7 @@
 
     <CreatePurchaseOrder v-model:create-modal-opened="createModalOpened"/>
     <EditPurchaseOrder v-model:order_id="edit_order_id"/>
+    <PurchaseOrderDetailModal v-model:detail-order-id="detail_order_id"/>
     <CreateBillFromReference
         v-model:open="invoiceModalOpened"
         v-model:purchase-order-id="invoiceReferenceId"
@@ -104,6 +112,7 @@ import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
 import CreatePurchaseOrder from './Create.vue';
 import EditPurchaseOrder from './Edit.vue';
+import PurchaseOrderDetailModal from './DetailModal.vue';
 import CreateBillFromReference from '@/views/admin/purchase/bill/CreateFromReference.vue';
 import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
 
@@ -112,6 +121,7 @@ const {orders} = storeToRefs(purchaseOrderStore);
 
 const createModalOpened = ref(false);
 const edit_order_id = ref('');
+const detail_order_id = ref('');
 const invoiceModalOpened = ref(false);
 const invoiceReferenceId = ref('');
 
@@ -186,6 +196,10 @@ const handleTableChange = (pagination) => {
 
 const editOrder = (id) => {
     edit_order_id.value = id;
+};
+
+const openDetail = (id) => {
+    detail_order_id.value = String(id);
 };
 
 const deleteOrder = async (id) => {

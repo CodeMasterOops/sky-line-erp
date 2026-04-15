@@ -2,180 +2,213 @@
     <VModal
         :show-modal="!!edit_order_id"
         @close-click="closeEditModal"
-        modal-class="large-modal"
-        title="Update Sales Order">
+        modal-class="edit-sales-modal"
+        size="xl"
+        title="Edit Sales Order">
         <template #modal-body>
             <VLoader v-if="order.loading" loader-type="progress"/>
-            <form @submit.prevent="updateOrder(order.data.id)" class="row g-3">
-                <div class="col-md-6">
-                    <VInput
-                        id="order_date"
-                        input-type="date"
-                        v-model="form.order_date"
-                        label="Order Date"
-                        @validate="validateField('order_date')"
-                        :error="errors.order_date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VSelect
-                        id="party_id"
-                        v-model="form.party_id"
-                        :options="parties.data"
-                        label="Customer"
-                        @validate="validateField('party_id')"
-                        :error="errors.party_id"
-                    />
-                </div>
-
-                <div class="col-12">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                            <tr>
-                                <th style="width: 50px;">SN</th>
-                                <th>Product Variant</th>
-                                <th style="width: 160px;">Unit</th>
-                                <th style="width: 120px;">Quantity</th>
-                                <th style="width: 140px;">Rate</th>
-                                <th style="width: 160px;">Tax</th>
-                                <th style="width: 170px;">Discount Amount</th>
-                                <th style="width: 60px;">Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr v-for="(item, index) in form.items" :key="index">
-                                <td>{{ index + 1 }}</td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].product_variant_id"
-                                        :options="productVariants.data"
-                                        @onInput="setRate(index, $event)"
-                                        @validate="validateField(`items[${index}].product_variant_id`)"
-                                        :error="errors[`items[${index}].product_variant_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].unit_id"
-                                        :options="units.data"
-                                        @validate="validateField(`items[${index}].unit_id`)"
-                                        :error="errors[`items[${index}].unit_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].quantity"
-                                        @validate="validateField(`items[${index}].quantity`)"
-                                        :error="errors[`items[${index}].quantity`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].rate"
-                                        @validate="validateField(`items[${index}].rate`)"
-                                        :error="errors[`items[${index}].rate`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].tax_id"
-                                        :options="taxes.data"
-                                        @validate="validateField(`items[${index}].tax_id`)"
-                                        :error="errors[`items[${index}].tax_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].discount_amount"
-                                        @validate="validateField(`items[${index}].discount_amount`)"
-                                        :error="errors[`items[${index}].discount_amount`]"
-                                    />
-                                </td>
-                                <td class="text-center">
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-danger"
-                                        @click="removeItem(index)"
-                                        :disabled="form.items.length === 1">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
-                        Add Item
-                    </button>
-                </div>
-
-                <div class="col-12">
-                    <div class="card bg-light">
-                        <div class="card-body py-2">
-                            <div class="d-flex justify-content-between">
-                                <span>Sub Total</span>
-                                <strong>{{ summary.subtotal }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Discount</span>
-                                <strong>{{ summary.discount }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Tax</span>
-                                <strong>{{ summary.tax }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between border-top pt-2 mt-2">
-                                <span>Grand Total</span>
-                                <strong>{{ summary.grandTotal }}</strong>
+            <div v-else class="card border-0 shadow-none mb-0">
+                <div class="card-body p-0">
+                    <form @submit.prevent="updateOrder(order.data.id)" class="row g-3">
+                        <div class="col-lg-6 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <VDatepicker
+                                    id="order_date"
+                                    input-type="date"
+                                    v-model="form.order_date"
+                                    label="Order Date"
+                                    @validate="validateField('order_date')"
+                                    :error="errors.order_date"
+                                />
                             </div>
                         </div>
-                    </div>
-                </div>
+                        <div class="col-lg-6 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <VMultiselect
+                                    id="party_id"
+                                    v-model="form.party_id"
+                                    :options="parties.data"
+                                    label="Customer"
+                                    :filter-results="false"
+                                    @validate="validateField('party_id')"
+                                    @search-change="debouncedPartySearch"
+                                    :error="errors.party_id"
+                                />
+                            </div>
+                        </div>
 
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
-                    />
-                </div>
+                        <div v-if="isDraft" class="col-12">
+                            <ProductVariantSearchInput
+                                label="Product name / code / SKU"
+                                @select="onVariantSelected"
+                            />
+                        </div>
 
-                <div class="col-12 text-end">
-                    <button @click="closeEditModal" class="btn btn-danger me-1" type="button">
-                        Close
-                    </button>
-                    <VButton v-if="isDraft" :loading="isSubmitting"/>
-                    <button v-else type="button" class="btn btn-secondary" disabled>
-                        Approved
-                    </button>
+                        <div class="col-12">
+                            <div class="table-responsive no-pagination">
+                                <table class="table datanew table-bordered mb-0 sales-order-lines-table">
+                                    <thead>
+                                    <tr>
+                                        <th class="so-col-sn">SN</th>
+                                        <th class="so-col-product">Product</th>
+                                        <th class="so-col-unit">Unit</th>
+                                        <th class="so-col-qty">Qty</th>
+                                        <th class="so-col-rate">Rate (sale)</th>
+                                        <th class="so-col-purchase">Purchase</th>
+                                        <th class="so-col-disc">Discount</th>
+                                        <th class="so-col-tax">Tax</th>
+                                        <th class="so-col-amt">Tax amt</th>
+                                        <th class="so-col-line">Line total</th>
+                                        <th v-if="isDraft" class="text-center so-col-action">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-if="!form.items.length">
+                                        <td :colspan="isDraft ? 11 : 10" class="text-center text-muted py-4">
+                                            No line items.
+                                        </td>
+                                    </tr>
+                                    <tr v-for="(item, index) in form.items" :key="`${index}-${item.product_variant_id}`">
+                                        <td>{{ index + 1 }}</td>
+                                        <td
+                                            class="text-start text-truncate so-col-product"
+                                            :title="item.product_label">
+                                            {{ item.product_label }}
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-model="form.items[index].unit_id"
+                                                select-class="form-select form-select-sm"
+                                                :options="units.data"
+                                                :disabled="!isDraft"
+                                                @validate="validateField(`items[${index}].unit_id`)"
+                                                :error="errors[`items[${index}].unit_id`]"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].quantity"
+                                                :disabled="!isDraft"
+                                                @validate="validateField(`items[${index}].quantity`)"
+                                                :error="errors[`items[${index}].quantity`]"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].rate"
+                                                :disabled="!isDraft"
+                                                @validate="validateField(`items[${index}].rate`)"
+                                                :error="errors[`items[${index}].rate`]"
+                                            />
+                                        </td>
+                                        <td class="text-end">{{ formatMoney(item.purchase_snapshot) }}</td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].discount_amount"
+                                                :disabled="!isDraft"
+                                                @validate="validateField(`items[${index}].discount_amount`)"
+                                                :error="errors[`items[${index}].discount_amount`]"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-model="form.items[index].tax_id"
+                                                select-class="form-select form-select-sm"
+                                                :options="taxes.data"
+                                                :disabled="!isDraft"
+                                                @validate="validateField(`items[${index}].tax_id`)"
+                                                :error="errors[`items[${index}].tax_id`]"
+                                            />
+                                        </td>
+                                        <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
+                                        <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
+                                        <td v-if="isDraft" class="text-center">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                @click="removeItem(index)">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 ms-auto">
+                            <div class="total-order w-100 max-widthauto m-auto mb-4">
+                                <ul>
+                                    <li>
+                                        <h4>Sub total</h4>
+                                        <h5>{{ summary.subtotal }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Discount</h4>
+                                        <h5>{{ summary.discount }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Tax</h4>
+                                        <h5>{{ summary.tax }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Grand total</h4>
+                                        <h5>{{ summary.grandTotal }}</h5>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="input-blocks">
+                                <VTextarea
+                                    id="remarks"
+                                    v-model="form.remarks"
+                                    label="Remarks"
+                                    @validate="validateField('remarks')"
+                                    :error="errors.remarks"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="col-12 text-end">
+                            <button @click="closeEditModal" class="btn btn-cancel add-cancel me-2" type="button">
+                                Cancel
+                            </button>
+                            <VButton v-if="isDraft" :loading="isSubmitting" :disabled="isSubmitting"/>
+                            <button v-else type="button" class="btn btn-secondary" disabled>
+                                Approved
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </template>
     </VModal>
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
+import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useUnitStore} from '@/stores/admin/inventory/unit.js';
-import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
 const salesOrderStore = useSalesOrderStore();
 const unitStore = useUnitStore();
-const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 
@@ -183,109 +216,174 @@ const edit_order_id = defineModel('order_id');
 
 const {order} = storeToRefs(salesOrderStore);
 const {units} = storeToRefs(unitStore);
-const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 
-onMounted(() => {
-    unitStore.getUnits();
-    productStore.getProductVariants();
-    partyStore.getParties({filter: {type: 'customer'}});
-    taxStore.getTaxes();
-});
+const debouncedPartySearch = debounce((query) => {
+    partyStore.getParties({
+        filter: {
+            type: 'customer',
+            limit: 50,
+            search: query || '',
+        },
+    });
+}, 300);
 
 const initialState = {
     order_date: '',
     party_id: '',
     remarks: '',
     status: 'draft',
-    items: [
-        {
-            product_variant_id: '',
-            unit_id: '',
-            quantity: '',
-            rate: '',
-            tax_id: '',
-            discount_amount: '',
-        }
-    ],
+    items: [],
 };
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
 
-const addItem = () => {
+function variantLabel(variant) {
+    let label = variant.name || '';
+    if (variant.sku) {
+        label += ` (${variant.sku})`;
+    }
+    return label;
+}
+
+function defaultLineRateString(variant) {
+    const n = Number(variant.sales_price ?? variant.purchase_price ?? 0);
+    return String(Number.isFinite(n) ? n : 0);
+}
+
+function rateStringFromApiLine(item) {
+    if (item.rate !== null && item.rate !== undefined && item.rate !== '') {
+        return String(Number(item.rate));
+    }
+    if (item.product_variant) {
+        return defaultLineRateString(item.product_variant);
+    }
+    return '0';
+}
+
+const onVariantSelected = (variant) => {
+    const vid = variant.id;
+    const existing = form.items.findIndex((i) => String(i.product_variant_id) === String(vid));
+    if (existing !== -1) {
+        const nextQty = Number(form.items[existing].quantity || 0) + 1;
+        form.items[existing].quantity = String(nextQty);
+        return;
+    }
     form.items.push({
-        product_variant_id: '',
-        unit_id: '',
-        quantity: '',
-        rate: '',
+        product_variant_id: vid,
+        product_label: variantLabel(variant),
+        purchase_snapshot: variant.purchase_price ?? 0,
+        unit_id: variant.unit_id ?? '',
+        quantity: '1',
+        rate: defaultLineRateString(variant),
         tax_id: '',
-        discount_amount: '',
+        discount_amount: '0',
     });
 };
 
 const removeItem = (index) => {
-    if (form.items.length === 1) return;
     form.items.splice(index, 1);
 };
 
-watch(() => edit_order_id.value, async (id) => {
-    if (id) {
+watch(
+    () => edit_order_id.value,
+    async (id) => {
+        if (!id) {
+            return;
+        }
+        unitStore.getUnits();
+        taxStore.getTaxes();
         await salesOrderStore.getOrder(id);
-        Object.keys(form).forEach(key => {
+        const data = order.value.data;
+        await partyStore.getParties({
+            filter: {
+                type: 'customer',
+                limit: 50,
+                search: data.party_name || '',
+            },
+        });
+        const pid = data.party_id;
+        const pname = data.party_name;
+        if (pid && pname && !partyStore.parties.data.some((p) => String(p.id) === String(pid))) {
+            partyStore.parties.data = [{id: pid, name: pname}, ...partyStore.parties.data];
+        }
+        Object.keys(form).forEach((key) => {
             if (key === 'items') {
-                form.items = (order.value.data.items || []).map(item => ({
+                form.items = (data.items || []).map((item) => ({
                     product_variant_id: item.product_variant_id || '',
+                    product_label: item.product_variant ? variantLabel(item.product_variant) : '',
+                    purchase_snapshot: item.product_variant?.purchase_price ?? 0,
                     unit_id: item.unit_id || '',
-                    quantity: item.quantity || '',
-                    rate: item.rate || '',
+                    quantity: String(item.quantity ?? '1'),
+                    rate: rateStringFromApiLine(item),
                     tax_id: item.tax_id || '',
-                    discount_amount: item.discount_amount || '',
+                    discount_amount:
+                        item.discount_amount !== null && item.discount_amount !== undefined
+                            ? String(item.discount_amount)
+                            : '0',
                 }));
             } else {
-                form[key] = order.value.data[key] || '';
+                form[key] = data[key] ?? (key === 'items' ? [] : '');
             }
         });
     }
-});
+);
 
 const isDraft = computed(() => order.value.data.status === 'draft');
 
 const validations = object({
     order_date: string().required('Order date is required.'),
     party_id: string().nullable(),
-    items: array().of(
-        object({
-            product_variant_id: string().required('Product is required.'),
-            quantity: string().required('Quantity is required.'),
-            rate: string().required('Rate is required.'),
-            unit_id: string().nullable(),
-            tax_id: string().nullable(),
-            discount_amount: string().nullable(),
-        })
-    ).min(1, 'At least one item is required.'),
+    items: array()
+        .of(
+            object({
+                product_variant_id: string().required('Product is required.'),
+                quantity: string().required('Quantity is required.'),
+                rate: string().required('Rate is required.'),
+                unit_id: string().nullable(),
+                tax_id: string().nullable(),
+                discount_amount: string().nullable(),
+            })
+        )
+        .min(1, 'At least one item is required.'),
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getVariantById = (id) => {
-    const numericId = parseInt(id, 10);
-    return productVariants.value.data.find(v => v.id === numericId);
-};
-
-const setRate = (index, value) => {
-    const variant = getVariantById(value);
-    if (variant) {
-        form.items[index].rate = variant.sales_price ?? '';
-    }
-};
-
 const getTaxRate = (taxId) => {
-    if (!taxId) return 0;
+    if (!taxId) {
+        return 0;
+    }
     const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find(t => t.id === numericId);
+    const tax = taxes.value.data.find((t) => t.id === numericId);
     return tax ? Number(tax.rate || 0) : 0;
+};
+
+const calcLineTax = (item) => {
+    const qty = Number(item.quantity || 0);
+    const rate = Number(item.rate || 0);
+    const lineSubtotal = qty * rate;
+    const lineDiscount = Number(item.discount_amount || 0);
+    const taxRate = getTaxRate(item.tax_id);
+    const taxable = Math.max(lineSubtotal - lineDiscount, 0);
+    return taxable * (taxRate / 100);
+};
+
+const calcLineTotal = (item) => {
+    const qty = Number(item.quantity || 0);
+    const rate = Number(item.rate || 0);
+    const lineSubtotal = qty * rate;
+    const lineDiscount = Number(item.discount_amount || 0);
+    return lineSubtotal - lineDiscount + calcLineTax(item);
+};
+
+const formatMoney = (value) => {
+    if (value === '' || value === null || value === undefined) {
+        return '—';
+    }
+    return Number(value).toFixed(2);
 };
 
 const summary = computed(() => {
@@ -298,13 +396,9 @@ const summary = computed(() => {
         const rate = Number(item.rate || 0);
         const lineSubtotal = qty * rate;
         const lineDiscount = Number(item.discount_amount || 0);
-        const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-        const lineTax = taxable * taxRate / 100;
-
         subtotal += lineSubtotal;
         discount += lineDiscount;
-        tax += lineTax;
+        tax += calcLineTax(item);
     });
 
     const grandTotal = subtotal - discount + tax;
@@ -318,32 +412,40 @@ const summary = computed(() => {
 });
 
 const syncTaxAmounts = () => {
-    form.items = form.items.map((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
-        const lineDiscount = Number(item.discount_amount || 0);
-        const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-        const lineTax = taxable * taxRate / 100;
+    form.items = form.items.map((item) => ({
+        ...item,
+        tax_amount: calcLineTax(item),
+    }));
+};
 
-        return {
-            ...item,
-            tax_amount: lineTax,
-        };
-    });
+const buildOrderPayload = () => {
+    syncTaxAmounts();
+    return {
+        order_date: form.order_date,
+        party_id: form.party_id || null,
+        remarks: form.remarks,
+        status: form.status,
+        items: form.items.map((item) => ({
+            product_variant_id: item.product_variant_id,
+            unit_id: item.unit_id || null,
+            quantity: item.quantity,
+            rate: item.rate,
+            tax_id: item.tax_id || null,
+            tax_amount: item.tax_amount ?? 0,
+            discount_amount: item.discount_amount || null,
+        })),
+    };
 };
 
 const updateOrder = async (id) => {
     if (!isDraft.value) {
         return;
     }
-    let validated = await validateForm(validations, form);
+    const validated = await validateForm(validations, form);
     if (validated) {
         isSubmitting.value = true;
         try {
-            syncTaxAmounts();
-            let res = await salesOrderStore.updateOrder(id, form);
+            const res = await salesOrderStore.updateOrder(id, buildOrderPayload());
             toast(res.status, res.data.message);
             closeEditModal();
         } catch (e) {
@@ -364,3 +466,30 @@ function resetForm() {
     errors.value = {};
 }
 </script>
+
+<style scoped>
+.sales-order-lines-table :deep(.form-control),
+.sales-order-lines-table :deep(.form-select) {
+    min-width: 4.25rem;
+}
+.sales-order-lines-table th,
+.sales-order-lines-table td {
+    vertical-align: middle;
+}
+.sales-order-lines-table .so-col-product {
+    min-width: 11rem;
+    max-width: 16rem;
+}
+.sales-order-lines-table .so-col-unit {
+    min-width: 7rem;
+}
+.sales-order-lines-table .so-col-tax {
+    min-width: 7.5rem;
+}
+.sales-order-lines-table .so-col-sn {
+    width: 2.5rem;
+}
+.sales-order-lines-table .so-col-action {
+    width: 3rem;
+}
+</style>
