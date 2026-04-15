@@ -1,0 +1,34 @@
+@use "../utils/mixins";
+
+/**
+ * Mini/collapsed sidebar: main area must use viewport width, not % of a parent
+ * that may be capped (e.g. boxed layout variables in theme). Loaded last in app.scss.
+ */
+@include mixins.respond-above(custom991) {
+  body.mini-sidebar {
+    #app,
+    #app .main-wrapper {
+      width: 100% !important;
+      max-width: none !important;
+    }
+
+    .page-wrapper {
+      margin-left: 86px !important;
+      margin-right: 0 !important;
+      width: calc(100vw - 86px) !important;
+      max-width: none !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    .page-wrapper > .content {
+      width: 100% !important;
+      max-width: none !important;
+    }
+
+    &.expand-menu .page-wrapper {
+      margin-left: 252px !important;
+      width: calc(100vw - 252px) !important;
+    }
+  }
+}

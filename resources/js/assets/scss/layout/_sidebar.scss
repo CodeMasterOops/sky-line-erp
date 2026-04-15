@@ -604,12 +604,9 @@
 
 @include mixins.respond-above(custom991) {
     .mini-sidebar {
-        .page-wrapper {
-            margin-left: 86px;
-        }
         .header-left {
             #toggle_btn{
-                opacity: 0;
+                opacity: 1;
                 &:after {
                    border:0;
                 }
@@ -741,6 +738,29 @@ body.mini-sidebar{
                 }
             }
         }
+    }
+    /* Collapsed sidebar: compact trial plan (no hover-expand); avoid horizontal overflow */
+    .admin-sidebar-shell__footer {
+        max-width: 100%;
+        padding-left: 8px;
+        padding-right: 8px;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+    .sidebar-trial-plan-card {
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+    .sidebar-trial-plan-card__inner--full {
+        display: none !important;
+    }
+    .sidebar-trial-plan-card__inner--mini {
+        display: flex !important;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
     &.expand-menu {
         .sidebar {
@@ -900,7 +920,7 @@ body.mini-sidebar{
                     display: block;
                 }
                 #toggle_btn {
-                   opacity: 0;
+                   opacity: 1;
                 }
             }
         }

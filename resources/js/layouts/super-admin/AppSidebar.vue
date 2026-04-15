@@ -47,70 +47,18 @@ export default {
     toggleSidebar() {
       const body = document.body;
       body.classList.toggle("mini-sidebar");
+      body.classList.remove("expand-menu");
       localStorage.setItem(
         "super_admin_sidebar_mini",
         body.classList.contains("mini-sidebar") ? "1" : "0"
       );
-    },
-    initMouseoverListener() {
-      document.addEventListener("mouseover", this.handleMouseover);
-    },
-    handleMouseover(e) {
-      e.stopPropagation();
-
-      const body = document.body;
-      const toggleBtn = document.getElementById("toggle_btn");
-
-      if (body.classList.contains("mini-sidebar") && this.isElementVisible(toggleBtn)) {
-        const target = e.target.closest(".sidebar, .header-left");
-
-        if (target) {
-          body.classList.add("expand-menu");
-          this.slideDownSubmenu();
-        } else {
-          body.classList.remove("expand-menu");
-          this.slideUpSubmenu();
-        }
-
-        e.preventDefault();
-      }
-    },
-    isElementVisible(element) {
-      return element && (element.offsetWidth > 0 || element.offsetHeight > 0);
-    },
-    slideDownSubmenu() {
-      // Force show all submenus when expanding in mini-sidebar mode
-      const subdropElements = document.querySelectorAll(".subdrop");
-      subdropElements.forEach((element) => {
-        const submenu = element.nextElementSibling;
-        if (submenu && submenu.tagName.toLowerCase() === "ul") {
-          submenu.style.display = "block";
-          submenu.classList.remove("d-none");
-          submenu.classList.add("d-block");
-        }
-      });
-    },
-    slideUpSubmenu() {
-      // Hide all submenus when collapsing in mini-sidebar mode
-      const subdropElements = document.querySelectorAll(".subdrop");
-      subdropElements.forEach((element) => {
-        const submenu = element.nextElementSibling;
-        if (submenu && submenu.tagName.toLowerCase() === "ul") {
-          submenu.style.display = "none";
-          submenu.classList.remove("d-block");
-          submenu.classList.add("d-none");
-        }
-      });
     },
   },
   mounted() {
     if (localStorage.getItem("super_admin_sidebar_mini") === "1") {
       document.body.classList.add("mini-sidebar");
     }
-    this.initMouseoverListener();
-  },
-  beforeUnmount() {
-    document.removeEventListener("mouseover", this.handleMouseover);
+    document.body.classList.remove("expand-menu");
   },
 };
 </script>
