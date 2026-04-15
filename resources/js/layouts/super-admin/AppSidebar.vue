@@ -47,6 +47,10 @@ export default {
     toggleSidebar() {
       const body = document.body;
       body.classList.toggle("mini-sidebar");
+      localStorage.setItem(
+        "super_admin_sidebar_mini",
+        body.classList.contains("mini-sidebar") ? "1" : "0"
+      );
     },
     initMouseoverListener() {
       document.addEventListener("mouseover", this.handleMouseover);
@@ -100,6 +104,9 @@ export default {
     },
   },
   mounted() {
+    if (localStorage.getItem("super_admin_sidebar_mini") === "1") {
+      document.body.classList.add("mini-sidebar");
+    }
     this.initMouseoverListener();
   },
   beforeUnmount() {
