@@ -7,12 +7,12 @@
         <template #modal-body>
             <VLoader v-if="party.loading" loader-type="progress"/>
             <form @submit.prevent="updateParty(party.data.id)" class="row g-3">
-                <div v-for="type in partyTypes" :key="type.id" class="col-4">
-                    <input type="radio" v-model="form.type" :value="type.id" :id="type.id" class="btn-check">
-                    <label :for="type.id" class="btn w-100 py-2 rounded-1 btn-outline-secondary">
-                        {{ type.name }}
-                    </label>
-                </div>
+                <PartyTypeSelector
+                    id-prefix="party-edit"
+                    v-model="form.type"
+                    :error="errors.type"
+                    @change="validateField('type')"
+                />
                 <div class="col-md-6">
                     <VInput
                         id="name"
@@ -96,18 +96,13 @@ import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {usePartyStore} from "@/stores/admin/party.js";
+import PartyTypeSelector from '@/components/party/PartyTypeSelector.vue';
 
 const partyStore = usePartyStore();
 
 const edit_party_id = defineModel('party_id');
 
 const {party} = storeToRefs(partyStore);
-
-const partyTypes = [
-    {id: 'customer', name: 'Customer'},
-    {id: 'supplier', name: 'Supplier'},
-    {id: 'lead', name: 'Lead'}
-];
 
 const initialState = {
     type: 'customer',
