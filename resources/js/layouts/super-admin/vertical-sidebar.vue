@@ -1,5 +1,5 @@
 <template>
-  <div class="sidebar-menu-search px-3 pb-2 pt-1">
+  <div class="sidebar-menu-search pb-2 pt-0">
     <input
       type="search"
       class="form-control form-control-sm"

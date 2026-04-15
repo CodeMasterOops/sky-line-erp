@@ -28,7 +28,7 @@
         }
     }
     .sidebar-menu{
-        @include mixins.margin-padding(null, 24px);
+        @include mixins.margin-padding(null, 8px 24px 24px);
     }
     .sidebar-menu{
         > ul{
@@ -826,14 +826,25 @@ body.mini-sidebar{
 }
 .sidebar {
     .sidebar-logo {
+        box-sizing: border-box;
         display: flex;
         align-items: center;
         padding: 0 24px;
         height: 65px;
+        min-height: 65px;
+        max-height: 65px;
+        flex-shrink: 0;
+        overflow: hidden;
         border-bottom: 1px solid variables.$border-color;
         .logo {
+            line-height: 0;
             img {
                 width: 130px;
+                max-width: 130px;
+                height: auto;
+                max-height: 40px;
+                object-fit: contain;
+                display: block;
             }
         }
         .logo-small {

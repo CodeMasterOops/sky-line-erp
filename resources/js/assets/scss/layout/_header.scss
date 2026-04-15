@@ -4,6 +4,7 @@
 .header {
     background: variables.$white;
     border-bottom: 1px solid variables.$border-color;
+    box-sizing: border-box;
     height: 65px;
     z-index: 999;
     @include mixins.position(fixed,0,0,null,0);
@@ -31,6 +32,7 @@
         }
     }
     .header-left {
+        box-sizing: border-box;
         display: -webkit-box;
         display: -ms-flexbox;
         display: flex;
