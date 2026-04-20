@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="User List" subtitle="Manage your users" @refresh="userStore.getUsers()">
+    <PageHeader title="User List" subtitle="Manage your users" @refresh="fetchUsers(true)">
         <template #actions>
             <button
                 v-can="'create_user'"
@@ -13,77 +13,69 @@
 
     <section class="section">
         <div class="card">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-bordered">
-            <thead>
-            <tr>
-              <th>SN</th>
-              <th>Name</th>
-              <th>Contact</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th class="text-center">Action</th>
-            </tr>
-            </thead>
-            <tbody class="align-middle">
-            <VLoader v-if="users.loading" :colspan="6"/>
-            <template v-else-if="users.data.length">
-              <tr v-for="(user,index) in users.data" :key="index">
-                <th>{{ index + 1 }}</th>
-                <td>
-                  {{ user.name }}
-                </td>
-                <td>
-                  <template v-if="user.email">
-                    <i class="fa fa-envelope-o text-primary"></i> {{ user.email }} <br>
-                  </template>
-                  <template v-if="user.phone">
-                    <i class="fa fa-phone text-success"></i> {{ user.phone }}
-                  </template>
-                </td>
-                <td>
-                  <span v-for="(role,key) in user.roles" :key="key"
-                        class="badge bg-primary mx-1"> {{ role.name }}</span>
-                </td>
-                <td>
-                  <div class="form-check form-switch">
-                    <input
-                        class="form-check-input"
-                        @click.prevent="updateStatus(user.id)"
-                        type="checkbox"
-                        :id="'switch'+index" :checked="user.status">
-                    <label class="form-check-label" :for="'switch'+index"></label>
-                  </div>
-                </td>
-                <td style="width:90px;">
-                  <button
-                      v-can="'edit_user'"
-                      type="button"
-                      @click.prevent="edit_user_id=user.id"
-                      class="btn btn-sm btn-outline-primary">
-                    <i class="fa fa-edit"> </i>
-                  </button>
-                  <button v-can="'delete_user'" @click="deleteUser(user.id)" type="button"
-                          class="btn btn-sm btn-outline-danger">
-                    <i class="fa fa-trash"> </i>
-                  </button>
-                </td>
-              </tr>
-            </template>
-            <tr v-else>
-              <td colspan="6" class="text-center">
-                No Result Found.
-              </td>
-            </tr>
-            </tbody>
-          </table>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <a-table
+                        class="table datanew table-hover table-center mb-0"
+                        :columns="columns"
+                        :data-source="users.data"
+                        :loading="users.loading"
+                    >
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ index + 1 }}
+                            </template>
+                            <template v-else-if="column.key === 'roles'">
+                                <template v-if="record.roles?.length">
+                                    <span
+                                        v-for="role in record.roles"
+                                        :key="role.id"
+                                        class="badge bg-primary mx-1"
+                                    >
+                                        {{ role.name }}
+                                    </span>
+                                </template>
+                                <span v-else>-</span>
+                            </template>
+                            <template v-else-if="column.key === 'status'">
+                                <div class="form-check form-switch">
+                                    <input
+                                        class="form-check-input"
+                                        type="checkbox"
+                                        :id="`switch${index}`"
+                                        :checked="record.status"
+                                        @click.prevent="updateStatus(record.id)"
+                                    >
+                                    <label class="form-check-label" :for="`switch${index}`"></label>
+                                </div>
+                            </template>
+                            <template v-else-if="column.key === 'action'">
+                                <div class="action-icon d-inline-flex">
+                                    <a
+                                        v-can="'edit_user'"
+                                        class="me-2"
+                                        href="javascript:void(0);"
+                                        @click.prevent="edit_user_id=record.id"
+                                    >
+                                        <i class="ti ti-edit"></i>
+                                    </a>
+                                    <a
+                                        v-can="'delete_user'"
+                                        href="javascript:void(0);"
+                                        @click="deleteUser(record.id)"
+                                    >
+                                        <i class="ti ti-trash"></i>
+                                    </a>
+                                </div>
+                            </template>
+                        </template>
+                    </a-table>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </section>
-  <CreateUser v-model:create-modal-opened="createModalOpened"/>
-  <EditUser v-model:user_id="edit_user_id"/>
+    </section>
+    <CreateUser v-model:create-modal-opened="createModalOpened"/>
+    <EditUser v-model:user_id="edit_user_id"/>
 </template>
 
 <script setup>
@@ -99,7 +91,7 @@ import EditUser from './Edit.vue';
 const userStore = useUserStore();
 
 onMounted(() => {
-  userStore.getUsers();
+    fetchUsers();
 })
 
 const edit_user_id = ref('');
@@ -107,42 +99,87 @@ const createModalOpened = ref(false);
 
 const {users} = storeToRefs(userStore);
 
-const deleteUser = async (id) => {
-  Swal.fire({
-    title: 'Are You Sure to Delete ? ',
-    text: "If you delete this, it will be gone forever.",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: 'red',
-    confirmButtonText: "Yes",
-  }).then(async (result) => {
-    if (result.value) {
-      try {
-        let res = await userStore.deleteUser(id);
-        toast(res.status, res.data.message);
-      } catch (e) {
-        showErrors(e)
-      }
+const columns = [
+    {
+        title: 'SN',
+        key: 'sn',
+        width: 60,
+    },
+    {
+        title: 'Name',
+        dataIndex: 'name',
+        sorter: {
+            compare: (a, b) => {
+                a = a.name.toLowerCase();
+                b = b.name.toLowerCase();
+                return a > b ? -1 : b > a ? 1 : 0;
+            },
+        },
+    },
+    {
+        title: 'Email',
+        dataIndex: 'email',
+    },
+    {
+        title: 'Role',
+        key: 'roles',
+    },
+    {
+        title: 'Status',
+        key: 'status',
+        align: 'center',
+    },
+    {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+    },
+];
+
+const fetchUsers = (refetch = false) => {
+    if (refetch) {
+        users.value.data = [];
     }
-  });
+
+    userStore.getUsers();
+};
+
+const deleteUser = async (id) => {
+    Swal.fire({
+        title: 'Are You Sure to Delete ? ',
+        text: "If you delete this, it will be gone forever.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'red',
+        confirmButtonText: "Yes",
+    }).then(async (result) => {
+        if (result.value) {
+            try {
+                let res = await userStore.deleteUser(id);
+                toast(res.status, res.data.message);
+            } catch (e) {
+                showErrors(e)
+            }
+        }
+    });
 }
 
 const updateStatus = async (id) => {
-  Swal.fire({
-    text: "Are you sure you want to change the status?",
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonColor: "red",
-    confirmButtonText: "Yes",
-  }).then(async (result) => {
-    if (result.value) {
-      try {
-        let res = await userStore.updateStatus(id);
-        toast(res.status, res.data.message);
-      } catch (e) {
-        showErrors(e)
-      }
-    }
-  });
+    Swal.fire({
+        text: "Are you sure you want to change the status?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: "red",
+        confirmButtonText: "Yes",
+    }).then(async (result) => {
+        if (result.value) {
+            try {
+                let res = await userStore.updateStatus(id);
+                toast(res.status, res.data.message);
+            } catch (e) {
+                showErrors(e)
+            }
+        }
+    });
 }
 </script>
