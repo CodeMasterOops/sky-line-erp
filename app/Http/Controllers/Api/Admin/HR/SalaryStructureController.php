@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin\HR;
 
-use App\Models\SalaryStructure;
-use App\Models\SalaryStructureItem;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use App\Models\SalaryStructure;
+use App\Models\SalaryStructureItem;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\SalaryStructureResource;
 use App\Http\Requests\Api\Admin\SalaryStructureRequest;

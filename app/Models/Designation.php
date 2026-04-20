@@ -4,8 +4,8 @@ namespace App\Models;
 
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Designation extends Model
 {

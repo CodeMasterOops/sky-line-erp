@@ -5,12 +5,11 @@ namespace App\Http\Controllers\Api\Admin\HR;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\FiscalYear;
-use App\Models\LeaveApplication;
 use App\Models\PayrollRun;
-use App\Enums\AttendanceStatusEnum;
-use App\Enums\LeaveStatusEnum;
 use Illuminate\Http\Request;
+use App\Enums\LeaveStatusEnum;
 use App\Annotation\Permissions;
+use App\Enums\AttendanceStatusEnum;
 use App\Http\Controllers\Controller;
 
 class HrReportController extends Controller

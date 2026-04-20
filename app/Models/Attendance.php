@@ -39,7 +39,7 @@ class Attendance extends Model
 
         if (! empty($param['month']) && ! empty($param['year'])) {
             $query->whereMonth('date', $param['month'])
-                  ->whereYear('date', $param['year']);
+                ->whereYear('date', $param['year']);
         }
 
         if (! empty($param['date'])) {

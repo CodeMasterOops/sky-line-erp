@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api\Admin\HR;
 
-use App\Models\SalaryComponent;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use App\Models\SalaryComponent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\SalaryComponentResource;
 use App\Http\Requests\Api\Admin\SalaryComponentRequest;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\StatusEnum;
 use App\Models\DebitNote;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
@@ -9,7 +10,6 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\DebitNoteResource;
 use App\Http\Requests\Api\Admin\DebitNoteRequest;
-use App\Enums\StatusEnum;
 
 class DebitNoteController extends Controller
 {

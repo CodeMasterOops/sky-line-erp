@@ -2,8 +2,6 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Enums\LeaveStatusEnum;
-use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class LeaveApplicationRequest extends FormRequest

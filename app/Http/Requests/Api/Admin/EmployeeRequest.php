@@ -3,9 +3,9 @@
 namespace App\Http\Requests\Api\Admin;
 
 use App\Tenancy\TRule;
-use App\Enums\EmploymentTypeEnum;
-use App\Enums\EmployeeStatusEnum;
 use Illuminate\Validation\Rule;
+use App\Enums\EmployeeStatusEnum;
+use App\Enums\EmploymentTypeEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EmployeeRequest extends FormRequest

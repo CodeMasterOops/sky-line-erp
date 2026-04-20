@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Enums\SalaryComponentTypeEnum;
 use Illuminate\Validation\Rule;
+use App\Enums\SalaryComponentTypeEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SalaryComponentRequest extends FormRequest

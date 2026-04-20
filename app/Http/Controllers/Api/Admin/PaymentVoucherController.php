@@ -44,7 +44,7 @@ class PaymentVoucherController extends Controller
             ->where('fiscal_year_id', $fiscalYearId)
             ->withTrashed()
             ->count();
-        $voucherNo = 'PV-' . ($voucherCount + 1) . '/' . ($setting->fiscalYear->year_code ?? '');
+        $voucherNo = 'PV-'.($voucherCount + 1).'/'.($setting->fiscalYear->year_code ?? '');
 
         $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $voucherNo) {
             $journal = Journal::create([

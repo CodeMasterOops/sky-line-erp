@@ -5,8 +5,8 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
-use App\Services\CoaInsertService;
 use Illuminate\Database\Seeder;
+use App\Services\CoaInsertService;
 
 class CompanySeeder extends Seeder
 {

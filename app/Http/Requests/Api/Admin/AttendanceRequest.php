@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Enums\AttendanceStatusEnum;
 use Illuminate\Validation\Rule;
+use App\Enums\AttendanceStatusEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AttendanceRequest extends FormRequest

@@ -49,7 +49,7 @@ class JournalVoucherController extends Controller
         $fiscalYearId = $setting->fiscal_year_id;
 
         $voucherCount = Journal::where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)->where('fiscal_year_id', $fiscalYearId)->withTrashed()->count();
-        $voucherNo = 'JV-' . ($voucherCount + 1) . '/' . ($setting->fiscalYear->year_code ?? '');
+        $voucherNo = 'JV-'.($voucherCount + 1).'/'.($setting->fiscalYear->year_code ?? '');
 
         $formData['fiscal_year_id'] = $fiscalYearId;
         $formData['type'] = JournalTypeEnum::JOURNAL_VOUCHER->value;

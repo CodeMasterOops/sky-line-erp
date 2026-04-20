@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Enums\StatusEnum;
 use App\Tenancy\TRule;
+use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 

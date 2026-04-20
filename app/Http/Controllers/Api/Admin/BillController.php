@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Bill;
+use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\BillResource;
 use App\Http\Requests\Api\Admin\BillRequest;
-use App\Enums\StatusEnum;
 
 class BillController extends Controller
 {
@@ -260,6 +260,7 @@ class BillController extends Controller
                 $row->grand_total = round($grandTotal, 2);
                 $row->paid_total = round($paidTotal, 2);
                 $row->due_amount = round($due, 2);
+
                 return $row;
             })
             ->filter(fn ($row) => $row->due_amount > 0)

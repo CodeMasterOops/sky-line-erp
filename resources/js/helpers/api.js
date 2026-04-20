@@ -76,7 +76,7 @@ const formattedRequest = (base, method, url, body = null) => {
             return base.delete(url);
         }
         default:
-            return base.get(url);
+            return body ? base.get(url, {params: body}) : base.get(url);
     }
 }
 

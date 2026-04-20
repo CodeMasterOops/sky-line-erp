@@ -4,8 +4,8 @@ namespace App\Models;
 
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Department extends Model
 {
@@ -35,7 +35,7 @@ class Department extends Model
             $key = '%'.trim($param['search']).'%';
             $query->where(function ($q) use ($key) {
                 $q->where('name', 'like', $key)
-                  ->orWhere('code', 'like', $key);
+                    ->orWhere('code', 'like', $key);
             });
         }
 

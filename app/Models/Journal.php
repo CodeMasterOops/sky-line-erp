@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Enums\StatusEnum;
-use App\Enums\JournalTypeEnum;
 use App\Traits\MultiTenant;
+use App\Enums\JournalTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;

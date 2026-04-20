@@ -43,7 +43,7 @@ class Expense extends Model
             $key = '%'.trim($param['search']).'%';
             $query->where(function ($q) use ($key) {
                 $q->where('expense_no', 'like', $key)
-                  ->orWhere('reference_no', 'like', $key);
+                    ->orWhere('reference_no', 'like', $key);
             });
         }
 

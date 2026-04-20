@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\BrandController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\AccountController;
+use App\Http\Controllers\Api\Admin\AccountReportController;
 use App\Http\Controllers\Api\Admin\JournalVoucherController;
 use App\Http\Controllers\Api\Admin\PaymentVoucherController;
 use App\Http\Controllers\Api\Admin\ReceiptVoucherController;
@@ -198,6 +199,11 @@ Route::middleware('auth:admin')->group(function () {
 
         // account settings
         Route::apiResource('account-setting', AccountSettingController::class)->only('index', 'store');
+
+        // accounting reports
+        Route::prefix('account-report')->as('account-report.')->controller(AccountReportController::class)->group(function () {
+            Route::get('trial-balance', 'trialBalance')->name('trial-balance');
+        });
 
         // HR — Phase 1: Employee Foundation
         Route::prefix('hr')->as('hr.')->group(function () {

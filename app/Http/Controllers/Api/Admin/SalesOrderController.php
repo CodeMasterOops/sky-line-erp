@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\SalesOrder;
-use App\Enums\StatusEnum;
 use App\Tenancy\TRule;
+use App\Models\Invoice;
+use App\Enums\StatusEnum;
+use App\Models\SalesOrder;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\SalesOrderResource;
 use App\Http\Resources\Admin\InvoiceResource;
+use App\Http\Resources\Admin\SalesOrderResource;
 use App\Http\Requests\Api\Admin\SalesOrderRequest;
-use App\Models\Invoice;
 
 class SalesOrderController extends Controller
 {

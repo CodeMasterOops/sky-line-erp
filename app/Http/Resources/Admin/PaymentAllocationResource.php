@@ -33,6 +33,7 @@ class PaymentAllocationResource extends JsonResource
                         'due_date' => $this->payable->due_date ?? '',
                     ];
                 }
+
                 return null;
             }),
             'amount' => $this->amount ?? 0,

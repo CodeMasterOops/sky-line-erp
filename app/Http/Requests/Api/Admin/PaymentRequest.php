@@ -2,12 +2,12 @@
 
 namespace App\Http\Requests\Api\Admin;
 
-use App\Enums\StatusEnum;
+use App\Models\Bill;
 use App\Tenancy\TRule;
+use App\Models\Expense;
+use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Models\Bill;
-use App\Models\Expense;
 
 class PaymentRequest extends FormRequest
 {

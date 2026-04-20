@@ -6,9 +6,9 @@ use App\Traits\MultiTenant;
 use App\Enums\EmployeeStatusEnum;
 use App\Enums\EmploymentTypeEnum;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Employee extends Model
 {
@@ -83,10 +83,10 @@ class Employee extends Model
             $key = '%'.trim($param['search']).'%';
             $query->where(function ($q) use ($key) {
                 $q->where('first_name', 'like', $key)
-                  ->orWhere('last_name', 'like', $key)
-                  ->orWhere('employee_code', 'like', $key)
-                  ->orWhere('email', 'like', $key)
-                  ->orWhere('phone', 'like', $key);
+                    ->orWhere('last_name', 'like', $key)
+                    ->orWhere('employee_code', 'like', $key)
+                    ->orWhere('email', 'like', $key)
+                    ->orWhere('phone', 'like', $key);
             });
         }
 

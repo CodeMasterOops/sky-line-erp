@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Traits\MultiTenant;
 use App\Enums\PayrollStatusEnum;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PayrollRun extends Model
 {

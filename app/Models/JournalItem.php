@@ -27,12 +27,12 @@ class JournalItem extends Model
 
     public function setDrAmountAttribute($value): void
     {
-        $this->attributes['dr_amount']=(float)$value;
+        $this->attributes['dr_amount'] = (float) $value;
     }
 
     public function setCrAmountAttribute($value): void
     {
-        $this->attributes['cr_amount']=(float)$value;
+        $this->attributes['cr_amount'] = (float) $value;
     }
 
     public function journal(): BelongsTo

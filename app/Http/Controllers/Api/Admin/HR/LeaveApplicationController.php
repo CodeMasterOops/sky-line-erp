@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin\HR;
 
-use App\Models\LeaveApplication;
-use App\Enums\LeaveStatusEnum;
 use Illuminate\Http\Request;
+use App\Enums\LeaveStatusEnum;
 use App\Annotation\Permissions;
+use App\Models\LeaveApplication;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\LeaveApplicationResource;
 use App\Http\Requests\Api\Admin\LeaveApplicationRequest;

@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Api\Admin\HR;
 
-use App\Models\Attendance;
 use App\Models\Employee;
-use App\Enums\AttendanceStatusEnum;
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
