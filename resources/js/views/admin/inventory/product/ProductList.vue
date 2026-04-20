@@ -1,13 +1,13 @@
 <template>
     <PageHeader title="Product List" subtitle="Manage your products" @refresh="fetchProducts">
         <template #actions>
-            <button type="button" @click.prevent="createModalOpened = true" v-can="'create_product'"
-                    class="btn btn-primary d-flex align-items-center">
+            <router-link :to="{ name: 'admin.product-create' }" v-can="'create_product'"
+                class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
                 Add Product
-            </button>
+            </router-link>
             <a href="#" class="btn btn-secondary color d-flex align-items-center" data-bs-toggle="modal"
-               data-bs-target="#view-notes">
+                data-bs-target="#view-notes">
                 <i class="ti ti-download me-2"></i>
                 Import Product
             </a>
@@ -20,27 +20,27 @@
             <div class="search-set">
                 <div class="search-input">
                     <a href="javascript:void(0);" class="btn-searchset"><i
-                        class="ti ti-search fs-14 feather-search"></i></a>
+                            class="ti ti-search fs-14 feather-search"></i></a>
                     <input type="search" v-model="filter.search" class="form-control form-control-sm"
-                           placeholder="Search" @input="debouncedFetch">
+                        placeholder="Search" @input="debouncedFetch">
                 </div>
             </div>
             <div class="d-flex table-dropdown my-xl-auto right-content align-items-center flex-wrap row-gap-3">
                 <!-- Category Dropdown -->
                 <div class="dropdown me-2">
                     <a href="javascript:void(0);"
-                       class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                       data-bs-toggle="dropdown">
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
                         {{ selectedCategoryName || 'Category' }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end p-3">
                         <li>
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                               @click="setFilter('product_category_id', '')">All Categories</a>
+                                @click="setFilter('product_category_id', '')">All Categories</a>
                         </li>
                         <li v-for="category in categoryList" :key="category.id">
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                               @click="setFilter('product_category_id', category.id, category.name)">{{
+                                @click="setFilter('product_category_id', category.id, category.name)">{{
                                     category.name
                                 }}</a>
                         </li>
@@ -49,18 +49,18 @@
                 <!-- Brand Dropdown -->
                 <div class="dropdown me-2">
                     <a href="javascript:void(0);"
-                       class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                       data-bs-toggle="dropdown">
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
                         {{ selectedBrandName || 'Brand' }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end p-3">
                         <li>
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                               @click="setFilter('brand_id', '')">All Brands</a>
+                                @click="setFilter('brand_id', '')">All Brands</a>
                         </li>
                         <li v-for="brand in brands" :key="brand.id">
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                               @click="setFilter('brand_id', brand.id, brand.name)">{{ brand.name }}</a>
+                                @click="setFilter('brand_id', brand.id, brand.name)">{{ brand.name }}</a>
                         </li>
                     </ul>
                 </div>
@@ -68,20 +68,14 @@
         </div>
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
-                <a-table
-                    class="table datanew table-hover table-center mb-0"
-                    :columns="columns"
-                    :data-source="products.data"
-                    :pagination="pagination"
-                    :loading="products.loading"
-                    @change="handleTableChange"
-                >
+                <a-table class="table datanew table-hover table-center mb-0" :columns="columns"
+                    :data-source="products.data" :pagination="pagination" :loading="products.loading"
+                    @change="handleTableChange">
                     <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'Product'">
                             <div class="productimgname">
                                 <a href="javascript:void(0);" class="avatar avatar-md me-2">
-                                    <img :src="record.image || 'https://placehold.co/40x40'" alt="product"
-                                         style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img :src="record.image || 'https://placehold.co/40x40'" alt="product">
                                 </a>
                                 <a href="javascript:void(0);">{{ record.name }}</a>
                             </div>
@@ -91,11 +85,11 @@
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
                                     <a class="me-2 edit-icon p-2" href="javascript:void(0);"
-                                       @click="editProduct(record.id)">
+                                        @click="editProduct(record.id)">
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
-                                       @click="deleteProduct(record.id)">
+                                        @click="deleteProduct(record.id)">
                                         <i class="ti ti-trash"></i>
                                     </a>
                                 </div>
@@ -107,38 +101,32 @@
         </div>
     </div>
     <!-- /product list -->
-
-    <CreateProduct v-model:create-modal-opened="createModalOpened"/>
-    <EditProduct v-model:product_id="edit_product_id"/>
 </template>
 
 <script setup>
-import {onMounted, reactive, ref, computed} from 'vue';
+import { onMounted, reactive, ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
+import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
-import CreateProduct from './Create.vue';
-import EditProduct from './Edit.vue';
-import {useProductStore} from '@/stores/admin/inventory/product.js';
-import {useProductCategoryStore} from '@/stores/admin/inventory/product-category.js';
-import {useBrandStore} from '@/stores/admin/inventory/brand.js';
+import { storeToRefs } from 'pinia';
+import { useProductStore } from '@/stores/admin/inventory/product.js';
+import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
+import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 import debounce from 'lodash/debounce';
 
+const router = useRouter();
 const productStore = useProductStore();
 const categoryStore = useProductCategoryStore();
 const brandStore = useBrandStore();
 
-const {products} = storeToRefs(productStore);
-const {productCategories: categories} = storeToRefs(categoryStore);
-const {brands: brandList} = storeToRefs(brandStore);
+const { products } = storeToRefs(productStore);
+const { productCategories: categories } = storeToRefs(categoryStore);
+const { brands: brandList } = storeToRefs(brandStore);
 
 // Use computed properties to access the data arrays from the store state
 const brands = computed(() => brandList.value.data || []);
 const categoryList = computed(() => categories.value.data || []);
-
-const createModalOpened = ref(false);
-const edit_product_id = ref('');
 
 const filter = reactive({
     search: '',
@@ -161,15 +149,15 @@ const pagination = computed(() => ({
 
 const columns = [
     {
-        title: "Name",
-        dataIndex: "name",
-        key: "Product",
-        sorter: true
-    },
-    {
         title: "SKU",
         dataIndex: "code",
         sorter: true,
+    },
+    {
+        title: "Product Name",
+        dataIndex: "name",
+        key: "Product",
+        sorter: true
     },
     {
         title: "Category",
@@ -183,7 +171,7 @@ const columns = [
     },
     {
         title: "Price",
-        customRender: ({record}) => record.defaultVariant?.sales_price,
+        customRender: ({ record }) => record.defaultVariant?.sales_price,
         sorter: true,
     },
     {
@@ -209,7 +197,7 @@ onMounted(async () => {
 });
 
 const fetchProducts = () => {
-    productStore.getProducts({filter});
+    productStore.getProducts({ filter });
 };
 
 const debouncedFetch = debounce(() => {
@@ -239,7 +227,7 @@ const handleTableChange = (pagination) => {
 };
 
 const editProduct = (id) => {
-    edit_product_id.value = id;
+    router.push({ name: 'admin.product-edit', params: { id: String(id) } });
 };
 
 const deleteProduct = async (id) => {
@@ -264,20 +252,3 @@ const deleteProduct = async (id) => {
 };
 
 </script>
-
-<style scoped>
-.productimgname {
-    display: flex;
-    align-items: center;
-}
-
-.userimgname {
-    display: flex;
-    align-items: center;
-}
-
-.action-table-data .edit-delete-action {
-    display: flex;
-    gap: 10px;
-}
-</style>

@@ -22,6 +22,7 @@ class ProductVariantResource extends JsonResource
             $this->mergeWhen($this->whenLoaded('product'), function () {
                 return [
                     'unit_id' => $this->product->unit_id ?? '',
+                    'product_code' => $this->product->code ?? '',
                 ];
             }),
             'sku' => $this->sku ?? '',

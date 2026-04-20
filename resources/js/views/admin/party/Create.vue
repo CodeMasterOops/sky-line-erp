@@ -6,12 +6,12 @@
         title="Add New Party">
         <template #modal-body>
             <form @submit.prevent="storeParty" class="row g-3">
-                <div v-for="type in partyTypes" :key="type.id" class="col-4">
-                    <input type="radio" v-model="form.type" :value="type.id" :id="type.id" class="btn-check">
-                    <label :for="type.id" class="btn w-100 py-2 rounded-1 btn-outline-secondary">
-                        {{ type.name }}
-                    </label>
-                </div>
+                <PartyTypeSelector
+                    id-prefix="party-create"
+                    v-model="form.type"
+                    :error="errors.type"
+                    @change="validateField('type')"
+                />
                 <div class="col-md-6">
                     <VInput
                         id="name"
@@ -94,6 +94,7 @@ import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {usePartyStore} from "@/stores/admin/party.js";
+import PartyTypeSelector from '@/components/party/PartyTypeSelector.vue';
 
 const props = defineProps({
     type: {
@@ -104,12 +105,6 @@ const props = defineProps({
 const partyStore = usePartyStore();
 
 const createModalOpened = defineModel('createModalOpened');
-
-const partyTypes = [
-    {id: 'customer', name: 'Customer'},
-    {id: 'supplier', name: 'Supplier'},
-    {id: 'lead', name: 'Lead'}
-];
 
 const initialState = {
     type: props.type || 'customer',

@@ -36,6 +36,25 @@ export const useProductStore = defineStore('product', {
                     });
             }
         },
+        /**
+         * Paginated variant search (name, product code, SKU). Does not cache the full catalog.
+         */
+        searchProductVariants({ q = '', barcode = '', page = 1, limit = 20 } = {}) {
+            const params = new URLSearchParams();
+            if (barcode) {
+                params.set('barcode', barcode);
+            }
+            if (q) {
+                params.set('q', q);
+            }
+            params.set('page', String(page));
+            params.set('limit', String(limit));
+            return apiAdmin(`${apiUrl}/variant/search?${params.toString()}`)
+                .then((res) => res.data)
+                .catch((err) => {
+                    throw err;
+                });
+        },
         getProducts({filter}) {
             this.products.loading = true;
             return apiAdmin(`${apiUrl}?${new URLSearchParams(filter).toString()}`)

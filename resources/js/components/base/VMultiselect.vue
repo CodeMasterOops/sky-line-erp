@@ -6,6 +6,7 @@
         :value="modelValue"
         :customLabel="label"
         @input="updateModelValue"
+        @search-change="onSearchChange"
         :disabled="disabled || loading"
         :loading="loading"
         :valueProp="valueProp"
@@ -16,6 +17,8 @@
         :mode="mode"
         :multiple-label=formatMultipleLabel
         :hide-selected="false"
+        :filter-results="filterResults"
+        :min-chars="minChars"
     />
     <div v-if="error" class="text-danger">
         {{ error }}
@@ -25,7 +28,7 @@
 <script setup>
 import Multiselect from "@vueform/multiselect"
 
-const emit = defineEmits(['update:modelValue', 'validate', 'onInput']);
+const emit = defineEmits(['update:modelValue', 'validate', 'onInput', 'searchChange']);
 
 const props = defineProps({
     id: {
@@ -68,8 +71,20 @@ const props = defineProps({
     },
     mode: {
         default: 'single'
-    }
+    },
+    filterResults: {
+        type: Boolean,
+        default: true,
+    },
+    minChars: {
+        type: Number,
+        default: 0,
+    },
 })
+
+const onSearchChange = (query) => {
+    emit('searchChange', query);
+};
 
 const updateModelValue = (value) => {
     emit('update:modelValue', value ?? '');

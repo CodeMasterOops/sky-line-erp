@@ -31,7 +31,6 @@
 @use "components/ribbon";
 @use "components/popup";
 @use "components/grid";
-@use "components/modal";
 
 /****** Layout ******/
 @use "layout/darktheme";
@@ -57,3 +56,6 @@
 @use "pages/antd-table";
 @use "pages/pos";
 @use "pages/pos-design";
+
+/* Must load after theme/pages so mini-sidebar main width wins the cascade */
+@use "layout/mini-sidebar-layout";

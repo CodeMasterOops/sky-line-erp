@@ -3,6 +3,8 @@ import adminRoutes from '@/router/admin';
 import superAdminRoutes from '@/router/super-admin.js';
 import { useAdminAuthStore } from '@/stores/admin/auth';
 import { useSuperAdminAuthStore } from '@/stores/super-admin/auth.js';
+import { satisfiesAdminRoutePermission } from '@/helpers/checkPermission';
+import { getAdminRoutePermission } from '@/router/adminRoutePermissions';
 
 const routes = [
     ...superAdminRoutes,
@@ -23,13 +25,26 @@ router.beforeEach((to, from, next) => {
     document.title = `${to.meta.pageTitle ?? ''}`;
 
     if (to.meta.isAdmin) {
-        if (to.meta.requiresAuth && !useAdminAuthStore().authUser.access_token) {
+        const adminAuth = useAdminAuthStore();
+        if (to.meta.requiresAuth && !adminAuth.authUser.access_token) {
             next({ name: 'admin.login' });
-        } else if (useAdminAuthStore().authUser.access_token && to.meta.isGuest) {
-            next({ name: 'admin.dashboard' });
-        } else {
-            next();
+            return;
         }
+        if (adminAuth.authUser.access_token && to.meta.isGuest) {
+            next({ name: 'admin.dashboard' });
+            return;
+        }
+        if (adminAuth.authUser.access_token && !to.meta.isGuest) {
+            const requirement = getAdminRoutePermission(to.name);
+            if (
+                requirement !== undefined &&
+                !satisfiesAdminRoutePermission(requirement)
+            ) {
+                next({ name: 'admin.dashboard' });
+                return;
+            }
+        }
+        next();
     } else if (to.meta.isSuperAdmin) {
         if (to.meta.requiresAuth && !useSuperAdminAuthStore().authUser.access_token) {
             next({ name: 'super-admin.login' });

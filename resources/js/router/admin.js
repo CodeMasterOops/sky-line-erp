@@ -286,13 +286,31 @@ const routes = [
                     import("@/views/admin/inventory/product-category/Index.vue"),
             },
             {
+                path: "product/create",
+                name: "admin.product-create",
+                meta: {
+                    pageTitle: "Add Product",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/product/Create.vue"),
+            },
+            {
+                path: "product/:id/edit",
+                name: "admin.product-edit",
+                meta: {
+                    pageTitle: "Edit Product",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/product/Edit.vue"),
+            },
+            {
                 path: "product",
                 name: "admin.product-list",
                 meta: {
                     pageTitle: "Product List",
                 },
                 component: () =>
-                    import("@/views/admin/inventory/product/ProductListV2.vue"),
+                    import("@/views/admin/inventory/product/ProductList.vue"),
             },
             {
                 path: "party",
@@ -310,15 +328,6 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/inventory/attribute/Index.vue"),
-            },
-            {
-                path: "warranty",
-                name: "admin.warranty-list",
-                meta: {
-                    pageTitle: "Warranty",
-                },
-                component: () =>
-                    import("@/views/admin/inventory/warranty/Index.vue"),
             },
             {
                 path: "barcode",

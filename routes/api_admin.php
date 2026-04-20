@@ -103,6 +103,7 @@ Route::middleware('auth:admin')->group(function () {
 
         // product
         Route::get('product/variant/all', [ProductController::class, 'productVariants'])->name('product.variant.all');
+        Route::get('product/variant/search', [ProductController::class, 'searchProductVariants'])->name('product.variant.search');
         Route::apiResource('product', ProductController::class);
 
         // product attribute

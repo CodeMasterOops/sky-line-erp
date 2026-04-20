@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Product;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
@@ -21,6 +22,48 @@ class ProductController extends Controller
     {
         $variants = ProductVariant::with(['product:id,name,unit_id', 'variantOptions'])
             ->get();
+
+        return ProductVariantResource::collection($variants);
+    }
+
+    /**
+     * Paginated product variant search by SKU, product name, or product code (for sales order / POS pickers).
+     *
+     * @Permissions("list_product_variant", group="product", desc="List Product Variant")
+     */
+    public function searchProductVariants(Request $request)
+    {
+        $perPage = min(max((int) $request->get('limit', 20), 1), 50);
+        $q = trim((string) $request->get('q', ''));
+        $barcode = trim((string) $request->get('barcode', ''));
+
+        $query = ProductVariant::query()
+            ->with([
+                'product:id,name,code,unit_id',
+                'variantOptions.attribute',
+            ]);
+
+        if ($barcode !== '') {
+            $query->where(function ($sub) use ($barcode) {
+                $sub->where('sku', $barcode)
+                    ->orWhereHas('product', function ($product) use ($barcode) {
+                        $product->where('code', $barcode);
+                    });
+            });
+        } elseif (mb_strlen($q) >= 2) {
+            $like = '%'.$q.'%';
+            $query->where(function ($sub) use ($like) {
+                $sub->where('sku', 'like', $like)
+                    ->orWhereHas('product', function ($product) use ($like) {
+                        $product->where('name', 'like', $like)
+                            ->orWhere('code', 'like', $like);
+                    });
+            });
+        } else {
+            $query->whereRaw('0 = 1');
+        }
+
+        $variants = $query->latest('product_variants.id')->paginate($perPage);
 
         return ProductVariantResource::collection($variants);
     }
@@ -87,7 +130,61 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, Product $product)
     {
-        $product->update($request->validated());
+        $validated = $request->validated();
+
+        $productData = Arr::only($validated, [
+            'product_category_id',
+            'product_type',
+            'name',
+            'code',
+            'unit_id',
+            'brand_id',
+            'has_variants',
+            'reorder_quantity',
+            'description',
+        ]);
+
+        DB::transaction(function () use ($request, $validated, $productData, $product) {
+            $product->update($productData);
+
+            $hasVariants = $request->boolean('has_variants');
+
+            foreach ($validated['variants'] ?? [] as $variant) {
+                $variantId = $variant['id'] ?? null;
+                $attrValues = $variant['attribute_values'] ?? [];
+
+                if ($variantId) {
+                    $productVariant = ProductVariant::query()
+                        ->where('product_id', $product->id)
+                        ->where('id', $variantId)
+                        ->first();
+
+                    if ($productVariant) {
+                        $productVariant->update([
+                            'sku' => $variant['sku'] ?? null,
+                            'sales_price' => $variant['sales_price'] ?? 0,
+                            'purchase_price' => $variant['purchase_price'] ?? 0,
+                            'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
+                        ]);
+                        $productVariant->variantOptions()->sync($attrValues);
+                    }
+                } else {
+                    $productVariant = $product->variants()->create([
+                        'vendor_id' => $product->vendor_id,
+                        'sku' => $variant['sku'] ?? null,
+                        'sales_price' => $variant['sales_price'] ?? 0,
+                        'purchase_price' => $variant['purchase_price'] ?? 0,
+                        'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
+                    ]);
+
+                    $productVariant->variantOptions()->attach($attrValues);
+                }
+            }
+        });
+
+        $product->load([
+            'variants.variantOptions.attribute',
+        ]);
 
         return response()->json([
             'data' => ProductResource::make($product),

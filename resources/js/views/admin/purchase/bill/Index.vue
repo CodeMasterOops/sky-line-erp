@@ -54,6 +54,13 @@
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
                                     <a
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        title="View"
+                                        @click="openDetail(record.id)">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
+                                    <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
                                         href="javascript:void(0);"
@@ -89,6 +96,7 @@
 
     <CreateBill v-model:create-modal-opened="createModalOpened"/>
     <EditBill v-model:bill_id="edit_bill_id"/>
+    <BillDetailModal v-model:detail-bill-id="detail_bill_id"/>
     <PaymentModal
         v-model:open="paymentModalOpened"
         v-model:payable-id="paymentBillId"
@@ -107,6 +115,7 @@ import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
 import CreateBill from './Create.vue';
 import EditBill from './Edit.vue';
+import BillDetailModal from './DetailModal.vue';
 import PaymentModal from '@/views/admin/purchase/payment/PaymentModal.vue';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 
@@ -116,6 +125,7 @@ const {bills} = storeToRefs(billStore);
 
 const createModalOpened = ref(false);
 const edit_bill_id = ref('');
+const detail_bill_id = ref('');
 const paymentModalOpened = ref(false);
 const paymentBillId = ref('');
 
@@ -195,6 +205,10 @@ const handleTableChange = (pagination) => {
 
 const editBill = (id) => {
     edit_bill_id.value = id;
+};
+
+const openDetail = (id) => {
+    detail_bill_id.value = id;
 };
 
 const deleteBill = async (id) => {
