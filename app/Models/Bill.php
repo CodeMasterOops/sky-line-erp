@@ -76,6 +76,11 @@ class Bill extends Model
         return $this->morphMany(PaymentAllocation::class, 'payable');
     }
 
+    public function stockMovements(): MorphMany
+    {
+        return $this->morphMany(StockMovement::class, 'reference');
+    }
+
     public function fiscalYear(): BelongsTo
     {
         return $this->belongsTo(FiscalYear::class);

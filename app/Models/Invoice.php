@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Invoice extends Model
 {
@@ -75,6 +76,11 @@ class Invoice extends Model
     public function receiptAllocations(): HasMany
     {
         return $this->hasMany(ReceiptAllocation::class);
+    }
+
+    public function stockMovements(): MorphMany
+    {
+        return $this->morphMany(StockMovement::class, 'reference');
     }
 
     public function fiscalYear(): BelongsTo

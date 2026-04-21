@@ -5,14 +5,22 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\Bill;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
+use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\BillResource;
 use App\Http\Requests\Api\Admin\BillRequest;
+use Illuminate\Validation\ValidationException;
+use App\Services\Inventory\InventoryCostCalculator;
+use App\Services\Inventory\InventoryLayerReceiptService;
 
 class BillController extends Controller
 {
+    public function __construct(
+        private InventoryLayerReceiptService $inventoryReceipt,
+    ) {}
+
     /**
      * @Permissions("list_bill", group="bill", desc="List Bill")
      */
@@ -38,38 +46,50 @@ class BillController extends Controller
         $fiscalYearId = $setting->fiscal_year_id;
         $billNo = $formData['bill_no'] ?? $this->generateBillNo($fiscalYearId, $setting->fiscalYear?->year_code);
 
-        $bill = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $billNo) {
-            $bill = Bill::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $formData['party_id'] ?? null,
-                'purchase_order_id' => $formData['purchase_order_id'] ?? null,
-                'bill_no' => $billNo,
-                'bill_date' => $formData['bill_date'],
-                'due_date' => $formData['due_date'] ?? null,
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
+        try {
+            $bill = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $billNo) {
+                $bill = Bill::create([
+                    'fiscal_year_id' => $fiscalYearId,
+                    'party_id' => $formData['party_id'] ?? null,
+                    'purchase_order_id' => $formData['purchase_order_id'] ?? null,
+                    'bill_no' => $billNo,
+                    'bill_date' => $formData['bill_date'],
+                    'due_date' => $formData['due_date'] ?? null,
+                    'remarks' => $formData['remarks'] ?? null,
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
+                    'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
+                    'status' => $status,
+                ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                $items = collect($formData['items'] ?? [])->map(function ($item) {
+                    return [
+                        'product_variant_id' => $item['product_variant_id'],
+                        'warehouse_id' => $item['warehouse_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'rate' => $item['rate'],
+                        'tax_id' => $item['tax_id'] ?? null,
+                        'tax_amount' => $item['tax_amount'] ?? 0,
+                        'discount_amount' => $item['discount_amount'] ?? 0,
+                    ];
+                })->all();
 
-            $bill->billItems()->createMany($items);
+                $bill->billItems()->createMany($items);
 
-            return $bill;
-        });
+                if ($status === StatusEnum::APPROVED->value) {
+                    $bill->refresh();
+                    $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
+                }
+
+                return $bill;
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $bill->load([
             'party',
@@ -186,11 +206,22 @@ class BillController extends Controller
 
         $user = auth('admin')->user();
 
-        $bill->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        try {
+            DB::transaction(function () use ($bill, $user) {
+                $bill->update([
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED->value,
+                ]);
+
+                $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $bill->load([
             'party',
@@ -204,6 +235,33 @@ class BillController extends Controller
             'data' => BillResource::make($bill),
             'message' => 'Bill Approved Successfully',
         ]);
+    }
+
+    private function applyInventoryReceiptsForApprovedBill(Bill $bill, \App\Models\Company $company, \App\Models\User $user): void
+    {
+        $bill->loadMissing('billItems');
+
+        foreach ($bill->billItems as $item) {
+            $qty = (int) $item->quantity;
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $unitCost = InventoryCostCalculator::unitCostFromBillItem($item);
+
+            $this->inventoryReceipt->receive(
+                $company,
+                $bill,
+                $item->product_variant_id,
+                $item->warehouse_id,
+                $qty,
+                $unitCost,
+                ChangeTypeEnum::PURCHASE,
+                $user->id,
+                $bill->remarks,
+                $item->id,
+            );
+        }
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Admin;
 
 use Illuminate\Validation\Rule;
+use App\Enums\InventoryCostingMethodEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateSettingRequest extends FormRequest
@@ -28,6 +29,7 @@ class UpdateSettingRequest extends FormRequest
             'code' => ['nullable', Rule::unique('companies')->withoutTrashed()->ignore($company)],
             'email' => ['required', 'email', Rule::unique('companies', 'email')->withoutTrashed()->ignore($company)],
             'fiscal_year_id' => ['required', Rule::exists('fiscal_years', 'id')->withoutTrashed()],
+            'inventory_costing_method' => ['required', Rule::enum(InventoryCostingMethodEnum::class)],
         ];
     }
 }

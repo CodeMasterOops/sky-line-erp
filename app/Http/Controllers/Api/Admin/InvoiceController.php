@@ -5,14 +5,21 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\Invoice;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
+use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\InvoiceResource;
+use Illuminate\Validation\ValidationException;
 use App\Http\Requests\Api\Admin\InvoiceRequest;
+use App\Services\Inventory\InventoryLayerIssueService;
 
 class InvoiceController extends Controller
 {
+    public function __construct(
+        private InventoryLayerIssueService $inventoryIssue,
+    ) {}
+
     /**
      * @Permissions("list_invoice", group="invoice", desc="List Invoice")
      */
@@ -38,39 +45,51 @@ class InvoiceController extends Controller
         $fiscalYearId = $setting->fiscal_year_id;
         $invoiceNo = $formData['invoice_no'] ?? $this->generateInvoiceNo($fiscalYearId, $setting->fiscalYear?->year_code);
 
-        $invoice = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $invoiceNo) {
-            $invoice = Invoice::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $formData['party_id'] ?? null,
-                'reference_type' => $formData['reference_type'] ?? null,
-                'reference_id' => $formData['reference_id'] ?? null,
-                'invoice_no' => $invoiceNo,
-                'invoice_date' => $formData['invoice_date'],
-                'due_date' => $formData['due_date'] ?? null,
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
+        try {
+            $invoice = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $invoiceNo) {
+                $invoice = Invoice::create([
+                    'fiscal_year_id' => $fiscalYearId,
+                    'party_id' => $formData['party_id'] ?? null,
+                    'reference_type' => $formData['reference_type'] ?? null,
+                    'reference_id' => $formData['reference_id'] ?? null,
+                    'invoice_no' => $invoiceNo,
+                    'invoice_date' => $formData['invoice_date'],
+                    'due_date' => $formData['due_date'] ?? null,
+                    'remarks' => $formData['remarks'] ?? null,
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
+                    'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
+                    'status' => $status,
+                ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                $items = collect($formData['items'] ?? [])->map(function ($item) {
+                    return [
+                        'product_variant_id' => $item['product_variant_id'],
+                        'warehouse_id' => $item['warehouse_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'rate' => $item['rate'],
+                        'tax_id' => $item['tax_id'] ?? null,
+                        'tax_amount' => $item['tax_amount'] ?? 0,
+                        'discount_amount' => $item['discount_amount'] ?? 0,
+                    ];
+                })->all();
 
-            $invoice->invoiceItems()->createMany($items);
+                $invoice->invoiceItems()->createMany($items);
 
-            return $invoice;
-        });
+                if ($status === StatusEnum::APPROVED->value) {
+                    $invoice->refresh();
+                    $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
+                }
+
+                return $invoice;
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $invoice->load([
             'party',
@@ -189,11 +208,22 @@ class InvoiceController extends Controller
 
         $user = auth('admin')->user();
 
-        $invoice->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        try {
+            DB::transaction(function () use ($invoice, $user) {
+                $invoice->update([
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED->value,
+                ]);
+
+                $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $invoice->load([
             'party',
@@ -207,6 +237,29 @@ class InvoiceController extends Controller
             'data' => InvoiceResource::make($invoice),
             'message' => 'Invoice Approved Successfully',
         ]);
+    }
+
+    private function applyInventoryIssuesForApprovedInvoice(Invoice $invoice, \App\Models\Company $company, \App\Models\User $user): void
+    {
+        $invoice->loadMissing('invoiceItems');
+
+        foreach ($invoice->invoiceItems as $item) {
+            $qty = (int) $item->quantity;
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $this->inventoryIssue->issue(
+                $company,
+                $invoice,
+                $item->product_variant_id,
+                $item->warehouse_id,
+                $qty,
+                ChangeTypeEnum::SALE,
+                $user->id,
+                $invoice->remarks,
+            );
+        }
     }
 
     /**

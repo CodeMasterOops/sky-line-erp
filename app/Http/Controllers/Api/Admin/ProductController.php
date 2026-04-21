@@ -73,7 +73,21 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = Product::with(['productCategory', 'brand', 'unit', 'defaultVariant', 'variants'])
+        $variantRelations = [
+            'stocks' => fn ($sq) => $sq->with('warehouse'),
+        ];
+
+        if ($request->boolean('include_inventory_value')) {
+            $variantRelations['stockLayers'] = fn ($lq) => $lq->where('qty_remaining', '>', 0);
+        }
+
+        $products = Product::with([
+            'productCategory',
+            'brand',
+            'unit',
+            'defaultVariant',
+            'variants' => fn ($q) => $q->with($variantRelations),
+        ])
             ->filter($request->all())
             ->paginate($request->limit ?? 25);
 
@@ -120,6 +134,7 @@ class ProductController extends Controller
     {
         $product->load([
             'variants.variantOptions.attribute',
+            'variants.stocks.warehouse',
         ]);
 
         return ProductResource::make($product);
@@ -184,6 +199,7 @@ class ProductController extends Controller
 
         $product->load([
             'variants.variantOptions.attribute',
+            'variants.stocks.warehouse',
         ]);
 
         return response()->json([

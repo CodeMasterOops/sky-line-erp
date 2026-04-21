@@ -6,6 +6,7 @@ use App\Enums\UserTypeEnum;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
+use App\Enums\InventoryCostingMethodEnum;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -28,12 +29,14 @@ class Company extends Model
         'website',
         'address',
         'is_active',
+        'inventory_costing_method',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'inventory_costing_method' => InventoryCostingMethodEnum::class,
         ];
     }
 

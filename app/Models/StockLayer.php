@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Stock extends Model
+class StockLayer extends Model
 {
     use MultiTenant;
     use SoftDeletes;
@@ -16,22 +16,31 @@ class Stock extends Model
         'company_id',
         'product_variant_id',
         'warehouse_id',
-        'quantity',
-        'on_hold',
+        'qty_remaining',
+        'unit_cost',
+        'received_at',
+        'lot_number',
+        'source_bill_item_id',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
-        'on_hold' => 'integer',
+        'qty_remaining' => 'integer',
+        'unit_cost' => 'float',
+        'received_at' => 'datetime',
     ];
+
+    public function productVariant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class);
+    }
 
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    public function productVariant(): BelongsTo
+    public function sourceBillItem(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class);
+        return $this->belongsTo(BillItem::class, 'source_bill_item_id');
     }
 }

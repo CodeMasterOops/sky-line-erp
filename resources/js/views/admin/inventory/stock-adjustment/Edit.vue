@@ -46,6 +46,7 @@
                                 <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Type</th>
                                 <th style="width: 140px;">Quantity</th>
+                                <th style="width: 120px;">Unit cost</th>
                                 <th style="width: 60px;">Action</th>
                             </tr>
                             </thead>
@@ -83,6 +84,16 @@
                                         @validate="validateField(`items[${index}].quantity`)"
                                         :error="errors[`items[${index}].quantity`]"
                                     />
+                                </td>
+                                <td>
+                                    <VInput
+                                        v-if="form.items[index].direction === 'in'"
+                                        input-type="number"
+                                        v-model="form.items[index].unit_cost"
+                                        @validate="validateField(`items[${index}].unit_cost`)"
+                                        :error="errors[`items[${index}].unit_cost`]"
+                                    />
+                                    <span v-else class="text-muted small">—</span>
                                 </td>
                                 <td class="text-center">
                                     <button
@@ -168,6 +179,7 @@ const initialState = {
             unit_id: '',
             direction: 'in',
             quantity: '',
+            unit_cost: '',
         }
     ],
 };
@@ -186,6 +198,7 @@ const addItem = () => {
         unit_id: '',
         direction: 'in',
         quantity: '',
+        unit_cost: '',
     });
 };
 
@@ -204,6 +217,7 @@ watch(() => edit_adjustment_id.value, async (id) => {
                     unit_id: item.unit_id || '',
                     direction: item.direction || 'in',
                     quantity: item.quantity || '',
+                    unit_cost: item.unit_cost ?? '',
                 }));
             } else {
                 form[key] = adjustment.value.data[key] || '';
@@ -224,6 +238,11 @@ const validations = object({
             direction: string().required('Type is required.'),
             quantity: string().required('Quantity is required.'),
             unit_id: string().nullable(),
+            unit_cost: string().when('direction', {
+                is: 'in',
+                then: (schema) => schema.required('Unit cost is required for adjustment in.'),
+                otherwise: (schema) => schema.nullable(),
+            }),
         })
     ).min(1, 'At least one item is required.'),
 });

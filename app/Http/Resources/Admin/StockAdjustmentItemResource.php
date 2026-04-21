@@ -23,6 +23,7 @@ class StockAdjustmentItemResource extends JsonResource
             }),
             'direction' => $this->direction ?? '',
             'quantity' => $this->quantity ?? 0,
+            'unit_cost' => $this->unit_cost,
         ];
     }
 }
