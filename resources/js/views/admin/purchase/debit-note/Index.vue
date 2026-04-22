@@ -44,15 +44,25 @@
                             {{ index + 1 }}
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span
-                                class="badge"
-                                :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
-                                {{ record.status }}
-                            </span>
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                <span
+                                    class="badge"
+                                    :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
+                                    {{ record.status }}
+                                </span>
+                                <span v-if="record.voided_at" class="badge bg-dark">voided</span>
+                            </div>
                         </template>
                         <template v-else-if="column.key === 'action'">
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
+                                    <a
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        title="View"
+                                        @click="openDetail(record.id)">
+                                        <i class="ti ti-eye"></i>
+                                    </a>
                                     <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
@@ -66,6 +76,15 @@
                                         href="javascript:void(0);"
                                         @click="approveDebitNote(record.id)">
                                         <i class="ti ti-check"></i>
+                                    </a>
+                                    <a
+                                        v-can="'approve_debit_note'"
+                                        v-if="record.status === 'approved' && !record.voided_at"
+                                        class="me-2 p-2 text-warning"
+                                        href="javascript:void(0);"
+                                        title="Void"
+                                        @click="voidDebitNote(record.id)">
+                                        <i class="ti ti-ban"></i>
                                     </a>
                                     <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
                                        @click="deleteDebitNote(record.id)">
@@ -82,6 +101,7 @@
 
     <CreateDebitNote v-model:create-modal-opened="createModalOpened"/>
     <EditDebitNote v-model:debit_note_id="edit_debit_note_id"/>
+    <DebitNoteDetailModal v-model:detail-debit-note-id="detail_debit_note_id" @voided="fetchDebitNotes"/>
 </template>
 
 <script setup>
@@ -93,6 +113,7 @@ import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
 import CreateDebitNote from './Create.vue';
 import EditDebitNote from './Edit.vue';
+import DebitNoteDetailModal from './DetailModal.vue';
 import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
 
 const debitNoteStore = useDebitNoteStore();
@@ -101,6 +122,7 @@ const {debitNotes} = storeToRefs(debitNoteStore);
 
 const createModalOpened = ref(false);
 const edit_debit_note_id = ref('');
+const detail_debit_note_id = ref('');
 
 const filter = reactive({
     search: '',
@@ -175,6 +197,10 @@ const editDebitNote = (id) => {
     edit_debit_note_id.value = id;
 };
 
+const openDetail = (id) => {
+    detail_debit_note_id.value = id;
+};
+
 const deleteDebitNote = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
@@ -184,10 +210,10 @@ const deleteDebitNote = async (id) => {
         confirmButtonColor: 'red',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await debitNoteStore.deleteDebitNote(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Debit note deleted successfully.');
                 fetchDebitNotes();
             } catch (e) {
                 showErrors(e);
@@ -205,10 +231,31 @@ const approveDebitNote = async (id) => {
         confirmButtonColor: 'green',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await debitNoteStore.approveDebitNote(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Debit note approved successfully.');
+                fetchDebitNotes();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
+};
+
+const voidDebitNote = async (id) => {
+    Swal.fire({
+        title: 'Void debit note?',
+        text: 'This reverses inventory and marks the debit note void.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Void',
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await debitNoteStore.voidDebitNote(id);
+                toast(res.status, res.data?.message ?? 'Debit note voided.');
                 fetchDebitNotes();
             } catch (e) {
                 showErrors(e);

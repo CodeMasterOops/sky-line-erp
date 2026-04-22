@@ -24,6 +24,8 @@ class AccountSettingResource extends JsonResource
             'other_contact_account_id' => $this->other_contact_account_id ?? '',
             'purchase_account_id' => $this->purchase_account_id ?? '',
             'sales_account_id' => $this->sales_account_id ?? '',
+            'inventory_account_id' => $this->inventory_account_id ?? '',
+            'cogs_account_id' => $this->cogs_account_id ?? '',
         ];
     }
 }

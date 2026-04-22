@@ -25,6 +25,11 @@
                                     :class="detailData.status === 'approved' ? 'bg-success' : 'bg-secondary'">
                                     {{ detailData.status }}
                                 </span>
+                                <span
+                                    v-if="detailData.voided_at"
+                                    class="badge bg-dark ms-1">
+                                    voided
+                                </span>
                             </p>
                         </div>
                         <div class="details-item">
@@ -85,6 +90,18 @@
                             </div>
                         </div>
                     </div>
+                    <div
+                        v-if="detailData.id"
+                        class="d-flex flex-wrap gap-2 mt-3">
+                        <button
+                            v-can="'approve_bill'"
+                            v-if="detailData.status === 'approved' && !detailData.voided_at"
+                            type="button"
+                            class="btn btn-warning btn-sm text-dark"
+                            @click="voidBill">
+                            <i class="ti ti-ban me-1"></i>Void bill
+                        </button>
+                    </div>
                 </div>
             </div>
         </template>
@@ -94,7 +111,12 @@
 <script setup>
 import {computed, watch} from 'vue';
 import {storeToRefs} from 'pinia';
+import Swal from 'sweetalert2';
+import {toast} from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
+
+const emit = defineEmits(['voided']);
 
 const billStore = useBillStore();
 const {bill} = storeToRefs(billStore);
@@ -144,5 +166,30 @@ const lineTotal = (item) => {
     const disc = Number(item.discount_amount || 0);
     const taxAmt = Number(item.tax_amount || 0);
     return qty * rate - disc + taxAmt;
+};
+
+const voidBill = async () => {
+    const id = detailData.value.id;
+    if (!id) {
+        return;
+    }
+    Swal.fire({
+        title: 'Void bill?',
+        text: 'This reverses inventory and marks the bill void.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Void',
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await billStore.voidBill(id);
+                toast(res.status, res.data?.message ?? 'Bill voided.');
+                emit('voided');
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
 };
 </script>

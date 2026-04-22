@@ -32,6 +32,8 @@ class InventoryLayerIssueService
             throw \InvalidArgumentException('Issue quantity must be positive.');
         }
 
+        $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
+
         $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $quantity);
 
         $this->quantities->adjust($company->id, $productVariantId, $warehouseId, -$quantity);

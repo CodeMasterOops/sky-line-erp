@@ -44,11 +44,14 @@
                             {{ index + 1 }}
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span
-                                class="badge"
-                                :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
-                                {{ record.status }}
-                            </span>
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                <span
+                                    class="badge"
+                                    :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
+                                    {{ record.status }}
+                                </span>
+                                <span v-if="record.voided_at" class="badge bg-dark">voided</span>
+                            </div>
                         </template>
                         <template v-else-if="column.key === 'action'">
                             <div class="action-table-data">
@@ -68,7 +71,7 @@
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <a
-                                        v-if="record.status === 'approved'"
+                                        v-if="record.status === 'approved' && !record.voided_at"
                                         class="me-2 p-2"
                                         href="javascript:void(0);"
                                         @click="recordPayment(record.id)">
@@ -80,6 +83,15 @@
                                         href="javascript:void(0);"
                                         @click="approveBill(record.id)">
                                         <i class="ti ti-check"></i>
+                                    </a>
+                                    <a
+                                        v-can="'approve_bill'"
+                                        v-if="record.status === 'approved' && !record.voided_at"
+                                        class="me-2 p-2 text-warning"
+                                        href="javascript:void(0);"
+                                        title="Void"
+                                        @click="voidBill(record.id)">
+                                        <i class="ti ti-ban"></i>
                                     </a>
                                     <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
                                        @click="deleteBill(record.id)">
@@ -96,7 +108,7 @@
 
     <CreateBill v-model:create-modal-opened="createModalOpened"/>
     <EditBill v-model:bill_id="edit_bill_id"/>
-    <BillDetailModal v-model:detail-bill-id="detail_bill_id"/>
+    <BillDetailModal v-model:detail-bill-id="detail_bill_id" @voided="fetchBills"/>
     <PaymentModal
         v-model:open="paymentModalOpened"
         v-model:payable-id="paymentBillId"
@@ -220,10 +232,10 @@ const deleteBill = async (id) => {
         confirmButtonColor: 'red',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await billStore.deleteBill(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Bill deleted successfully.');
                 fetchBills();
             } catch (e) {
                 showErrors(e);
@@ -241,10 +253,10 @@ const approveBill = async (id) => {
         confirmButtonColor: 'green',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await billStore.approveBill(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Bill approved successfully.');
                 fetchBills();
             } catch (e) {
                 showErrors(e);
@@ -256,5 +268,26 @@ const approveBill = async (id) => {
 const recordPayment = (id) => {
     paymentBillId.value = id;
     paymentModalOpened.value = true;
+};
+
+const voidBill = async (id) => {
+    Swal.fire({
+        title: 'Void bill?',
+        text: 'This reverses inventory and marks the bill void.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Void',
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await billStore.voidBill(id);
+                toast(res.status, res.data?.message ?? 'Bill voided.');
+                fetchBills();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
 };
 </script>

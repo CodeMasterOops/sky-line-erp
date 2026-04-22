@@ -277,6 +277,15 @@ const routes = [
                     import("@/views/admin/inventory/stock-adjustment/Index.vue"),
             },
             {
+                path: "stock-reconciliation",
+                name: "admin.stock-reconciliation",
+                meta: {
+                    pageTitle: "Stock Reconciliation",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/stock-reconciliation/Index.vue"),
+            },
+            {
                 path: "product-category",
                 name: "admin.product-category-list",
                 meta: {

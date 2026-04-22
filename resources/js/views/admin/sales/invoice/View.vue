@@ -159,12 +159,20 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-center align-items-center mb-4 no-print">
+        <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mb-4 no-print">
             <button
                 type="button"
-                class="btn btn-primary d-flex justify-content-center align-items-center me-2"
+                class="btn btn-primary d-flex justify-content-center align-items-center"
                 @click="printInvoice">
                 <i class="ti ti-printer me-2"></i>Print Invoice
+            </button>
+            <button
+                v-can="'approve_invoice'"
+                v-if="inv.status === 'approved' && !inv.voided_at"
+                type="button"
+                class="btn btn-warning d-flex justify-content-center align-items-center text-dark"
+                @click="voidInvoice">
+                <i class="ti ti-ban me-2"></i>Void invoice
             </button>
             <router-link
                 :to="{ name: 'admin.invoice-list' }"
@@ -179,7 +187,10 @@
 import {computed, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
+import Swal from 'sweetalert2';
 import moment from 'moment';
+import {toast} from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useSettingStore} from '@/stores/admin/setting.js';
 
@@ -252,6 +263,9 @@ const taxSummaryLabel = computed(() => {
 });
 
 const paymentBadgeLabel = computed(() => {
+    if (inv.value.voided_at) {
+        return 'Voided';
+    }
     if (inv.value.status === 'draft') {
         return 'Draft';
     }
@@ -277,6 +291,9 @@ const paymentBadgeLabel = computed(() => {
 });
 
 const paymentBadgeClass = computed(() => {
+    if (inv.value.voided_at) {
+        return 'bg-dark text-white';
+    }
     if (inv.value.status === 'draft') {
         return 'bg-secondary text-white';
     }
@@ -342,6 +359,30 @@ watch(() => route.params.id, loadPage, {immediate: true});
 
 const printInvoice = () => {
     window.print();
+};
+
+const voidInvoice = async () => {
+    const id = inv.value.id;
+    if (!id) {
+        return;
+    }
+    Swal.fire({
+        title: 'Void invoice?',
+        text: 'This reverses inventory and marks the invoice void.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Void',
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await invoiceStore.voidInvoice(id);
+                toast(res.status, res.data?.message ?? 'Invoice voided.');
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
 };
 </script>
 

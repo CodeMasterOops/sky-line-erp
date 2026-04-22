@@ -24,6 +24,7 @@ class CreditNoteResource extends JsonResource
             'create_user_id' => $this->create_user_id ?? '',
             'approve_user_id' => $this->approve_user_id ?? '',
             'approved_at' => $this->approved_at ?? null,
+            'voided_at' => $this->voided_at ?? null,
             'status' => $this->status?->value ?? '',
             'subtotal' => $totals['subtotal'],
             'discount_total' => $totals['discount_total'],

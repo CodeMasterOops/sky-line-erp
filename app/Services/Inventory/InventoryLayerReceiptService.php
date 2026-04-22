@@ -34,6 +34,8 @@ class InventoryLayerReceiptService
             throw \InvalidArgumentException('Receipt quantity must be positive.');
         }
 
+        $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
+
         $this->ledger->receipt(
             $company,
             $productVariantId,

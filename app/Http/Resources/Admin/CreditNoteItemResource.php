@@ -12,6 +12,7 @@ class CreditNoteItemResource extends JsonResource
         return [
             'id' => $this->id ?? '',
             'credit_note_id' => $this->credit_note_id ?? '',
+            'invoice_item_id' => $this->invoice_item_id ?? '',
             'product_variant_id' => $this->product_variant_id ?? '',
             'product_variant' => ProductVariantResource::make($this->whenLoaded('productVariant')),
             'warehouse_id' => $this->warehouse_id ?? '',

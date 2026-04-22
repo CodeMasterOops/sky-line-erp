@@ -44,11 +44,14 @@
                             {{ index + 1 }}
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span
-                                class="badge"
-                                :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
-                                {{ record.status }}
-                            </span>
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                <span
+                                    class="badge"
+                                    :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
+                                    {{ record.status }}
+                                </span>
+                                <span v-if="record.voided_at" class="badge bg-dark">voided</span>
+                            </div>
                         </template>
                         <template v-else-if="column.key === 'action'">
                             <div class="action-table-data">
@@ -74,6 +77,15 @@
                                         @click="approveCreditNote(record.id)">
                                         <i class="ti ti-check"></i>
                                     </a>
+                                    <a
+                                        v-can="'approve_credit_note'"
+                                        v-if="record.status === 'approved' && !record.voided_at"
+                                        class="me-2 p-2 text-warning"
+                                        href="javascript:void(0);"
+                                        title="Void"
+                                        @click="voidCreditNote(record.id)">
+                                        <i class="ti ti-ban"></i>
+                                    </a>
                                     <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
                                        @click="deleteCreditNote(record.id)">
                                         <i class="ti ti-trash"></i>
@@ -89,7 +101,7 @@
 
     <CreateCreditNote v-model:create-modal-opened="createModalOpened"/>
     <EditCreditNote v-model:credit_note_id="edit_credit_note_id"/>
-    <CreditNoteDetailModal v-model:detail-credit-note-id="detail_credit_note_id"/>
+    <CreditNoteDetailModal v-model:detail-credit-note-id="detail_credit_note_id" @voided="fetchCreditNotes"/>
 </template>
 
 <script setup>
@@ -198,10 +210,10 @@ const deleteCreditNote = async (id) => {
         confirmButtonColor: 'red',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await creditNoteStore.deleteCreditNote(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Credit note deleted successfully.');
                 fetchCreditNotes();
             } catch (e) {
                 showErrors(e);
@@ -219,10 +231,31 @@ const approveCreditNote = async (id) => {
         confirmButtonColor: 'green',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await creditNoteStore.approveCreditNote(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Credit note approved successfully.');
+                fetchCreditNotes();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
+};
+
+const voidCreditNote = async (id) => {
+    Swal.fire({
+        title: 'Void credit note?',
+        text: 'This reverses return inventory and marks the credit note void.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Void',
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await creditNoteStore.voidCreditNote(id);
+                toast(res.status, res.data?.message ?? 'Credit note voided.');
                 fetchCreditNotes();
             } catch (e) {
                 showErrors(e);

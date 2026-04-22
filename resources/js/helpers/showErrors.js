@@ -3,12 +3,18 @@ import { toast } from "./toast.js";
 export default function showErrors(e) {
     try {
         if (e.response) {
-            if (e.response.status === 422) {
-                Object.keys(e.response.data.errors).forEach(key => {
-                    toast(e.response.status, e.response.data.errors[key][0])
+            const data = e.response.data || {};
+            const status = e.response.status;
+
+            if (status === 422 && data.errors && typeof data.errors === 'object') {
+                Object.keys(data.errors).forEach(key => {
+                    const msg = data.errors[key];
+                    toast(status, Array.isArray(msg) ? msg[0] : msg);
                 });
+            } else if (data.message) {
+                toast(status, data.message);
             } else {
-                toast(e.response.status, e.response.data.message)
+                toast(status, 'Request failed.');
             }
         }
     } catch (err) {

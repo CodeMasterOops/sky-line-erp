@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockMovement extends Model
 {
@@ -28,6 +29,7 @@ class StockMovement extends Model
         'remarks',
         'unit_cost',
         'total_cost',
+        'gl_journal_id',
     ];
 
     protected $casts = [
@@ -46,5 +48,10 @@ class StockMovement extends Model
     public function movementLayers(): HasMany
     {
         return $this->hasMany(StockMovementLayer::class);
+    }
+
+    public function glJournal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class, 'gl_journal_id');
     }
 }

@@ -117,7 +117,7 @@
                                         :error="errors.inventory_costing_method"
                                     />
                                     <p class="text-muted small mb-0 mt-1">
-                                        How unit cost is calculated when receiving and issuing stock (bills, invoices, adjustments, transfers).
+                                        All inventory issues and the cost of goods on approved sales use this method company-wide. It applies when receiving and issuing stock (bills, invoices, adjustments, transfers).
                                     </p>
                                 </div>
                                 <div class="col-md-4">

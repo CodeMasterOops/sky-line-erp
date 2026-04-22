@@ -74,6 +74,21 @@ export const useDebitNoteStore = defineStore('debitNote', {
                     throw err;
                 });
         },
+        voidDebitNote(id) {
+            return apiAdmin(`${apiUrl}/${id}/void`, 'post')
+                .then((res) => {
+                    const index = this.debitNotes.data.findIndex(d => d.id === id);
+                    if (index !== -1) {
+                        this.debitNotes.data[index] = res.data.data;
+                    }
+                    if (this.debitNote.data?.id === id) {
+                        this.debitNote.data = res.data.data;
+                    }
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
         deleteDebitNote(id) {
             return apiAdmin(`${apiUrl}/${id}`, 'delete')
                 .then((res) => {

@@ -34,6 +34,11 @@ class InventoryLayerTransferService
         $fromId = $transfer->from_warehouse_id;
         $toId = $transfer->to_warehouse_id;
 
+        $lockFirst = min($fromId, $toId);
+        $lockSecond = max($fromId, $toId);
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirst);
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecond);
+
         $lines = $this->ledger->consume($company, $variantId, $fromId, $qty);
 
         $this->quantities->adjust($company->id, $variantId, $fromId, -$qty);

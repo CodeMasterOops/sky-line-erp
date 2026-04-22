@@ -70,6 +70,13 @@
                 "permission": "list_stock_adjustment"
             },
             {
+                "menuValue": "Stock Reconciliation",
+                "icon": "ti ti-scale",
+                "route": { "name": "admin.stock-reconciliation" },
+                "hasSubRoute": false,
+                "permission": "list_stock_adjustment"
+            },
+            {
                 "menuValue": "Variant Attributes",
                 "icon": "ti ti-versions",
                 "route": { "name": "admin.variant-attributes" },

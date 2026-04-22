@@ -14,11 +14,13 @@ use App\Http\Requests\Api\Admin\BillRequest;
 use Illuminate\Validation\ValidationException;
 use App\Services\Inventory\InventoryCostCalculator;
 use App\Services\Inventory\InventoryLayerReceiptService;
+use App\Services\Inventory\InventoryDocumentReversalService;
 
 class BillController extends Controller
 {
     public function __construct(
         private InventoryLayerReceiptService $inventoryReceipt,
+        private InventoryDocumentReversalService $documentReversal,
     ) {}
 
     /**
@@ -126,6 +128,12 @@ class BillController extends Controller
      */
     public function update(BillRequest $request, Bill $bill)
     {
+        if ($bill->voided_at) {
+            return response()->json([
+                'message' => 'Voided bills cannot be edited.',
+            ], 422);
+        }
+
         if ($bill->status === StatusEnum::APPROVED) {
             return response()->json([
                 'message' => 'Approved bills cannot be edited.',
@@ -184,6 +192,12 @@ class BillController extends Controller
      */
     public function destroy(Bill $bill)
     {
+        if ($bill->status === StatusEnum::APPROVED && ! $bill->voided_at) {
+            return response()->json([
+                'message' => __('Approved bills must be voided before they can be deleted.'),
+            ], 422);
+        }
+
         $bill->billItems()->delete();
         $bill->delete();
 
@@ -193,10 +207,66 @@ class BillController extends Controller
     }
 
     /**
+     * @Permissions("approve_bill", group="bill", desc="Void Bill")
+     */
+    public function void(Bill $bill)
+    {
+        if ($bill->voided_at) {
+            return response()->json([
+                'data' => BillResource::make($bill),
+                'message' => 'Bill is already voided.',
+            ]);
+        }
+
+        if ($bill->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved bills can be voided.',
+            ], 422);
+        }
+
+        $user = auth('admin')->user();
+
+        try {
+            DB::transaction(function () use ($bill, $user) {
+                $this->documentReversal->reverseApprovedBill(
+                    $bill,
+                    $user->id,
+                    $bill->remarks,
+                );
+                $bill->update(['voided_at' => now()]);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        $bill->load([
+            'party',
+            'billItems.productVariant.product',
+            'billItems.unit',
+            'billItems.tax',
+            'billItems.warehouse',
+        ]);
+
+        return response()->json([
+            'data' => BillResource::make($bill),
+            'message' => 'Bill voided successfully.',
+        ]);
+    }
+
+    /**
      * @Permissions("approve_bill", group="bill", desc="Approve Bill")
      */
     public function approve(Bill $bill)
     {
+        if ($bill->voided_at) {
+            return response()->json([
+                'message' => 'Voided bills cannot be approved.',
+            ], 422);
+        }
+
         if ($bill->status === StatusEnum::APPROVED) {
             return response()->json([
                 'data' => BillResource::make($bill),

@@ -27,6 +27,7 @@ class Bill extends Model
         'create_user_id',
         'approve_user_id',
         'approved_at',
+        'voided_at',
         'status',
     ];
 
@@ -35,6 +36,7 @@ class Bill extends Model
         'party_id' => 'integer',
         'purchase_order_id' => 'integer',
         'approved_at' => 'datetime',
+        'voided_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
 

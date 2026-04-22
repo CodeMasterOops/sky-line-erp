@@ -29,6 +29,7 @@ class Invoice extends Model
         'create_user_id',
         'approve_user_id',
         'approved_at',
+        'voided_at',
         'status',
     ];
 
@@ -37,6 +38,7 @@ class Invoice extends Model
         'party_id' => 'integer',
         'reference_id' => 'integer',
         'approved_at' => 'datetime',
+        'voided_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
 

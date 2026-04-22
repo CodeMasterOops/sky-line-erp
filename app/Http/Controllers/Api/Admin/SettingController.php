@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\Setting;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Enums\InventoryCostingMethodEnum;
 use App\Http\Resources\Admin\SettingResource;
 use App\Http\Requests\Api\Admin\UpdateSettingRequest;
+use App\Services\Inventory\InventoryCostingMethodSwitchService;
 
 class SettingController extends Controller
 {
@@ -27,7 +29,21 @@ class SettingController extends Controller
     {
         $setting = auth('admin')->user()->company;
 
-        $setting->update($request->validated());
+        DB::transaction(function () use ($setting, $request) {
+            $validated = $request->validated();
+            $oldMethod = $setting->inventory_costing_method ?? InventoryCostingMethodEnum::FIFO;
+            $newMethod = InventoryCostingMethodEnum::from($validated['inventory_costing_method']);
+
+            if ($oldMethod !== $newMethod) {
+                app(InventoryCostingMethodSwitchService::class)->onCompanyMethodChanging(
+                    $setting,
+                    $oldMethod,
+                    $newMethod,
+                );
+            }
+
+            $setting->update($validated);
+        });
 
         return response()->json([
             'message' => 'Setting Updated Successfully',

@@ -138,6 +138,20 @@
                 </h2>
                 <div id="collapsePricing" class="accordion-collapse collapse show" aria-labelledby="headingPricing">
                     <div class="accordion-body border-top">
+                        <p v-if="isPhysicalProduct" class="alert alert-light border small mb-3 mb-md-4 text-dark">
+                            <i class="ti ti-info-circle me-1" />
+                            <strong>Pricing and COGS.</strong>
+                            The amounts below are your default purchase and selling prices. Actual
+                            <strong>inventory cost</strong> is recorded when you receive stock (for example
+                            on an <strong>approved purchase bill</strong> or stock adjustment). On-hand quantity is
+                            never stored here. When you sell, cost of goods uses your company&rsquo;s inventory method
+                            (currently
+                            <strong>{{ inventoryCostingMethodName }}</strong> — change under
+                            <router-link :to="{ name: 'admin.general-settings' }" class="text-primary">General settings</router-link>).
+                        </p>
+                        <p v-else class="text-muted small mb-3">
+                            Set default purchase and selling prices for quoting; services are not held as stock.
+                        </p>
                         <div v-if="isPhysicalProduct" class="row g-3 mb-1">
                             <div class="col-12">
                                 <label class="form-label mb-1">Pricing model</label>
@@ -156,7 +170,7 @@
                                                 Simple product
                                             </div>
                                             <div class="small text-muted mt-1 mb-0">
-                                                One SKU, one purchase price, one sale price.
+                                                One SKU with default purchase and selling prices.
                                             </div>
                                         </button>
                                     </div>
@@ -313,8 +327,10 @@
                                                         {{ attr.attr_name }}
                                                     </th>
                                                     <th>SKU</th>
-                                                    <th class="text-end">Purchase</th>
-                                                    <th class="text-end">Sales</th>
+                                                    <th class="text-end" title="Default purchase; actual cost comes from received stock">
+                                                        Purchase Price (Default)</th>
+                                                    <th class="text-end" title="Default selling price for sales and purchase screens">
+                                                        Selling Price</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -362,13 +378,13 @@
                                 </div>
                                 <div class="col-md-4">
                                     <VInput input-type="number" id="purchase_price"
-                                        v-model="form.variants[0].purchase_price" label="Purchase price"
+                                        v-model="form.variants[0].purchase_price" label="Purchase Price (Default)"
                                         @validate="validateField(`variants[0].purchase_price`)"
                                         :error="errors[`variants[0].purchase_price`]" />
                                 </div>
                                 <div class="col-md-4">
                                     <VInput input-type="number" id="sales_price" v-model="form.variants[0].sales_price"
-                                        label="Sales price" @validate="validateField(`variants[0].sales_price`)"
+                                        label="Selling Price" @validate="validateField(`variants[0].sales_price`)"
                                         :error="errors[`variants[0].sales_price`]" />
                                 </div>
                             </div>
@@ -408,6 +424,7 @@ import { useProductCategoryStore } from '@/stores/admin/inventory/product-catego
 import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 import { storeToRefs } from 'pinia';
 import { useAttributeStore } from '@/stores/admin/inventory/attribute.js';
+import { useSettingStore } from '@/stores/admin/setting.js';
 
 const props = defineProps({
     mode: {
@@ -430,12 +447,29 @@ const unitStore = useUnitStore();
 const categoryStore = useProductCategoryStore();
 const brandStore = useBrandStore();
 const attributeStore = useAttributeStore();
+const settingStore = useSettingStore();
 
 const { units } = storeToRefs(unitStore);
 const { productCategories } = storeToRefs(categoryStore);
 const { brands } = storeToRefs(brandStore);
 const { attributes } = storeToRefs(attributeStore);
 const { product } = storeToRefs(productStore);
+const { setting } = storeToRefs(settingStore);
+
+const inventoryCostingMethodName = computed(() => {
+    const raw = setting.value?.data?.inventory_costing_method;
+    const opts = setting.value?.data?.inventory_costing_method_options;
+    if (Array.isArray(opts) && raw) {
+        const hit = opts.find((o) => o.value === raw);
+        if (hit?.label) {
+            return hit.label;
+        }
+    }
+    if (raw === 'weighted_average') {
+        return 'Weighted average';
+    }
+    return 'FIFO (first in, first out)';
+});
 
 const initialState = {
     product_category_id: '',
@@ -857,7 +891,7 @@ const validations = object({
             object({
                 id: mixed().nullable(),
                 sku: string().nullable(),
-                sales_price: string().required('Sales price is required.'),
+                sales_price: string().required('Selling price is required.'),
                 purchase_price: string().required('Purchase price is required.'),
                 attribute_values: array().nullable(),
             })
@@ -953,6 +987,7 @@ onMounted(async () => {
     categoryStore.getProductCategories();
     brandStore.getBrands();
     attributeStore.getAttributes();
+    await settingStore.getSetting();
     if (isEdit.value && props.productId) {
         ready.value = false;
         await productStore.getProduct(props.productId);

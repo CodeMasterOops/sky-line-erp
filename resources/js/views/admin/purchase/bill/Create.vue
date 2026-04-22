@@ -79,14 +79,28 @@
                         <div class="col-12">
                             <div class="table-responsive no-pagination">
                                 <table class="table datanew table-bordered mb-0 order-lines-table">
+                                    <caption class="text-muted small caption-top text-start px-1">
+                                        Sale (ref.) is the list price from the product; it is not used for stock valuation.
+                                        Ref. margin is (list − net purchase per unit) ÷ list, before tax.
+                                    </caption>
                                     <thead>
                                     <tr>
                                         <th class="po-col-sn">SN</th>
                                         <th class="po-col-product">Product</th>
                                         <th class="po-col-unit">Unit</th>
                                         <th class="po-col-qty">Qty</th>
-                                        <th class="po-col-rate">Rate (purchase)</th>
-                                        <th class="po-col-ref">Sale (ref)</th>
+                                        <th
+                                            class="po-col-rate"
+                                            title="Purchase rate; inventory cost is net of line discount and excludes tax.">
+                                            Rate (purchase)</th>
+                                        <th
+                                            class="po-col-ref"
+                                            title="List sales price from the product master; reference only.">
+                                            Sale (ref.)</th>
+                                        <th
+                                            class="text-end po-col-mrg"
+                                            title="Gross margin vs. list: (list sale − net purchase per unit) ÷ list sale, before tax.">
+                                            Ref. margin</th>
                                         <th class="po-col-disc">Discount</th>
                                         <th class="po-col-tax">Tax</th>
                                         <th class="po-col-amt">Tax amt</th>
@@ -96,7 +110,7 @@
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="11" class="text-center text-muted py-4">
+                                        <td colspan="12" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
@@ -135,6 +149,7 @@
                                             />
                                         </td>
                                         <td class="text-end">{{ formatMoney(item.list_sale_snapshot) }}</td>
+                                        <td class="text-end small">{{ formatRefGrossMargin(item) }}</td>
                                         <td>
                                             <VInput
                                                 input-type="number"
@@ -249,6 +264,7 @@ import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {usePurchaseLineReferenceMargin} from '@/composables/purchaseLineReferenceMargin.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 
@@ -259,6 +275,7 @@ const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
 
 const {currentAdDate} = useDateHelper();
+const {formatRefGrossMargin} = usePurchaseLineReferenceMargin();
 
 const createModalOpened = defineModel('createModalOpened');
 const createSupplierOpened = ref(false);

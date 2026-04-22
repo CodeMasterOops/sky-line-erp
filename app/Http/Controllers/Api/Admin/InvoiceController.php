@@ -13,11 +13,13 @@ use App\Http\Resources\Admin\InvoiceResource;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\Api\Admin\InvoiceRequest;
 use App\Services\Inventory\InventoryLayerIssueService;
+use App\Services\Inventory\InventoryDocumentReversalService;
 
 class InvoiceController extends Controller
 {
     public function __construct(
         private InventoryLayerIssueService $inventoryIssue,
+        private InventoryDocumentReversalService $documentReversal,
     ) {}
 
     /**
@@ -127,6 +129,12 @@ class InvoiceController extends Controller
      */
     public function update(InvoiceRequest $request, Invoice $invoice)
     {
+        if ($invoice->voided_at) {
+            return response()->json([
+                'message' => 'Voided invoices cannot be edited.',
+            ], 422);
+        }
+
         if ($invoice->status === StatusEnum::APPROVED) {
             return response()->json([
                 'message' => 'Approved invoices cannot be edited.',
@@ -186,6 +194,12 @@ class InvoiceController extends Controller
      */
     public function destroy(Invoice $invoice)
     {
+        if ($invoice->status === StatusEnum::APPROVED && ! $invoice->voided_at) {
+            return response()->json([
+                'message' => __('Approved invoices must be voided before they can be deleted.'),
+            ], 422);
+        }
+
         $invoice->invoiceItems()->delete();
         $invoice->delete();
 
@@ -195,10 +209,66 @@ class InvoiceController extends Controller
     }
 
     /**
+     * @Permissions("approve_invoice", group="invoice", desc="Void Invoice")
+     */
+    public function void(Invoice $invoice)
+    {
+        if ($invoice->voided_at) {
+            return response()->json([
+                'data' => InvoiceResource::make($invoice),
+                'message' => 'Invoice is already voided.',
+            ]);
+        }
+
+        if ($invoice->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved invoices can be voided.',
+            ], 422);
+        }
+
+        $user = auth('admin')->user();
+
+        try {
+            DB::transaction(function () use ($invoice, $user) {
+                $this->documentReversal->reverseApprovedInvoice(
+                    $invoice,
+                    $user->id,
+                    $invoice->remarks,
+                );
+                $invoice->update(['voided_at' => now()]);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        $invoice->load([
+            'party',
+            'invoiceItems.productVariant.product',
+            'invoiceItems.unit',
+            'invoiceItems.tax',
+            'invoiceItems.warehouse',
+        ]);
+
+        return response()->json([
+            'data' => InvoiceResource::make($invoice),
+            'message' => 'Invoice voided successfully.',
+        ]);
+    }
+
+    /**
      * @Permissions("approve_invoice", group="invoice", desc="Approve Invoice")
      */
     public function approve(Invoice $invoice)
     {
+        if ($invoice->voided_at) {
+            return response()->json([
+                'message' => 'Voided invoices cannot be approved.',
+            ], 422);
+        }
+
         if ($invoice->status === StatusEnum::APPROVED) {
             return response()->json([
                 'data' => InvoiceResource::make($invoice),
