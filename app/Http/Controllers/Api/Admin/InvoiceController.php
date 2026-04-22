@@ -97,6 +97,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'receiptAllocations.receipt',
         ]);
 
         return InvoiceResource::make($invoice);

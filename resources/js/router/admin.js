@@ -181,7 +181,7 @@ const routes = [
                     import("@/views/admin/sales/invoice/Index.vue"),
             },
             {
-                path: "sales-invoice/view",
+                path: "sales-invoice/:id",
                 name: "admin.invoice-view",
                 meta: {
                     pageTitle: "Invoice view",

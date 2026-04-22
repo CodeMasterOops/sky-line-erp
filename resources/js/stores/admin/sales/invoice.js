@@ -41,6 +41,7 @@ export const useInvoiceStore = defineStore('invoice', {
         },
         getInvoice(id) {
             this.invoice.loading = true;
+            this.invoice.data = {};
             return apiAdmin(`${apiUrl}/${id}`)
                 .then((res) => {
                     this.invoice.data = res.data.data;

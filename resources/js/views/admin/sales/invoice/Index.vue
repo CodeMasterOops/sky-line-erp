@@ -1,12 +1,6 @@
 <template>
     <PageHeader title="Invoices" subtitle="Manage your invoices" @refresh="fetchInvoices">
         <template #actions>
-            <router-link
-                :to="{ name: 'admin.invoice-view' }"
-                class="btn btn-outline-secondary d-flex align-items-center me-2">
-                <i class="ti ti-file-invoice me-2"></i>
-                Demo: invoice view page
-            </router-link>
             <button
                 v-can="'create_invoice'"
                 type="button"
@@ -59,6 +53,12 @@
                         <template v-else-if="column.key === 'action'">
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
+                                    <router-link
+                                        v-can="'show_invoice'"
+                                        class="me-2 p-2 text-dark"
+                                        :to="{ name: 'admin.invoice-view', params: { id: record.id } }">
+                                        <i class="ti ti-eye"></i>
+                                    </router-link>
                                     <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
