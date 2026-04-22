@@ -1,98 +1,412 @@
 <template>
-    <PageHeader title="Balance Sheet" subtitle="Financial report" />
-    <div class="card">
-        <div class="card-body">
-            <div class="row row-gap-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label">Choose Your Date</label>
-                    <a-date-picker v-model:value="value1" class="datetimepicker form-control" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Store</label>
-                    <div class="dropdown me-2">
-                        <a href="javascript:void(0);"
-                            class="dropdown-toggle btn btn-white btn-md d-flex align-items-center justify-content-between"
-                            data-bs-toggle="dropdown">
-                            All Store
-                        </a>
-                        <ul class="dropdown-menu  dropdown-menu-end p-3">
-                            <li>
-                                <a href="javascript:void(0);" class="dropdown-item rounded-1">Store 1</a>
-                            </li>
-                            <li>
-                                <a href="javascript:void(0);" class="dropdown-item rounded-1">Store 2</a>
-                            </li>
-                        </ul>
+    <PageHeader title="Balance Sheet" subtitle="Accounting report" @refresh="generateReport" />
+
+    <section class="section">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-xl-4 col-lg-5">
+                        <label class="form-label">Date Range</label>
+                        <div class="input-icon-start position-relative">
+                            <input
+                                ref="dateRangeInput"
+                                type="text"
+                                class="form-control"
+                                placeholder="dd-mm-yyyy - dd-mm-yyyy"
+                            >
+                            <span class="input-icon-left">
+                                <i class="ti ti-calendar"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-xl-4 col-lg-4">
+                        <label class="form-label">Compare Fiscal Year</label>
+                        <select
+                            v-model="filter.compare_fiscal_year_id"
+                            class="form-select"
+                            :disabled="fiscalYears.loading"
+                        >
+                            <option value="">None</option>
+                            <option
+                                v-for="fy in compareFiscalYearOptions"
+                                :key="fy.id"
+                                :value="String(fy.id)"
+                            >
+                                {{ fy.year_name }}{{ fy.is_current ? ' (Current)' : '' }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-xl-2 col-lg-3">
+                        <button
+                            type="button"
+                            class="btn btn-success w-100"
+                            :disabled="balanceSheet.loading || !filter.start_date || !filter.end_date"
+                            @click="generateReport"
+                        >
+                            {{ balanceSheet.loading ? 'Generating...' : 'Generate' }}
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <button class="btn btn-primary">Submit</button>
+            </div>
+        </div>
+
+        <div class="card balance-sheet-card border-0">
+            <div class="card-body p-0">
+                <div class="balance-sheet-header">
+                    <div>
+                        <h4 class="mb-1">Balance Sheet</h4>
+                        <p class="mb-0 text-primary">{{ reportPeriodLabel }}</p>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table balance-sheet-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="account-column">Accounts</th>
+                                <th v-if="hasCompareFiscalYear" class="text-end">Amount (Prev Period)</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <VLoader v-if="balanceSheet.loading" :colspan="hasCompareFiscalYear ? 3 : 2" />
+                            <template v-else-if="flatRows.length">
+                                <tr
+                                    v-for="row in flatRows"
+                                    :key="row.key"
+                                    :class="[
+                                        row.type === 'group' ? 'group-row' : 'account-row',
+                                        `level-${row.level}`,
+                                    ]"
+                                >
+                                    <td class="account-column">
+                                        <div
+                                            class="account-cell"
+                                            :style="{ paddingLeft: `${row.level * 20 + 12}px` }"
+                                        >
+                                            <button
+                                                v-if="row.type === 'group' && row.children.length"
+                                                type="button"
+                                                class="toggle-button"
+                                                @click="toggleRow(row.key)"
+                                            >
+                                                <i
+                                                    class="ti"
+                                                    :class="isExpanded(row.key) ? 'ti-chevron-down' : 'ti-chevron-right'"
+                                                ></i>
+                                            </button>
+                                            <span v-else class="toggle-placeholder"></span>
+                                            <span class="account-label">{{ row.label }}</span>
+                                        </div>
+                                    </td>
+                                    <td v-if="hasCompareFiscalYear" class="text-end">
+                                        {{ formatSignedAmount(row.prev_amount) }}
+                                    </td>
+                                    <td class="text-end">{{ formatSignedAmount(row.amount) }}</td>
+                                </tr>
+                            </template>
+                            <tr v-else>
+                                <td :colspan="hasCompareFiscalYear ? 3 : 2" class="text-center py-5 text-muted">
+                                    No report data found for the selected period.
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot v-if="!balanceSheet.loading && balanceSheet.data.summary">
+                            <tr class="summary-row">
+                                <th>Total</th>
+                                <th v-if="hasCompareFiscalYear" class="text-end">
+                                    {{ formatSignedAmount(balanceSheet.data.summary.prev_amount) }}
+                                </th>
+                                <th class="text-end">{{ formatSignedAmount(balanceSheet.data.summary.amount) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h4>Jan 2025 - Balance Sheet</h4>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>Assets</th>
-                            <th>Amount</th>
-                            <th>Liabilities & Equity</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="text-gray-9 fw-bold" colspan="2">Current Assets</td>
-                            <td class="text-gray-9 fw-bold" colspan="2">Current Liabilities</td>
-                        </tr>
-                        <tr>
-                            <td>Cash in register</td>
-                            <td>$4565</td>
-                            <td>Cash in register</td>
-                            <td>$4565</td>
-                        </tr>
-                        <tr>
-                            <td>Bank Accounts</td>
-                            <td>$4494</td>
-                            <td>Bank Accounts</td>
-                            <td>$4494</td>
-                        </tr>
-                        <tr>
-                            <td>Accounts Receivable</td>
-                            <td>$65945</td>
-                            <td>Accounts Receivable</td>
-                            <td>$65945</td>
-                        </tr>
-                        <tr>
-                            <td>Inventory (POS stock)</td>
-                            <td>$1948</td>
-                            <td>Inventory (POS stock)</td>
-                            <td>$1948</td>
-                        </tr>
-                        <tr>
-                            <td>Prepaid Expenses</td>
-                            <td>$1686</td>
-                            <td>Prepaid Expenses</td>
-                            <td>$1686</td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td class="bg-light text-dark fw-bold p-3 fs-16">Total Current Assets</td>
-                            <td class="bg-light text-dark fw-bold p-3 fs-16">$31,000</td>
-                            <td class="bg-light text-dark fw-bold p-3 fs-16">Total Liability</td>
-                            <td class="bg-light text-dark fw-bold p-3 fs-16">$78,000</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </div>
+    </section>
 </template>
+
+<script setup>
+import {computed, onMounted, reactive, ref, watch} from 'vue';
+import moment from 'moment';
+import DateRangePicker from 'daterangepicker';
+import 'daterangepicker/daterangepicker.css';
+import {storeToRefs} from 'pinia';
+import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
+import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
+
+const adminSettingStore = useAdminSettingStore();
+const accountingReportStore = useAccountingReportStore();
+
+const {fiscalYears} = storeToRefs(adminSettingStore);
+const {balanceSheet} = storeToRefs(accountingReportStore);
+
+const dateRangeInput = ref(null);
+const expandedRows = ref(new Set());
+
+const filter = reactive({
+    fiscal_year_id: '',
+    compare_fiscal_year_id: '',
+    start_date: '',
+    end_date: '',
+});
+
+let pickerInstance = null;
+
+const compareFiscalYearOptions = computed(() => {
+    return fiscalYears.value.data.filter((fy) => String(fy.id) !== String(filter.fiscal_year_id));
+});
+
+const hasCompareFiscalYear = computed(() => Boolean(balanceSheet.value.data?.compare_fiscal_year));
+
+const reportPeriodLabel = computed(() => {
+    return balanceSheet.value.data?.period?.label || 'For the selected period';
+});
+
+const formatPickerValue = (startDate, endDate) => {
+    return `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
+};
+
+const applyDateRange = (startDate, endDate) => {
+    filter.start_date = startDate.format('YYYY-MM-DD');
+    filter.end_date = endDate.format('YYYY-MM-DD');
+
+    if (dateRangeInput.value) {
+        dateRangeInput.value.value = formatPickerValue(startDate, endDate);
+    }
+};
+
+const syncPicker = () => {
+    if (!pickerInstance || !filter.start_date || !filter.end_date) {
+        return;
+    }
+
+    const startDate = moment(filter.start_date);
+    const endDate = moment(filter.end_date);
+
+    pickerInstance.setStartDate(startDate);
+    pickerInstance.setEndDate(endDate);
+    applyDateRange(startDate, endDate);
+};
+
+const initializePicker = () => {
+    if (!dateRangeInput.value) {
+        return;
+    }
+
+    const startDate = moment(filter.start_date || moment().startOf('month').format('YYYY-MM-DD'));
+    const endDate = moment(filter.end_date || moment().format('YYYY-MM-DD'));
+
+    pickerInstance = new DateRangePicker(
+        dateRangeInput.value,
+        {
+            startDate,
+            endDate,
+            autoApply: true,
+            locale: {
+                format: 'DD-MM-YYYY',
+            },
+            ranges: {
+                Today: [moment(), moment()],
+                Yesterday: [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+                'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+                'This Month': [moment().startOf('month'), moment().endOf('month')],
+                'Last Month': [
+                    moment().subtract(1, 'month').startOf('month'),
+                    moment().subtract(1, 'month').endOf('month'),
+                ],
+            },
+        },
+        applyDateRange
+    );
+
+    applyDateRange(startDate, endDate);
+};
+
+const collectExpandedKeys = (rows = []) => {
+    const keys = [];
+
+    rows.forEach((row) => {
+        if (row.type === 'group' && row.children.length) {
+            keys.push(row.key);
+            keys.push(...collectExpandedKeys(row.children));
+        }
+    });
+
+    return keys;
+};
+
+const flattenRows = (rows = [], level = 0) => {
+    const items = [];
+
+    rows.forEach((row) => {
+        items.push({
+            ...row,
+            level,
+        });
+
+        if (row.type === 'group' && row.children.length && expandedRows.value.has(row.key)) {
+            items.push(...flattenRows(row.children, level + 1));
+        }
+    });
+
+    return items;
+};
+
+const toggleRow = (key) => {
+    const next = new Set(expandedRows.value);
+
+    if (next.has(key)) {
+        next.delete(key);
+    } else {
+        next.add(key);
+    }
+
+    expandedRows.value = next;
+};
+
+const isExpanded = (key) => expandedRows.value.has(key);
+
+const flatRows = computed(() => flattenRows(balanceSheet.value.data?.rows || []));
+
+const formatSignedAmount = (value) => {
+    const amount = Number(value || 0);
+
+    if (!amount) {
+        return '-';
+    }
+
+    const formatted = new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(Math.abs(amount));
+
+    return amount < 0 ? `(${formatted})` : formatted;
+};
+
+const generateReport = async () => {
+    await accountingReportStore.getBalanceSheet({
+        fiscal_year_id: filter.fiscal_year_id || undefined,
+        compare_fiscal_year_id: filter.compare_fiscal_year_id || undefined,
+        start_date: filter.start_date,
+        end_date: filter.end_date,
+    });
+};
+
+watch(
+    () => balanceSheet.value.data?.rows,
+    (rows) => {
+        expandedRows.value = new Set(collectExpandedKeys(rows || []));
+    },
+    {deep: true}
+);
+
+onMounted(async () => {
+    await adminSettingStore.getFiscalYears();
+
+    const currentFiscalYear = fiscalYears.value.data.find((item) => item.is_current) || fiscalYears.value.data[0];
+
+    if (currentFiscalYear) {
+        filter.fiscal_year_id = String(currentFiscalYear.id);
+        filter.start_date = currentFiscalYear.start_date;
+        filter.end_date = currentFiscalYear.end_date;
+    } else {
+        filter.start_date = moment().startOf('month').format('YYYY-MM-DD');
+        filter.end_date = moment().format('YYYY-MM-DD');
+    }
+
+    initializePicker();
+    syncPicker();
+    await generateReport();
+});
+</script>
+
+<style scoped>
+.balance-sheet-card {
+    overflow: hidden;
+}
+
+.balance-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.25rem 0.75rem;
+}
+
+.balance-sheet-table {
+    min-width: 860px;
+}
+
+.balance-sheet-table thead th {
+    background: #eef3f9;
+    border-color: #dbe5f0;
+    color: #384860;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.balance-sheet-table tbody td,
+.balance-sheet-table tfoot th,
+.balance-sheet-table tfoot td {
+    border-color: #e5edf6;
+}
+
+.account-column {
+    min-width: 480px;
+}
+
+.account-cell {
+    display: flex;
+    align-items: center;
+    min-height: 36px;
+}
+
+.toggle-button {
+    width: 24px;
+    height: 24px;
+    border: 0;
+    background: transparent;
+    color: #4f5f79;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-right: 6px;
+}
+
+.toggle-placeholder {
+    display: inline-block;
+    width: 24px;
+    margin-right: 6px;
+}
+
+.account-label {
+    color: #425466;
+    font-weight: 600;
+}
+
+.group-row td {
+    background: #f7faff;
+    font-weight: 700;
+}
+
+.group-row.level-0 td {
+    background: #edf3fa;
+}
+
+.account-row td {
+    background: #fff;
+}
+
+.account-row .account-label {
+    font-weight: 500;
+}
+
+.summary-row th,
+.summary-row td {
+    background: #f3f7fc;
+    font-weight: 700;
+}
+</style>

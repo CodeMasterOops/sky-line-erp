@@ -474,22 +474,22 @@ const routes = [
                     import("@/views/admin/accounting/reports/ProfitLoss.vue"),
             },
             {
-                path: "cash-flow",
-                name: "admin.cash-flow",
+                path: "journal-report",
+                name: "admin.journal-report",
                 meta: {
-                    pageTitle: "Cash Flow",
+                    pageTitle: "Journal Report",
                 },
                 component: () =>
-                    import("@/views/admin/accounting/reports/CashFlow.vue"),
+                    import("@/views/admin/accounting/reports/JournalReport.vue"),
             },
             {
-                path: "tax-report",
-                name: "admin.tax-report",
+                path: "general-ledger",
+                name: "admin.general-ledger",
                 meta: {
-                    pageTitle: "Tax Report",
+                    pageTitle: "General Ledger",
                 },
                 component: () =>
-                    import("@/views/admin/accounting/reports/TaxReport.vue"),
+                    import("@/views/admin/accounting/reports/GeneralLedger.vue"),
             },
 
             // HR & Payroll Module

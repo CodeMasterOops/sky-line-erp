@@ -29,30 +29,16 @@
                             {{ trialBalance.loading ? 'Generating...' : 'Generate' }}
                         </button>
                     </div>
-                    <div class="col-xl-2 col-lg-3">
-                        <button
-                            type="button"
-                            class="btn btn-outline-secondary w-100"
-                            @click="showFilters = !showFilters"
-                        >
-                            <i class="ti ti-filter me-1"></i>
-                            {{ showFilters ? 'Hide Filters' : 'Show Filters' }}
-                        </button>
-                    </div>
-                </div>
-
-                <div v-if="showFilters" class="row g-3 mt-2">
-                    <div class="col-xl-4 col-lg-5">
-                        <label class="form-label">Fiscal Year</label>
+                    <div class="col-xl-4 col-lg-4">
+                        <label class="form-label">Compare Fiscal Year</label>
                         <select
-                            v-model="filter.fiscal_year_id"
+                            v-model="filter.compare_fiscal_year_id"
                             class="form-select"
                             :disabled="fiscalYears.loading"
-                            @change="handleFiscalYearChange"
                         >
-                            <option value="">Current fiscal year</option>
+                            <option value="">None</option>
                             <option
-                                v-for="fy in fiscalYears.data"
+                                v-for="fy in compareFiscalYearOptions"
                                 :key="fy.id"
                                 :value="String(fy.id)"
                             >
@@ -170,16 +156,20 @@ const {fiscalYears} = storeToRefs(adminSettingStore);
 const {trialBalance} = storeToRefs(accountingReportStore);
 
 const dateRangeInput = ref(null);
-const showFilters = ref(false);
 const expandedRows = ref(new Set());
 
 const filter = reactive({
     fiscal_year_id: '',
+    compare_fiscal_year_id: '',
     start_date: '',
     end_date: '',
 });
 
 let pickerInstance = null;
+
+const compareFiscalYearOptions = computed(() => {
+    return fiscalYears.value.data.filter((fy) => String(fy.id) !== String(filter.fiscal_year_id));
+});
 
 const formatPickerValue = (startDate, endDate) => {
     return `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
@@ -242,27 +232,10 @@ const initializePicker = () => {
     applyDateRange(startDate, endDate);
 };
 
-const setRangeFromFiscalYear = () => {
-    const selectedFiscalYear = fiscalYears.value.data.find(
-        (item) => String(item.id) === String(filter.fiscal_year_id)
-    ) || fiscalYears.value.data.find((item) => item.is_current);
-
-    if (!selectedFiscalYear) {
-        return;
-    }
-
-    filter.start_date = selectedFiscalYear.start_date;
-    filter.end_date = selectedFiscalYear.end_date;
-    syncPicker();
-};
-
-const handleFiscalYearChange = () => {
-    setRangeFromFiscalYear();
-};
-
 const generateReport = async () => {
     await accountingReportStore.getTrialBalance({
         fiscal_year_id: filter.fiscal_year_id || undefined,
+        compare_fiscal_year_id: filter.compare_fiscal_year_id || undefined,
         start_date: filter.start_date,
         end_date: filter.end_date,
     });
@@ -354,6 +327,7 @@ onMounted(async () => {
     }
 
     initializePicker();
+    syncPicker();
     await generateReport();
 });
 </script>

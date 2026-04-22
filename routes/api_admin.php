@@ -203,6 +203,10 @@ Route::middleware('auth:admin')->group(function () {
         // accounting reports
         Route::prefix('account-report')->as('account-report.')->controller(AccountReportController::class)->group(function () {
             Route::get('trial-balance', 'trialBalance')->name('trial-balance');
+            Route::get('balance-sheet', 'balanceSheet')->name('balance-sheet');
+            Route::get('profit-loss', 'profitLoss')->name('profit-loss');
+            Route::get('journal-report', 'journalReport')->name('journal-report');
+            Route::get('general-ledger', 'generalLedger')->name('general-ledger');
         });
 
         // HR — Phase 1: Employee Foundation

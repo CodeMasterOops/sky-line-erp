@@ -33,6 +33,7 @@ class Journal extends Model
     ];
 
     protected $casts = [
+        'date' => 'date',
         'fiscal_year_id' => 'integer',
         'approved_at' => 'datetime',
         'type' => JournalTypeEnum::class,

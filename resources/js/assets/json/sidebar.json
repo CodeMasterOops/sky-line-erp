@@ -250,14 +250,14 @@
                         "permission": "list_account"
                     },
                     {
-                        "menuValue": "Cash Flow",
-                        "route": { "name": "admin.cash-flow" },
+                        "menuValue": "Journal Report",
+                        "route": { "name": "admin.journal-report" },
                         "permission": "list_account"
                     },
                     {
-                        "menuValue": "Tax Report",
-                        "route": { "name": "admin.tax-report" },
-                        "permission": "list_tax"
+                        "menuValue": "General Ledger",
+                        "route": { "name": "admin.general-ledger" },
+                        "permission": "list_account"
                     }
                 ]
             }
