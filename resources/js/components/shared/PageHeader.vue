@@ -6,7 +6,7 @@
         <h6 v-if="subtitle">{{ subtitle }}</h6>
       </div>
     </div>
-    <ul class="table-top-head">
+    <ul v-if="!hideActionButtons" class="table-top-head">
       <li>
         <a data-bs-toggle="tooltip" data-bs-placement="top" title="Pdf">
           <img src="@/assets/images/icons/pdf.svg" alt="img">
@@ -43,6 +43,11 @@ defineProps({
   subtitle: {
     type: String,
     default: '',
+  },
+  /** When true, hides the PDF/Excel/Refresh/Collapse toolbar. */
+  hideActionButtons: {
+    type: Boolean,
+    default: false,
   },
 });
 

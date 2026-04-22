@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Profile" subtitle="Manage your profile" @refresh="profileStore.getProfile()" />
+    <PageHeader title="Profile" subtitle="Manage your profile" hide-action-buttons />
 
     <div class="row">
         <div class="col-xl-4 col-lg-5">

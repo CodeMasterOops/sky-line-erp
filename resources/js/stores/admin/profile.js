@@ -33,7 +33,7 @@ export const useProfileStore = defineStore('admin-profile', {
         updateProfile(form) {
             return apiAdmin(`profile/update`, 'post', form)
                 .then((res) => {
-                    this.profile.data = res.data.data;
+                    this.setAuthUser(res.data.data);
                     return res
                 })
                 .catch((err) => {
