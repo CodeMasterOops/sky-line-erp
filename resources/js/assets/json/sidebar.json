@@ -14,6 +14,12 @@
                 "hasSubRoute": false,
                 "icon": "ti ti-device-laptop",
                 "permission": "list_product"
+            },
+            {
+                "menuValue": "Plans & pricing",
+                "route": { "name": "admin.billing-pricing" },
+                "hasSubRoute": false,
+                "icon": "ti ti-currency-dollar"
             }
         ]
     },
