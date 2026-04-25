@@ -46,6 +46,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.payment-list': 'list_payment',
     'admin.debit-note-list': 'list_debit_note',
     'admin.purchase-report': 'list_bill',
+    'admin.purchase-by-item': 'list_bill',
     'admin.chart-of-accounts': 'list_account',
     'admin.account-settings': 'list_account_setting',
     'admin.journal-voucher': 'list_journal_voucher',

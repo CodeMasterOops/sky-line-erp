@@ -207,10 +207,21 @@
                 "permission": "list_debit_note"
             },
             {
-                "menuValue": "Purchase Report",
+                "menuValue": "Reports",
                 "icon": "ti ti-report-analytics",
-                "route": { "name": "admin.purchase-report" },
-                "hasSubRoute": false,
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Purchase Report",
+                        "route": { "name": "admin.purchase-report" },
+                        "permission": "list_bill"
+                    },
+                    {
+                        "menuValue": "Purchase By Item",
+                        "route": { "name": "admin.purchase-by-item" },
+                        "permission": "list_bill"
+                    }
+                ],
                 "permission": "list_bill"
             }
         ]

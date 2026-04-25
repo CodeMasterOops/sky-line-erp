@@ -427,6 +427,15 @@ const routes = [
                     import("@/views/admin/purchase/PurchaseReport.vue"),
             },
             {
+                path: "purchase-by-item",
+                name: "admin.purchase-by-item",
+                meta: {
+                    pageTitle: "Purchase By Item",
+                },
+                component: () =>
+                    import("@/views/admin/purchase/PurchaseByItem.vue"),
+            },
+            {
                 path: "chart-of-accounts",
                 name: "admin.chart-of-accounts",
                 meta: {
