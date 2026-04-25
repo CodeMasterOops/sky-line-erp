@@ -14,4 +14,17 @@ class AdminSettingController extends Controller
 
         return FiscalYearResource::collection($fiscalYears);
     }
+
+    public function currentFiscalYear()
+    {
+        $setting = auth('admin')->user()->company;
+
+        if ($setting->fiscal_year_id) {
+            $fiscalYear = FiscalYear::find($setting->fiscal_year_id);
+        } else {
+            $fiscalYear = FiscalYear::where('is_current', true)->latest()->first();
+        }
+
+        return FiscalYearResource::make($fiscalYear);
+    }
 }

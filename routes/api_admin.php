@@ -453,6 +453,7 @@ Route::middleware('auth:admin')->group(function () {
     // global settings
     Route::prefix('admin-setting')->as('admin-setting.')->controller(AdminSettingController::class)->group(function () {
         Route::get('fiscal-year', 'fiscalYears')->name('fiscal-year');
+        Route::get('current-fiscal-year', 'currentFiscalYear')->name('current-fiscal-year');
     });
 
     // enum

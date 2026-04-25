@@ -2,7 +2,7 @@
     <VModal
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
-        modal-class="large-modal"
+        size="xl"
         title="Add Journal Voucher">
         <template #modal-body>
             <form @submit.prevent="storeVoucherWithStatus('draft')" class="row g-3">

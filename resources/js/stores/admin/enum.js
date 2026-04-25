@@ -4,15 +4,15 @@ import showErrors from "@/helpers/showErrors";
 
 export const useEnumStore = defineStore('enum', {
     state: () => ({
-        orderStatus:  [],
+        journalTypes: [],
     }),
 
     actions: {
-        getOrderStatus() {
-            if (!this.orderStatus.length) {
-                return apiFront(`enum/order-status`)
+        getJournalTypes() {
+            if (!this.journalTypes.length) {
+                return apiFront(`enum/journal-type`)
                     .then((res) => {
-                        this.orderStatus = res.data.data;
+                        this.journalTypes = res.data.data;
                     }).catch((err) => {
                         showErrors(err);
                     })

@@ -33,4 +33,18 @@ enum JournalTypeEnum: string
             self::TDS_PAYABLE => 'TDS Payable',
         };
     }
+
+    public static function typeList(): array
+    {
+        $list = [];
+
+        foreach (self::cases() as $status) {
+            $list[] = [
+                'id' => $status->value,
+                'name' => $status->label(),
+            ];
+        }
+
+        return $list;
+    }
 }

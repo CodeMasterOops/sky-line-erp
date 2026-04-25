@@ -94,6 +94,7 @@ import debounce from 'lodash/debounce';
 import CreateJournalVoucher from './Create.vue';
 import EditJournalVoucher from './Edit.vue';
 import {useJournalVoucherStore} from '@/stores/admin/accounting/journal-voucher.js';
+import {adToBsDate} from "@/helpers/helper.js";
 
 const journalVoucherStore = useJournalVoucherStore();
 
@@ -124,7 +125,7 @@ const columns = [
     },
     {
         title: 'Date',
-        dataIndex: 'date',
+        customRender: ({record}) => adToBsDate(record.date),
         sorter: true,
     },
     {

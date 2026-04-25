@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\JournalTypeEnum;
 use App\Http\Controllers\Controller;
 
 class EnumController extends Controller
 {
-    public function orderStatus()
+    public function journalTypes()
     {
-        $orderStatus = OrderStatusEnum::orderStatusList();
+        $journalTypes = JournalTypeEnum::typeList();
 
         return response()->json([
-            'data' => $orderStatus,
+            'data' => $journalTypes,
         ]);
     }
 }

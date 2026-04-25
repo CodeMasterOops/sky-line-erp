@@ -27,14 +27,17 @@
                 <router-link
                     class="fiscal-year-link"
                     :to="{ name: 'admin.general-settings' }"
-                    :title="STATIC_FISCAL_YEAR_TOOLTIP"
+                    :title="fiscalYearTooltip"
                 >
                     <span class="fiscal-year-icon-wrap" aria-hidden="true">
                         <i class="fa fa-calendar"></i>
                     </span>
                     <span class="fiscal-year-label d-none d-md-flex flex-column">
-                        <span class="fiscal-year-title">{{ STATIC_FISCAL_YEAR_TITLE }}</span>
-                        <span class="fiscal-year-sub">{{ STATIC_FISCAL_YEAR_SUB }}</span>
+                        <span class="fiscal-year-title">{{ currentFiscalYear.data.year_name }}</span>
+                        <span class="fiscal-year-sub">
+                            {{ adToBsDate(currentFiscalYear.data.start_date) }} -
+                            {{ adToBsDate(currentFiscalYear.data.end_date) }}
+                        </span>
                     </span>
                 </router-link>
             </li>
@@ -207,10 +210,13 @@ import showErrors from "@/helpers/showErrors";
 import {toast} from "@/helpers/toast";
 import {useRouter} from "vue-router";
 import {useAdminNotificationStore} from "@/stores/admin/notification";
+import {useAdminSettingStore} from "@/stores/admin/admin-setting.js";
+import {adToBsDate} from "@/helpers/helper.js";
 
 const notificationStore = useAdminNotificationStore();
 const profileStore = useProfileStore();
 const authStore = useAdminAuthStore();
+const adminSettingStore = useAdminSettingStore();
 const router = useRouter();
 
 /** Name must match a route in `admin.js`; access follows `adminRoutePermissions.js`. */
@@ -268,16 +274,16 @@ const initFullScreen = () => {
 onMounted(() => {
     profileStore.getProfile();
     notificationStore.getUnreadNotifications();
+    adminSettingStore.getCurrentFiscalYear();
 })
 
 const {profile} = storeToRefs(profileStore);
 const {unreadNotifications: notifications} = storeToRefs(notificationStore);
+const {currentFiscalYear} = storeToRefs(adminSettingStore);
 
-// TODO(backend): Load current fiscal year from API (`GET admin-setting/fiscal-year`, `is_current`, etc.).
-// Replace STATIC_FISCAL_YEAR_TITLE / STATIC_FISCAL_YEAR_SUB (and tooltip) with computed values + loading state.
-const STATIC_FISCAL_YEAR_TITLE = '2025-26';
-const STATIC_FISCAL_YEAR_SUB = 'Apr 2025 – Mar 2026';
-const STATIC_FISCAL_YEAR_TOOLTIP = `Fiscal year · ${STATIC_FISCAL_YEAR_TITLE} · ${STATIC_FISCAL_YEAR_SUB} (static — connect to backend)`;
+const fiscalYearTooltip = computed(() => {
+    return `Fiscal year · ${currentFiscalYear.value.data.year_name}`;
+});
 
 const logout = async () => {
     try {
