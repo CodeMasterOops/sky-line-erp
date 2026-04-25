@@ -27,7 +27,11 @@
       <p class="sidebar-trial-plan-card__hint small mb-2 mb-md-3">
         Trial ends <strong>Jan 28, 2026</strong>. Upgrade to keep all features.
       </p>
-      <button type="button" class="btn btn-sm w-100 sidebar-trial-plan-card__btn">
+      <button
+        type="button"
+        class="btn btn-sm w-100 sidebar-trial-plan-card__btn"
+        @click="goToPlans"
+      >
         View plans
       </button>
     </div>
@@ -44,6 +48,11 @@
 <script>
 export default {
   name: "SidebarTrialPlanCard",
+  methods: {
+    goToPlans() {
+      this.$router.push({ name: "admin.billing-pricing" });
+    },
+  },
 };
 </script>
 

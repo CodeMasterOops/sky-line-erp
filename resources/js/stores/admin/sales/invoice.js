@@ -41,6 +41,7 @@ export const useInvoiceStore = defineStore('invoice', {
         },
         getInvoice(id) {
             this.invoice.loading = true;
+            this.invoice.data = {};
             return apiAdmin(`${apiUrl}/${id}`)
                 .then((res) => {
                     this.invoice.data = res.data.data;
@@ -68,6 +69,21 @@ export const useInvoiceStore = defineStore('invoice', {
                     const index = this.invoices.data.findIndex(d => d.id === id);
                     if (index !== -1) {
                         this.invoices.data[index] = res.data.data;
+                    }
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
+        voidInvoice(id) {
+            return apiAdmin(`${apiUrl}/${id}/void`, 'post')
+                .then((res) => {
+                    const index = this.invoices.data.findIndex(d => d.id === id);
+                    if (index !== -1) {
+                        this.invoices.data[index] = res.data.data;
+                    }
+                    if (this.invoice.data?.id === id) {
+                        this.invoice.data = res.data.data;
                     }
                     return res;
                 }).catch((err) => {

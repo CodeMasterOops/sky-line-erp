@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -10,6 +11,7 @@ class InvoiceResource extends JsonResource
     public function toArray(Request $request): array
     {
         $totals = $this->calculateTotals();
+        $payment = $this->calculatePaymentTotals($totals['grand_total']);
 
         return [
             'id' => $this->id ?? '',
@@ -20,17 +22,52 @@ class InvoiceResource extends JsonResource
             'reference_id' => $this->reference_id ?? '',
             'party_id' => $this->party_id ?? '',
             'party_name' => $this->party?->name ?? '',
+            'party' => $this->when(
+                $this->relationLoaded('party') && $this->party,
+                fn () => PartyResource::make($this->party)
+            ),
             'remarks' => $this->remarks ?? '',
             'fiscal_year_id' => $this->fiscal_year_id ?? '',
             'create_user_id' => $this->create_user_id ?? '',
             'approve_user_id' => $this->approve_user_id ?? '',
             'approved_at' => $this->approved_at ?? null,
+            'voided_at' => $this->voided_at ?? null,
             'status' => $this->status?->value ?? '',
             'subtotal' => $totals['subtotal'],
             'discount_total' => $totals['discount_total'],
             'tax_total' => $totals['tax_total'],
             'grand_total' => $totals['grand_total'],
+            'paid_total' => $payment['paid_total'],
+            'due_amount' => $payment['due_amount'],
             'items' => InvoiceItemResource::collection($this->whenLoaded('invoiceItems')),
+        ];
+    }
+
+    /**
+     * @return array{paid_total: float|null, due_amount: float|null}
+     */
+    private function calculatePaymentTotals(float $grandTotal): array
+    {
+        if (! $this->relationLoaded('receiptAllocations')) {
+            return [
+                'paid_total' => null,
+                'due_amount' => null,
+            ];
+        }
+
+        $paid = 0.0;
+        foreach ($this->receiptAllocations as $allocation) {
+            $receipt = $allocation->relationLoaded('receipt') ? $allocation->receipt : null;
+            if ($receipt && $receipt->status === StatusEnum::APPROVED) {
+                $paid += (float) $allocation->amount;
+            }
+        }
+
+        $paid = round($paid, 2);
+
+        return [
+            'paid_total' => $paid,
+            'due_amount' => round(max($grandTotal - $paid, 0), 2),
         ];
     }
 

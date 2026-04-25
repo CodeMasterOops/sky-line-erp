@@ -5,14 +5,23 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\StatusEnum;
 use App\Models\DebitNote;
 use Illuminate\Http\Request;
+use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Admin\DebitNoteResource;
 use App\Http\Requests\Api\Admin\DebitNoteRequest;
+use App\Services\Inventory\InventoryLayerIssueService;
+use App\Services\Inventory\InventoryDocumentReversalService;
 
 class DebitNoteController extends Controller
 {
+    public function __construct(
+        private InventoryLayerIssueService $inventoryIssue,
+        private InventoryDocumentReversalService $documentReversal,
+    ) {}
+
     /**
      * @Permissions("list_debit_note", group="debit_note", desc="List Debit Note")
      */
@@ -38,37 +47,49 @@ class DebitNoteController extends Controller
         $fiscalYearId = $setting->fiscal_year_id;
         $debitNoteNo = $formData['debit_note_no'] ?? $this->generateDebitNoteNo($fiscalYearId, $setting->fiscalYear?->year_code);
 
-        $debitNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $debitNoteNo) {
-            $debitNote = DebitNote::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $formData['party_id'] ?? null,
-                'bill_id' => $formData['bill_id'] ?? null,
-                'debit_note_no' => $debitNoteNo,
-                'debit_note_date' => $formData['debit_note_date'],
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
+        try {
+            $debitNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $debitNoteNo) {
+                $debitNote = DebitNote::create([
+                    'fiscal_year_id' => $fiscalYearId,
+                    'party_id' => $formData['party_id'] ?? null,
+                    'bill_id' => $formData['bill_id'] ?? null,
+                    'debit_note_no' => $debitNoteNo,
+                    'debit_note_date' => $formData['debit_note_date'],
+                    'remarks' => $formData['remarks'] ?? null,
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
+                    'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
+                    'status' => $status,
+                ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                $items = collect($formData['items'] ?? [])->map(function ($item) {
+                    return [
+                        'product_variant_id' => $item['product_variant_id'],
+                        'warehouse_id' => $item['warehouse_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'rate' => $item['rate'],
+                        'tax_id' => $item['tax_id'] ?? null,
+                        'tax_amount' => $item['tax_amount'] ?? 0,
+                        'discount_amount' => $item['discount_amount'] ?? 0,
+                    ];
+                })->all();
 
-            $debitNote->debitNoteItems()->createMany($items);
+                $debitNote->debitNoteItems()->createMany($items);
 
-            return $debitNote;
-        });
+                if ($status === StatusEnum::APPROVED->value) {
+                    $debitNote->refresh();
+                    $this->applyInventoryForApprovedDebitNote($debitNote, $user->company, $user);
+                }
+
+                return $debitNote;
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $debitNote->load([
             'party',
@@ -107,6 +128,12 @@ class DebitNoteController extends Controller
      */
     public function update(DebitNoteRequest $request, DebitNote $debitNote)
     {
+        if ($debitNote->voided_at) {
+            return response()->json([
+                'message' => 'Voided debit notes cannot be edited.',
+            ], 422);
+        }
+
         if ($debitNote->status === StatusEnum::APPROVED) {
             return response()->json([
                 'message' => 'Approved debit notes cannot be edited.',
@@ -165,6 +192,12 @@ class DebitNoteController extends Controller
      */
     public function destroy(DebitNote $debitNote)
     {
+        if ($debitNote->status === StatusEnum::APPROVED && ! $debitNote->voided_at) {
+            return response()->json([
+                'message' => __('Approved debit notes must be voided before they can be deleted.'),
+            ], 422);
+        }
+
         $debitNote->debitNoteItems()->delete();
         $debitNote->delete();
 
@@ -174,10 +207,67 @@ class DebitNoteController extends Controller
     }
 
     /**
+     * @Permissions("approve_debit_note", group="debit_note", desc="Void Debit Note")
+     */
+    public function void(DebitNote $debitNote)
+    {
+        if ($debitNote->voided_at) {
+            return response()->json([
+                'data' => DebitNoteResource::make($debitNote),
+                'message' => 'Debit note is already voided.',
+            ]);
+        }
+
+        if ($debitNote->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved debit notes can be voided.',
+            ], 422);
+        }
+
+        $user = auth('admin')->user();
+
+        try {
+            DB::transaction(function () use ($debitNote, $user) {
+                $this->documentReversal->reverseApprovedDebitNote(
+                    $debitNote,
+                    $user->id,
+                    $debitNote->remarks,
+                );
+                $debitNote->update(['voided_at' => now()]);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        $debitNote->load([
+            'party',
+            'bill',
+            'debitNoteItems.productVariant.product',
+            'debitNoteItems.unit',
+            'debitNoteItems.tax',
+            'debitNoteItems.warehouse',
+        ]);
+
+        return response()->json([
+            'data' => DebitNoteResource::make($debitNote),
+            'message' => 'Debit note voided successfully.',
+        ]);
+    }
+
+    /**
      * @Permissions("approve_debit_note", group="debit_note", desc="Approve Debit Note")
      */
     public function approve(DebitNote $debitNote)
     {
+        if ($debitNote->voided_at) {
+            return response()->json([
+                'message' => 'Voided debit notes cannot be approved.',
+            ], 422);
+        }
+
         if ($debitNote->status === StatusEnum::APPROVED) {
             return response()->json([
                 'data' => DebitNoteResource::make($debitNote),
@@ -187,11 +277,22 @@ class DebitNoteController extends Controller
 
         $user = auth('admin')->user();
 
-        $debitNote->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        try {
+            DB::transaction(function () use ($debitNote, $user) {
+                $debitNote->update([
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED->value,
+                ]);
+
+                $this->applyInventoryForApprovedDebitNote($debitNote, $user->company, $user);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $debitNote->load([
             'party',
@@ -206,6 +307,29 @@ class DebitNoteController extends Controller
             'data' => DebitNoteResource::make($debitNote),
             'message' => 'Debit Note Approved Successfully',
         ]);
+    }
+
+    private function applyInventoryForApprovedDebitNote(DebitNote $debitNote, \App\Models\Company $company, \App\Models\User $user): void
+    {
+        $debitNote->loadMissing('debitNoteItems');
+
+        foreach ($debitNote->debitNoteItems as $item) {
+            $qty = (int) $item->quantity;
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $this->inventoryIssue->issue(
+                $company,
+                $debitNote,
+                $item->product_variant_id,
+                $item->warehouse_id,
+                $qty,
+                ChangeTypeEnum::RETURN_OUT,
+                $user->id,
+                $debitNote->remarks,
+            );
+        }
     }
 
     private function generateDebitNoteNo(?int $fiscalYearId, ?string $yearCode): string

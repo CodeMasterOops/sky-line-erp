@@ -4,10 +4,18 @@ import Swal from "sweetalert2";
 
 export const toast = (status, title) => {
     const errors = [400, 401, 403, 404, 405, 408, 414, 415, 422, 429, 500]
-    if (status === 200 || status === 201) {
-        useToast().success(title)
+    const successStatuses = [200, 201, 202, 204]
+    const message =
+        title !== undefined && title !== null && title !== ''
+            ? title
+            : successStatuses.includes(status)
+                ? 'Success'
+                : 'Something went wrong'
+
+    if (successStatuses.includes(status)) {
+        useToast().success(message)
     } else if (errors.includes(status)) {
-        useToast().error(title)
+        useToast().error(message)
     }
 }
 

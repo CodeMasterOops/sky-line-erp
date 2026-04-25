@@ -108,6 +108,19 @@
                                     />
                                 </div>
                                 <div class="col-md-4">
+                                    <VSelect
+                                        id="inventory_costing_method"
+                                        v-model="form.inventory_costing_method"
+                                        :options="inventoryCostingOptions"
+                                        label="Inventory costing"
+                                        @validate="validateField('inventory_costing_method')"
+                                        :error="errors.inventory_costing_method"
+                                    />
+                                    <p class="text-muted small mb-0 mt-1">
+                                        All inventory issues and the cost of goods on approved sales use this method company-wide. It applies when receiving and issuing stock (bills, invoices, adjustments, transfers).
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
                                     <VFileUpload
                                         id="logo"
                                         v-model="form.logo"
@@ -127,7 +140,7 @@
     </div>
 </template>
 <script setup>
-import {onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref} from 'vue';
 import {toast} from '@/helpers/toast.js';
 import showErrors from '@/helpers/showErrors.js';
 import {object, string} from 'yup';
@@ -147,9 +160,21 @@ onMounted(() => {
 const setSettingData = async (refetch = false) => {
     await settingStore.getSetting(refetch);
     Object.keys(form).forEach(key => {
-        form[key] = setting.value.data[key] || '';
+        const v = setting.value.data[key];
+        form[key] = v !== undefined && v !== null && v !== '' ? v : (key === 'inventory_costing_method' ? 'fifo' : '');
     });
 };
+
+const inventoryCostingOptions = computed(() => {
+    const raw = setting.value.data.inventory_costing_method_options;
+    if (!Array.isArray(raw) || !raw.length) {
+        return [
+            {id: 'fifo', name: 'FIFO (first in, first out)'},
+            {id: 'weighted_average', name: 'Weighted average'},
+        ];
+    }
+    return raw.map((o) => ({id: o.value, name: o.label}));
+});
 
 const {setting} = storeToRefs(settingStore);
 const {fiscalYears} = storeToRefs(adminSettingStore);
@@ -165,7 +190,8 @@ const initialState = {
     website: '',
     address: '',
     logo: '',
-    fiscal_year_id: ''
+    fiscal_year_id: '',
+    inventory_costing_method: 'fifo',
 };
 
 const form = reactive({...initialState});
@@ -180,7 +206,9 @@ const validations = object({
     landline: string().nullable(),
     website: string().nullable(),
     email: string().required('Email is required.').email('Invalid email format'),
-    address: string().nullable()
+    address: string().nullable(),
+    fiscal_year_id: string().required('Fiscal year is required.'),
+    inventory_costing_method: string().required('Inventory costing is required.'),
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);

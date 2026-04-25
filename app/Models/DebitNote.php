@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class DebitNote extends Model
 {
@@ -25,6 +26,7 @@ class DebitNote extends Model
         'create_user_id',
         'approve_user_id',
         'approved_at',
+        'voided_at',
         'status',
     ];
 
@@ -34,6 +36,7 @@ class DebitNote extends Model
         'bill_id' => 'integer',
         'debit_note_date' => 'date',
         'approved_at' => 'datetime',
+        'voided_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
 
@@ -62,6 +65,11 @@ class DebitNote extends Model
     public function debitNoteItems(): HasMany
     {
         return $this->hasMany(DebitNoteItem::class);
+    }
+
+    public function stockMovements(): MorphMany
+    {
+        return $this->morphMany(StockMovement::class, 'reference');
     }
 
     public function party(): BelongsTo

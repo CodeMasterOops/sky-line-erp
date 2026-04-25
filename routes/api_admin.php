@@ -28,6 +28,8 @@ use App\Http\Controllers\Api\Admin\CreditNoteController;
 use App\Http\Controllers\Api\Admin\ReceiptController;
 use App\Http\Controllers\Api\Admin\StockTransferController;
 use App\Http\Controllers\Api\Admin\StockAdjustmentController;
+use App\Http\Controllers\Api\Admin\InventoryStockReconciliationController;
+use App\Http\Controllers\Api\Admin\InventoryStockReconciliationAlignController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\SettingController;
 use App\Http\Controllers\Api\Admin\AttributeController;
@@ -118,6 +120,9 @@ Route::middleware('auth:admin')->group(function () {
         Route::post('stock-adjustment/{stockAdjustment}/approve', [StockAdjustmentController::class, 'approve'])->name('stock-adjustment.approve');
         Route::apiResource('stock-adjustment', StockAdjustmentController::class);
 
+        Route::get('inventory/stock-reconciliation', InventoryStockReconciliationController::class)->name('inventory.stock-reconciliation');
+        Route::post('inventory/stock-reconciliation/align', InventoryStockReconciliationAlignController::class)->name('inventory.stock-reconciliation.align');
+
         // parties
         Route::apiResource('party', PartyController::class);
 
@@ -158,10 +163,12 @@ Route::middleware('auth:admin')->group(function () {
         // invoice
         Route::get('invoice/due', [InvoiceController::class, 'dueInvoices'])->name('invoice.due');
         Route::post('invoice/{invoice}/approve', [InvoiceController::class, 'approve'])->name('invoice.approve');
+        Route::post('invoice/{invoice}/void', [InvoiceController::class, 'void'])->name('invoice.void');
         Route::apiResource('invoice', InvoiceController::class);
 
         // credit note
         Route::post('credit-note/{creditNote}/approve', [CreditNoteController::class, 'approve'])->name('credit-note.approve');
+        Route::post('credit-note/{creditNote}/void', [CreditNoteController::class, 'void'])->name('credit-note.void');
         Route::apiResource('credit-note', CreditNoteController::class)->parameters([
             'credit-note' => 'creditNote',
         ]);
@@ -178,6 +185,7 @@ Route::middleware('auth:admin')->group(function () {
         // bill
         Route::get('bill/due', [BillController::class, 'dueBills'])->name('bill.due');
         Route::post('bill/{bill}/approve', [BillController::class, 'approve'])->name('bill.approve');
+        Route::post('bill/{bill}/void', [BillController::class, 'void'])->name('bill.void');
         Route::apiResource('bill', BillController::class);
 
         // expense
@@ -193,6 +201,7 @@ Route::middleware('auth:admin')->group(function () {
 
         // debit note
         Route::post('debit-note/{debitNote}/approve', [DebitNoteController::class, 'approve'])->name('debit-note.approve');
+        Route::post('debit-note/{debitNote}/void', [DebitNoteController::class, 'void'])->name('debit-note.void');
         Route::apiResource('debit-note', DebitNoteController::class)->parameters([
             'debit-note' => 'debitNote',
         ]);

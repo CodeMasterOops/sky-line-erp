@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Models\Bill;
 use App\Models\Expense;
+use App\Models\StockMovement;
 use Illuminate\Support\ServiceProvider;
+use App\Observers\StockMovementObserver;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,5 +31,7 @@ class AppServiceProvider extends ServiceProvider
             'bill' => Bill::class,
             'expense' => Expense::class,
         ]);
+
+        StockMovement::observe(StockMovementObserver::class);
     }
 }

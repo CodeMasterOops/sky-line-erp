@@ -74,6 +74,21 @@ export const useBillStore = defineStore('bill', {
                     throw err;
                 });
         },
+        voidBill(id) {
+            return apiAdmin(`${apiUrl}/${id}/void`, 'post')
+                .then((res) => {
+                    const index = this.bills.data.findIndex(d => d.id === id);
+                    if (index !== -1) {
+                        this.bills.data[index] = res.data.data;
+                    }
+                    if (this.bill.data?.id === id) {
+                        this.bill.data = res.data.data;
+                    }
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
         deleteBill(id) {
             return apiAdmin(`${apiUrl}/${id}`, 'delete')
                 .then((res) => {

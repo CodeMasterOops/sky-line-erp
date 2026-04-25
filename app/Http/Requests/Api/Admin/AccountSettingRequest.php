@@ -29,6 +29,8 @@ class AccountSettingRequest extends FormRequest
             'other_contact_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
             'purchase_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
             'sales_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'inventory_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'cogs_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
         ];
     }
 }

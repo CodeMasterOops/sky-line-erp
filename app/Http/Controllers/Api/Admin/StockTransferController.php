@@ -2,20 +2,24 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\Stock;
+use App\Models\Company;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
-use App\Enums\ChangeTypeEnum;
 use App\Models\StockTransfer;
 use App\Annotation\Permissions;
-use App\Enums\StockDirectionEnum;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Admin\StockTransferResource;
 use App\Http\Requests\Api\Admin\StockTransferRequest;
+use App\Services\Inventory\InventoryLayerTransferService;
 
 class StockTransferController extends Controller
 {
+    public function __construct(
+        private InventoryLayerTransferService $inventoryTransfer,
+    ) {}
+
     /**
      * @Permissions("list_stock_transfer", group="stock_transfer", desc="List Stock Transfer")
      */
@@ -43,35 +47,42 @@ class StockTransferController extends Controller
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
 
-        $transfer = DB::transaction(function () use ($formData, $user, $status) {
-            $transfer = StockTransfer::create([
-                'reference_no' => $formData['reference_no'] ?? null,
-                'date' => $formData['date'],
-                'from_warehouse_id' => $formData['from_warehouse_id'],
-                'to_warehouse_id' => $formData['to_warehouse_id'],
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
+        try {
+            $transfer = DB::transaction(function () use ($formData, $user, $status) {
+                $transfer = StockTransfer::create([
+                    'reference_no' => $formData['reference_no'] ?? null,
+                    'date' => $formData['date'],
+                    'from_warehouse_id' => $formData['from_warehouse_id'],
+                    'to_warehouse_id' => $formData['to_warehouse_id'],
+                    'remarks' => $formData['remarks'] ?? null,
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
+                    'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
+                    'status' => $status,
+                ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                ];
-            })->all();
+                $items = collect($formData['items'] ?? [])->map(function ($item) {
+                    return [
+                        'product_variant_id' => $item['product_variant_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'quantity' => $item['quantity'],
+                    ];
+                })->all();
 
-            $transfer->stockTransferItems()->createMany($items);
+                $transfer->stockTransferItems()->createMany($items);
 
-            if ($status === StatusEnum::APPROVED->value) {
-                $this->applyApprovalEffects($transfer);
-            }
+                if ($status === StatusEnum::APPROVED->value) {
+                    $this->applyApprovalEffects($transfer);
+                }
 
-            return $transfer;
-        });
+                return $transfer;
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $transfer->load(['fromWarehouse', 'toWarehouse', 'stockTransferItems.productVariant.product', 'stockTransferItems.unit']);
 
@@ -168,15 +179,22 @@ class StockTransferController extends Controller
 
         $user = auth('admin')->user();
 
-        DB::transaction(function () use ($stockTransfer, $user) {
-            $stockTransfer->update([
-                'approve_user_id' => $user->id,
-                'approved_at' => now(),
-                'status' => StatusEnum::APPROVED->value,
-            ]);
+        try {
+            DB::transaction(function () use ($stockTransfer, $user) {
+                $stockTransfer->update([
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED->value,
+                ]);
 
-            $this->applyApprovalEffects($stockTransfer);
-        });
+                $this->applyApprovalEffects($stockTransfer);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $stockTransfer->load(['fromWarehouse', 'toWarehouse', 'stockTransferItems.productVariant.product', 'stockTransferItems.unit']);
 
@@ -190,57 +208,16 @@ class StockTransferController extends Controller
     {
         $transfer->loadMissing('stockTransferItems');
         $user = auth('admin')->user();
+        $company = Company::findOrFail($transfer->company_id);
 
         foreach ($transfer->stockTransferItems as $item) {
-            $quantity = (int) $item->quantity;
-
-            $this->adjustStock($item->product_variant_id, $transfer->from_warehouse_id, -$quantity);
-            $this->adjustStock($item->product_variant_id, $transfer->to_warehouse_id, $quantity);
-
-            $transfer->stockMovements()->create([
-                'product_variant_id' => $item->product_variant_id,
-                'warehouse_id' => $transfer->from_warehouse_id,
-                'type' => ChangeTypeEnum::TRANSFER_OUT->value,
-                'direction' => StockDirectionEnum::OUT->value,
-                'quantity' => $quantity,
-                'user_id' => $user->id,
-                'remarks' => $transfer->remarks,
-            ]);
-
-            $transfer->stockMovements()->create([
-                'product_variant_id' => $item->product_variant_id,
-                'warehouse_id' => $transfer->to_warehouse_id,
-                'type' => ChangeTypeEnum::TRANSFER_IN->value,
-                'direction' => StockDirectionEnum::IN->value,
-                'quantity' => $quantity,
-                'user_id' => $user->id,
-                'remarks' => $transfer->remarks,
-            ]);
+            $this->inventoryTransfer->applyLine(
+                $company,
+                $transfer,
+                $item,
+                $user->id,
+                $transfer->remarks,
+            );
         }
-    }
-
-    private function adjustStock(int $productVariantId, int $warehouseId, int $delta): void
-    {
-        $stock = Stock::withTrashed()
-            ->where('product_variant_id', $productVariantId)
-            ->where('warehouse_id', $warehouseId)
-            ->first();
-
-        if ($stock) {
-            if ($stock->trashed()) {
-                $stock->restore();
-            }
-            $stock->quantity = (int) $stock->quantity + $delta;
-            $stock->save();
-
-            return;
-        }
-
-        Stock::create([
-            'product_variant_id' => $productVariantId,
-            'warehouse_id' => $warehouseId,
-            'quantity' => $delta,
-            'on_hold' => 0,
-        ]);
     }
 }

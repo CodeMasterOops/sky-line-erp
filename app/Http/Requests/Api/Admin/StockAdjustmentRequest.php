@@ -28,11 +28,31 @@ class StockAdjustmentRequest extends FormRequest
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.direction' => ['required', Rule::in([StockDirectionEnum::IN->value, StockDirectionEnum::OUT->value])],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
         ];
 
         return match ($this->method()) {
             'POST', 'PUT' => $rules,
             default => $rules,
         };
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            foreach ($this->input('items', []) as $i => $item) {
+                if (($item['direction'] ?? '') === StockDirectionEnum::IN->value) {
+                    $cost = $item['unit_cost'] ?? null;
+                    if ($cost === null || $cost === '') {
+                        $validator->errors()->add("items.$i.unit_cost", __('Unit cost is required for stock adjustment in.'));
+
+                        continue;
+                    }
+                    if ((float) $cost < 0) {
+                        $validator->errors()->add("items.$i.unit_cost", __('Unit cost must be at least 0.'));
+                    }
+                }
+            }
+        });
     }
 }

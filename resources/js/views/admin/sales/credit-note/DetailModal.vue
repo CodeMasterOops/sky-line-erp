@@ -27,6 +27,11 @@
                                     :class="detailData.status === 'approved' ? 'bg-success' : 'bg-secondary'">
                                     {{ detailData.status }}
                                 </span>
+                                <span
+                                    v-if="detailData.voided_at"
+                                    class="badge bg-dark ms-1">
+                                    voided
+                                </span>
                             </p>
                         </div>
                         <div class="details-item">
@@ -87,6 +92,18 @@
                             </div>
                         </div>
                     </div>
+                    <div
+                        v-if="detailData.id"
+                        class="d-flex flex-wrap gap-2 mt-3">
+                        <button
+                            v-can="'approve_credit_note'"
+                            v-if="detailData.status === 'approved' && !detailData.voided_at"
+                            type="button"
+                            class="btn btn-warning btn-sm text-dark"
+                            @click="voidCreditNote">
+                            <i class="ti ti-ban me-1"></i>Void credit note
+                        </button>
+                    </div>
                 </div>
             </div>
         </template>
@@ -96,7 +113,12 @@
 <script setup>
 import {computed, watch} from 'vue';
 import {storeToRefs} from 'pinia';
+import Swal from 'sweetalert2';
+import {toast} from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
 import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
+
+const emit = defineEmits(['voided']);
 
 const creditNoteStore = useCreditNoteStore();
 const {creditNote} = storeToRefs(creditNoteStore);
@@ -146,5 +168,30 @@ const lineTotal = (item) => {
     const disc = Number(item.discount_amount || 0);
     const taxAmt = Number(item.tax_amount || 0);
     return qty * rate - disc + taxAmt;
+};
+
+const voidCreditNote = async () => {
+    const id = detailData.value.id;
+    if (!id) {
+        return;
+    }
+    Swal.fire({
+        title: 'Void credit note?',
+        text: 'This reverses return inventory and marks the credit note void.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Void',
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await creditNoteStore.voidCreditNote(id);
+                toast(res.status, res.data?.message ?? 'Credit note voided.');
+                emit('voided');
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
 };
 </script>

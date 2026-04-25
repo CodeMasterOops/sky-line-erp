@@ -1,12 +1,6 @@
 <template>
     <PageHeader title="Invoices" subtitle="Manage your invoices" @refresh="fetchInvoices">
         <template #actions>
-            <router-link
-                :to="{ name: 'admin.invoice-view' }"
-                class="btn btn-outline-secondary d-flex align-items-center me-2">
-                <i class="ti ti-file-invoice me-2"></i>
-                Demo: invoice view page
-            </router-link>
             <button
                 v-can="'create_invoice'"
                 type="button"
@@ -50,15 +44,24 @@
                             {{ index + 1 }}
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span
-                                class="badge"
-                                :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
-                                {{ record.status }}
-                            </span>
+                            <div class="d-flex flex-wrap gap-1 align-items-center">
+                                <span
+                                    class="badge"
+                                    :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
+                                    {{ record.status }}
+                                </span>
+                                <span v-if="record.voided_at" class="badge bg-dark">voided</span>
+                            </div>
                         </template>
                         <template v-else-if="column.key === 'action'">
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
+                                    <router-link
+                                        v-can="'show_invoice'"
+                                        class="me-2 p-2 text-dark"
+                                        :to="{ name: 'admin.invoice-view', params: { id: record.id } }">
+                                        <i class="ti ti-eye"></i>
+                                    </router-link>
                                     <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
@@ -67,7 +70,7 @@
                                         <i class="ti ti-edit"></i>
                                     </a>
                                     <a
-                                        v-if="record.status === 'approved'"
+                                        v-if="record.status === 'approved' && !record.voided_at"
                                         class="me-2 p-2"
                                         href="javascript:void(0);"
                                         @click="recordPayment(record.id)">
@@ -79,6 +82,15 @@
                                         href="javascript:void(0);"
                                         @click="approveInvoice(record.id)">
                                         <i class="ti ti-check"></i>
+                                    </a>
+                                    <a
+                                        v-can="'approve_invoice'"
+                                        v-if="record.status === 'approved' && !record.voided_at"
+                                        class="me-2 p-2 text-warning"
+                                        href="javascript:void(0);"
+                                        title="Void"
+                                        @click="voidInvoice(record.id)">
+                                        <i class="ti ti-ban"></i>
                                     </a>
                                     <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
                                        @click="deleteInvoice(record.id)">
@@ -206,10 +218,10 @@ const deleteInvoice = async (id) => {
         confirmButtonColor: 'red',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await invoiceStore.deleteInvoice(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Invoice deleted successfully.');
                 fetchInvoices();
             } catch (e) {
                 showErrors(e);
@@ -227,10 +239,10 @@ const approveInvoice = async (id) => {
         confirmButtonColor: 'green',
         confirmButtonText: 'Yes'
     }).then(async (result) => {
-        if (result.value) {
+        if (result.isConfirmed) {
             try {
                 let res = await invoiceStore.approveInvoice(id);
-                toast(res.status, res.data.message);
+                toast(res.status, res.data?.message ?? 'Invoice approved successfully.');
                 fetchInvoices();
             } catch (e) {
                 showErrors(e);
@@ -242,5 +254,26 @@ const approveInvoice = async (id) => {
 const recordPayment = (id) => {
     receiptInvoiceId.value = id;
     receiptModalOpened.value = true;
+};
+
+const voidInvoice = async (id) => {
+    Swal.fire({
+        title: 'Void invoice?',
+        text: 'This reverses inventory and marks the invoice void. It cannot be undone from the UI.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Void',
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await invoiceStore.voidInvoice(id);
+                toast(res.status, res.data?.message ?? 'Invoice voided.');
+                fetchInvoices();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
 };
 </script>

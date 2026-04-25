@@ -18,10 +18,12 @@ class StockAdjustmentItem extends Model
         'unit_id',
         'direction',
         'quantity',
+        'unit_cost',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
+        'unit_cost' => 'float',
     ];
 
     public function stockAdjustment(): BelongsTo

@@ -17,7 +17,7 @@ class UpdateProfileRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:50'],
             'phone' => ['nullable'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore(auth('vendor')->user())],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore(auth('admin')->user())],
             'profile_photo' => ['nullable', 'image'],
         ];
     }

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\Stock;
+use App\Models\Company;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
@@ -11,11 +11,19 @@ use App\Models\StockAdjustment;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Admin\StockAdjustmentResource;
+use App\Services\Inventory\InventoryLayerIssueService;
 use App\Http\Requests\Api\Admin\StockAdjustmentRequest;
+use App\Services\Inventory\InventoryLayerReceiptService;
 
 class StockAdjustmentController extends Controller
 {
+    public function __construct(
+        private InventoryLayerReceiptService $inventoryReceipt,
+        private InventoryLayerIssueService $inventoryIssue,
+    ) {}
+
     /**
      * @Permissions("list_stock_adjustment", group="stock_adjustment", desc="List Stock Adjustment")
      */
@@ -43,35 +51,43 @@ class StockAdjustmentController extends Controller
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
 
-        $adjustment = DB::transaction(function () use ($formData, $user, $status) {
-            $adjustment = StockAdjustment::create([
-                'reference_no' => $formData['reference_no'] ?? null,
-                'date' => $formData['date'],
-                'warehouse_id' => $formData['warehouse_id'],
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
+        try {
+            $adjustment = DB::transaction(function () use ($formData, $user, $status) {
+                $adjustment = StockAdjustment::create([
+                    'reference_no' => $formData['reference_no'] ?? null,
+                    'date' => $formData['date'],
+                    'warehouse_id' => $formData['warehouse_id'],
+                    'remarks' => $formData['remarks'] ?? null,
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
+                    'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
+                    'status' => $status,
+                ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'direction' => $item['direction'],
-                    'quantity' => $item['quantity'],
-                ];
-            })->all();
+                $items = collect($formData['items'] ?? [])->map(function ($item) {
+                    return [
+                        'product_variant_id' => $item['product_variant_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'direction' => $item['direction'],
+                        'quantity' => $item['quantity'],
+                        'unit_cost' => $item['unit_cost'] ?? null,
+                    ];
+                })->all();
 
-            $adjustment->stockAdjustmentItems()->createMany($items);
+                $adjustment->stockAdjustmentItems()->createMany($items);
 
-            if ($status === StatusEnum::APPROVED->value) {
-                $this->applyApprovalEffects($adjustment);
-            }
+                if ($status === StatusEnum::APPROVED->value) {
+                    $this->applyApprovalEffects($adjustment);
+                }
 
-            return $adjustment;
-        });
+                return $adjustment;
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $adjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
@@ -124,6 +140,7 @@ class StockAdjustmentController extends Controller
                     'unit_id' => $item['unit_id'] ?? null,
                     'direction' => $item['direction'],
                     'quantity' => $item['quantity'],
+                    'unit_cost' => $item['unit_cost'] ?? null,
                 ];
             })->all();
 
@@ -167,15 +184,22 @@ class StockAdjustmentController extends Controller
 
         $user = auth('admin')->user();
 
-        DB::transaction(function () use ($stockAdjustment, $user) {
-            $stockAdjustment->update([
-                'approve_user_id' => $user->id,
-                'approved_at' => now(),
-                'status' => StatusEnum::APPROVED->value,
-            ]);
+        try {
+            DB::transaction(function () use ($stockAdjustment, $user) {
+                $stockAdjustment->update([
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED->value,
+                ]);
 
-            $this->applyApprovalEffects($stockAdjustment);
-        });
+                $this->applyApprovalEffects($stockAdjustment);
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
 
         $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
@@ -189,51 +213,41 @@ class StockAdjustmentController extends Controller
     {
         $adjustment->loadMissing('stockAdjustmentItems');
         $user = auth('admin')->user();
+        $company = Company::findOrFail($adjustment->company_id);
 
         foreach ($adjustment->stockAdjustmentItems as $item) {
             $quantity = (int) $item->quantity;
-            $direction = $item->direction;
-            $delta = $direction === StockDirectionEnum::OUT->value ? -$quantity : $quantity;
-            $type = $direction === StockDirectionEnum::OUT->value
-                ? ChangeTypeEnum::ADJUSTMENT_OUT->value
-                : ChangeTypeEnum::ADJUSTMENT_IN->value;
-
-            $this->adjustStock($item->product_variant_id, $adjustment->warehouse_id, $delta);
-
-            $adjustment->stockMovements()->create([
-                'product_variant_id' => $item->product_variant_id,
-                'warehouse_id' => $adjustment->warehouse_id,
-                'type' => $type,
-                'direction' => $direction,
-                'quantity' => $quantity,
-                'user_id' => $user->id,
-                'remarks' => $adjustment->remarks,
-            ]);
-        }
-    }
-
-    private function adjustStock(int $productVariantId, int $warehouseId, int $delta): void
-    {
-        $stock = Stock::withTrashed()
-            ->where('product_variant_id', $productVariantId)
-            ->where('warehouse_id', $warehouseId)
-            ->first();
-
-        if ($stock) {
-            if ($stock->trashed()) {
-                $stock->restore();
+            if ($quantity <= 0) {
+                continue;
             }
-            $stock->quantity = (int) $stock->quantity + $delta;
-            $stock->save();
 
-            return;
+            if ($item->direction === StockDirectionEnum::IN->value) {
+                $unitCost = (float) ($item->unit_cost ?? 0);
+
+                $this->inventoryReceipt->receive(
+                    $company,
+                    $adjustment,
+                    $item->product_variant_id,
+                    $adjustment->warehouse_id,
+                    $quantity,
+                    $unitCost,
+                    ChangeTypeEnum::ADJUSTMENT_IN,
+                    $user->id,
+                    $adjustment->remarks,
+                    null,
+                );
+            } else {
+                $this->inventoryIssue->issue(
+                    $company,
+                    $adjustment,
+                    $item->product_variant_id,
+                    $adjustment->warehouse_id,
+                    $quantity,
+                    ChangeTypeEnum::ADJUSTMENT_OUT,
+                    $user->id,
+                    $adjustment->remarks,
+                );
+            }
         }
-
-        Stock::create([
-            'product_variant_id' => $productVariantId,
-            'warehouse_id' => $warehouseId,
-            'quantity' => $delta,
-            'on_hold' => 0,
-        ]);
     }
 }

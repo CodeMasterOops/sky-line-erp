@@ -58,6 +58,14 @@ const routes = [
                 component: () => import("@/views/admin/profile/Index.vue"),
             },
             {
+                path: "billing/pricing",
+                name: "admin.billing-pricing",
+                meta: {
+                    pageTitle: "Plans & pricing",
+                },
+                component: () => import("@/views/admin/billing/Pricing.vue"),
+            },
+            {
                 path: "/admin/settings",
                 component: () =>
                     import("@/views/admin/settings/general-settings/settings-index.vue"), // a wrapper layout for settings
@@ -181,7 +189,7 @@ const routes = [
                     import("@/views/admin/sales/invoice/Index.vue"),
             },
             {
-                path: "sales-invoice/view",
+                path: "sales-invoice/:id",
                 name: "admin.invoice-view",
                 meta: {
                     pageTitle: "Invoice view",
@@ -275,6 +283,15 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/inventory/stock-adjustment/Index.vue"),
+            },
+            {
+                path: "stock-reconciliation",
+                name: "admin.stock-reconciliation",
+                meta: {
+                    pageTitle: "Stock Reconciliation",
+                },
+                component: () =>
+                    import("@/views/admin/inventory/stock-reconciliation/Index.vue"),
             },
             {
                 path: "product-category",

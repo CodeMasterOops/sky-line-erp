@@ -74,6 +74,21 @@ export const useCreditNoteStore = defineStore('creditNote', {
                     throw err;
                 });
         },
+        voidCreditNote(id) {
+            return apiAdmin(`${apiUrl}/${id}/void`, 'post')
+                .then((res) => {
+                    const index = this.creditNotes.data.findIndex(d => d.id === id);
+                    if (index !== -1) {
+                        this.creditNotes.data[index] = res.data.data;
+                    }
+                    if (this.creditNote.data?.id === id) {
+                        this.creditNote.data = res.data.data;
+                    }
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
         deleteCreditNote(id) {
             return apiAdmin(`${apiUrl}/${id}`, 'delete')
                 .then((res) => {

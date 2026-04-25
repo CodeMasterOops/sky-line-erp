@@ -119,6 +119,22 @@
                                 label="Sales Account"
                             />
                         </div>
+                        <div class="col-md-4">
+                            <VSelect
+                                id="inventory_account_id"
+                                v-model="form.inventory_account_id"
+                                :options="accounts.data"
+                                label="Inventory Account (perpetual GL)"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <VSelect
+                                id="cogs_account_id"
+                                v-model="form.cogs_account_id"
+                                :options="accounts.data"
+                                label="COGS Account (perpetual GL)"
+                            />
+                        </div>
                         <div class="col-12 text-end">
                             <VButton :loading="isSubmitting" />
                         </div>
@@ -158,6 +174,8 @@ const initialState = {
     other_contact_account_id: "",
     purchase_account_id: "",
     sales_account_id: "",
+    inventory_account_id: "",
+    cogs_account_id: "",
 };
 
 const form = reactive({ ...initialState });

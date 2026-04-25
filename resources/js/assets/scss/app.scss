@@ -56,6 +56,7 @@
 @use "pages/antd-table";
 @use "pages/pos";
 @use "pages/pos-design";
+@use "pages/profile";
 
 /* Must load after theme/pages so mini-sidebar main width wins the cascade */
 @use "layout/mini-sidebar-layout";

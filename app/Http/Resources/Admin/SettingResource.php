@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin;
 
 use Illuminate\Http\Request;
+use App\Enums\InventoryCostingMethodEnum;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class SettingResource extends JsonResource
@@ -21,6 +22,9 @@ class SettingResource extends JsonResource
             'website' => $this->website ?? '',
             'address' => $this->address ?? '',
             'fiscal_year_id' => $this->fiscal_year_id ?? '',
+            'inventory_costing_method' => $this->inventory_costing_method?->value
+                ?? InventoryCostingMethodEnum::FIFO->value,
+            'inventory_costing_method_options' => InventoryCostingMethodEnum::optionsForSelect(),
         ];
     }
 }
