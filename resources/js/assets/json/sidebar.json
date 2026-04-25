@@ -230,6 +230,52 @@
                 ]
             },
             {
+                "menuValue": "Bills",
+                "icon": "ti ti-file-invoice",
+                "route": { "name": "admin.bill-list" },
+                "hasSubRoute": false,
+                "permission": "list_bill"
+            },
+            {
+                "menuValue": "Expenses",
+                "icon": "ti ti-receipt",
+                "route": { "name": "admin.expense-list" },
+                "hasSubRoute": false,
+                "permission": "list_expense"
+            },
+            {
+                "menuValue": "Payments",
+                "icon": "ti ti-receipt",
+                "route": { "name": "admin.payment-list" },
+                "hasSubRoute": false,
+                "permission": "list_payment"
+            },
+            {
+                "menuValue": "Debit Notes",
+                "icon": "ti ti-receipt-refund",
+                "route": { "name": "admin.debit-note-list" },
+                "hasSubRoute": false,
+                "permission": "list_debit_note"
+            },
+            {
+                "menuValue": "Reports",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Purchase Report",
+                        "route": { "name": "admin.purchase-report" },
+                        "permission": "list_bill"
+                    },
+                    {
+                        "menuValue": "Purchase By Item",
+                        "route": { "name": "admin.purchase-by-item" },
+                        "permission": "list_bill"
+                    }
+                ],
+                "permission": "list_bill"
+            },
+            {
                 "menuValue": "Setup",
                 "icon": "ti ti-tool",
                 "hasSubRoute": true,

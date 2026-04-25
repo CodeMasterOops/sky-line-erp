@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Admin\SalesOrderController;
 use App\Http\Controllers\Api\Admin\SalesReportController;
 use App\Http\Controllers\Api\Admin\InvoiceController;
 use App\Http\Controllers\Api\Admin\PurchaseOrderController;
+use App\Http\Controllers\Api\Admin\PurchaseReportController;
 use App\Http\Controllers\Api\Admin\BillController;
 use App\Http\Controllers\Api\Admin\ExpenseController;
 use App\Http\Controllers\Api\Admin\PaymentController;
@@ -78,7 +79,6 @@ use App\Http\Controllers\Api\Admin\CashFlowForecastController;
 // Phase 6 — Multi-branch
 use App\Http\Controllers\Api\Admin\BranchController;
 use App\Http\Controllers\Api\Admin\PosController;
-use App\Http\Controllers\Api\Admin\PurchaseReportController;
 use App\Http\Controllers\Api\Admin\BarcodeController;
 
 Route::controller(AuthController::class)->group(function () {
@@ -97,9 +97,6 @@ Route::middleware('auth:admin')->group(function () {
 
         // dashboard
         Route::get('dashboard', DashboardController::class)->name('dashboard');
-
-        // sales & purchase reports (legacy single-action purchase report)
-        Route::get('purchase-report', PurchaseReportController::class)->name('purchase-report');
 
         Route::apiResource('setting', SettingController::class)->only('index', 'store');
 
@@ -256,6 +253,13 @@ Route::middleware('auth:admin')->group(function () {
         Route::apiResource('debit-note', DebitNoteController::class)->parameters([
             'debit-note' => 'debitNote',
         ]);
+
+        // purchase reports
+        Route::prefix('purchase-report')->as('purchase-report.')->controller(PurchaseReportController::class)->group(function () {
+            Route::get('dashboard', 'dashboard')->name('dashboard');
+            Route::get('report', 'purchaseReport')->name('report');
+            Route::get('purchase-by-item', 'purchaseByItems')->name('purchase-by-item');
+        });
 
         // account settings
         Route::apiResource('account-setting', AccountSettingController::class)->only('index', 'store');
