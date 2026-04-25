@@ -30,7 +30,6 @@
                         id="start_date"
                         v-model="form.start_date"
                         label="Start Date"
-                        :show-switcher="false"
                         @validate="validateField('start_date')"
                         :error="errors.start_date"
                     />
@@ -40,7 +39,6 @@
                         id="end_date"
                         v-model="form.end_date"
                         label="End Date"
-                        :show-switcher="false"
                         @validate="validateField('end_date')"
                         :error="errors.end_date"
                     />

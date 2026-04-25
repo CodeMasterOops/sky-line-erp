@@ -55,6 +55,7 @@ import {storeToRefs} from "pinia";
 import CreateFiscalYear from './Create.vue';
 import EditFiscalYear from './Edit.vue';
 import {useFiscalYearStore} from '@/stores/super-admin/fiscal-year.js';
+import {adToBsDate} from "@/helpers/helper.js";
 
 const fiscalYearStore = useFiscalYearStore();
 
@@ -88,11 +89,11 @@ const columns = [
     },
     {
         title: 'Start Date',
-        dataIndex: 'start_date',
+        customRender: ({record}) => adToBsDate(record.start_date),
     },
     {
         title: 'End Date',
-        dataIndex: 'end_date',
+        customRender: ({record}) => adToBsDate(record.end_date),
     },
     {
         title: 'Action',

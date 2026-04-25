@@ -1,5 +1,7 @@
 <?php
 
+use App\NepaliDateConverter;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -121,23 +123,54 @@ if (! function_exists('limitParagraph')) {
     }
 }
 
-if (! function_exists('truncateSentence')) {
-    function truncateSentence($text, $limit, $endingDelimiter = '...')
-    {
-        $words = explode(' ', strip_tags($text));
-        $output = implode(' ', array_slice($words, 0, $limit));
-
-        if ($output !== $text) {
-            $output .= $endingDelimiter;
-        }
-
-        return trim($output);
-    }
-}
-
 if (! function_exists('isUrl')) {
     function isUrl($string): bool
     {
         return filter_var($string, FILTER_VALIDATE_URL) !== false;
+    }
+}
+
+if (! function_exists('convertToNepali')) {
+    function convertToNepali($number): string
+    {
+        $devanagariDigits = [
+            '0' => '०', '1' => '१', '2' => '२', '3' => '३',
+            '4' => '४', '5' => '५', '6' => '६', '7' => '७',
+            '8' => '८', '9' => '९',
+        ];
+
+        return strtr($number, $devanagariDigits);
+    }
+}
+
+if (! function_exists('adToBsDate')) {
+    function adToBsDate($adDate, $format = 'en', $separator = '-'): string
+    {
+        $nepaliDate = (new NepaliDateConverter)->convertDateToNepali(Carbon::parse($adDate)->format('Y-m-d'));
+
+        $convertedDate = $nepaliDate['year'].$separator.Str::padLeft($nepaliDate['month'], 2, 0).$separator.Str::padLeft($nepaliDate['date'], 2, 0);
+
+        if ($format == 'np') {
+            return convertToNepali($convertedDate);
+        }
+
+        return $convertedDate;
+    }
+}
+
+if (! function_exists('adToBsDateTime')) {
+    function adToBsDateTime($adDate, $format = 'en'): string
+    {
+        $nepaliDate = (new NepaliDateConverter)->convertDateToNepali(Carbon::parse($adDate)->format('Y-m-d'));
+
+        $convertedDate = $nepaliDate['year'].'-'.Str::padLeft($nepaliDate['month'], 2, 0).'-'.Str::padLeft($nepaliDate['date'], 2, 0);
+
+        $convertedDateTime = $convertedDate.', '.Carbon::parse($adDate)->format('g:i A');
+
+        if ($format == 'np') {
+            return convertToNepali($convertedDateTime);
+        }
+
+        return $convertedDateTime;
     }
 }
