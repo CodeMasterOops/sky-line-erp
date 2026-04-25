@@ -117,6 +117,17 @@
                                     label="Reorder quantity" @validate="validateField('reorder_quantity')"
                                     :error="errors.reorder_quantity" />
                             </div>
+                            <div v-if="isPhysicalProduct" class="col-md-6">
+                                <VInput input-type="number" id="min_stock_level" v-model="form.min_stock_level"
+                                    label="Min Stock Level" @validate="validateField('min_stock_level')"
+                                    :error="errors.min_stock_level" />
+                            </div>
+                            <div class="col-md-6">
+                                <VInput id="hsn_code" v-model="form.hsn_code"
+                                    label="HSN / HS Code" placeholder="e.g. 9403"
+                                    @validate="validateField('hsn_code')"
+                                    :error="errors.hsn_code" />
+                            </div>
                             <div class="col-12">
                                 <VTextarea id="description" v-model="form.description" label="Description"
                                     @validate="validateField('description')" :error="errors.description" />
@@ -480,6 +491,8 @@ const initialState = {
     unit_id: '',
     brand_id: '',
     reorder_quantity: '',
+    min_stock_level: '',
+    hsn_code: '',
     description: '',
     has_variants: false,
     variants: [],
@@ -550,6 +563,8 @@ async function hydrateFromProduct(data) {
             unit_id: data.unit_id ?? '',
             brand_id: data.brand_id ?? '',
             reorder_quantity: data.reorder_quantity != null ? String(data.reorder_quantity) : '',
+            min_stock_level: data.min_stock_level != null ? String(data.min_stock_level) : '',
+            hsn_code: data.hsn_code ?? '',
             description: data.description ?? '',
             has_variants: !!data.has_variants,
             attribute_values: [],

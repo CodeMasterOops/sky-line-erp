@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TaxLineTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,6 +22,7 @@ class BillItem extends Model
         'tax_id',
         'tax_amount',
         'discount_amount',
+        'tax_line_type',
     ];
 
     protected $casts = [
@@ -33,6 +35,7 @@ class BillItem extends Model
         'rate' => 'float',
         'tax_amount' => 'float',
         'discount_amount' => 'float',
+        'tax_line_type' => TaxLineTypeEnum::class,
     ];
 
     public function bill(): BelongsTo

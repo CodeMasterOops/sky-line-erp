@@ -21,11 +21,13 @@ class Product extends Model
         'product_type',
         'name',
         'code',
+        'hsn_code',
         'image',
         'unit_id',
         'brand_id',
         'has_variants',
         'reorder_quantity',
+        'min_stock_level',
         'description',
     ];
 
@@ -34,8 +36,8 @@ class Product extends Model
         'sales_price' => 'float',
         'purchase_price' => 'float',
         'reorder_quantity' => 'integer',
+        'min_stock_level' => 'float',
         'has_variants' => 'boolean',
-        'app:add-table-column' => 'boolean',
     ];
 
     public function scopeFilter($query, $param = [])

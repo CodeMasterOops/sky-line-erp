@@ -83,6 +83,13 @@
                 "permission": "list_stock_adjustment"
             },
             {
+                "menuValue": "Serial / Lot Numbers",
+                "icon": "ti ti-numbers",
+                "route": { "name": "admin.serial-numbers" },
+                "hasSubRoute": false,
+                "permission": "list_product"
+            },
+            {
                 "menuValue": "Variant Attributes",
                 "icon": "ti ti-versions",
                 "route": { "name": "admin.variant-attributes" },
@@ -94,6 +101,29 @@
                 "icon": "ti ti-barcode",
                 "route": { "name": "admin.barcode" },
                 "hasSubRoute": false,
+                "permission": "list_product"
+            },
+            {
+                "menuValue": "Reports",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Inventory Valuation",
+                        "route": { "name": "admin.inventory-valuation" },
+                        "permission": "list_product"
+                    },
+                    {
+                        "menuValue": "Stock Aging",
+                        "route": { "name": "admin.stock-aging" },
+                        "permission": "list_product"
+                    },
+                    {
+                        "menuValue": "Reorder Alerts",
+                        "route": { "name": "admin.reorder-alerts" },
+                        "permission": "list_product"
+                    }
+                ],
                 "permission": "list_product"
             }
         ]
@@ -126,6 +156,13 @@
                 "route": { "name": "admin.invoice-list" },
                 "hasSubRoute": false,
                 "permission": "list_invoice"
+            },
+            {
+                "menuValue": "Delivery Challans",
+                "icon": "ti ti-truck-delivery",
+                "route": { "name": "admin.delivery-challan-list" },
+                "hasSubRoute": false,
+                "permission": "list_delivery_challan"
             },
             {
                 "menuValue": "Credit Notes",
@@ -177,6 +214,13 @@
                 "route": { "name": "admin.purchase-order-list" },
                 "hasSubRoute": false,
                 "permission": "list_purchase_order"
+            },
+            {
+                "menuValue": "Goods Received Notes",
+                "icon": "ti ti-package-import",
+                "route": { "name": "admin.grn-list" },
+                "hasSubRoute": false,
+                "permission": "list_grn"
             },
             {
                 "menuValue": "Bills",
@@ -265,6 +309,69 @@
                 "permission": "list_receipt_voucher"
             },
             {
+                "menuValue": "Opening Balances",
+                "icon": "ti ti-scale",
+                "route": { "name": "admin.opening-balances" },
+                "hasSubRoute": false,
+                "permission": "list_account"
+            },
+            {
+                "menuValue": "Recurring Journals",
+                "icon": "ti ti-refresh",
+                "route": { "name": "admin.recurring-journal-list" },
+                "hasSubRoute": false,
+                "permission": "list_recurring_journal"
+            },
+            {
+                "menuValue": "Fixed Assets",
+                "icon": "ti ti-building",
+                "route": { "name": "admin.fixed-asset-list" },
+                "hasSubRoute": false,
+                "permission": "list_fixed_asset"
+            },
+            {
+                "menuValue": "Bank Reconciliation",
+                "icon": "ti ti-building-bank",
+                "route": { "name": "admin.bank-reconciliation" },
+                "hasSubRoute": false,
+                "permission": "list_bank_account"
+            },
+            {
+                "menuValue": "Accounting Periods",
+                "icon": "ti ti-calendar-time",
+                "route": { "name": "admin.accounting-periods" },
+                "hasSubRoute": false,
+                "permission": "list_accounting_period"
+            },
+            {
+                "menuValue": "Nepal VAT",
+                "icon": "ti ti-file-certificate",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "VAT Return (D3)",
+                        "route": { "name": "admin.vat-return" },
+                        "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "Bikri Khata (Sales Register)",
+                        "route": { "name": "admin.vat-sales-register" },
+                        "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "Kharid Khata (Purchase Register)",
+                        "route": { "name": "admin.vat-purchase-register" },
+                        "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "TDS Report",
+                        "route": { "name": "admin.tds-report" },
+                        "permission": "list_account"
+                    }
+                ],
+                "permission": "list_account"
+            },
+            {
                 "menuValue": "Financial Reports",
                 "icon": "ti ti-chart-dots",
                 "hasSubRoute": true,
@@ -285,16 +392,32 @@
                         "permission": "list_account"
                     },
                     {
-                        "menuValue": "Journal Report",
-                        "route": { "name": "admin.journal-report" },
+                        "menuValue": "Cash Flow",
+                        "route": { "name": "admin.cash-flow" },
                         "permission": "list_account"
                     },
                     {
                         "menuValue": "General Ledger",
                         "route": { "name": "admin.general-ledger" },
                         "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "Journal Report",
+                        "route": { "name": "admin.journal-report" },
+                        "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "AR Aging",
+                        "route": { "name": "admin.ar-aging" },
+                        "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "AP Aging",
+                        "route": { "name": "admin.ap-aging" },
+                        "permission": "list_account"
                     }
-                ]
+                ],
+                "permission": "list_account"
             }
         ]
     },
@@ -351,46 +474,55 @@
                 "permission": "list_holiday"
             },
             {
-                "menuValue": "Salary Components",
-                "icon": "ti ti-coin",
-                "route": { "name": "admin.hr-salary-components" },
-                "hasSubRoute": false,
-                "permission": "list_salary_component"
-            },
-            {
-                "menuValue": "Salary Structure",
-                "icon": "ti ti-table",
-                "route": { "name": "admin.hr-salary-structure" },
-                "hasSubRoute": false,
-                "permission": "list_salary_structure"
-            },
-            {
-                "menuValue": "Payroll Runs",
+                "menuValue": "Payroll",
                 "icon": "ti ti-cash",
-                "route": { "name": "admin.hr-payroll" },
-                "hasSubRoute": false,
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Salary Components",
+                        "route": { "name": "admin.hr-salary-components" },
+                        "permission": "list_salary_component"
+                    },
+                    {
+                        "menuValue": "Salary Structure",
+                        "route": { "name": "admin.hr-salary-structure" },
+                        "permission": "list_salary_structure"
+                    },
+                    {
+                        "menuValue": "Payroll Runs",
+                        "route": { "name": "admin.hr-payroll" },
+                        "permission": "list_payroll"
+                    }
+                ],
                 "permission": "list_payroll"
             },
             {
-                "menuValue": "Payroll Summary",
+                "menuValue": "Reports",
                 "icon": "ti ti-report-analytics",
-                "route": { "name": "admin.hr-report-payroll" },
-                "hasSubRoute": false,
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Payroll Summary",
+                        "route": { "name": "admin.hr-report-payroll" },
+                        "permission": "list_payroll"
+                    },
+                    {
+                        "menuValue": "Attendance Report",
+                        "route": { "name": "admin.hr-report-attendance" },
+                        "permission": "list_attendance"
+                    },
+                    {
+                        "menuValue": "Leave Balance",
+                        "route": { "name": "admin.hr-report-leave" },
+                        "permission": "list_leave_application"
+                    },
+                    {
+                        "menuValue": "TDS Salary Report",
+                        "route": { "name": "admin.hr-report-tds-salary" },
+                        "permission": "list_payroll"
+                    }
+                ],
                 "permission": "list_payroll"
-            },
-            {
-                "menuValue": "Attendance Report",
-                "icon": "ti ti-report",
-                "route": { "name": "admin.hr-report-attendance" },
-                "hasSubRoute": false,
-                "permission": "list_attendance"
-            },
-            {
-                "menuValue": "Leave Balance",
-                "icon": "ti ti-chart-bar",
-                "route": { "name": "admin.hr-report-leave" },
-                "hasSubRoute": false,
-                "permission": "list_leave_application"
             }
         ]
     },

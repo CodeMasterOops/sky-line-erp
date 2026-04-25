@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Admin;
 
 use App\Tenancy\TRule;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Validation\Rule;
 use App\Enums\EmployeeStatusEnum;
 use App\Enums\EmploymentTypeEnum;
@@ -31,6 +32,8 @@ class EmployeeRequest extends FormRequest
             'status' => ['nullable', Rule::enum(EmployeeStatusEnum::class)],
             'bank_name' => ['nullable', 'string', 'max:255'],
             'bank_account_no' => ['nullable', 'string', 'max:100'],
+            'pan' => ['nullable', 'string', 'max:20'],
+            'tds_category' => ['nullable', Rule::enum(TdsCategoryEnum::class)],
             'address' => ['nullable', 'string', 'max:500'],
         ];
 

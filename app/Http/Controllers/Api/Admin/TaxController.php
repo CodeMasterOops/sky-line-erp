@@ -46,6 +46,12 @@ class TaxController extends Controller
      */
     public function update(TaxRequest $request, Tax $tax)
     {
+        if ($tax->is_system) {
+            return response()->json([
+                'message' => 'System tax rates are managed by the SaaS administrator and cannot be edited.',
+            ], 403);
+        }
+
         $tax->update($request->validated());
 
         return response()->json([
@@ -59,6 +65,12 @@ class TaxController extends Controller
      */
     public function destroy(Tax $tax)
     {
+        if ($tax->is_system) {
+            return response()->json([
+                'message' => 'System tax rates are managed by the SaaS administrator and cannot be deleted.',
+            ], 403);
+        }
+
         $tax->delete();
 
         return response()->json([

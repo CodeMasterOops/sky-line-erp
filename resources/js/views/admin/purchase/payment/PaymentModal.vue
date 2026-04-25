@@ -104,6 +104,56 @@
                     </div>
                 </div>
 
+                <div class="col-12">
+                    <div class="card border bg-light">
+                        <div class="card-header py-2 px-3">
+                            <strong class="small">TDS / Currency (Optional)</strong>
+                        </div>
+                        <div class="card-body py-2 px-3 row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">Currency</label>
+                                <select class="form-select form-select-sm" v-model="form.currency_code">
+                                    <option value="">NPR (default)</option>
+                                    <option value="USD">USD</option>
+                                    <option value="EUR">EUR</option>
+                                    <option value="INR">INR</option>
+                                    <option value="GBP">GBP</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">Exchange Rate</label>
+                                <input type="number" class="form-control form-control-sm" v-model="form.exchange_rate" placeholder="1.00" min="0" step="0.0001" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">TDS Category</label>
+                                <select class="form-select form-select-sm" v-model="form.tds_category">
+                                    <option value="">None</option>
+                                    <option value="rent">Rent (10%)</option>
+                                    <option value="service_payment">Service Payment (15%)</option>
+                                    <option value="commission">Commission (15%)</option>
+                                    <option value="dividend">Dividend (5%)</option>
+                                    <option value="interest">Interest (15%)</option>
+                                    <option value="contract">Contract / Work (1.5%)</option>
+                                    <option value="royalty">Royalty (15%)</option>
+                                    <option value="others">Others</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">TDS Rate (%)</label>
+                                <input type="number" class="form-control form-control-sm" v-model="form.tds_rate" placeholder="Auto" readonly />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Gross Amount</label>
+                                <input type="number" class="form-control form-control-sm" v-model="form.gross_amount" placeholder="0.00" min="0" step="0.01" />
+                            </div>
+                            <div class="col-md-6" v-if="form.tds_category">
+                                <label class="form-label small">TDS Amount (computed)</label>
+                                <input type="text" class="form-control form-control-sm bg-white" :value="computedTdsAmount" readonly />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-md-12">
                     <VTextarea
                         id="remarks"
@@ -202,6 +252,17 @@ onMounted(() => {
     paymentModeStore.getPaymentModes();
 });
 
+const TDS_RATES = {
+    rent: 10,
+    service_payment: 15,
+    commission: 15,
+    dividend: 5,
+    interest: 15,
+    contract: 1.5,
+    royalty: 15,
+    others: 0,
+};
+
 const initialState = {
     payment_date: currentAdDate,
     party_id: '',
@@ -210,6 +271,11 @@ const initialState = {
     reference_no: '',
     remarks: '',
     status: 'draft',
+    tds_category: '',
+    tds_rate: '',
+    gross_amount: '',
+    currency_code: '',
+    exchange_rate: '',
 };
 
 const form = reactive({...initialState});
@@ -281,6 +347,17 @@ const loadPrefill = async () => {
     }
 };
 
+watch(() => form.tds_category, (cat) => {
+    form.tds_rate = cat && TDS_RATES[cat] != null ? String(TDS_RATES[cat]) : '';
+});
+
+const computedTdsAmount = computed(() => {
+    const gross = Number(form.gross_amount || 0);
+    const rate = Number(form.tds_rate || 0);
+    if (!gross || !rate) return '0.00';
+    return (gross * rate / 100).toFixed(2);
+});
+
 watch(() => form.party_id, async () => {
     await loadDueItems();
 });
@@ -329,6 +406,7 @@ const storePayment = async (status = 'draft') => {
             const payload = {
                 ...form,
                 allocations,
+                tds_amount: form.tds_category ? computedTdsAmount.value : null,
             };
             let res = await paymentStore.storePayment(payload);
             toast(res.status, res.data.message);

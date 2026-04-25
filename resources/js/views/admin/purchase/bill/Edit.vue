@@ -65,6 +65,18 @@
                             </div>
                         </div>
 
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <VInput
+                                    id="seller_pan"
+                                    v-model="form.seller_pan"
+                                    label="Seller PAN"
+                                    placeholder="Supplier PAN (required for VAT bills)"
+                                    :disabled="!isDraft"
+                                />
+                            </div>
+                        </div>
+
                         <div v-if="isDraft" class="col-12">
                             <ProductVariantSearchInput
                                 label="Product name / code / SKU"
@@ -99,6 +111,7 @@
                                             Ref. margin</th>
                                         <th class="po-col-disc">Discount</th>
                                         <th class="po-col-tax">Tax</th>
+                                        <th>Tax Type</th>
                                         <th class="po-col-amt">Tax amt</th>
                                         <th class="po-col-line">Line total</th>
                                         <th v-if="isDraft" class="text-center po-col-action">Action</th>
@@ -168,6 +181,13 @@
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
                                             />
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm" v-model="form.items[index].tax_line_type" :disabled="!isDraft">
+                                                <option value="taxable">Taxable</option>
+                                                <option value="exempt">Exempt</option>
+                                                <option value="zero_rated">Zero Rated</option>
+                                            </select>
                                         </td>
                                         <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
                                         <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
@@ -284,6 +304,7 @@ const initialState = {
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    seller_pan: '',
     remarks: '',
     status: 'draft',
     items: [],
@@ -331,6 +352,7 @@ const onVariantSelected = (variant) => {
         quantity: '1',
         rate: defaultLineRateString(variant),
         tax_id: '',
+        tax_line_type: 'taxable',
         discount_amount: '0',
     });
 };
@@ -379,6 +401,7 @@ watch(
                     quantity: String(item.quantity ?? '1'),
                     rate: rateStringFromApiLine(item),
                     tax_id: item.tax_id || '',
+                    tax_line_type: item.tax_line_type || 'taxable',
                     discount_amount:
                         item.discount_amount !== null && item.discount_amount !== undefined
                             ? String(item.discount_amount)

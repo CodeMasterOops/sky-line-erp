@@ -32,14 +32,17 @@
                                     </template>
                                     <template v-if="column.key === 'action'">
                                         <div class="action-icon d-inline-flex">
-                                            <a v-can="'edit_tax'" class="me-2" href="javascript:void(0);"
-                                               @click="edit_tax_id=record.id">
-                                                <i class="ti ti-edit"></i>
-                                            </a>
-                                            <a v-can="'delete_tax'" href="javascript:void(0);"
-                                               @click="deleteTax(record.id)">
-                                                <i class="ti ti-trash"></i>
-                                            </a>
+                                            <span v-if="record.is_system" class="badge bg-secondary me-2" title="Managed by SaaS administrator">System</span>
+                                            <template v-else>
+                                                <a v-can="'edit_tax'" class="me-2" href="javascript:void(0);"
+                                                   @click="edit_tax_id=record.id">
+                                                    <i class="ti ti-edit"></i>
+                                                </a>
+                                                <a v-can="'delete_tax'" href="javascript:void(0);"
+                                                   @click="deleteTax(record.id)">
+                                                    <i class="ti ti-trash"></i>
+                                                </a>
+                                            </template>
                                         </div>
                                     </template>
                                 </template>
@@ -106,6 +109,10 @@ const columns = [
                 return a > b ? -1 : b > a ? 1 : 0;
             },
         },
+    },
+    {
+        title: 'Type',
+        dataIndex: 'type_label',
     },
     {
         title: 'Action',

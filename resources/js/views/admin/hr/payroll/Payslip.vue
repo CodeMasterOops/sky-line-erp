@@ -58,7 +58,14 @@
                                     <td>{{ item.component_name }}</td>
                                     <td class="text-end">{{ item.amount }}</td>
                                 </tr>
-                                <tr class="fw-bold"><td>Total Deductions</td><td class="text-end">{{ payslip.data?.total_deductions }}</td></tr>
+                                <tr v-if="(payslip.data?.tds_amount ?? 0) > 0">
+                                    <td>TDS Withheld <span class="text-muted small">({{ payslip.data?.employee?.tds_category_label }})</span></td>
+                                    <td class="text-end text-danger">{{ payslip.data?.tds_amount }}</td>
+                                </tr>
+                                <tr class="fw-bold">
+                                    <td>Total Deductions</td>
+                                    <td class="text-end">{{ totalDeductions }}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -70,6 +77,12 @@
                             <span class="fs-5 fw-bold">Net Pay</span>
                             <span class="fs-4 fw-bold">{{ payslip.data?.net_salary }}</span>
                         </div>
+                    </div>
+                </div>
+
+                <div v-if="payslip.data?.employee?.pan" class="row mt-2">
+                    <div class="col-12 text-muted small">
+                        Employee PAN: <strong>{{ payslip.data.employee.pan }}</strong>
                     </div>
                 </div>
             </div>
@@ -91,6 +104,11 @@ onMounted(() => payrollStore.getPayslip(route.params.id));
 
 const earnings = computed(() => payslip.value.data?.items?.filter(i => i.component_type === 'earning') ?? []);
 const deductions = computed(() => payslip.value.data?.items?.filter(i => i.component_type === 'deduction') ?? []);
+const totalDeductions = computed(() => {
+    const ded = Number(payslip.value.data?.total_deductions ?? 0);
+    const tds = Number(payslip.value.data?.tds_amount ?? 0);
+    return (ded + tds).toFixed(2);
+});
 const statusBadge = (s) => ({ draft: 'badge bg-secondary', processed: 'badge bg-primary', paid: 'badge bg-success' }[s?.value ?? s] ?? 'badge bg-secondary');
 const printPayslip = () => window.print();
 </script>

@@ -80,6 +80,33 @@
                     <div class="col-md-6">
                         <VInput id="bank_account_no" v-model="form.bank_account_no" label="Account Number" />
                     </div>
+
+                    <div class="col-12 mt-2"><h6 class="text-muted fw-bold">Tax Information</h6></div>
+
+                    <div class="col-md-4">
+                        <VInput id="pan" v-model="form.pan" label="Employee PAN" placeholder="e.g. 123456789" />
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">TDS Category</label>
+                        <select v-model="form.tds_category" class="form-select">
+                            <option value="">None (no TDS deduction)</option>
+                            <option value="service_vat_bill">Service Fee (VAT Bill) – 1.5%</option>
+                            <option value="service_pan_bill">Service Fee (PAN Bill) – 15%</option>
+                            <option value="service_vat_exempt_institution">Service Fee (VAT-Exempt Institution) – 1%</option>
+                            <option value="contract_vat_registered">Contract Payment (VAT Registered) – 1.5%</option>
+                            <option value="rent_property">Rent (House/Land/Property) – 10%</option>
+                            <option value="rent_vehicle_vat">Vehicle Hire (VAT Bill) – 1.5%</option>
+                            <option value="rent_vehicle_no_vat">Vehicle Hire (No VAT Bill) – 10%</option>
+                            <option value="interest_bank_natural_person">Interest by Bank to Natural Person – 6%</option>
+                            <option value="interest_company">Interest by Company/Debenture – 15%</option>
+                            <option value="dividend">Dividend – 5%</option>
+                            <option value="royalty">Royalty – 15%</option>
+                            <option value="commission">Commission/Sales Bonus – 15%</option>
+                            <option value="windfall">Windfall Gains – 25%</option>
+                        </select>
+                        <small class="text-muted">TDS will be auto-calculated on taxable salary components for this employee.</small>
+                    </div>
+
                     <div class="col-12">
                         <label class="form-label">Address</label>
                         <textarea class="form-control" v-model="form.address" rows="2"></textarea>
@@ -123,7 +150,8 @@ const isSubmitting = ref(false);
 const initial = {
     employee_code: '', first_name: '', last_name: '', email: '', phone: '',
     gender: '', dob: '', join_date: '', employment_type: 'full_time', status: 'active',
-    department_id: '', designation_id: '', bank_name: '', bank_account_no: '', address: '',
+    department_id: '', designation_id: '', bank_name: '', bank_account_no: '',
+    pan: '', tds_category: '', address: '',
 };
 const form = reactive({ ...initial });
 

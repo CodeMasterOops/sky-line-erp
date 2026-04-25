@@ -133,6 +133,42 @@
                     </div>
                 </div>
 
+                <div class="col-12">
+                    <div class="card border bg-light">
+                        <div class="card-header py-2 px-3">
+                            <strong class="small">TDS (Optional)</strong>
+                        </div>
+                        <div class="card-body py-2 px-3 row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small">TDS Category</label>
+                                <select class="form-select form-select-sm" v-model="form.tds_category">
+                                    <option value="">None</option>
+                                    <option value="rent">Rent (10%)</option>
+                                    <option value="service_payment">Service Payment (15%)</option>
+                                    <option value="commission">Commission (15%)</option>
+                                    <option value="dividend">Dividend (5%)</option>
+                                    <option value="interest">Interest (15%)</option>
+                                    <option value="contract">Contract / Work (1.5%)</option>
+                                    <option value="royalty">Royalty (15%)</option>
+                                    <option value="others">Others</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">TDS Rate (%)</label>
+                                <input type="number" class="form-control form-control-sm" v-model="form.tds_rate" placeholder="Auto" readonly />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small">Gross Amount</label>
+                                <input type="number" class="form-control form-control-sm" v-model="form.gross_amount" placeholder="0.00" min="0" step="0.01" />
+                            </div>
+                            <div class="col-md-6" v-if="form.tds_category">
+                                <label class="form-label small">TDS Amount (computed)</label>
+                                <input type="text" class="form-control form-control-sm bg-white" :value="computedTdsAmount" readonly />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-md-12">
                     <VTextarea
                         id="remarks"
@@ -168,7 +204,7 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -196,6 +232,17 @@ onMounted(() => {
     taxStore.getTaxes();
 });
 
+const TDS_RATES = {
+    rent: 10,
+    service_payment: 15,
+    commission: 15,
+    dividend: 5,
+    interest: 15,
+    contract: 1.5,
+    royalty: 15,
+    others: 0,
+};
+
 const initialState = {
     date: new Date().toISOString().slice(0, 10),
     due_date: '',
@@ -203,6 +250,9 @@ const initialState = {
     reference_no: '',
     remarks: '',
     status: 'draft',
+    tds_category: '',
+    tds_rate: '',
+    gross_amount: '',
     items: [
         {
             account_id: '',
@@ -215,6 +265,17 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+
+watch(() => form.tds_category, (cat) => {
+    form.tds_rate = cat && TDS_RATES[cat] != null ? String(TDS_RATES[cat]) : '';
+});
+
+const computedTdsAmount = computed(() => {
+    const gross = Number(form.gross_amount || 0);
+    const rate = Number(form.tds_rate || 0);
+    if (!gross || !rate) return '0.00';
+    return (gross * rate / 100).toFixed(2);
+});
 
 const addItem = () => {
     form.items.push({

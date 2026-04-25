@@ -104,8 +104,8 @@ export const usePayrollStore = defineStore('payroll', {
                 return res;
             });
         },
-        confirmRun(id) {
-            return apiAdmin(`hr/payroll/${id}/confirm`, 'post').then((res) => {
+        confirmRun(id, payload = {}) {
+            return apiAdmin(`hr/payroll/${id}/confirm`, 'post', payload).then((res) => {
                 this.run.data = res.data.data;
                 const idx = this.runs.data.findIndex(d => d.id === id);
                 if (idx !== -1) this.runs.data[idx] = res.data.data;

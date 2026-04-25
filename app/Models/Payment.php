@@ -24,6 +24,12 @@ class Payment extends Model
         'account_id',
         'reference_no',
         'remarks',
+        'tds_category',
+        'tds_rate',
+        'tds_amount',
+        'gross_amount',
+        'currency_code',
+        'exchange_rate',
         'create_user_id',
         'approve_user_id',
         'approved_at',
@@ -37,6 +43,10 @@ class Payment extends Model
         'account_id' => 'integer',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
+        'tds_rate' => 'float',
+        'tds_amount' => 'float',
+        'gross_amount' => 'float',
+        'exchange_rate' => 'float',
     ];
 
     public function scopeFilter($query, $param = [])

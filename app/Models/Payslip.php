@@ -17,6 +17,7 @@ class Payslip extends Model
         'gross_salary',
         'total_deductions',
         'net_salary',
+        'tds_amount',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class Payslip extends Model
         'gross_salary' => 'float',
         'total_deductions' => 'float',
         'net_salary' => 'float',
+        'tds_amount' => 'float',
     ];
 
     public function payrollRun(): BelongsTo

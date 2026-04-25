@@ -43,6 +43,14 @@ use App\Http\Controllers\Api\Admin\AdminSettingController;
 use App\Http\Controllers\Api\Admin\AccountSettingController;
 use App\Http\Controllers\Api\Admin\ProductCategoryController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
+use App\Http\Controllers\Api\Admin\AccountingPeriodController;
+use App\Http\Controllers\Api\Admin\BankReconciliationController;
+use App\Http\Controllers\Api\Admin\GoodsReceivedNoteController;
+use App\Http\Controllers\Api\Admin\DeliveryChallanController;
+use App\Http\Controllers\Api\Admin\FixedAssetController;
+use App\Http\Controllers\Api\Admin\RecurringJournalController;
+use App\Http\Controllers\Api\Admin\CurrencyController;
+use App\Http\Controllers\Api\Admin\SerialNumberController;
 use App\Http\Controllers\Api\Admin\HR\DepartmentController;
 use App\Http\Controllers\Api\Admin\HR\DesignationController;
 use App\Http\Controllers\Api\Admin\HR\EmployeeController;
@@ -225,6 +233,56 @@ Route::middleware('auth:admin')->group(function () {
         // account settings
         Route::apiResource('account-setting', AccountSettingController::class)->only('index', 'store');
 
+        // accounting periods
+        Route::prefix('accounting-period')->as('accounting-period.')->controller(AccountingPeriodController::class)->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('generate', 'generate')->name('generate');
+            Route::post('{accountingPeriod}/close', 'close')->name('close');
+            Route::post('{accountingPeriod}/reopen', 'reopen')->name('reopen');
+            Route::post('{accountingPeriod}/lock', 'lock')->name('lock');
+        });
+
+        // bank reconciliation
+        Route::prefix('bank-reconciliation')->as('bank-reconciliation.')->controller(BankReconciliationController::class)->group(function () {
+            Route::get('bank-accounts', 'bankAccounts')->name('bank-accounts');
+            Route::post('bank-accounts', 'storeBankAccount')->name('bank-accounts.store');
+            Route::get('bank-accounts/{bankAccount}/statement-lines', 'statementLines')->name('statement-lines');
+            Route::post('bank-accounts/{bankAccount}/import-lines', 'importLines')->name('import-lines');
+            Route::post('bank-accounts/{bankAccount}/auto-match', 'autoMatch')->name('auto-match');
+            Route::post('statement-lines/{bankStatementLine}/match', 'matchLine')->name('match');
+            Route::post('statement-lines/{bankStatementLine}/unmatch', 'unmatchLine')->name('unmatch');
+        });
+
+        // goods received notes
+        Route::post('grn/{goodsReceivedNote}/approve', [GoodsReceivedNoteController::class, 'approve'])->name('grn.approve');
+        Route::apiResource('grn', GoodsReceivedNoteController::class)->parameters(['grn' => 'goodsReceivedNote']);
+
+        // delivery challans
+        Route::post('delivery-challan/{deliveryChallan}/approve', [DeliveryChallanController::class, 'approve'])->name('delivery-challan.approve');
+        Route::apiResource('delivery-challan', DeliveryChallanController::class)->parameters(['delivery-challan' => 'deliveryChallan']);
+
+        // fixed assets
+        Route::prefix('fixed-asset')->as('fixed-asset.')->controller(FixedAssetController::class)->group(function () {
+            Route::get('categories', 'categories')->name('categories');
+            Route::post('categories', 'storeCategory')->name('categories.store');
+            Route::get('schedule', 'schedule')->name('schedule');
+            Route::get('{fixedAsset}', 'show')->name('show');
+            Route::post('/', 'store')->name('store');
+            Route::put('{fixedAsset}', 'update')->name('update');
+            Route::delete('{fixedAsset}', 'destroy')->name('destroy');
+            Route::get('/', 'index')->name('index');
+        });
+
+        // recurring journals
+        Route::post('recurring-journal/{recurringJournal}/run-now', [RecurringJournalController::class, 'runNow'])->name('recurring-journal.run-now');
+        Route::apiResource('recurring-journal', RecurringJournalController::class)->parameters(['recurring-journal' => 'recurringJournal']);
+
+        // currencies — read-only for company admins; managed by super-admin
+        Route::get('currency', [CurrencyController::class, 'index'])->name('currency.index');
+
+        // serial numbers
+        Route::apiResource('serial-number', SerialNumberController::class)->only(['index', 'show']);
+
         // accounting reports
         Route::prefix('account-report')->as('account-report.')->controller(AccountReportController::class)->group(function () {
             Route::get('trial-balance', 'trialBalance')->name('trial-balance');
@@ -232,6 +290,16 @@ Route::middleware('auth:admin')->group(function () {
             Route::get('profit-loss', 'profitLoss')->name('profit-loss');
             Route::get('journal-report', 'journalReport')->name('journal-report');
             Route::get('general-ledger', 'generalLedger')->name('general-ledger');
+            Route::get('vat-sales-register', 'vatSalesRegister')->name('vat-sales-register');
+            Route::get('vat-purchase-register', 'vatPurchaseRegister')->name('vat-purchase-register');
+            Route::get('vat-return', 'vatReturn')->name('vat-return');
+            Route::get('cash-flow', 'cashFlow')->name('cash-flow');
+            Route::get('ar-aging', 'arAging')->name('ar-aging');
+            Route::get('ap-aging', 'apAging')->name('ap-aging');
+            Route::get('inventory-valuation', 'inventoryValuation')->name('inventory-valuation');
+            Route::get('stock-aging', 'stockAging')->name('stock-aging');
+            Route::get('reorder-alerts', 'reorderAlerts')->name('reorder-alerts');
+            Route::get('tds-report', 'tdsReport')->name('tds-report');
         });
 
         // HR — Phase 1: Employee Foundation
@@ -264,6 +332,7 @@ Route::middleware('auth:admin')->group(function () {
                 Route::get('payroll-summary', [HrReportController::class, 'payrollSummary'])->name('payroll-summary');
                 Route::get('attendance-summary', [HrReportController::class, 'attendanceSummary'])->name('attendance-summary');
                 Route::get('leave-balance', [HrReportController::class, 'leaveBalance'])->name('leave-balance');
+                Route::get('tds-salary', [HrReportController::class, 'tdsSalary'])->name('tds-salary');
             });
         });
     });

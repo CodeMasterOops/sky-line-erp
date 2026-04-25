@@ -22,12 +22,20 @@ class PayrollRunResource extends JsonResource
             ]),
             'month' => $this->month,
             'period_label' => $monthLabel ? "{$monthLabel} - {$yearName}" : $yearName,
+            'month_year_label' => $monthLabel ? "{$monthLabel} - {$yearName}" : $yearName,
             'status' => $this->status ?? '',
             'status_label' => $this->status?->label() ?? '',
             'total_gross' => $this->total_gross,
             'total_deductions' => $this->total_deductions,
             'total_net' => $this->total_net,
             'processed_at' => $this->processed_at?->format('Y-m-d H:i'),
+            'journal_id' => $this->journal_id,
+            'paid_account_id' => $this->paid_account_id,
+            'paid_at' => $this->paid_at?->format('Y-m-d H:i'),
+            'paid_account' => $this->whenLoaded('paidAccount', fn () => [
+                'id' => $this->paidAccount->id,
+                'name' => $this->paidAccount->name,
+            ]),
             'payslips' => $this->whenLoaded('payslips', fn () => PayslipResource::collection($this->payslips)),
         ];
     }

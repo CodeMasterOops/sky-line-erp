@@ -84,15 +84,21 @@ class PayrollController extends Controller
     /**
      * @Permissions("edit_payroll", group="hr", desc="Confirm Payroll Run as Paid")
      */
-    public function confirm(PayrollRun $payrollRun)
+    public function confirm(Request $request, PayrollRun $payrollRun)
     {
         abort_if($payrollRun->status !== PayrollStatusEnum::PROCESSED, 403, 'Only processed payroll can be confirmed.');
+
+        $request->validate([
+            'paid_account_id' => ['required', 'integer', 'exists:accounts,id'],
+        ]);
+
+        $this->payrollService->postToLedger($payrollRun, (int) $request->paid_account_id);
 
         $payrollRun->update(['status' => PayrollStatusEnum::PAID]);
 
         return response()->json([
-            'data' => PayrollRunResource::make($payrollRun->load('fiscalYear')),
-            'message' => 'Payroll Confirmed as Paid',
+            'data' => PayrollRunResource::make($payrollRun->fresh()->load(['fiscalYear', 'journal', 'paidAccount'])),
+            'message' => 'Payroll Confirmed as Paid and Posted to Ledger',
         ]);
     }
 

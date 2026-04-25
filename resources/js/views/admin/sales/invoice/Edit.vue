@@ -47,6 +47,22 @@
                         :error="errors.warehouse_id"
                     />
                 </div>
+                <div class="col-md-6">
+                    <VInput
+                        id="bijak_no"
+                        v-model="form.bijak_no"
+                        label="Bijak No (Invoice No)"
+                        placeholder="Sequential bill number"
+                    />
+                </div>
+                <div class="col-md-6">
+                    <VInput
+                        id="buyer_pan"
+                        v-model="form.buyer_pan"
+                        label="Buyer PAN"
+                        placeholder="Buyer PAN (required for VAT invoices)"
+                    />
+                </div>
 
                 <div class="col-12">
                     <div class="table-responsive">
@@ -59,6 +75,7 @@
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
                                 <th style="width: 160px;">Tax</th>
+                                <th style="width: 120px;">Tax Type</th>
                                 <th style="width: 170px;">Discount Amount</th>
                                 <th style="width: 60px;">Action</th>
                             </tr>
@@ -106,6 +123,13 @@
                                         @validate="validateField(`items[${index}].tax_id`)"
                                         :error="errors[`items[${index}].tax_id`]"
                                     />
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" v-model="form.items[index].tax_line_type">
+                                        <option value="taxable">Taxable</option>
+                                        <option value="exempt">Exempt</option>
+                                        <option value="zero_rated">Zero Rated</option>
+                                    </select>
                                 </td>
                                 <td>
                                     <VInput
@@ -223,6 +247,8 @@ const initialState = {
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    buyer_pan: '',
+    bijak_no: '',
     remarks: '',
     status: 'draft',
     items: [
@@ -232,6 +258,7 @@ const initialState = {
             quantity: '',
             rate: '',
             tax_id: '',
+            tax_line_type: 'taxable',
             discount_amount: '',
         }
     ],
@@ -247,6 +274,7 @@ const addItem = () => {
         quantity: '',
         rate: '',
         tax_id: '',
+        tax_line_type: 'taxable',
         discount_amount: '',
     });
 };
@@ -267,6 +295,7 @@ watch(() => edit_invoice_id.value, async (id) => {
                     quantity: item.quantity || '',
                     rate: item.rate || '',
                     tax_id: item.tax_id || '',
+                    tax_line_type: item.tax_line_type || 'taxable',
                     discount_amount: item.discount_amount || '',
                 }));
             } else if (key === 'warehouse_id') {

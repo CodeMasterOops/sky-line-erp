@@ -29,6 +29,13 @@ class CompanySeeder extends Seeder
             ]);
 
             (new CoaInsertService($company))->saveCoaData();
+
+            $this->seedDefaultTaxes($company->id);
         }
+    }
+
+    private function seedDefaultTaxes(int $companyId): void
+    {
+        TaxSeeder::seedForCompany($companyId);
     }
 }

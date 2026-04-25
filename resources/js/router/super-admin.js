@@ -94,6 +94,18 @@ const routes = [
                 },
                 component: () => import('@/views/super-admin/packages/Index.vue')
             },
+            {
+                path: 'currencies',
+                name: 'super-admin.currency-list',
+                meta: { pageTitle: 'Currencies' },
+                component: () => import('@/views/super-admin/currencies/Index.vue')
+            },
+            {
+                path: 'tax-templates',
+                name: 'super-admin.tax-templates',
+                meta: { pageTitle: 'Tax Templates' },
+                component: () => import('@/views/super-admin/tax-templates/Index.vue')
+            },
         ]
     },
 ];

@@ -1,239 +1,130 @@
 <template>
-    <PageHeader title="Cash Flow" subtitle="Financial report" />
-    <div class="card">
-                <div class="card-body">
-                    <div class="row row-gap-2 align-items-end">
-                        <div class="col-md-3">
-                            <label class="form-label">Choose Your Date</label>
-                            <div class="input-groupicon calender-input balance-sheet-date one">
-                                <div class="input-groupicon calender-input balance-sheet-date one">
-                                    <vue-feather type="calendar" class="info-img"></vue-feather><input type="text" class="datetimepicker w-100" ref="dateRangeInput" placeholder="01-Jan-2025 - 12-Dec-2025">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Store</label>
-                            <div class="dropdown">
-                                <button
-                                    class="btn btn-white dropdown-toggle w-100 d-flex align-items-center justify-content-between"
-                                    type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    All Store
-                                </button>
-                                <ul class="dropdown-menu p-2">
-                                    <li><a class="dropdown-item" href="#">Zephyr Indira</a></li>
-                                    <li><a class="dropdown-item" href="#">Quillon Elysia</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-primary">Submit</button>
-                        </div>
+    <PageHeader title="Cash Flow Statement" subtitle="Indirect Method" />
+
+    <div class="card border-0 mb-3">
+        <div class="card-body pb-1">
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Fiscal Year</label>
+                        <vue-select
+                            v-model="filters.fiscal_year_id"
+                            :options="fiscalYearOptions"
+                            :reduce="opt => opt.value"
+                            placeholder="Select Fiscal Year"
+                        />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" v-model="filters.start_date" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" v-model="filters.end_date" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <button class="btn btn-primary w-100" @click="loadReport" :disabled="loading">
+                            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
+                            Generate
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive pb-0">
-                        <table class="table border mb-2">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th>Category</th>
-                                    <th>Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+    <div v-if="data.period" class="card border-0">
+        <div class="card-header">
+            <h5 class="mb-0">Cash Flow Statement – {{ data.period?.label }}</h5>
+        </div>
+        <div class="card-body">
+            <table class="table">
+                <tbody>
+                    <tr class="table-secondary">
+                        <td colspan="2"><strong>A. Operating Activities</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="ps-4">Net cash from operating activities</td>
+                        <td class="text-end fw-semibold" :class="data.operating >= 0 ? 'text-success' : 'text-danger'">
+                            NPR {{ fmt(data.operating) }}
+                        </td>
+                    </tr>
+                    <tr class="table-secondary">
+                        <td colspan="2"><strong>B. Investing Activities</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="ps-4">Net cash from investing activities</td>
+                        <td class="text-end fw-semibold" :class="data.investing >= 0 ? 'text-success' : 'text-danger'">
+                            NPR {{ fmt(data.investing) }}
+                        </td>
+                    </tr>
+                    <tr class="table-secondary">
+                        <td colspan="2"><strong>C. Financing Activities</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="ps-4">Net cash from financing activities</td>
+                        <td class="text-end fw-semibold" :class="data.financing >= 0 ? 'text-success' : 'text-danger'">
+                            NPR {{ fmt(data.financing) }}
+                        </td>
+                    </tr>
+                    <tr class="table-primary">
+                        <td><strong>Net Increase / (Decrease) in Cash</strong></td>
+                        <td class="text-end fw-bold fs-6" :class="data.net_change >= 0 ? 'text-success' : 'text-danger'">
+                            NPR {{ fmt(data.net_change) }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
 
-                                <tr>
-                                    <td class="fw-bold text-gray-9 w-75">Cash Flow from Operating Activities</td>
-                                    <td class="w-25"></td>
-                                </tr>
-                                <tr>
-                                    <td>Cash receipts from sales</td>
-                                    <td>$50,000</td>
-                                </tr>
-                                <tr>
-                                    <td>Cash payments to suppliers</td>
-                                    <td>$30,000</td>
-                                </tr>
-                                <tr>
-                                    <td>Cash payments to employees</td>
-                                    <td>$7,000</td>
-                                </tr>
-                                <tr>
-                                    <td>Cash payments for operating expenses (e.g., rent, utilities)</td>
-                                    <td>($5,00)</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-bold text-gray-9">Net Cash from Operating Activities</td>
-                                    <td class="fw-bold text-gray-9">$8,000</td>
-                                </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="table-responsive pb-0">
-                        <table class="table border mb-2">
-                            <tbody>
-
-                                <tr>
-                                    <td class="fw-bold text-gray-9 w-75">Cash Flow from Investing Activities</td>
-                                    <td class="w-25"></td>
-                                </tr>
-                                <tr>
-                                    <td>Purchase of POS equipment</td>
-                                    <td>$6,000</td>
-                                </tr>
-                                <tr>
-                                    <td>Sale of old equipment</td>
-                                    <td>$1,500</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-bold text-gray-9">Net Cash from Investing Activities</td>
-                                    <td class="fw-bold text-gray-9">$4,500</td>
-                                </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="table-responsive pb-0">
-                        <table class="table border mb-2">
-                            <tbody>
-
-                                <tr>
-                                    <td class="fw-bold text-gray-9 w-75">Cash Flow from Financing Activities</td>
-                                    <td class="w-25"></td>
-                                </tr>
-                                <tr>
-                                    <td>Loan received (short-term)</td>
-                                    <td>$4,000</td>
-                                </tr>
-                                <tr>
-                                    <td>Repayment of long-term loan</td>
-                                    <td>$$3,000</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-bold text-gray-9">Net Cash from Financing Activities</td>
-                                    <td class="fw-bold text-gray-9">$3,000</td>
-                                </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="table-responsive pb-0">
-                        <table class="table border mb-2">
-                            <tbody>
-                                <tr>
-                                    <td class="fw-bold text-gray-9 w-75">Net Increase in Cash</td>
-                                    <td class="w-25"></td>
-                                </tr>
-                                <tr>
-                                    <td>Cash at beginning of the period</td>
-                                    <td>$5,000</td>
-                                </tr>
-                                <tr>
-                                    <td class="fw-bold text-gray-9">Net Cash from Financing Activities</td>
-                                    <td class="fw-bold text-gray-9">$8,000</td>
-                                </tr>
-
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table border">
-                            <tbody>
-                                <tr>
-                                    <td class="bg-light fw-bold text-gray-9 p-3 w-75 fs-16">Cash at End of the Period
-                                    </td>
-                                    <td class="bg-light fw-bold text-gray-9 p-3 w-25 fs-16">$332642.53</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-
-                </div>
+            <div class="alert alert-info mt-3">
+                <i class="ti ti-info-circle me-2"></i>
+                Cash flow is calculated using the indirect method based on account group classifications (Income/Expenses → Operating; Assets → Investing; Liabilities/Equity → Financing).
             </div>
+        </div>
+    </div>
+
+    <div v-else-if="!loading" class="text-center text-muted py-5">
+        <i class="ti ti-chart-bar display-4 d-block mb-3"></i>
+        Select a period and click Generate to view the Cash Flow Statement.
+    </div>
 </template>
 
-<script>
-import "daterangepicker/daterangepicker.css";
-import "daterangepicker/daterangepicker.js";
-import { ref } from "vue";
-const value1 = ref();
-import { onMounted } from "vue";
-import moment from "moment";
-import DateRangePicker from "daterangepicker";
+<script setup>
+import {ref, onMounted} from 'vue';
+import {apiAdmin} from '@/helpers/api.js';
+import showErrors from '@/helpers/showErrors.js';
 
-export default {
-  data() {
-    return {
-      value1,
-    };
-  },
-  methods: {
-    toggleHeader() {
-      document.getElementById("collapse-header").classList.toggle("active");
-      document.body.classList.toggle("header-collapse");
-    },
-  },
-  setup() {
-        const counter1 = ref(0); // Current counter value
-        const target1 = 95000.45; // Target value
-        const duration = 20; // Animation duration in milliseconds
-        const dateRangeInput = ref(null);
+const filters = ref({ fiscal_year_id: null, start_date: null, end_date: null });
+const loading = ref(false);
+const data = ref({});
+const fiscalYearOptions = ref([]);
 
-        // Move the function declaration outside of the onMounted callback
-        function booking_range(start, end) {
-            return start.format("M/D/YYYY") + " - " + end.format("M/D/YYYY");
-        }
-
-        const animateCounter = (target, counterRef) => {
-        let current = 0;
-        const step = target / (duration / 50); // Calculate the increment step
-
-        const interval = setInterval(() => {
-            current += step;
-            if (current >= target) {
-            current = target; // Ensure the counter stops at the target value
-            clearInterval(interval); // Stop the interval when the target is reached
-            }
-            counterRef.value = Math.floor(current); // Update the reactive counter value
-        }, 50); // Update every 50ms
-        };
-        onMounted(() => {
-        animateCounter(target1, counter1);
-        if (dateRangeInput.value) {
-            const start = moment().subtract(6, "days");
-            const end = moment();
-
-            new DateRangePicker(
-            dateRangeInput.value,
-            {
-            startDate: start,
-            endDate: end,
-            ranges: {
-                Today: [moment(), moment()],
-                Yesterday: [moment().subtract(1, "days"), moment().subtract(1, "days")],
-                "Last 7 Days": [moment().subtract(6, "days"), moment()],
-                "Last 30 Days": [moment().subtract(29, "days"), moment()],
-                "This Month": [moment().startOf("month"), moment().endOf("month")],
-                "Last Month": [
-                moment().subtract(1, "month").startOf("month"),
-                moment().subtract(1, "month").endOf("month"),
-                ],
-            },
-            },
-            booking_range
-            );
-
-            booking_range(start, end);
-        }
-        });
-
-        return {
-            counter1,
-            dateRangeInput,
-        };
-    },
+const loadFiscalYears = async () => {
+    try {
+        const res = await apiAdmin('admin-setting/fiscal-year', 'get');
+        fiscalYearOptions.value = (res.data.data || []).map(fy => ({ label: fy.year_name, value: fy.id }));
+    } catch (e) { /* ignore */ }
 };
+
+const loadReport = async () => {
+    loading.value = true;
+    try {
+        const res = await apiAdmin('account-report/cash-flow', 'get', filters.value);
+        data.value = res.data.data;
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        loading.value = false;
+    }
+};
+
+const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
+
+onMounted(() => { loadFiscalYears(); });
 </script>

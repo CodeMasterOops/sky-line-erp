@@ -24,6 +24,29 @@
                         :error="errors.rate"
                     />
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label">Type</label>
+                    <select class="form-select" v-model="form.type">
+                        <option value="vat_standard">VAT Standard (13%)</option>
+                        <option value="vat_exempt">VAT Exempt</option>
+                        <option value="vat_zero_rated">VAT Zero Rated</option>
+                        <option value="tds">TDS (Tax Deducted at Source)</option>
+                    </select>
+                </div>
+                <div v-if="form.type === 'tds'" class="col-md-6">
+                    <label class="form-label">TDS Category</label>
+                    <select class="form-select" v-model="form.tds_category">
+                        <option value="">-- Select Category --</option>
+                        <option value="rent">Rent (10%)</option>
+                        <option value="service_payment">Service Payment (15%)</option>
+                        <option value="commission">Commission (15%)</option>
+                        <option value="dividend">Dividend (5%)</option>
+                        <option value="interest">Interest (15%)</option>
+                        <option value="contract">Contract / Work (1.5%)</option>
+                        <option value="royalty">Royalty (15%)</option>
+                        <option value="others">Others</option>
+                    </select>
+                </div>
                 <div class="col-12 text-end">
                     <button @click="closeCreateModal" class="btn btn-danger me-2" type="button">
                         Close
@@ -49,7 +72,9 @@ const createModalOpened = defineModel('createModalOpened');
 
 const initialState = {
     name: '',
-    rate: ''
+    rate: '',
+    type: 'vat_standard',
+    tds_category: '',
 };
 
 const form = reactive({...initialState});
