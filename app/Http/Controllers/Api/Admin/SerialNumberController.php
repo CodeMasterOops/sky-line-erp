@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\SerialNumber;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 
 class SerialNumberController extends Controller
@@ -23,19 +24,19 @@ class SerialNumberController extends Controller
         }
 
         if ($request->filled('batch_no')) {
-            $query->where('batch_no', 'like', '%'.$request->input('batch_no').'%');
+            $query->where('batch_no', 'like', '%' . $request->input('batch_no') . '%');
         }
 
         if ($request->filled('search')) {
-            $query->where('serial_no', 'like', '%'.$request->input('search').'%');
+            $query->where('serial_no', 'like', '%' . $request->input('search') . '%');
         }
 
         if ($request->filled('product_id')) {
-            $query->whereHas('productVariant.product', fn ($q) => $q->where('products.id', $request->input('product_id')));
+            $query->whereHas('productVariant.product', fn($q) => $q->where('products.id', $request->input('product_id')));
         }
 
         if ($request->filled('expiry_within_days')) {
-            $days = (int) $request->input('expiry_within_days');
+            $days = (int)$request->input('expiry_within_days');
             $query->whereNotNull('expiry_date')
                 ->whereDate('expiry_date', '<=', now()->addDays($days))
                 ->whereDate('expiry_date', '>=', now());

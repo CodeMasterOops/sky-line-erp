@@ -94,6 +94,7 @@ import debounce from 'lodash/debounce';
 import CreatePaymentVoucher from './Create.vue';
 import EditPaymentVoucher from './Edit.vue';
 import {usePaymentVoucherStore} from '@/stores/admin/accounting/payment-voucher.js';
+import {adToBsDate} from "@/helpers/helper.js";
 
 const paymentVoucherStore = usePaymentVoucherStore();
 
@@ -124,7 +125,7 @@ const columns = [
     },
     {
         title: 'Date',
-        dataIndex: 'date',
+        customRender: ({record}) => adToBsDate(record.date),
         sorter: true,
     },
     {

@@ -94,6 +94,7 @@ import debounce from 'lodash/debounce';
 import CreateReceiptVoucher from './Create.vue';
 import EditReceiptVoucher from './Edit.vue';
 import {useReceiptVoucherStore} from '@/stores/admin/accounting/receipt-voucher.js';
+import {adToBsDate} from "@/helpers/helper.js";
 
 const receiptVoucherStore = useReceiptVoucherStore();
 
@@ -124,7 +125,7 @@ const columns = [
     },
     {
         title: 'Date',
-        dataIndex: 'date',
+        customRender: ({record}) => adToBsDate(record.date),
         sorter: true,
     },
     {

@@ -26,7 +26,7 @@
             <li class="nav-item fiscal-year-nav">
                 <router-link
                     class="fiscal-year-link"
-                    :to="{ name: 'admin.general-settings' }"
+                    :to="{ name: 'admin.setting' }"
                     :title="fiscalYearTooltip"
                 >
                     <span class="fiscal-year-icon-wrap" aria-hidden="true">
@@ -236,7 +236,7 @@
             <!-- /Notifications -->
 
             <li class="nav-item nav-item-box">
-                <router-link :to="{ name: 'admin.general-settings' }"><i class="fa fa-cog"></i></router-link>
+                <router-link :to="{ name: 'admin.setting' }"><i class="fa fa-cog"></i></router-link>
             </li>
             <li class="nav-item dropdown has-arrow main-drop profile-nav">
                 <a href="javascript:void(0);" class="nav-link userset" data-bs-toggle="dropdown">
@@ -262,7 +262,7 @@
                     <router-link class="dropdown-item" :to="{ name: 'admin.sales-report' }">
                         <i class="ti ti-file-text me-2"></i>Reports
                     </router-link>
-                    <router-link class="dropdown-item" to="/settings/general-settings">
+                    <router-link class="dropdown-item" :to="{name:'admin.setting'}">
                         <i class="ti ti-settings-2 me-2"></i>Settings
                     </router-link>
                     <hr class="my-2">
