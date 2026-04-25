@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Trial Balance" subtitle="Accounting report" @refresh="generateReport" />
+    <PageHeader title="Trial Balance" subtitle="Accounting report" @refresh="generateReport"/>
 
     <section class="section">
         <div class="card border-0 shadow-sm">
@@ -50,7 +50,7 @@
             </div>
         </div>
 
-        <div class="card trial-balance-card border-0">
+        <div v-if="dataLoaded" class="card trial-balance-card border-0">
             <div class="card-body p-0">
                 <div class="trial-balance-header">
                     <div>
@@ -62,80 +62,84 @@
                 <div class="table-responsive">
                     <table class="table trial-balance-table align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th rowspan="2" class="account-column">Accounts</th>
-                                <th colspan="2" class="text-center">Opening</th>
-                                <th colspan="2" class="text-center">Transaction</th>
-                                <th colspan="2" class="text-center">Closing</th>
-                            </tr>
-                            <tr>
-                                <th class="text-end">Dr</th>
-                                <th class="text-end">Cr</th>
-                                <th class="text-end">Dr</th>
-                                <th class="text-end">Cr</th>
-                                <th class="text-end">Dr</th>
-                                <th class="text-end">Cr</th>
-                            </tr>
+                        <tr>
+                            <th rowspan="2" class="account-column">Accounts</th>
+                            <th colspan="2" class="text-center">Opening</th>
+                            <th colspan="2" class="text-center">Transaction</th>
+                            <th colspan="2" class="text-center">Closing</th>
+                        </tr>
+                        <tr>
+                            <th class="text-end">Dr</th>
+                            <th class="text-end">Cr</th>
+                            <th class="text-end">Dr</th>
+                            <th class="text-end">Cr</th>
+                            <th class="text-end">Dr</th>
+                            <th class="text-end">Cr</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <VLoader v-if="trialBalance.loading" :colspan="7" />
-                            <template v-else-if="flatRows.length">
-                                <tr
-                                    v-for="row in flatRows"
-                                    :key="row.key"
-                                    :class="[
+                        <VLoader v-if="trialBalance.loading" :colspan="7"/>
+                        <template v-else-if="flatRows.length">
+                            <tr
+                                v-for="row in flatRows"
+                                :key="row.key"
+                                :class="[
                                         row.type === 'group' ? 'group-row' : 'account-row',
                                         `level-${row.level}`,
                                     ]"
-                                >
-                                    <td class="account-column">
-                                        <div
-                                            class="account-cell"
-                                            :style="{ paddingLeft: `${row.level * 18 + 12}px` }"
+                            >
+                                <td class="account-column">
+                                    <div
+                                        class="account-cell"
+                                        :style="{ paddingLeft: `${row.level * 18 + 12}px` }"
+                                    >
+                                        <button
+                                            v-if="row.type === 'group' && row.children.length"
+                                            type="button"
+                                            class="toggle-button"
+                                            @click="toggleRow(row.key)"
                                         >
-                                            <button
-                                                v-if="row.type === 'group' && row.children.length"
-                                                type="button"
-                                                class="toggle-button"
-                                                @click="toggleRow(row.key)"
-                                            >
-                                                <i
-                                                    class="ti"
-                                                    :class="isExpanded(row.key) ? 'ti-chevron-down' : 'ti-chevron-right'"
-                                                ></i>
-                                            </button>
-                                            <span v-else class="toggle-placeholder"></span>
-                                            <span class="account-label">{{ row.label }}</span>
-                                        </div>
-                                    </td>
-                                    <td class="text-end">{{ formatAmount(row.opening.dr) }}</td>
-                                    <td class="text-end">{{ formatAmount(row.opening.cr) }}</td>
-                                    <td class="text-end">{{ formatAmount(row.transaction.dr) }}</td>
-                                    <td class="text-end">{{ formatAmount(row.transaction.cr) }}</td>
-                                    <td class="text-end">{{ formatAmount(row.closing.dr) }}</td>
-                                    <td class="text-end">{{ formatAmount(row.closing.cr) }}</td>
-                                </tr>
-                            </template>
-                            <tr v-else>
-                                <td colspan="7" class="text-center py-5 text-muted">
-                                    No report data found for the selected period.
+                                            <i
+                                                class="ti"
+                                                :class="isExpanded(row.key) ? 'ti-chevron-down' : 'ti-chevron-right'"
+                                            ></i>
+                                        </button>
+                                        <span v-else class="toggle-placeholder"></span>
+                                        <span class="account-label">{{ row.label }}</span>
+                                    </div>
                                 </td>
+                                <td class="text-end">{{ formatAmount(row.opening.dr) }}</td>
+                                <td class="text-end">{{ formatAmount(row.opening.cr) }}</td>
+                                <td class="text-end">{{ formatAmount(row.transaction.dr) }}</td>
+                                <td class="text-end">{{ formatAmount(row.transaction.cr) }}</td>
+                                <td class="text-end">{{ formatAmount(row.closing.dr) }}</td>
+                                <td class="text-end">{{ formatAmount(row.closing.cr) }}</td>
                             </tr>
+                        </template>
+                        <tr v-else>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                No report data found for the selected period.
+                            </td>
+                        </tr>
                         </tbody>
                         <tfoot v-if="!trialBalance.loading && trialBalance.data.summary">
-                            <tr class="summary-row">
-                                <th>Total</th>
-                                <th class="text-end">{{ formatAmount(trialBalance.data.summary.opening.dr) }}</th>
-                                <th class="text-end">{{ formatAmount(trialBalance.data.summary.opening.cr) }}</th>
-                                <th class="text-end">{{ formatAmount(trialBalance.data.summary.transaction.dr) }}</th>
-                                <th class="text-end">{{ formatAmount(trialBalance.data.summary.transaction.cr) }}</th>
-                                <th class="text-end">{{ formatAmount(trialBalance.data.summary.closing.dr) }}</th>
-                                <th class="text-end">{{ formatAmount(trialBalance.data.summary.closing.cr) }}</th>
-                            </tr>
+                        <tr class="summary-row">
+                            <th>Total</th>
+                            <th class="text-end">{{ formatAmount(trialBalance.data.summary.opening.dr) }}</th>
+                            <th class="text-end">{{ formatAmount(trialBalance.data.summary.opening.cr) }}</th>
+                            <th class="text-end">{{ formatAmount(trialBalance.data.summary.transaction.dr) }}</th>
+                            <th class="text-end">{{ formatAmount(trialBalance.data.summary.transaction.cr) }}</th>
+                            <th class="text-end">{{ formatAmount(trialBalance.data.summary.closing.dr) }}</th>
+                            <th class="text-end">{{ formatAmount(trialBalance.data.summary.closing.cr) }}</th>
+                        </tr>
                         </tfoot>
                     </table>
                 </div>
             </div>
+        </div>
+        <div v-else class="text-center text-muted py-5">
+            <i class="ti ti-chart-bar display-4 d-block mb-3"></i>
+            Select a report filter from the top panel and click 'Generate' to load the report.
         </div>
     </section>
 </template>
@@ -148,15 +152,18 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
+import {formatAmount} from "@/helpers/helper.js";
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
 
-const {fiscalYears} = storeToRefs(adminSettingStore);
+const {fiscalYears, currentFiscalYear} = storeToRefs(adminSettingStore);
 const {trialBalance} = storeToRefs(accountingReportStore);
 
 const dateRangeInput = ref(null);
 const expandedRows = ref(new Set());
+
+const dataLoaded = ref(false);
 
 const filter = reactive({
     fiscal_year_id: '',
@@ -233,9 +240,10 @@ const initializePicker = () => {
 };
 
 const generateReport = async () => {
+    dataLoaded.value = true;
     await accountingReportStore.getTrialBalance({
-        fiscal_year_id: filter.fiscal_year_id || undefined,
-        compare_fiscal_year_id: filter.compare_fiscal_year_id || undefined,
+        fiscal_year_id: filter.fiscal_year_id || '',
+        compare_fiscal_year_id: filter.compare_fiscal_year_id || '',
         start_date: filter.start_date,
         end_date: filter.end_date,
     });
@@ -291,19 +299,6 @@ const reportPeriodLabel = computed(() => {
     return trialBalance.value.data?.period?.label || 'For the selected period';
 });
 
-const formatAmount = (value) => {
-    const amount = Number(value || 0);
-
-    if (!amount) {
-        return '-';
-    }
-
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount);
-};
-
 watch(
     () => trialBalance.value.data?.rows,
     (rows) => {
@@ -312,24 +307,26 @@ watch(
     {deep: true}
 );
 
-onMounted(async () => {
-    await adminSettingStore.getFiscalYears();
+onMounted(() => {
+    adminSettingStore.getFiscalYears();
+    setFilterDate();
 
-    const currentFiscalYear = fiscalYears.value.data.find((item) => item.is_current) || fiscalYears.value.data[0];
+    initializePicker();
+    syncPicker();
+});
 
-    if (currentFiscalYear) {
-        filter.fiscal_year_id = String(currentFiscalYear.id);
-        filter.start_date = currentFiscalYear.start_date;
-        filter.end_date = currentFiscalYear.end_date;
+const setFilterDate = async () => {
+    await adminSettingStore.getCurrentFiscalYear();
+
+    if (currentFiscalYear.value.data.start_date) {
+        filter.fiscal_year_id = currentFiscalYear.value.data.id;
+        filter.start_date = currentFiscalYear.value.data.start_date;
+        filter.end_date = currentFiscalYear.value.data.end_date;
     } else {
         filter.start_date = moment().startOf('month').format('YYYY-MM-DD');
         filter.end_date = moment().format('YYYY-MM-DD');
     }
-
-    initializePicker();
-    syncPicker();
-    await generateReport();
-});
+}
 </script>
 
 <style scoped>

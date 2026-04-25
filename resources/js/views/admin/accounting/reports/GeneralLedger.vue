@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="General Ledger" subtitle="Accounting report" @refresh="generateReport" />
+    <PageHeader title="General Ledger" subtitle="Accounting report" @refresh="generateReport"/>
 
     <section class="section">
         <div class="card border-0 shadow-sm">
@@ -23,7 +23,7 @@
                         <VMultiselect
                             id="account_id"
                             v-model="filter.account_id"
-                            :options="accountOptions"
+                            :options="accounts.data"
                             label="Account"
                             :disabled="generalLedger.loading"
                         />
@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <div class="card general-ledger-card border-0">
+        <div v-if="dataLoaded" class="card general-ledger-card border-0">
             <div class="card-body p-0">
                 <div class="general-ledger-header">
                     <div>
@@ -54,44 +54,48 @@
                 <div class="table-responsive">
                     <table class="table general-ledger-table align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th class="date-column">Date</th>
-                                <th class="reference-column">Reference</th>
-                                <th>Remarks</th>
-                                <th class="amount-column text-end">Debit</th>
-                                <th class="amount-column text-end">Credit</th>
-                                <th class="amount-column text-end">Balance</th>
-                            </tr>
+                        <tr>
+                            <th class="date-column">Date</th>
+                            <th class="reference-column">Reference</th>
+                            <th>Remarks</th>
+                            <th class="amount-column text-end">Debit</th>
+                            <th class="amount-column text-end">Credit</th>
+                            <th class="amount-column text-end">Balance</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <VLoader v-if="generalLedger.loading" :colspan="6" />
-                            <template v-else-if="ledgerRows.length">
-                                <tr v-for="(row, index) in ledgerRows" :key="`${row.type}-${index}`">
-                                    <td>{{ row.date || '' }}</td>
-                                    <td>{{ row.reference || '' }}</td>
-                                    <td>{{ row.remarks }}</td>
-                                    <td class="text-end">{{ formatAmount(row.debit) }}</td>
-                                    <td class="text-end">{{ formatAmount(row.credit) }}</td>
-                                    <td class="text-end">{{ formatAmount(row.balance) }}</td>
-                                </tr>
-                            </template>
-                            <tr v-else>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    Select an account to view ledger entries.
-                                </td>
+                        <VLoader v-if="generalLedger.loading" :colspan="6"/>
+                        <template v-else-if="ledgerRows.length">
+                            <tr v-for="(row, index) in ledgerRows" :key="`${row.type}-${index}`">
+                                <td>{{ row.date || '' }}</td>
+                                <td>{{ row.reference || '' }}</td>
+                                <td>{{ row.remarks }}</td>
+                                <td class="text-end">{{ formatAmount(row.debit) }}</td>
+                                <td class="text-end">{{ formatAmount(row.credit) }}</td>
+                                <td class="text-end">{{ formatAmount(row.balance) }}</td>
                             </tr>
+                        </template>
+                        <tr v-else>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                Select an account to view ledger entries.
+                            </td>
+                        </tr>
                         </tbody>
                         <tfoot v-if="!generalLedger.loading && generalLedger.data.summary && filter.account_id">
-                            <tr class="summary-row">
-                                <th colspan="3">Total</th>
-                                <th class="text-end">{{ formatAmount(generalLedger.data.summary.total_dr) }}</th>
-                                <th class="text-end">{{ formatAmount(generalLedger.data.summary.total_cr) }}</th>
-                                <th class="text-end">{{ formatAmount(generalLedger.data.summary.closing_balance) }}</th>
-                            </tr>
+                        <tr class="summary-row">
+                            <th colspan="3">Total</th>
+                            <th class="text-end">{{ formatAmount(generalLedger.data.summary.total_dr) }}</th>
+                            <th class="text-end">{{ formatAmount(generalLedger.data.summary.total_cr) }}</th>
+                            <th class="text-end">{{ formatAmount(generalLedger.data.summary.closing_balance) }}</th>
+                        </tr>
                         </tfoot>
                     </table>
                 </div>
             </div>
+        </div>
+        <div v-else class="text-center text-muted py-5">
+            <i class="ti ti-chart-bar display-4 d-block mb-3"></i>
+            Select a report filter from the top panel and click 'Generate' to load the report.
         </div>
     </section>
 </template>
@@ -104,14 +108,19 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
+import {formatAmount} from "@/helpers/helper.js";
+import {useAccountStore} from "@/stores/admin/accounting/account.js";
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
+const accountStore = useAccountStore();
 
-const {fiscalYears} = storeToRefs(adminSettingStore);
+const {currentFiscalYear} = storeToRefs(adminSettingStore);
 const {generalLedger} = storeToRefs(accountingReportStore);
+const {accounts} = storeToRefs(accountStore);
 
 const dateRangeInput = ref(null);
+const dataLoaded = ref(false);
 
 const filter = reactive({
     fiscal_year_id: '',
@@ -121,8 +130,6 @@ const filter = reactive({
 });
 
 let pickerInstance = null;
-
-const accountOptions = computed(() => generalLedger.value.data?.account_options || []);
 
 const ledgerRows = computed(() => generalLedger.value.data?.rows || []);
 
@@ -189,42 +196,35 @@ const initializePicker = () => {
     applyDateRange(startDate, endDate);
 };
 
-const formatAmount = (value) => {
-    const amount = Number(value || 0);
-
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount);
-};
-
 const generateReport = async () => {
+    dataLoaded.value = true;
     await accountingReportStore.getGeneralLedger({
-        fiscal_year_id: filter.fiscal_year_id || undefined,
+        fiscal_year_id: filter.fiscal_year_id || '',
         start_date: filter.start_date,
         end_date: filter.end_date,
-        account_id: filter.account_id || undefined,
+        account_id: filter.account_id || '',
     });
 };
 
-onMounted(async () => {
-    await adminSettingStore.getFiscalYears();
+onMounted(() => {
+    accountStore.getAccounts();
+    setFilterDate();
+    initializePicker();
+    syncPicker();
+});
 
-    const currentFiscalYear = fiscalYears.value.data.find((item) => item.is_current) || fiscalYears.value.data[0];
+const setFilterDate = async () => {
+    await adminSettingStore.getCurrentFiscalYear();
 
-    if (currentFiscalYear) {
-        filter.fiscal_year_id = String(currentFiscalYear.id);
-        filter.start_date = currentFiscalYear.start_date;
-        filter.end_date = currentFiscalYear.end_date;
+    if (currentFiscalYear.value.data.start_date) {
+        filter.fiscal_year_id = currentFiscalYear.value.data.id;
+        filter.start_date = currentFiscalYear.value.data.start_date;
+        filter.end_date = currentFiscalYear.value.data.end_date;
     } else {
         filter.start_date = moment().startOf('month').format('YYYY-MM-DD');
         filter.end_date = moment().format('YYYY-MM-DD');
     }
-
-    initializePicker();
-    syncPicker();
-    await generateReport();
-});
+}
 </script>
 
 <style scoped>

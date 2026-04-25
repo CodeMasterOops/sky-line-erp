@@ -2,7 +2,7 @@
     <VModal
         :show-modal="!!edit_voucher_id"
         @close-click="closeEditModal"
-        modal-class="large-modal"
+        size="xl"
         title="Update Journal Voucher">
         <template #modal-body>
             <VLoader v-if="voucher.loading" loader-type="progress"/>

@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Journal Report" subtitle="Accounting report" @refresh="generateReport" />
+    <PageHeader title="Journal Report" subtitle="Accounting report" @refresh="generateReport"/>
 
     <section class="section">
         <div class="card border-0 shadow-sm">
@@ -20,21 +20,12 @@
                         </div>
                     </div>
                     <div class="col-xl-3 col-lg-4">
-                        <label class="form-label">Journal Type</label>
-                        <select
+                        <VMultiselect
+                            id="journal_type"
                             v-model="filter.journal_type"
-                            class="form-select"
-                            :disabled="journalReport.loading"
-                        >
-                            <option value="">All Types</option>
-                            <option
-                                v-for="option in journalTypeOptions"
-                                :key="option.value"
-                                :value="option.value"
-                            >
-                                {{ option.label }}
-                            </option>
-                        </select>
+                            :options="journalTypes"
+                            label="Journal Type"
+                        />
                     </div>
                     <div class="col-xl-2 col-lg-3">
                         <button
@@ -50,7 +41,7 @@
             </div>
         </div>
 
-        <div class="card journal-report-card border-0">
+        <div v-if="dataLoaded" class="card journal-report-card border-0">
             <div class="card-body p-0">
                 <div class="journal-report-header">
                     <div>
@@ -62,59 +53,64 @@
                 <div class="table-responsive">
                     <table class="table journal-report-table align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th class="text-center sno-column">SNO.</th>
-                                <th class="date-column">Date</th>
-                                <th class="jno-column">JNO</th>
-                                <th>Particular</th>
-                                <th class="amount-column text-end">Dr(Rs.)</th>
-                                <th class="amount-column text-end">Cr(Rs.)</th>
-                            </tr>
+                        <tr>
+                            <th class="text-center sno-column">SNO.</th>
+                            <th class="date-column">Date</th>
+                            <th class="jno-column">JNO</th>
+                            <th>Particular</th>
+                            <th class="amount-column text-end">Dr(Rs.)</th>
+                            <th class="amount-column text-end">Cr(Rs.)</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <VLoader v-if="journalReport.loading" :colspan="6" />
-                            <template v-else-if="journalRows.length">
-                                <template v-for="row in journalRows" :key="row.id">
-                                    <tr
-                                        v-for="(item, itemIndex) in row.items"
-                                        :key="`${row.id}-${item.id}`"
-                                        :class="{'journal-group-start': itemIndex === 0}"
-                                    >
-                                        <td v-if="itemIndex === 0" :rowspan="row.items.length" class="text-center fw-semibold">
-                                            {{ row.sn }}
-                                        </td>
-                                        <td v-if="itemIndex === 0" :rowspan="row.items.length">
-                                            <div>{{ row.date }}</div>
-                                            <small v-if="row.type_label" class="text-muted">{{ row.type_label }}</small>
-                                        </td>
-                                        <td v-if="itemIndex === 0" :rowspan="row.items.length">
-                                            <div>{{ row.voucher_no }}</div>
-                                            <small v-if="row.reference_no" class="text-muted">{{ row.reference_no }}</small>
-                                        </td>
-                                        <td>
-                                            {{ item.particular }}
-                                        </td>
-                                        <td class="text-end">{{ formatAmount(item.dr_amount) }}</td>
-                                        <td class="text-end">{{ formatAmount(item.cr_amount) }}</td>
-                                    </tr>
-                                </template>
+                        <VLoader v-if="journalReport.loading" :colspan="6"/>
+                        <template v-else-if="journalRows.length">
+                            <template v-for="row in journalRows" :key="row.id">
+                                <tr
+                                    v-for="(item, itemIndex) in row.items"
+                                    :key="`${row.id}-${item.id}`"
+                                    :class="{'journal-group-start': itemIndex === 0}"
+                                >
+                                    <td v-if="itemIndex === 0" :rowspan="row.items.length"
+                                        class="text-center fw-semibold">
+                                        {{ row.sn }}
+                                    </td>
+                                    <td v-if="itemIndex === 0" :rowspan="row.items.length">
+                                        <div>{{ row.date }}</div>
+                                        <small v-if="row.type_label" class="text-muted">{{ row.type_label }}</small>
+                                    </td>
+                                    <td v-if="itemIndex === 0" :rowspan="row.items.length">
+                                        <div>{{ row.voucher_no }}</div>
+                                        <small v-if="row.reference_no" class="text-muted">{{ row.reference_no }}</small>
+                                    </td>
+                                    <td>
+                                        {{ item.particular }}
+                                    </td>
+                                    <td class="text-end">{{ formatAmount(item.dr_amount) }}</td>
+                                    <td class="text-end">{{ formatAmount(item.cr_amount) }}</td>
+                                </tr>
                             </template>
-                            <tr v-else>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    No journal report data found for the selected filters.
-                                </td>
-                            </tr>
+                        </template>
+                        <tr v-else>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                No journal report data found for the selected filters.
+                            </td>
+                        </tr>
                         </tbody>
                         <tfoot v-if="!journalReport.loading && journalReport.data.summary">
-                            <tr class="summary-row">
-                                <th colspan="4" class="text-end">Total</th>
-                                <th class="text-end">{{ formatAmount(journalReport.data.summary.total_dr) }}</th>
-                                <th class="text-end">{{ formatAmount(journalReport.data.summary.total_cr) }}</th>
-                            </tr>
+                        <tr class="summary-row">
+                            <th colspan="4" class="text-end">Total</th>
+                            <th class="text-end">{{ formatAmount(journalReport.data.summary.total_dr) }}</th>
+                            <th class="text-end">{{ formatAmount(journalReport.data.summary.total_cr) }}</th>
+                        </tr>
                         </tfoot>
                     </table>
                 </div>
             </div>
+        </div>
+        <div v-else class="text-center text-muted py-5">
+            <i class="ti ti-chart-bar display-4 d-block mb-3"></i>
+            Select a report filter from the top panel and click 'Generate' to load the report.
         </div>
     </section>
 </template>
@@ -127,14 +123,19 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
+import {formatAmount} from "@/helpers/helper.js";
+import {useEnumStore} from "@/stores/admin/enum.js";
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
+const enumStore = useEnumStore();
 
-const {fiscalYears} = storeToRefs(adminSettingStore);
+const {currentFiscalYear} = storeToRefs(adminSettingStore);
 const {journalReport} = storeToRefs(accountingReportStore);
+const {journalTypes} = storeToRefs(enumStore);
 
 const dateRangeInput = ref(null);
+const dataLoaded = ref(false);
 
 const filter = reactive({
     fiscal_year_id: '',
@@ -156,8 +157,6 @@ const journalRows = computed(() => {
         }],
     }));
 });
-
-const journalTypeOptions = computed(() => journalReport.value.data?.journal_type_options || []);
 
 const reportPeriodLabel = computed(() => {
     return journalReport.value.data?.period?.label || 'For the selected period';
@@ -222,20 +221,8 @@ const initializePicker = () => {
     applyDateRange(startDate, endDate);
 };
 
-const formatAmount = (value) => {
-    const amount = Number(value || 0);
-
-    if (!amount) {
-        return '0.00';
-    }
-
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount);
-};
-
 const generateReport = async () => {
+    dataLoaded.value = true;
     await accountingReportStore.getJournalReport({
         fiscal_year_id: filter.fiscal_year_id || undefined,
         start_date: filter.start_date,
@@ -244,24 +231,25 @@ const generateReport = async () => {
     });
 };
 
-onMounted(async () => {
-    await adminSettingStore.getFiscalYears();
+onMounted(() => {
+    enumStore.getJournalTypes();
+    setFilterDate();
+    initializePicker();
+    syncPicker();
+});
 
-    const currentFiscalYear = fiscalYears.value.data.find((item) => item.is_current) || fiscalYears.value.data[0];
+const setFilterDate = async () => {
+    await adminSettingStore.getCurrentFiscalYear();
 
-    if (currentFiscalYear) {
-        filter.fiscal_year_id = String(currentFiscalYear.id);
-        filter.start_date = currentFiscalYear.start_date;
-        filter.end_date = currentFiscalYear.end_date;
+    if (currentFiscalYear.value.data.start_date) {
+        filter.fiscal_year_id = currentFiscalYear.value.data.id;
+        filter.start_date = currentFiscalYear.value.data.start_date;
+        filter.end_date = currentFiscalYear.value.data.end_date;
     } else {
         filter.start_date = moment().startOf('month').format('YYYY-MM-DD');
         filter.end_date = moment().format('YYYY-MM-DD');
     }
-
-    initializePicker();
-    syncPicker();
-    await generateReport();
-});
+}
 </script>
 
 <style scoped>

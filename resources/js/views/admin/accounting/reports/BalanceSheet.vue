@@ -1,11 +1,11 @@
 <template>
-    <PageHeader title="Balance Sheet" subtitle="Accounting report" @refresh="generateReport" />
+    <PageHeader title="Balance Sheet" subtitle="Accounting report" @refresh="generateReport"/>
 
     <section class="section">
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-xl-4 col-lg-5">
+                    <div class="col-md-5">
                         <label class="form-label">Date Range</label>
                         <div class="input-icon-start position-relative">
                             <input
@@ -19,7 +19,7 @@
                             </span>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-lg-4">
+                    <div class="col-md-3">
                         <label class="form-label">Compare Fiscal Year</label>
                         <select
                             v-model="filter.compare_fiscal_year_id"
@@ -36,10 +36,10 @@
                             </option>
                         </select>
                     </div>
-                    <div class="col-xl-2 col-lg-3">
+                    <div class="col-md-3">
                         <button
                             type="button"
-                            class="btn btn-success w-100"
+                            class="btn btn-primary w-100"
                             :disabled="balanceSheet.loading || !filter.start_date || !filter.end_date"
                             @click="generateReport"
                         >
@@ -50,7 +50,7 @@
             </div>
         </div>
 
-        <div class="card balance-sheet-card border-0">
+        <div v-if="dataLoaded" class="card balance-sheet-card border-0">
             <div class="card-body p-0">
                 <div class="balance-sheet-header">
                     <div>
@@ -62,67 +62,71 @@
                 <div class="table-responsive">
                     <table class="table balance-sheet-table align-middle mb-0">
                         <thead>
-                            <tr>
-                                <th class="account-column">Accounts</th>
-                                <th v-if="hasCompareFiscalYear" class="text-end">Amount (Prev Period)</th>
-                                <th class="text-end">Amount</th>
-                            </tr>
+                        <tr>
+                            <th class="account-column">Accounts</th>
+                            <th v-if="hasCompareFiscalYear" class="text-end">Amount (Prev Period)</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            <VLoader v-if="balanceSheet.loading" :colspan="hasCompareFiscalYear ? 3 : 2" />
-                            <template v-else-if="flatRows.length">
-                                <tr
-                                    v-for="row in flatRows"
-                                    :key="row.key"
-                                    :class="[
+                        <VLoader v-if="balanceSheet.loading" :colspan="hasCompareFiscalYear ? 3 : 2"/>
+                        <template v-else-if="flatRows.length">
+                            <tr
+                                v-for="row in flatRows"
+                                :key="row.key"
+                                :class="[
                                         row.type === 'group' ? 'group-row' : 'account-row',
                                         `level-${row.level}`,
                                     ]"
-                                >
-                                    <td class="account-column">
-                                        <div
-                                            class="account-cell"
-                                            :style="{ paddingLeft: `${row.level * 20 + 12}px` }"
+                            >
+                                <td class="account-column">
+                                    <div
+                                        class="account-cell"
+                                        :style="{ paddingLeft: `${row.level * 20 + 12}px` }"
+                                    >
+                                        <button
+                                            v-if="row.type === 'group' && row.children.length"
+                                            type="button"
+                                            class="toggle-button"
+                                            @click="toggleRow(row.key)"
                                         >
-                                            <button
-                                                v-if="row.type === 'group' && row.children.length"
-                                                type="button"
-                                                class="toggle-button"
-                                                @click="toggleRow(row.key)"
-                                            >
-                                                <i
-                                                    class="ti"
-                                                    :class="isExpanded(row.key) ? 'ti-chevron-down' : 'ti-chevron-right'"
-                                                ></i>
-                                            </button>
-                                            <span v-else class="toggle-placeholder"></span>
-                                            <span class="account-label">{{ row.label }}</span>
-                                        </div>
-                                    </td>
-                                    <td v-if="hasCompareFiscalYear" class="text-end">
-                                        {{ formatSignedAmount(row.prev_amount) }}
-                                    </td>
-                                    <td class="text-end">{{ formatSignedAmount(row.amount) }}</td>
-                                </tr>
-                            </template>
-                            <tr v-else>
-                                <td :colspan="hasCompareFiscalYear ? 3 : 2" class="text-center py-5 text-muted">
-                                    No report data found for the selected period.
+                                            <i
+                                                class="ti"
+                                                :class="isExpanded(row.key) ? 'ti-chevron-down' : 'ti-chevron-right'"
+                                            ></i>
+                                        </button>
+                                        <span v-else class="toggle-placeholder"></span>
+                                        <span class="account-label">{{ row.label }}</span>
+                                    </div>
                                 </td>
+                                <td v-if="hasCompareFiscalYear" class="text-end">
+                                    {{ formatSignedAmount(row.prev_amount) }}
+                                </td>
+                                <td class="text-end">{{ formatSignedAmount(row.amount) }}</td>
                             </tr>
+                        </template>
+                        <tr v-else>
+                            <td :colspan="hasCompareFiscalYear ? 3 : 2" class="text-center py-5 text-muted">
+                                No report data found for the selected period.
+                            </td>
+                        </tr>
                         </tbody>
                         <tfoot v-if="!balanceSheet.loading && balanceSheet.data.summary">
-                            <tr class="summary-row">
-                                <th>Total</th>
-                                <th v-if="hasCompareFiscalYear" class="text-end">
-                                    {{ formatSignedAmount(balanceSheet.data.summary.prev_amount) }}
-                                </th>
-                                <th class="text-end">{{ formatSignedAmount(balanceSheet.data.summary.amount) }}</th>
-                            </tr>
+                        <tr class="summary-row">
+                            <th>Total</th>
+                            <th v-if="hasCompareFiscalYear" class="text-end">
+                                {{ formatSignedAmount(balanceSheet.data.summary.prev_amount) }}
+                            </th>
+                            <th class="text-end">{{ formatSignedAmount(balanceSheet.data.summary.amount) }}</th>
+                        </tr>
                         </tfoot>
                     </table>
                 </div>
             </div>
+        </div>
+        <div v-else class="text-center text-muted py-5">
+            <i class="ti ti-chart-bar display-4 d-block mb-3"></i>
+            Select a report filter from the top panel and click 'Generate' to load the report.
         </div>
     </section>
 </template>
@@ -135,15 +139,17 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
+import {formatAmount} from "@/helpers/helper.js";
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
 
-const {fiscalYears} = storeToRefs(adminSettingStore);
+const {fiscalYears, currentFiscalYear} = storeToRefs(adminSettingStore);
 const {balanceSheet} = storeToRefs(accountingReportStore);
 
 const dateRangeInput = ref(null);
 const expandedRows = ref(new Set());
+const dataLoaded = ref(false);
 
 const filter = reactive({
     fiscal_year_id: '',
@@ -272,24 +278,16 @@ const isExpanded = (key) => expandedRows.value.has(key);
 const flatRows = computed(() => flattenRows(balanceSheet.value.data?.rows || []));
 
 const formatSignedAmount = (value) => {
-    const amount = Number(value || 0);
+    const formatted = formatAmount(value);
 
-    if (!amount) {
-        return '-';
-    }
-
-    const formatted = new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(Math.abs(amount));
-
-    return amount < 0 ? `(${formatted})` : formatted;
+    return value < 0 ? `(${Math.abs(formatted)})` : formatted;
 };
 
 const generateReport = async () => {
+    dataLoaded.value = true;
     await accountingReportStore.getBalanceSheet({
-        fiscal_year_id: filter.fiscal_year_id || undefined,
-        compare_fiscal_year_id: filter.compare_fiscal_year_id || undefined,
+        fiscal_year_id: filter.fiscal_year_id || '',
+        compare_fiscal_year_id: filter.compare_fiscal_year_id || '',
         start_date: filter.start_date,
         end_date: filter.end_date,
     });
@@ -303,24 +301,26 @@ watch(
     {deep: true}
 );
 
-onMounted(async () => {
-    await adminSettingStore.getFiscalYears();
+onMounted(() => {
+    adminSettingStore.getFiscalYears();
+    setFilterDate();
 
-    const currentFiscalYear = fiscalYears.value.data.find((item) => item.is_current) || fiscalYears.value.data[0];
+    initializePicker();
+    syncPicker();
+});
 
-    if (currentFiscalYear) {
-        filter.fiscal_year_id = String(currentFiscalYear.id);
-        filter.start_date = currentFiscalYear.start_date;
-        filter.end_date = currentFiscalYear.end_date;
+const setFilterDate = async () => {
+    await adminSettingStore.getCurrentFiscalYear();
+
+    if (currentFiscalYear.value.data.start_date) {
+        filter.fiscal_year_id = currentFiscalYear.value.data.id;
+        filter.start_date = currentFiscalYear.value.data.start_date;
+        filter.end_date = currentFiscalYear.value.data.end_date;
     } else {
         filter.start_date = moment().startOf('month').format('YYYY-MM-DD');
         filter.end_date = moment().format('YYYY-MM-DD');
     }
-
-    initializePicker();
-    syncPicker();
-    await generateReport();
-});
+}
 </script>
 
 <style scoped>

@@ -62,6 +62,9 @@ export const isPdf = (file) => {
 }
 
 export const adToBsDate = (adDate, format = 'en', separator = '-') => {
+    if (!adDate) {
+        return '';
+    }
     const {adToBs} = useDateHelper();
 
     const convertedDate = adToBs(adDate);
