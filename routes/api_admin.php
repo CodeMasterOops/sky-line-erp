@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Admin\ReceiptVoucherController;
 use App\Http\Controllers\Api\Admin\QuotationController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\SalesOrderController;
+use App\Http\Controllers\Api\Admin\SalesReportController;
 use App\Http\Controllers\Api\Admin\InvoiceController;
 use App\Http\Controllers\Api\Admin\PurchaseOrderController;
 use App\Http\Controllers\Api\Admin\BillController;
@@ -159,6 +160,13 @@ Route::middleware('auth:admin')->group(function () {
         Route::post('sales-order/{salesOrder}/approve', [SalesOrderController::class, 'approve'])->name('sales-order.approve');
         Route::post('sales-order/{salesOrder}/convert-to-invoice', [SalesOrderController::class, 'convertToInvoice'])->name('sales-order.convert-to-invoice');
         Route::apiResource('sales-order', SalesOrderController::class);
+
+        // sales reports
+        Route::prefix('sales-report')->as('sales-report.')->controller(SalesReportController::class)->group(function () {
+            Route::get('dashboard', 'dashboard')->name('dashboard');
+            Route::get('report', 'salesReport')->name('report');
+            Route::get('sales-by-item', 'salesByItems')->name('sales-by-item');
+        });
 
         // invoice
         Route::get('invoice/due', [InvoiceController::class, 'dueInvoices'])->name('invoice.due');

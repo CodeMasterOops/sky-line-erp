@@ -44,6 +44,21 @@ class ProductVariant extends Model
         return null;
     }
 
+    public function getVariantNameAttribute(): ?string
+    {
+        $variantName = '';
+
+        if ($this->relationLoaded('product')) {
+            $variantName .= $this->product->name ?? '';
+
+            if ($this->variant_label) {
+                $variantName .= '-'.$this->variant_label;
+            }
+        }
+
+        return $variantName;
+    }
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);

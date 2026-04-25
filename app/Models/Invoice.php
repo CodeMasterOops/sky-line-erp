@@ -45,8 +45,10 @@ class Invoice extends Model
     public function scopeFilter($query, $param = [])
     {
         if (! empty($param['search'])) {
-            $key = '%'.trim($param['search']).'%';
-            $query->where('invoice_no', 'like', $key);
+            $query->where(function ($query) use ($param) {
+                $key = '%'.trim($param['search']).'%';
+                $query->where('invoice_no', 'like', $key);
+            });
         }
 
         if (! empty($param['party_id'])) {

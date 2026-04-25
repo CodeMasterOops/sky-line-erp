@@ -256,7 +256,7 @@
                     <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">
                         <i class="ti ti-user-circle me-2"></i>My Profile
                     </router-link>
-                    <router-link class="dropdown-item" to="/sales-report/sales-report">
+                    <router-link class="dropdown-item" :to="{ name: 'admin.sales-report' }">
                         <i class="ti ti-file-text me-2"></i>Reports
                     </router-link>
                     <router-link class="dropdown-item" to="/settings/general-settings">

@@ -23,7 +23,7 @@ class PaymentVoucherResource extends JsonResource
             'id' => $this->id ?? '',
             'voucher_no' => $this->voucher_no ?? '',
             'reference_no' => $this->reference_no ?? '',
-            'date' => $this->date ?? '',
+            'date' => $this->date->toDateString() ?? '',
             'remarks' => $this->remarks ?? '',
             'type' => $this->type?->value ?? '',
             'fiscal_year_id' => $this->fiscal_year_id ?? '',

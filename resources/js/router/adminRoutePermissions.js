@@ -26,6 +26,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.sales-returns': 'list_sales_order',
     'admin.quotation-list': 'list_quotation',
     'admin.sales-report': 'list_sales_order',
+    'admin.sales-by-item': 'list_sales_order',
     'admin.brand-list': 'list_brand',
     'admin.unit-list': 'list_unit',
     'admin.warehouse-list': 'list_warehouse',

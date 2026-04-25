@@ -149,10 +149,21 @@
                 "permission": "list_quotation"
             },
             {
-                "menuValue": "Sales Report",
+                "menuValue": "Reports",
                 "icon": "ti ti-report-analytics",
-                "route": { "name": "admin.sales-report" },
-                "hasSubRoute": false,
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Sales Report",
+                        "route": { "name": "admin.sales-report" },
+                        "permission": "list_sales_order"
+                    },
+                    {
+                        "menuValue": "Sales By Item",
+                        "route": { "name": "admin.sales-by-item" },
+                        "permission": "list_sales_order"
+                    }
+                ],
                 "permission": "list_sales_order"
             }
         ]
