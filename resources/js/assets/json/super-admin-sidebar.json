@@ -46,6 +46,20 @@
         ]
     },
     {
+        "title": "Finance",
+        "menu": [
+            {
+                "menuValue": "Currencies",
+                "icon": "ti ti-currency-dollar",
+                "active_link": "/super-admin/currencies",
+                "route": {
+                    "name": "super-admin.currency-list"
+                },
+                "hasSubRoute": false
+            }
+        ]
+    },
+    {
         "title": "Settings",
         "menu": [
             {
@@ -63,6 +77,12 @@
                         "menuValue": "Fiscal Year",
                         "route": {
                             "name": "super-admin.fiscal-year-list"
+                        }
+                    },
+                    {
+                        "menuValue": "Tax Templates",
+                        "route": {
+                            "name": "super-admin.tax-templates"
                         }
                     }
                 ]

@@ -21,6 +21,7 @@ class SalaryComponentRequest extends FormRequest
             'calculation_type' => ['required', Rule::in(['fixed', 'percentage'])],
             'is_taxable' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
+            'account_id' => ['nullable', 'integer', 'exists:accounts,id'],
         ];
     }
 }

@@ -19,6 +19,7 @@
                                 <th>Type</th>
                                 <th>Calculation</th>
                                 <th>Taxable</th>
+                                <th>GL Account</th>
                                 <th>Status</th>
                                 <th class="text-center">Action</th>
                             </tr>
@@ -32,6 +33,7 @@
                                     <td><span :class="c.type_label === 'Earning' ? 'badge bg-success' : 'badge bg-danger'">{{ c.type_label }}</span></td>
                                     <td>{{ c.calculation_type }}</td>
                                     <td><span :class="c.is_taxable ? 'badge bg-warning text-dark' : 'badge bg-secondary'">{{ c.is_taxable ? 'Yes' : 'No' }}</span></td>
+                                    <td class="small text-muted">{{ c.account_name || '—' }}</td>
                                     <td><span :class="c.is_active ? 'badge bg-success' : 'badge bg-secondary'">{{ c.is_active ? 'Active' : 'Inactive' }}</span></td>
                                     <td style="width:100px;">
                                         <button type="button" @click="editItem = { ...c }" class="btn btn-sm btn-outline-primary"><i class="fa fa-edit"></i></button>
@@ -39,7 +41,7 @@
                                     </td>
                                 </tr>
                             </template>
-                            <tr v-else><td colspan="7" class="text-center">No components found.</td></tr>
+                            <tr v-else><td colspan="8" class="text-center">No components found.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -58,6 +60,13 @@
                 <div class="col-md-3">
                     <label class="form-label">Calculation</label>
                     <select v-model="cForm.calculation_type" class="form-select"><option value="fixed">Fixed</option><option value="percentage">Percentage</option></select>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">GL Account <span class="text-muted small">(for journal posting)</span></label>
+                    <select v-model="cForm.account_id" class="form-select">
+                        <option value="">-- Select Account --</option>
+                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
+                    </select>
                 </div>
                 <div class="col-md-4 pt-3">
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" v-model="cForm.is_taxable" /><label class="form-check-label">Taxable</label></div>
@@ -82,6 +91,13 @@
                     <label class="form-label">Calculation</label>
                     <select v-model="editItem.calculation_type" class="form-select"><option value="fixed">Fixed</option><option value="percentage">Percentage</option></select>
                 </div>
+                <div class="col-md-8">
+                    <label class="form-label">GL Account <span class="text-muted small">(for journal posting)</span></label>
+                    <select v-model="editItem.account_id" class="form-select">
+                        <option value="">-- Select Account --</option>
+                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
+                    </select>
+                </div>
                 <div class="col-md-4 pt-3">
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" v-model="editItem.is_taxable" /><label class="form-check-label">Taxable</label></div>
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" v-model="editItem.is_active" /><label class="form-check-label">Active</label></div>
@@ -102,6 +118,7 @@ import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
 import { usePayrollStore } from '@/stores/admin/hr/payroll.js';
+import { apiAdmin } from '@/helpers/api.js';
 
 const payrollStore = usePayrollStore();
 const { components } = storeToRefs(payrollStore);
@@ -109,19 +126,37 @@ const createModalOpened = ref(false);
 const editItem = ref(null);
 const cSubmitting = ref(false);
 const eSubmitting = ref(false);
-const cForm = reactive({ name: '', type: 'earning', calculation_type: 'fixed', is_taxable: false });
+const accountList = ref([]);
+const cForm = reactive({ name: '', type: 'earning', calculation_type: 'fixed', is_taxable: false, account_id: '' });
 
-onMounted(() => payrollStore.getComponents());
+onMounted(async () => {
+    payrollStore.getComponents();
+    try {
+        const res = await apiAdmin('account?limit=200');
+        accountList.value = res.data.data ?? [];
+    } catch { /* ignore */ }
+});
 
 const storeComp = async () => {
     cSubmitting.value = true;
-    try { const res = await payrollStore.storeComponent(cForm); toast(res.status, res.data.message); createModalOpened.value = false; Object.assign(cForm, { name: '', type: 'earning', calculation_type: 'fixed', is_taxable: false }); }
-    catch (e) { showErrors(e); } finally { cSubmitting.value = false; }
+    try {
+        const res = await payrollStore.storeComponent(cForm);
+        toast(res.status, res.data.message);
+        createModalOpened.value = false;
+        Object.assign(cForm, { name: '', type: 'earning', calculation_type: 'fixed', is_taxable: false, account_id: '' });
+    } catch (e) { showErrors(e); } finally { cSubmitting.value = false; }
 };
 
 const updateComp = async () => {
     eSubmitting.value = true;
-    const payload = { name: editItem.value.name, type: editItem.value.type?.value ?? editItem.value.type, calculation_type: editItem.value.calculation_type, is_taxable: editItem.value.is_taxable, is_active: editItem.value.is_active };
+    const payload = {
+        name: editItem.value.name,
+        type: editItem.value.type?.value ?? editItem.value.type,
+        calculation_type: editItem.value.calculation_type,
+        is_taxable: editItem.value.is_taxable,
+        is_active: editItem.value.is_active,
+        account_id: editItem.value.account_id || null,
+    };
     try { const res = await payrollStore.updateComponent(editItem.value.id, payload); toast(res.status, res.data.message); editItem.value = null; }
     catch (e) { showErrors(e); } finally { eSubmitting.value = false; }
 };

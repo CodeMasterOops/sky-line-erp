@@ -18,6 +18,7 @@ class PayslipResource extends JsonResource
             'leave_days' => $this->leave_days,
             'gross_salary' => $this->gross_salary,
             'total_deductions' => $this->total_deductions,
+            'tds_amount' => $this->tds_amount ?? 0,
             'net_salary' => $this->net_salary,
             'employee' => $this->whenLoaded('employee', fn () => EmployeeResource::make($this->employee)),
             'payroll_run' => $this->whenLoaded('payrollRun', fn () => PayrollRunResource::make($this->payrollRun)),

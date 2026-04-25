@@ -6,6 +6,7 @@ use App\Traits\MultiTenant;
 use App\Enums\SalaryComponentTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalaryComponent extends Model
 {
@@ -18,6 +19,7 @@ class SalaryComponent extends Model
         'calculation_type',
         'is_taxable',
         'is_active',
+        'account_id',
     ];
 
     protected $casts = [
@@ -29,5 +31,10 @@ class SalaryComponent extends Model
     public function salaryStructureItems(): HasMany
     {
         return $this->hasMany(SalaryStructureItem::class);
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Account::class);
     }
 }

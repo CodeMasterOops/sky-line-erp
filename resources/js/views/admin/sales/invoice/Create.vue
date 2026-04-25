@@ -51,6 +51,23 @@
                             />
                         </div>
 
+                        <div class="col-lg-6 col-sm-6 col-12">
+                            <VInput
+                                id="bijak_no"
+                                v-model="form.bijak_no"
+                                label="Bijak No (Invoice No)"
+                                placeholder="Sequential bill number"
+                            />
+                        </div>
+                        <div class="col-lg-6 col-sm-6 col-12">
+                            <VInput
+                                id="buyer_pan"
+                                v-model="form.buyer_pan"
+                                label="Buyer PAN"
+                                placeholder="Buyer PAN (required for VAT invoices)"
+                            />
+                        </div>
+
                         <div class="col-12">
                             <ProductVariantSearchInput
                                 label="Product *"
@@ -71,6 +88,7 @@
                                         <th class="inv-col-purchase">Purchase</th>
                                         <th class="inv-col-disc">Discount</th>
                                         <th class="inv-col-tax">Tax</th>
+                                        <th>Tax Type</th>
                                         <th class="inv-col-amt">Tax amt</th>
                                         <th class="inv-col-line">Line total</th>
                                         <th class="text-center inv-col-action">Action</th>
@@ -136,6 +154,13 @@
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
                                             />
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm" v-model="form.items[index].tax_line_type">
+                                                <option value="taxable">Taxable</option>
+                                                <option value="exempt">Exempt</option>
+                                                <option value="zero_rated">Zero Rated</option>
+                                            </select>
                                         </td>
                                         <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
                                         <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
@@ -279,6 +304,8 @@ const getInitialState = () => ({
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    buyer_pan: '',
+    bijak_no: '',
     remarks: '',
     status: 'draft',
     items: [],
@@ -316,6 +343,7 @@ const onVariantSelected = (variant) => {
         quantity: '1',
         rate: defaultLineRateString(variant),
         tax_id: '',
+        tax_line_type: 'taxable',
         discount_amount: '0',
     });
 };

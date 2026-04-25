@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Enums\UserTypeEnum;
 use Illuminate\Database\Seeder;
 use App\Services\CoaInsertService;
+use Database\Seeders\TaxSeeder;
 
 class CompanySeeder extends Seeder
 {
@@ -29,6 +30,13 @@ class CompanySeeder extends Seeder
             ]);
 
             (new CoaInsertService($company))->saveCoaData();
+
+            $this->seedDefaultTaxes($company->id);
         }
+    }
+
+    private function seedDefaultTaxes(int $companyId): void
+    {
+        TaxSeeder::seedForCompany($companyId);
     }
 }

@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\SuperAdmin\ProfileController;
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
 use App\Http\Controllers\Api\SuperAdmin\DashboardController;
 use App\Http\Controllers\Api\SuperAdmin\FiscalYearController;
+use App\Http\Controllers\Api\SuperAdmin\CurrencyController;
+use App\Http\Controllers\Api\SuperAdmin\TaxTemplateController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -29,6 +31,12 @@ Route::middleware('auth:super_admin')->group(function () {
     // fiscal year
     Route::post('fiscal-year/{fiscalYear}/set-current', [FiscalYearController::class, 'setCurrent'])->name('fiscal-year.set-current');
     Route::apiResource('fiscal-year', FiscalYearController::class);
+
+    // currencies (global — managed by SaaS owner)
+    Route::apiResource('currency', CurrencyController::class);
+
+    // tax templates (seed defaults for new companies)
+    Route::apiResource('tax-template', TaxTemplateController::class)->parameters(['tax-template' => 'taxTemplate']);
 
     // company
     Route::put('company/{company}/update-status', [CompanyController::class, 'updateStatus'])->name('company.update-status');

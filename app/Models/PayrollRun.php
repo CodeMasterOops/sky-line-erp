@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Journal;
 use App\Traits\MultiTenant;
 use App\Enums\PayrollStatusEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +23,9 @@ class PayrollRun extends Model
         'total_net',
         'processed_by',
         'processed_at',
+        'journal_id',
+        'paid_account_id',
+        'paid_at',
     ];
 
     protected $casts = [
@@ -32,6 +36,7 @@ class PayrollRun extends Model
         'total_deductions' => 'float',
         'total_net' => 'float',
         'processed_at' => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     public function fiscalYear(): BelongsTo
@@ -47,6 +52,16 @@ class PayrollRun extends Model
     public function processedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'processed_by');
+    }
+
+    public function journal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class);
+    }
+
+    public function paidAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'paid_account_id');
     }
 
     public function scopeFilter($query, $param = [])

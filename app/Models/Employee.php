@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\MultiTenant;
 use App\Enums\EmployeeStatusEnum;
 use App\Enums\EmploymentTypeEnum;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,6 +32,8 @@ class Employee extends Model
         'status',
         'bank_name',
         'bank_account_no',
+        'pan',
+        'tds_category',
         'photo',
         'address',
     ];
@@ -40,6 +43,7 @@ class Employee extends Model
         'join_date' => 'date',
         'employment_type' => EmploymentTypeEnum::class,
         'status' => EmployeeStatusEnum::class,
+        'tds_category' => TdsCategoryEnum::class,
     ];
 
     public function department(): BelongsTo

@@ -60,4 +60,104 @@ class AccountReportController extends Controller
             'data' => $this->accountReportService->generalLedger($request),
         ]);
     }
+
+    /**
+     * @Permissions("vat_report", group="account_report", desc="VAT Sales Register (Bikri Khata)")
+     */
+    public function vatSalesRegister(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->vatSalesRegister($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("vat_report", group="account_report", desc="VAT Purchase Register (Kharid Khata)")
+     */
+    public function vatPurchaseRegister(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->vatPurchaseRegister($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("vat_report", group="account_report", desc="D3 VAT Return")
+     */
+    public function vatReturn(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->vatReturn($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("cash_flow", group="account_report", desc="Cash Flow Statement")
+     */
+    public function cashFlow(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->cashFlow($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("ar_aging", group="account_report", desc="Accounts Receivable Aging")
+     */
+    public function arAging(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->arAging($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("ap_aging", group="account_report", desc="Accounts Payable Aging")
+     */
+    public function apAging(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->apAging($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("inventory_valuation", group="account_report", desc="Inventory Valuation Report")
+     */
+    public function inventoryValuation(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->inventoryValuation($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("stock_aging", group="account_report", desc="Stock Aging Report")
+     */
+    public function stockAging(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->stockAging($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("reorder_alerts", group="account_report", desc="Reorder Alerts")
+     */
+    public function reorderAlerts(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->reorderAlerts($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("tds_report", group="account_report", desc="TDS Report")
+     */
+    public function tdsReport(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->tdsReport($request),
+        ]);
+    }
 }

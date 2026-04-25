@@ -40,6 +40,12 @@
           "permission": "list_invoice"
         },
         {
+          "menuValue": "Delivery Challans",
+          "route": { "name": "admin.delivery-challan-list" },
+          "icon": "ti ti-truck-delivery",
+          "permission": "list_delivery_challan"
+        },
+        {
           "menuValue": "Receipts",
           "route": { "name": "admin.receipt-list" },
           "icon": "ti ti-receipt",
@@ -76,6 +82,12 @@
           "route": { "name": "admin.purchase-order-list" },
           "icon": "ti ti-shopping-cart",
           "permission": "list_purchase_order"
+        },
+        {
+          "menuValue": "Goods Received Notes",
+          "route": { "name": "admin.grn-list" },
+          "icon": "ti ti-package-import",
+          "permission": "list_grn"
         },
         {
           "menuValue": "Bills",
@@ -155,6 +167,33 @@
               "menuValue": "Stock Reconciliation",
               "route": { "name": "admin.stock-reconciliation" },
               "permission": "list_stock_adjustment"
+            },
+            {
+              "menuValue": "Serial / Lot Numbers",
+              "route": { "name": "admin.serial-numbers" },
+              "permission": "list_product"
+            }
+          ]
+        },
+        {
+          "menuValue": "Reports",
+          "icon": "ti ti-report-analytics",
+          "hasSubRoute": true,
+          "subMenus": [
+            {
+              "menuValue": "Inventory Valuation",
+              "route": { "name": "admin.inventory-valuation" },
+              "permission": "list_product"
+            },
+            {
+              "menuValue": "Stock Aging",
+              "route": { "name": "admin.stock-aging" },
+              "permission": "list_product"
+            },
+            {
+              "menuValue": "Reorder Alerts",
+              "route": { "name": "admin.reorder-alerts" },
+              "permission": "list_product"
             }
           ]
         },
@@ -205,6 +244,63 @@
           "permission": "list_receipt_voucher"
         },
         {
+          "menuValue": "Opening Balances",
+          "route": { "name": "admin.opening-balances" },
+          "icon": "ti ti-scale",
+          "permission": "list_account"
+        },
+        {
+          "menuValue": "Recurring Journals",
+          "route": { "name": "admin.recurring-journal-list" },
+          "icon": "ti ti-refresh",
+          "permission": "list_recurring_journal"
+        },
+        {
+          "menuValue": "Fixed Assets",
+          "route": { "name": "admin.fixed-asset-list" },
+          "icon": "ti ti-building",
+          "permission": "list_fixed_asset"
+        },
+        {
+          "menuValue": "Bank Reconciliation",
+          "route": { "name": "admin.bank-reconciliation" },
+          "icon": "ti ti-building-bank",
+          "permission": "list_bank_account"
+        },
+        {
+          "menuValue": "Accounting Periods",
+          "route": { "name": "admin.accounting-periods" },
+          "icon": "ti ti-calendar-time",
+          "permission": "list_accounting_period"
+        },
+        {
+          "menuValue": "Nepal VAT",
+          "icon": "ti ti-file-certificate",
+          "hasSubRoute": true,
+          "subMenus": [
+            {
+              "menuValue": "VAT Return (D3)",
+              "route": { "name": "admin.vat-return" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "Bikri Khata (Sales Register)",
+              "route": { "name": "admin.vat-sales-register" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "Kharid Khata (Purchase Register)",
+              "route": { "name": "admin.vat-purchase-register" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "TDS Report",
+              "route": { "name": "admin.tds-report" },
+              "permission": "list_account"
+            }
+          ]
+        },
+        {
           "menuValue": "Financial Reports",
           "icon": "ti ti-chart-dots",
           "hasSubRoute": true,
@@ -225,8 +321,28 @@
               "permission": "list_account"
             },
             {
+              "menuValue": "Cash Flow",
+              "route": { "name": "admin.cash-flow" },
+              "permission": "list_account"
+            },
+            {
               "menuValue": "General Ledger",
               "route": { "name": "admin.general-ledger" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "Journal Report",
+              "route": { "name": "admin.journal-report" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "AR Aging",
+              "route": { "name": "admin.ar-aging" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "AP Aging",
+              "route": { "name": "admin.ap-aging" },
               "permission": "list_account"
             }
           ]
@@ -323,6 +439,11 @@
               "menuValue": "Leave Balance",
               "route": { "name": "admin.hr-report-leave" },
               "permission": "list_leave_application"
+            },
+            {
+              "menuValue": "TDS Salary Report",
+              "route": { "name": "admin.hr-report-tds-salary" },
+              "permission": "list_payroll"
             }
           ]
         }

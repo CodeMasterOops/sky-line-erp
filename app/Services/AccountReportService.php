@@ -4,14 +4,20 @@ namespace App\Services;
 
 use Carbon\Carbon;
 use App\Models\Account;
+use App\Models\Invoice;
+use App\Models\Bill;
 use App\Models\Journal;
+use App\Models\Stock;
+use App\Models\StockLayer;
 use App\Enums\StatusEnum;
 use App\Models\FiscalYear;
 use App\Models\JournalItem;
 use App\Models\AccountGroup;
 use App\Enums\JournalTypeEnum;
+use App\Enums\TaxTypeEnum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class AccountReportService
 {
@@ -303,6 +309,534 @@ class AccountReportService
                 'closing_balance' => round($runningBalance, 2),
             ],
         ];
+    }
+
+    public function vatSalesRegister(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $companyId = auth('admin')->user()->company_id;
+
+        $invoices = Invoice::with(['party', 'invoiceItems.tax'])
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereBetween('invoice_date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
+            ->orderBy('invoice_date')
+            ->orderBy('invoice_no')
+            ->get();
+
+        $rows = $invoices->map(function (Invoice $invoice) {
+            $taxableAmount = $invoice->invoiceItems
+                ->where('tax_line_type', 'taxable')
+                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
+
+            $vatAmount = $invoice->invoiceItems
+                ->where('tax_line_type', 'taxable')
+                ->sum('tax_amount');
+
+            $exemptAmount = $invoice->invoiceItems
+                ->where('tax_line_type', 'exempt')
+                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
+
+            $zeroRatedAmount = $invoice->invoiceItems
+                ->where('tax_line_type', 'zero_rated')
+                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
+
+            return [
+                'date' => $invoice->invoice_date,
+                'bijak_no' => $invoice->bijak_no ?: $invoice->invoice_no,
+                'buyer_name' => $invoice->party?->name ?? '-',
+                'buyer_pan' => $invoice->buyer_pan ?? $invoice->party?->pan ?? '-',
+                'taxable_amount' => round((float) $taxableAmount, 2),
+                'vat_amount' => round((float) $vatAmount, 2),
+                'exempt_amount' => round((float) $exemptAmount, 2),
+                'zero_rated_amount' => round((float) $zeroRatedAmount, 2),
+                'total_amount' => round((float) ($taxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount), 2),
+            ];
+        })->values()->all();
+
+        return [
+            'period' => [
+                'start_date' => $period['start_date']->toDateString(),
+                'end_date' => $period['end_date']->toDateString(),
+                'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
+            ],
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'rows' => $rows,
+            'summary' => [
+                'taxable_amount' => round(collect($rows)->sum('taxable_amount'), 2),
+                'vat_amount' => round(collect($rows)->sum('vat_amount'), 2),
+                'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
+                'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
+                'total_amount' => round(collect($rows)->sum('total_amount'), 2),
+            ],
+        ];
+    }
+
+    public function vatPurchaseRegister(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $companyId = auth('admin')->user()->company_id;
+
+        $bills = Bill::with(['party', 'billItems.tax'])
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereBetween('bill_date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
+            ->orderBy('bill_date')
+            ->orderBy('bill_no')
+            ->get();
+
+        $rows = $bills->map(function (Bill $bill) {
+            $taxableAmount = $bill->billItems
+                ->where('tax_line_type', 'taxable')
+                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
+
+            $inputVat = $bill->billItems
+                ->where('tax_line_type', 'taxable')
+                ->sum('tax_amount');
+
+            $exemptAmount = $bill->billItems
+                ->where('tax_line_type', 'exempt')
+                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
+
+            return [
+                'date' => $bill->bill_date,
+                'bill_no' => $bill->bill_no,
+                'supplier_name' => $bill->party?->name ?? '-',
+                'supplier_pan' => $bill->seller_pan ?? $bill->party?->pan ?? '-',
+                'taxable_amount' => round((float) $taxableAmount, 2),
+                'input_vat' => round((float) $inputVat, 2),
+                'exempt_amount' => round((float) $exemptAmount, 2),
+                'total_amount' => round((float) ($taxableAmount + $inputVat + $exemptAmount), 2),
+            ];
+        })->values()->all();
+
+        return [
+            'period' => [
+                'start_date' => $period['start_date']->toDateString(),
+                'end_date' => $period['end_date']->toDateString(),
+                'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
+            ],
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'rows' => $rows,
+            'summary' => [
+                'taxable_amount' => round(collect($rows)->sum('taxable_amount'), 2),
+                'input_vat' => round(collect($rows)->sum('input_vat'), 2),
+                'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
+                'total_amount' => round(collect($rows)->sum('total_amount'), 2),
+            ],
+        ];
+    }
+
+    public function vatReturn(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $salesData = $this->vatSalesRegister($request);
+        $purchaseData = $this->vatPurchaseRegister($request);
+
+        $outputVat = $salesData['summary']['vat_amount'];
+        $inputVat = $purchaseData['summary']['input_vat'];
+        $netVatPayable = round($outputVat - $inputVat, 2);
+
+        return [
+            'period' => $salesData['period'],
+            'fiscal_year' => $salesData['fiscal_year'],
+            'sales' => [
+                'taxable_amount' => $salesData['summary']['taxable_amount'],
+                'output_vat' => $salesData['summary']['vat_amount'],
+                'exempt_amount' => $salesData['summary']['exempt_amount'],
+                'zero_rated_amount' => $salesData['summary']['zero_rated_amount'],
+                'total_sales' => $salesData['summary']['total_amount'],
+            ],
+            'purchases' => [
+                'taxable_amount' => $purchaseData['summary']['taxable_amount'],
+                'input_vat' => $purchaseData['summary']['input_vat'],
+                'exempt_amount' => $purchaseData['summary']['exempt_amount'],
+                'total_purchases' => $purchaseData['summary']['total_amount'],
+            ],
+            'net_vat_payable' => $netVatPayable,
+            'sales_rows' => $salesData['rows'],
+            'purchase_rows' => $purchaseData['rows'],
+        ];
+    }
+
+    public function cashFlow(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $companyId = auth('admin')->user()->company_id;
+
+        $accountGroups = AccountGroup::with(['accounts', 'childrenRecursive'])
+            ->where('company_id', $companyId)
+            ->whereNull('parent_id')
+            ->get();
+
+        $getAccountIds = function (Collection $groups) use (&$getAccountIds) {
+            $ids = [];
+            foreach ($groups as $group) {
+                $lowerName = strtolower($group->name);
+                foreach ($group->accounts as $account) {
+                    $ids[$account->id] = $lowerName;
+                }
+                if ($group->childrenRecursive->isNotEmpty()) {
+                    $ids = $ids + $getAccountIds($group->childrenRecursive);
+                }
+            }
+
+            return $ids;
+        };
+
+        $accountGroupMap = $getAccountIds(collect($accountGroups));
+
+        $items = JournalItem::query()
+            ->select('journal_items.account_id')
+            ->selectRaw('SUM(journal_items.cr_amount - journal_items.dr_amount) as net')
+            ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
+            ->where('journals.company_id', $companyId)
+            ->where('journals.status', StatusEnum::APPROVED->value)
+            ->whereNull('journals.deleted_at')
+            ->whereBetween('journals.date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
+            ->groupBy('journal_items.account_id')
+            ->get()
+            ->keyBy('account_id');
+
+        $operating = 0;
+        $investing = 0;
+        $financing = 0;
+
+        foreach ($items as $accountId => $row) {
+            $groupName = $accountGroupMap[$accountId] ?? '';
+            $net = (float) $row->net;
+
+            if (in_array($groupName, ['income', 'expenses'])) {
+                $operating += $net;
+            } elseif (in_array($groupName, ['assets'])) {
+                $investing += -$net;
+            } elseif (in_array($groupName, ['liabilities', 'equity'])) {
+                $financing += $net;
+            }
+        }
+
+        return [
+            'period' => [
+                'start_date' => $period['start_date']->toDateString(),
+                'end_date' => $period['end_date']->toDateString(),
+                'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
+            ],
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'operating' => round($operating, 2),
+            'investing' => round($investing, 2),
+            'financing' => round($financing, 2),
+            'net_change' => round($operating + $investing + $financing, 2),
+        ];
+    }
+
+    public function arAging(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $asOf = $period['end_date'];
+        $companyId = auth('admin')->user()->company_id;
+
+        $invoices = Invoice::with(['party', 'invoiceItems'])
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->get()
+            ->filter(function (Invoice $invoice) use ($companyId, $asOf) {
+                $paid = $invoice->receiptAllocations()->sum('allocated_amount');
+                $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+
+                return round($total - $paid, 2) > 0;
+            });
+
+        $rows = $invoices->map(function (Invoice $invoice) use ($asOf) {
+            $paid = $invoice->receiptAllocations()->sum('allocated_amount');
+            $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            $outstanding = round($total - $paid, 2);
+            $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date) : Carbon::parse($invoice->invoice_date)->addDays(30);
+            $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);
+
+            return [
+                'invoice_no' => $invoice->invoice_no,
+                'party_name' => $invoice->party?->name ?? '-',
+                'invoice_date' => $invoice->invoice_date,
+                'due_date' => $dueDate->toDateString(),
+                'days_overdue' => $daysOverdue,
+                'outstanding' => $outstanding,
+                'bucket' => $this->agingBucket($daysOverdue),
+            ];
+        })->sortByDesc('days_overdue')->values();
+
+        return [
+            'as_of' => $asOf->toDateString(),
+            'rows' => $rows->all(),
+            'buckets' => [
+                'current' => round($rows->where('bucket', 'current')->sum('outstanding'), 2),
+                '1_30' => round($rows->where('bucket', '1_30')->sum('outstanding'), 2),
+                '31_60' => round($rows->where('bucket', '31_60')->sum('outstanding'), 2),
+                '61_90' => round($rows->where('bucket', '61_90')->sum('outstanding'), 2),
+                'over_90' => round($rows->where('bucket', 'over_90')->sum('outstanding'), 2),
+                'total' => round($rows->sum('outstanding'), 2),
+            ],
+        ];
+    }
+
+    public function apAging(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $asOf = $period['end_date'];
+        $companyId = auth('admin')->user()->company_id;
+
+        $bills = Bill::with(['party', 'billItems'])
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->get()
+            ->filter(function (Bill $bill) {
+                $paid = $bill->paymentAllocations()->sum('allocated_amount');
+                $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+
+                return round($total - $paid, 2) > 0;
+            });
+
+        $rows = $bills->map(function (Bill $bill) use ($asOf) {
+            $paid = $bill->paymentAllocations()->sum('allocated_amount');
+            $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            $outstanding = round($total - $paid, 2);
+            $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date)->addDays(30);
+            $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);
+
+            return [
+                'bill_no' => $bill->bill_no,
+                'party_name' => $bill->party?->name ?? '-',
+                'bill_date' => $bill->bill_date,
+                'due_date' => $dueDate->toDateString(),
+                'days_overdue' => $daysOverdue,
+                'outstanding' => $outstanding,
+                'bucket' => $this->agingBucket($daysOverdue),
+            ];
+        })->sortByDesc('days_overdue')->values();
+
+        return [
+            'as_of' => $asOf->toDateString(),
+            'rows' => $rows->all(),
+            'buckets' => [
+                'current' => round($rows->where('bucket', 'current')->sum('outstanding'), 2),
+                '1_30' => round($rows->where('bucket', '1_30')->sum('outstanding'), 2),
+                '31_60' => round($rows->where('bucket', '31_60')->sum('outstanding'), 2),
+                '61_90' => round($rows->where('bucket', '61_90')->sum('outstanding'), 2),
+                'over_90' => round($rows->where('bucket', 'over_90')->sum('outstanding'), 2),
+                'total' => round($rows->sum('outstanding'), 2),
+            ],
+        ];
+    }
+
+    public function inventoryValuation(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        $stocks = DB::table('stocks')
+            ->join('product_variants', 'product_variants.id', '=', 'stocks.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'stocks.warehouse_id')
+            ->where('stocks.company_id', $companyId)
+            ->select([
+                'products.id as product_id',
+                'products.name as product_name',
+                'products.code as product_code',
+                'product_categories.name as category_name',
+                'product_variants.id as variant_id',
+                'product_variants.sku as sku',
+                'warehouses.name as warehouse_name',
+                'stocks.quantity',
+            ])
+            ->get();
+
+        $layerCosts = DB::table('stock_layers')
+            ->where('company_id', $companyId)
+            ->where('remaining_qty', '>', 0)
+            ->select('product_variant_id', 'warehouse_id')
+            ->selectRaw('SUM(remaining_qty) as qty, SUM(remaining_qty * unit_cost) as total_cost')
+            ->groupBy('product_variant_id', 'warehouse_id')
+            ->get()
+            ->keyBy(fn ($row) => $row->product_variant_id.'_'.$row->warehouse_id);
+
+        $rows = $stocks->map(function ($stock) use ($layerCosts) {
+            $key = $stock->variant_id.'_'.($stock->warehouse_id ?? '');
+            $layer = $layerCosts->get($key);
+            $unitCost = ($layer && $layer->qty > 0) ? round($layer->total_cost / $layer->qty, 4) : 0;
+            $totalValue = round($stock->quantity * $unitCost, 2);
+
+            return [
+                'product_name' => $stock->product_name,
+                'product_code' => $stock->product_code,
+                'sku' => $stock->sku,
+                'category' => $stock->category_name,
+                'warehouse' => $stock->warehouse_name,
+                'quantity' => (float) $stock->quantity,
+                'unit_cost' => $unitCost,
+                'total_value' => $totalValue,
+            ];
+        })->values();
+
+        return [
+            'rows' => $rows->all(),
+            'summary' => [
+                'total_items' => $rows->count(),
+                'total_quantity' => round($rows->sum('quantity'), 2),
+                'total_value' => round($rows->sum('total_value'), 2),
+            ],
+        ];
+    }
+
+    public function stockAging(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $asOf = now()->toDateString();
+
+        $layers = DB::table('stock_layers')
+            ->join('product_variants', 'product_variants.id', '=', 'stock_layers.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'stock_layers.warehouse_id')
+            ->where('stock_layers.company_id', $companyId)
+            ->where('stock_layers.remaining_qty', '>', 0)
+            ->select([
+                'products.name as product_name',
+                'products.code as product_code',
+                'product_variants.sku',
+                'warehouses.name as warehouse_name',
+                'stock_layers.remaining_qty',
+                'stock_layers.unit_cost',
+                'stock_layers.created_at',
+            ])
+            ->get();
+
+        $rows = $layers->map(function ($layer) use ($asOf) {
+            $ageInDays = Carbon::parse($layer->created_at)->diffInDays($asOf);
+            $totalValue = round($layer->remaining_qty * $layer->unit_cost, 2);
+
+            return [
+                'product_name' => $layer->product_name,
+                'product_code' => $layer->product_code,
+                'sku' => $layer->sku,
+                'warehouse' => $layer->warehouse_name,
+                'quantity' => (float) $layer->remaining_qty,
+                'unit_cost' => (float) $layer->unit_cost,
+                'total_value' => $totalValue,
+                'age_days' => $ageInDays,
+                'age_bucket' => $this->stockAgeBucket($ageInDays),
+            ];
+        })->values();
+
+        return [
+            'as_of' => $asOf,
+            'rows' => $rows->all(),
+            'buckets' => [
+                'under_30' => round($rows->where('age_bucket', 'under_30')->sum('total_value'), 2),
+                '31_90' => round($rows->where('age_bucket', '31_90')->sum('total_value'), 2),
+                '91_180' => round($rows->where('age_bucket', '91_180')->sum('total_value'), 2),
+                'over_180' => round($rows->where('age_bucket', 'over_180')->sum('total_value'), 2),
+                'total' => round($rows->sum('total_value'), 2),
+            ],
+        ];
+    }
+
+    public function reorderAlerts(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        $alerts = DB::table('stocks')
+            ->join('product_variants', 'product_variants.id', '=', 'stocks.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'stocks.warehouse_id')
+            ->where('stocks.company_id', $companyId)
+            ->whereColumn('stocks.quantity', '<=', 'products.min_stock_level')
+            ->where('products.min_stock_level', '>', 0)
+            ->select([
+                'products.id as product_id',
+                'products.name as product_name',
+                'products.code as product_code',
+                'products.min_stock_level',
+                'products.reorder_quantity',
+                'product_variants.id as variant_id',
+                'product_variants.sku',
+                'warehouses.id as warehouse_id',
+                'warehouses.name as warehouse_name',
+                'stocks.quantity as current_stock',
+            ])
+            ->get();
+
+        return [
+            'rows' => $alerts->values()->all(),
+            'count' => $alerts->count(),
+        ];
+    }
+
+    public function tdsReport(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $companyId = auth('admin')->user()->company_id;
+
+        $deductions = DB::table('tds_deductions')
+            ->leftJoin('parties', 'parties.id', '=', 'tds_deductions.party_id')
+            ->where('tds_deductions.company_id', $companyId)
+            ->whereBetween('tds_deductions.created_at', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
+            ->select([
+                'parties.name as party_name',
+                'parties.pan as party_pan',
+                'tds_deductions.tds_category',
+                'tds_deductions.base_amount',
+                'tds_deductions.tds_rate',
+                'tds_deductions.tds_amount',
+                'tds_deductions.period_month',
+            ])
+            ->get();
+
+        return [
+            'period' => [
+                'start_date' => $period['start_date']->toDateString(),
+                'end_date' => $period['end_date']->toDateString(),
+                'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
+            ],
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'rows' => $deductions->values()->all(),
+            'summary' => [
+                'total_base_amount' => round($deductions->sum('base_amount'), 2),
+                'total_tds_amount' => round($deductions->sum('tds_amount'), 2),
+            ],
+        ];
+    }
+
+    private function agingBucket(int $daysOverdue): string
+    {
+        if ($daysOverdue <= 0) {
+            return 'current';
+        }
+        if ($daysOverdue <= 30) {
+            return '1_30';
+        }
+        if ($daysOverdue <= 60) {
+            return '31_60';
+        }
+        if ($daysOverdue <= 90) {
+            return '61_90';
+        }
+
+        return 'over_90';
+    }
+
+    private function stockAgeBucket(int $days): string
+    {
+        if ($days <= 30) {
+            return 'under_30';
+        }
+        if ($days <= 90) {
+            return '31_90';
+        }
+        if ($days <= 180) {
+            return '91_180';
+        }
+
+        return 'over_180';
     }
 
     private function resolvePeriod(Request $request): array
