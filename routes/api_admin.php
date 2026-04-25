@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Admin\ReceiptVoucherController;
 use App\Http\Controllers\Api\Admin\QuotationController;
 use App\Http\Controllers\Api\Admin\ProductController;
 use App\Http\Controllers\Api\Admin\SalesOrderController;
+use App\Http\Controllers\Api\Admin\SalesReportController;
 use App\Http\Controllers\Api\Admin\InvoiceController;
 use App\Http\Controllers\Api\Admin\PurchaseOrderController;
 use App\Http\Controllers\Api\Admin\BillController;
@@ -77,7 +78,6 @@ use App\Http\Controllers\Api\Admin\CashFlowForecastController;
 // Phase 6 — Multi-branch
 use App\Http\Controllers\Api\Admin\BranchController;
 use App\Http\Controllers\Api\Admin\PosController;
-use App\Http\Controllers\Api\Admin\SalesReportController;
 use App\Http\Controllers\Api\Admin\PurchaseReportController;
 use App\Http\Controllers\Api\Admin\BarcodeController;
 
@@ -98,8 +98,7 @@ Route::middleware('auth:admin')->group(function () {
         // dashboard
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-        // sales & purchase reports
-        Route::get('sales-report', SalesReportController::class)->name('sales-report');
+        // sales & purchase reports (legacy single-action purchase report)
         Route::get('purchase-report', PurchaseReportController::class)->name('purchase-report');
 
         Route::apiResource('setting', SettingController::class)->only('index', 'store');
@@ -204,6 +203,13 @@ Route::middleware('auth:admin')->group(function () {
         Route::post('sales-order/{salesOrder}/approve', [SalesOrderController::class, 'approve'])->name('sales-order.approve');
         Route::post('sales-order/{salesOrder}/convert-to-invoice', [SalesOrderController::class, 'convertToInvoice'])->name('sales-order.convert-to-invoice');
         Route::apiResource('sales-order', SalesOrderController::class);
+
+        // sales reports
+        Route::prefix('sales-report')->as('sales-report.')->controller(SalesReportController::class)->group(function () {
+            Route::get('dashboard', 'dashboard')->name('dashboard');
+            Route::get('report', 'salesReport')->name('report');
+            Route::get('sales-by-item', 'salesByItems')->name('sales-by-item');
+        });
 
         // invoice
         Route::get('invoice/due', [InvoiceController::class, 'dueInvoices'])->name('invoice.due');

@@ -27,7 +27,7 @@ export const storedPermissions = () => {
     return permissions;
 }
 
-export const containsHtmlTag=(str)=>{
+export const containsHtmlTag = (str) => {
     const div = document.createElement('div');
     div.innerHTML = str;
     return div.children.length > 0;
@@ -59,3 +59,12 @@ export const isImage = (file) => {
 export const isPdf = (file) => {
     return ['pdf'].includes(fileExtension(file));
 }
+
+export const formatAmount = (value) => {
+    const amount = Number(value || 0);
+
+    return new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(amount);
+};

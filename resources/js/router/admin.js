@@ -268,6 +268,14 @@ const routes = [
                 component: () => import("@/views/admin/sales/SalesReport.vue"),
             },
             {
+                path: "sales-by-item",
+                name: "admin.sales-by-item",
+                meta: {
+                    pageTitle: "Sales By Item",
+                },
+                component: () => import("@/views/admin/sales/SalesByItem.vue"),
+            },
+            {
                 path: "brand",
                 name: "admin.brand-list",
                 meta: {

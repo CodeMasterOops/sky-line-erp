@@ -20,21 +20,13 @@
                         </div>
                     </div>
                     <div class="col-xl-4 col-lg-4">
-                        <label class="form-label">Account</label>
-                        <select
+                        <VMultiselect
+                            id="account_id"
                             v-model="filter.account_id"
-                            class="form-select"
+                            :options="accountOptions"
+                            label="Account"
                             :disabled="generalLedger.loading"
-                        >
-                            <option value="">Select account</option>
-                            <option
-                                v-for="account in accountOptions"
-                                :key="account.id"
-                                :value="String(account.id)"
-                            >
-                                {{ account.label }}
-                            </option>
-                        </select>
+                        />
                     </div>
                     <div class="col-xl-2 col-lg-3">
                         <button

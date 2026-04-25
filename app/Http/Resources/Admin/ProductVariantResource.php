@@ -11,14 +11,7 @@ class ProductVariantResource extends JsonResource
     {
         return [
             'id' => $this->id ?? '',
-            'name' => $this->whenLoaded('product', function () {
-                $name = $this->product->name ?? '';
-                if ($this->variant_label) {
-                    $name .= '-'.$this->variant_label;
-                }
-
-                return $name;
-            }),
+            'name' => $this->variant_name ?? '',
             $this->mergeWhen($this->whenLoaded('product'), function () {
                 return [
                     'unit_id' => $this->product->unit_id ?? '',
