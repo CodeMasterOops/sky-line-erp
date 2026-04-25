@@ -1,4 +1,5 @@
 import moment from 'moment';
+import {useDateHelper} from "@/composables/dateHelper.js";
 
 /**
  * Format a date or datetime string for display.
@@ -59,6 +60,20 @@ export const isImage = (file) => {
 export const isPdf = (file) => {
     return ['pdf'].includes(fileExtension(file));
 }
+
+export const adToBsDate = (adDate, format = 'en', separator = '-') => {
+    const {adToBs} = useDateHelper();
+
+    const convertedDate = adToBs(adDate);
+
+    const bsDate = convertedDate.replace(/-/g, separator);
+
+    if (format === 'np') {
+        return convertToNepali(bsDate);
+    }
+
+    return bsDate;
+};
 
 export const formatAmount = (value) => {
     const amount = Number(value || 0);
