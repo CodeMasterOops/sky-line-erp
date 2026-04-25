@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SerialNumber;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
 
 class SerialNumberController extends Controller
 {
@@ -35,7 +36,7 @@ class SerialNumberController extends Controller
         }
 
         if ($request->filled('expiry_within_days')) {
-            $days = (int) $request->input('expiry_within_days');
+            $days = (int)$request->input('expiry_within_days');
             $query->whereNotNull('expiry_date')
                   ->whereDate('expiry_date', '<=', now()->addDays($days))
                   ->whereDate('expiry_date', '>=', now());

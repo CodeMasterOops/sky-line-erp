@@ -64,17 +64,7 @@ class StockAdjustmentController extends Controller
                     'status' => $status,
                 ]);
 
-                $items = collect($formData['items'] ?? [])->map(function ($item) {
-                    return [
-                        'product_variant_id' => $item['product_variant_id'],
-                        'unit_id' => $item['unit_id'] ?? null,
-                        'direction' => $item['direction'],
-                        'quantity' => $item['quantity'],
-                        'unit_cost' => $item['unit_cost'] ?? null,
-                    ];
-                })->all();
-
-                $adjustment->stockAdjustmentItems()->createMany($items);
+                $adjustment->stockAdjustmentItems()->createMany($formData['items']);
 
                 if ($status === StatusEnum::APPROVED->value) {
                     $this->applyApprovalEffects($adjustment);

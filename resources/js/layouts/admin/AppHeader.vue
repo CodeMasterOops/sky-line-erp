@@ -26,7 +26,7 @@
             <li class="nav-item fiscal-year-nav">
                 <router-link
                     class="fiscal-year-link"
-                    :to="{ name: 'admin.general-settings' }"
+                    :to="{ name: 'admin.setting' }"
                     :title="fiscalYearTooltip"
                 >
                     <span class="fiscal-year-icon-wrap" aria-hidden="true">
