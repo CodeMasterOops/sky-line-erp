@@ -1,16 +1,20 @@
 [
     {
         "icon": "settings",
-        "title": "General Settings",
+        "title": "Company & profile",
         "page": "settings",
         "subMenu": [
             {
-                "title": "Setting",
+                "title": "Company details",
                 "routes": "/admin/settings/setting"
             },
             {
-                "title": "Profile",
-                "routes": "/admin/settings/general-settings"
+                "title": "Branches",
+                "routes": "/admin/settings/branches"
+            },
+            {
+                "title": "My profile",
+                "routes": "/admin/settings/profile"
             },
             {
                 "title": "Security",
@@ -24,26 +28,30 @@
     },
     {
         "icon": "credit-card",
-        "title": "Financial Settings",
+        "title": "Finance & accounting",
         "page": "financial-settings",
         "subMenu": [
             {
-                "title": "Tax Rates",
+                "title": "Taxes",
                 "routes": "/admin/settings/tax"
             },
             {
-                "title": "Payment Modes",
+                "title": "Payment methods",
                 "routes": "/admin/settings/payment-mode"
+            },
+            {
+                "title": "Default GL accounts",
+                "routes": "/admin/settings/account-settings"
             }
         ]
     },
     {
         "icon": "file-text",
-        "title": "Nepal IRD",
+        "title": "Nepal IRD / e-billing",
         "page": "nepal-ird",
         "subMenu": [
             {
-                "title": "IRD EBS Settings",
+                "title": "IRD EBS (e-billing)",
                 "routes": "/admin/settings/ird-settings"
             }
         ]

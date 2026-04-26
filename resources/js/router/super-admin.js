@@ -106,6 +106,12 @@ const routes = [
                 meta: { pageTitle: 'Tax Templates' },
                 component: () => import('@/views/super-admin/tax-templates/Index.vue')
             },
+            {
+                path: 'address',
+                name: 'super-admin.address',
+                meta: { pageTitle: 'Address reference' },
+                component: () => import('@/views/super-admin/address/Index.vue')
+            },
         ]
     },
 ];

@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\Admin\InventoryStockReconciliationController;
 use App\Http\Controllers\Api\Admin\InventoryStockReconciliationAlignController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\SettingController;
+use App\Http\Controllers\Api\Admin\AddressReferenceController;
 use App\Http\Controllers\Api\Admin\AttributeController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\WarehouseController;
@@ -102,6 +103,14 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('purchase-report', PurchaseReportController::class)->name('purchase-report');
 
         Route::apiResource('setting', SettingController::class)->only('index', 'store');
+
+        // address reference (read-only, for company settings & forms)
+        Route::prefix('location-reference')->as('location-reference.')->controller(AddressReferenceController::class)->group(function () {
+            Route::get('province', 'provinces')->name('province.index');
+            Route::get('district', 'districts')->name('district.index');
+            Route::get('palika', 'palikas')->name('palika.index');
+            Route::get('ward', 'wards')->name('ward.index');
+        });
 
         // user management
         Route::get('permission', PermissionController::class)->name('permissions');

@@ -51,11 +51,7 @@ const routes = [
             },
             {
                 path: "profile",
-                name: "admin.profile",
-                meta: {
-                    pageTitle: "Profile Update",
-                },
-                component: () => import("@/views/admin/profile/Index.vue"),
+                redirect: "/admin/settings/profile",
             },
             {
                 path: "billing/pricing",
@@ -99,6 +95,12 @@ const routes = [
                         meta: {pageTitle: "Notifications"},
                     },
                     {
+                        path: "profile",
+                        name: "admin.profile",
+                        meta: { pageTitle: "Profile" },
+                        component: () => import("@/views/admin/profile/Index.vue"),
+                    },
+                    {
                         path: 'tax',
                         name: 'admin.tax-list',
                         meta: {
@@ -119,6 +121,18 @@ const routes = [
                         name: 'admin.ird-settings',
                         meta: { pageTitle: 'IRD EBS Settings' },
                         component: () => import('@/views/admin/settings/ird/IrdSettings.vue'),
+                    },
+                    {
+                        path: 'branches',
+                        name: 'admin.branch-list',
+                        meta: { pageTitle: 'Branch Management' },
+                        component: () => import('@/views/admin/settings/branches/Index.vue'),
+                    },
+                    {
+                        path: 'account-settings',
+                        name: 'admin.account-settings',
+                        meta: { pageTitle: 'Account Settings' },
+                        component: () => import('@/views/admin/accounting/account-setting/Index.vue'),
                     },
                     {
                         path: "", // default child route
@@ -432,15 +446,6 @@ const routes = [
                 },
                 component: () =>
                     import("@/views/admin/accounting/coa/Index.vue"),
-            },
-            {
-                path: "account-settings",
-                name: "admin.account-settings",
-                meta: {
-                    pageTitle: "Account Settings",
-                },
-                component: () =>
-                    import("@/views/admin/accounting/account-setting/Index.vue"),
             },
             {
                 path: "journal-voucher",
@@ -813,12 +818,6 @@ const routes = [
                 component: () => import("@/views/admin/accounting/cash-flow-forecast/Index.vue"),
             },
             // ---- Phase 6: Multi-branch ----
-            {
-                path: "settings/branches",
-                name: "admin.branch-list",
-                meta: {pageTitle: "Branch Management"},
-                component: () => import("@/views/admin/settings/branches/Index.vue"),
-            },
             {
                 path: "accounting/branch-pl",
                 name: "admin.branch-pl",

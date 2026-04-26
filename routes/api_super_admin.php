@@ -9,6 +9,10 @@ use App\Http\Controllers\Api\SuperAdmin\DashboardController;
 use App\Http\Controllers\Api\SuperAdmin\FiscalYearController;
 use App\Http\Controllers\Api\SuperAdmin\CurrencyController;
 use App\Http\Controllers\Api\SuperAdmin\TaxTemplateController;
+use App\Http\Controllers\Api\SuperAdmin\ProvinceController;
+use App\Http\Controllers\Api\SuperAdmin\DistrictController;
+use App\Http\Controllers\Api\SuperAdmin\PalikaController;
+use App\Http\Controllers\Api\SuperAdmin\WardController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -37,6 +41,12 @@ Route::middleware('auth:super_admin')->group(function () {
 
     // tax templates (seed defaults for new companies)
     Route::apiResource('tax-template', TaxTemplateController::class)->parameters(['tax-template' => 'taxTemplate']);
+
+    // address reference (provinces, districts, palikas, wards)
+    Route::apiResource('province', ProvinceController::class);
+    Route::apiResource('district', DistrictController::class);
+    Route::apiResource('palika', PalikaController::class);
+    Route::apiResource('ward', WardController::class);
 
     // company
     Route::put('company/{company}/update-status', [CompanyController::class, 'updateStatus'])->name('company.update-status');

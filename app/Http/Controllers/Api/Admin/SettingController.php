@@ -18,6 +18,7 @@ class SettingController extends Controller
     public function index()
     {
         $setting = auth('admin')->user()->company;
+        $setting->loadMissing('ward.palika.district.province');
 
         return SettingResource::make($setting);
     }

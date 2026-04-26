@@ -1,15 +1,22 @@
 <template>
   <form @submit.prevent="updateProfile">
-    <div class="card">
-      <div class="card-header">
-        <h4 class="mb-0">Profile</h4>
-      </div>
-      <div class="card-body profile-body">
-        <div class="profile-pic-upload image-field">
-          <div class="profile-pic p-2 position-relative d-inline-block">
+    <div class="card-title-head">
+      <h6 class="fs-16 fw-bold mb-3">
+        <span class="fs-16 me-2"><i class="ti ti-user"></i></span>
+        Basic information
+      </h6>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="profile-pic-upload d-flex flex-wrap align-items-center">
+          <div
+            class="profile-pic p-2 position-relative d-flex align-items-center justify-content-center text-center image-field flex-shrink-0"
+            style="width: 120px; height: 120px"
+          >
             <img
               :src="previewSrc"
-              class="object-fit-cover h-100 w-100 rounded-1 d-block"
+              class="object-fit-contain h-100 w-100 rounded-1 d-block p-1"
               alt="Profile"
             />
             <button
@@ -22,10 +29,9 @@
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <div class="mb-3">
-            <div
-              class="image-upload mb-0 d-inline-flex position-relative align-items-stretch"
-            >
+          <div class="new-employee-field flex-grow-1 min-w-0">
+            <label class="form-label fw-bold mb-1">Profile photo</label>
+            <div class="d-flex flex-wrap align-items-center gap-2">
               <input
                 ref="fileInputRef"
                 type="file"
@@ -35,13 +41,13 @@
               />
               <button
                 type="button"
-                class="btn btn-primary fs-13"
+                class="btn btn-primary btn-sm"
                 @click="openFileDialog"
               >
                 Change Image
               </button>
             </div>
-            <p class="mt-2 mb-0 text-muted fs-13">
+            <p class="form-text fs-13 mt-2 mb-0">
               Upload an image below 2 MB, Accepted File format JPG, PNG
             </p>
             <div v-if="errors.profile_photo" class="text-danger small mt-1">
@@ -49,84 +55,72 @@
             </div>
           </div>
         </div>
-        <div class="row">
-          <div class="col-lg-6 col-sm-12">
-            <div class="mb-3">
-              <label class="form-label" for="profile-name"
-                >Name<span class="text-danger ms-1">*</span></label
-              >
-              <input
-                id="profile-name"
-                v-model="form.name"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': errors.name }"
-                @blur="validateField('name')"
-              />
-              <div v-if="errors.name" class="invalid-feedback d-block">
-                {{ errors.name }}
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-6 col-sm-12">
-            <div class="mb-3">
-              <label class="form-label" for="profile-email"
-                >Email<span class="text-danger ms-1">*</span></label
-              >
-              <input
-                id="profile-email"
-                v-model="form.email"
-                type="email"
-                class="form-control"
-                :class="{ 'is-invalid': errors.email }"
-                @blur="validateField('email')"
-              />
-              <div v-if="errors.email" class="invalid-feedback d-block">
-                {{ errors.email }}
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-6 col-sm-12">
-            <div class="mb-3">
-              <label class="form-label" for="profile-phone">Phone Number</label>
-              <input
-                id="profile-phone"
-                v-model="form.phone"
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': errors.phone }"
-                @blur="validateField('phone')"
-              />
-              <div v-if="errors.phone" class="invalid-feedback d-block">
-                {{ errors.phone }}
-              </div>
-            </div>
-          </div>
-          <div class="col-12 d-flex justify-content-end gap-2 mt-2">
-            <button
-              type="button"
-              class="btn btn-secondary shadow-none"
-              :disabled="isSubmitting"
-              @click="onCancel"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="btn btn-primary shadow-none"
-              :disabled="isSubmitting"
-            >
-              <span
-                v-if="isSubmitting"
-                class="spinner-border spinner-border-sm me-1"
-                role="status"
-                aria-hidden="true"
-              />
-              Save Changes
-            </button>
-          </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label" for="profile-name"
+          >Name<span class="text-danger ms-1">*</span></label
+        >
+        <input
+          id="profile-name"
+          v-model="form.name"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': errors.name }"
+          @blur="validateField('name')"
+        />
+        <div v-if="errors.name" class="invalid-feedback d-block">
+          {{ errors.name }}
         </div>
       </div>
+      <div class="col-md-4">
+        <label class="form-label" for="profile-email"
+          >Email<span class="text-danger ms-1">*</span></label
+        >
+        <input
+          id="profile-email"
+          v-model="form.email"
+          type="email"
+          class="form-control"
+          :class="{ 'is-invalid': errors.email }"
+          @blur="validateField('email')"
+        />
+        <div v-if="errors.email" class="invalid-feedback d-block">
+          {{ errors.email }}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label" for="profile-phone">Phone Number</label>
+        <input
+          id="profile-phone"
+          v-model="form.phone"
+          type="text"
+          class="form-control"
+          :class="{ 'is-invalid': errors.phone }"
+          @blur="validateField('phone')"
+        />
+        <div v-if="errors.phone" class="invalid-feedback d-block">
+          {{ errors.phone }}
+        </div>
+      </div>
+    </div>
+
+    <div class="text-end settings-bottom-btn mt-4">
+      <button
+        type="submit"
+        class="btn btn-primary"
+        :disabled="isSubmitting"
+      >
+        <span
+          v-if="isSubmitting"
+          class="spinner-border spinner-border-sm me-1"
+          role="status"
+          aria-hidden="true"
+        />
+        Save Changes
+      </button>
     </div>
   </form>
 </template>
@@ -283,11 +277,6 @@ const updateProfile = async () => {
   } finally {
     isSubmitting.value = false;
   }
-};
-
-const onCancel = () => {
-  loadFromServer();
-  errors.value = {};
 };
 
 defineExpose({ loadFromServer });

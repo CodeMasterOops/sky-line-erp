@@ -541,18 +541,6 @@
           "route": { "name": "admin.role-list" },
           "icon": "ti ti-jump-rope",
           "permission": "list_role"
-        },
-        {
-          "menuValue": "Settings",
-          "route": { "name": "admin.account-settings" },
-          "icon": "ti ti-settings",
-          "permission": "list_account_setting"
-        },
-        {
-          "menuValue": "Branches",
-          "route": { "name": "admin.branch-list" },
-          "icon": "ti ti-building",
-          "permission": "list_branch"
         }
       ]
     }

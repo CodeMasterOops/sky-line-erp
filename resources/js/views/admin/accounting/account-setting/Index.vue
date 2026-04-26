@@ -1,148 +1,159 @@
 <template>
-    <PageHeader title="Account Settings" subtitle="Manage your account settings" />
+    <div>
+        <PageHeader
+            title="Account Settings"
+            subtitle="Manage your default GL accounts for sales, purchases, and parties"
+            @refresh="setAccountSettingData(true)"
+        />
+    </div>
 
-    <section class="section">
-        <div class="card">
-            <VLoader v-if="accountSetting.loading" loader-type="progress" />
-            <div class="card-body">
-                <form @submit.prevent="saveAccountSetting">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <VSelect
-                                id="cash_sales_account_id"
-                                v-model="form.cash_sales_account_id"
-                                :options="accounts.data"
-                                label="Cash Sales Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="bank_sales_account_id"
-                                v-model="form.bank_sales_account_id"
-                                :options="accounts.data"
-                                label="Bank Sales Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="cash_purchase_account_id"
-                                v-model="form.cash_purchase_account_id"
-                                :options="accounts.data"
-                                label="Cash Purchase Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="bank_purchase_account_id"
-                                v-model="form.bank_purchase_account_id"
-                                :options="accounts.data"
-                                label="Bank Purchase Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="vat_account_id"
-                                v-model="form.vat_account_id"
-                                :options="accounts.data"
-                                label="VAT Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="advance_tax_account_id"
-                                v-model="form.advance_tax_account_id"
-                                :options="accounts.data"
-                                label="Advance Tax Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="sales_discount_account_id"
-                                v-model="form.sales_discount_account_id"
-                                :options="accounts.data"
-                                label="Sales Discount Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="purchase_discount_account_id"
-                                v-model="form.purchase_discount_account_id"
-                                :options="accounts.data"
-                                label="Purchase Discount Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="customer_account_id"
-                                v-model="form.customer_account_id"
-                                :options="accounts.data"
-                                label="Customer Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="supplier_account_id"
-                                v-model="form.supplier_account_id"
-                                :options="accounts.data"
-                                label="Supplier Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="employee_account_id"
-                                v-model="form.employee_account_id"
-                                :options="accounts.data"
-                                label="Employee Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="other_contact_account_id"
-                                v-model="form.other_contact_account_id"
-                                :options="accounts.data"
-                                label="Other Contact Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="purchase_account_id"
-                                v-model="form.purchase_account_id"
-                                :options="accounts.data"
-                                label="Purchase Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="sales_account_id"
-                                v-model="form.sales_account_id"
-                                :options="accounts.data"
-                                label="Sales Account"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="inventory_account_id"
-                                v-model="form.inventory_account_id"
-                                :options="accounts.data"
-                                label="Inventory Account (perpetual GL)"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <VSelect
-                                id="cogs_account_id"
-                                v-model="form.cogs_account_id"
-                                :options="accounts.data"
-                                label="COGS Account (perpetual GL)"
-                            />
-                        </div>
-                        <div class="col-12 text-end">
-                            <VButton :loading="isSubmitting" />
-                        </div>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="settings-wrapper d-flex">
+                <settings-sidebar></settings-sidebar>
+                <div class="card flex-fill mb-0">
+                    <VLoader v-if="accountSetting.loading" loader-type="progress" />
+                    <div v-show="!accountSetting.loading" class="card-body">
+                        <form @submit.prevent="saveAccountSetting">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="cash_sales_account_id"
+                                        v-model="form.cash_sales_account_id"
+                                        :options="accounts.data"
+                                        label="Cash Sales Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="bank_sales_account_id"
+                                        v-model="form.bank_sales_account_id"
+                                        :options="accounts.data"
+                                        label="Bank Sales Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="cash_purchase_account_id"
+                                        v-model="form.cash_purchase_account_id"
+                                        :options="accounts.data"
+                                        label="Cash Purchase Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="bank_purchase_account_id"
+                                        v-model="form.bank_purchase_account_id"
+                                        :options="accounts.data"
+                                        label="Bank Purchase Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="vat_account_id"
+                                        v-model="form.vat_account_id"
+                                        :options="accounts.data"
+                                        label="VAT Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="advance_tax_account_id"
+                                        v-model="form.advance_tax_account_id"
+                                        :options="accounts.data"
+                                        label="Advance Tax Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="sales_discount_account_id"
+                                        v-model="form.sales_discount_account_id"
+                                        :options="accounts.data"
+                                        label="Sales Discount Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="purchase_discount_account_id"
+                                        v-model="form.purchase_discount_account_id"
+                                        :options="accounts.data"
+                                        label="Purchase Discount Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="customer_account_id"
+                                        v-model="form.customer_account_id"
+                                        :options="accounts.data"
+                                        label="Customer Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="supplier_account_id"
+                                        v-model="form.supplier_account_id"
+                                        :options="accounts.data"
+                                        label="Supplier Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="employee_account_id"
+                                        v-model="form.employee_account_id"
+                                        :options="accounts.data"
+                                        label="Employee Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="other_contact_account_id"
+                                        v-model="form.other_contact_account_id"
+                                        :options="accounts.data"
+                                        label="Other Contact Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="purchase_account_id"
+                                        v-model="form.purchase_account_id"
+                                        :options="accounts.data"
+                                        label="Purchase Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="sales_account_id"
+                                        v-model="form.sales_account_id"
+                                        :options="accounts.data"
+                                        label="Sales Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="inventory_account_id"
+                                        v-model="form.inventory_account_id"
+                                        :options="accounts.data"
+                                        label="Inventory Account (perpetual GL)"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="cogs_account_id"
+                                        v-model="form.cogs_account_id"
+                                        :options="accounts.data"
+                                        label="COGS Account (perpetual GL)"
+                                    />
+                                </div>
+                                <div class="col-12 text-end">
+                                    <VButton :loading="isSubmitting" />
+                                </div>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
-    </section>
+    </div>
 </template>
 
 <script setup>

@@ -84,6 +84,12 @@
                         "route": {
                             "name": "super-admin.tax-templates"
                         }
+                    },
+                    {
+                        "menuValue": "Address reference",
+                        "route": {
+                            "name": "super-admin.address"
+                        }
                     }
                 ]
             }

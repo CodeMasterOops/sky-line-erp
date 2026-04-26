@@ -28,6 +28,8 @@ class Company extends Model
         'email',
         'website',
         'address',
+        'ward_id',
+        'postal_code',
         'is_active',
         'inventory_costing_method',
         'ird_username',
@@ -93,5 +95,10 @@ class Company extends Model
     public function fiscalYear(): BelongsTo
     {
         return $this->belongsTo(FiscalYear::class);
+    }
+
+    public function ward(): BelongsTo
+    {
+        return $this->belongsTo(Ward::class);
     }
 }

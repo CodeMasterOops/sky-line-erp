@@ -22,6 +22,14 @@
     overflow: hidden;
     overflow-y: auto;
 }
+/* SimpleBar is the only scrollport; avoid nested scroll with .slimscroll (settings sidebar unchanged). */
+.admin-sidebar-shell .admin-sidebar-shell__scroll .sidebar-inner.slimscroll,
+.super-admin-sidebar-shell .sidebar-inner.slimscroll {
+    height: auto !important;
+    max-height: none;
+    overflow: visible !important;
+    overflow-y: visible !important;
+}
 .settings-wrapper .sidebars.settings-sidebar .sidebar-inner .sidebar-menu ul .submenu-open{
     margin-bottom: 0px;
 }

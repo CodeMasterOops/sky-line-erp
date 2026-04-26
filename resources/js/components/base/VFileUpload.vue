@@ -9,7 +9,7 @@
 </style>
 <template>
     <label v-if="label" :for="id" class="form-label">{{ label }}</label>
-    <template v-if="!errorMessage">
+    <template v-if="!errorMessage && !hideImagePreview">
         <div v-if="fileDetail.imageUrl || (defaultPhoto && isImage(defaultPhoto))" class="image-preview mb-2">
             <div class="card border border-info">
                 <div class="card-body text-center">
@@ -32,20 +32,52 @@
             </div>
         </div>
     </template>
-    <div class="input-group">
+    <div v-if="buttonOnly" class="d-flex flex-wrap align-items-center gap-2">
+        <button
+            type="button"
+            :disabled="disabled"
+            :class="browseButtonClass"
+            @click="selectFile"
+        >
+            {{ buttonLabel }}
+        </button>
+        <button
+            v-if="fileDetail.file"
+            type="button"
+            @click="resetFile"
+            class="btn btn-outline-danger btn-sm"
+            :class="removeButtonClass"
+        >
+            Remove
+        </button>
+    </div>
+    <div v-else class="input-group" :class="inputGroupClass">
         <input
             type="text"
             :title="fileDetail.name"
             @click="selectFile" readonly
             :disabled="disabled"
             class="form-control"
+            :class="formControlClass"
             :placeholder="fileDetail.name ? fileDetail.name : 'Select file...'"
         >
-        <button v-if="fileDetail.file" @click="resetFile" class="btn btn-outline-danger" type="button">
+        <button
+            v-if="fileDetail.file"
+            @click="resetFile"
+            class="btn btn-outline-danger"
+            :class="removeButtonClass"
+            type="button"
+        >
             <i class="fa fa-trash"></i> Remove
         </button>
-        <button @click="selectFile" :disabled="disabled" class="btn btn-primary" type="button">
-            <i class="fa fa-folder-open"> Browse..</i>
+        <button
+            @click="selectFile"
+            :disabled="disabled"
+            :class="browseButtonClass"
+            type="button"
+        >
+            <i class="fa fa-folder-open me-1"></i>
+            <span>Browse</span>
         </button>
     </div>
     <input
@@ -102,7 +134,41 @@ const props = defineProps({
     showImageInfo: {
         type: Boolean,
         default: true
-    }
+    },
+    /** When true, skip the built-in image/PDF preview (use for custom layout, e.g. settings profile-pic). */
+    hideImagePreview: {
+        type: Boolean,
+        default: false
+    },
+    browseButtonClass: {
+        type: String,
+        default: 'btn btn-primary flex-shrink-0',
+    },
+    /** e.g. `input-group-sm` for a shorter control row. */
+    inputGroupClass: {
+        type: String,
+        default: '',
+    },
+    formControlClass: {
+        type: String,
+        default: '',
+    },
+    removeButtonClass: {
+        type: String,
+        default: '',
+    },
+    /**
+     * One primary button + file input (no “Select file…” / Browse row).
+     * Use with hideImagePreview when a custom preview exists elsewhere (e.g. settings logo).
+     */
+    buttonOnly: {
+        type: Boolean,
+        default: false,
+    },
+    buttonLabel: {
+        type: String,
+        default: 'Upload Image',
+    },
 })
 
 const {fileDetail, onFileSelected, resetFile} = useFileUpload();
