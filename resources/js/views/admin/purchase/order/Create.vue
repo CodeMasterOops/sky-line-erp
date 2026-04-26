@@ -36,7 +36,6 @@
                             <div class="input-blocks">
                                 <VDatepicker
                                     id="order_date"
-                                    input-type="date"
                                     v-model="form.order_date"
                                     label="Order Date"
                                     @validate="validateField('order_date')"
@@ -56,7 +55,8 @@
                             <div class="table-responsive no-pagination">
                                 <table class="table datanew table-bordered mb-0 order-lines-table">
                                     <caption class="text-muted small caption-top text-start px-1">
-                                        Sale (ref.) is the list price from the product; it is not used for stock valuation.
+                                        Sale (ref.) is the list price from the product; it is not used for stock
+                                        valuation.
                                         Ref. margin is (list − net purchase per unit) ÷ list, before tax.
                                     </caption>
                                     <thead>
@@ -68,15 +68,18 @@
                                         <th
                                             class="po-col-rate"
                                             title="Purchase rate; line valuation is net of line discount and excludes tax.">
-                                            Rate (purchase)</th>
+                                            Rate (purchase)
+                                        </th>
                                         <th
                                             class="po-col-ref"
                                             title="List sales price from the product master; reference only.">
-                                            Sale (ref.)</th>
+                                            Sale (ref.)
+                                        </th>
                                         <th
                                             class="text-end po-col-mrg"
                                             title="Gross margin vs. list: (list sale − net purchase per unit) ÷ list sale, before tax.">
-                                            Ref. margin</th>
+                                            Ref. margin
+                                        </th>
                                         <th class="po-col-disc">Discount</th>
                                         <th class="po-col-tax">Tax</th>
                                         <th class="po-col-amt">Tax amt</th>
@@ -90,7 +93,8 @@
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
-                                    <tr v-for="(item, index) in form.items" :key="`${index}-${item.product_variant_id}`">
+                                    <tr v-for="(item, index) in form.items"
+                                        :key="`${index}-${item.product_variant_id}`">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate po-col-product"
@@ -337,7 +341,7 @@ const removeItem = (index) => {
 
 const validations = object({
     order_date: string().required('Order date is required.'),
-    party_id: string().nullable(),
+    party_id: string().required('Supplier is required'),
     items: array()
         .of(
             object({
@@ -472,23 +476,29 @@ function resetForm() {
 .order-lines-table :deep(.form-select) {
     min-width: 4.25rem;
 }
+
 .order-lines-table th,
 .order-lines-table td {
     vertical-align: middle;
 }
+
 .order-lines-table .po-col-product {
     min-width: 11rem;
     max-width: 16rem;
 }
+
 .order-lines-table .po-col-unit {
     min-width: 7rem;
 }
+
 .order-lines-table .po-col-tax {
     min-width: 7.5rem;
 }
+
 .order-lines-table .po-col-sn {
     width: 2.5rem;
 }
+
 .order-lines-table .po-col-action {
     width: 3rem;
 }

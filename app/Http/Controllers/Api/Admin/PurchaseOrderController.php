@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\Bill;
-use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Models\PurchaseOrder;
 use App\Annotation\Permissions;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\BillResource;
+use App\Services\Purchase\PurchaseOrderService;
 use App\Http\Resources\Admin\PurchaseOrderResource;
 use App\Http\Requests\Api\Admin\PurchaseOrderRequest;
 
 class PurchaseOrderController extends Controller
 {
+    public function __construct(
+        private readonly PurchaseOrderService $purchaseOrderService
+    ) {}
+
     /**
      * @Permissions("list_purchase_order", group="purchase_order", desc="List Purchase Order")
      */
@@ -35,42 +36,7 @@ class PurchaseOrderController extends Controller
      */
     public function store(PurchaseOrderRequest $request)
     {
-        $formData = $request->validated();
-        $user = auth('admin')->user();
-        $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-        $orderNo = $formData['order_no'] ?? $this->generateOrderNo($fiscalYearId, $setting->fiscalYear?->year_code);
-
-        $order = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $orderNo) {
-            $order = PurchaseOrder::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $formData['party_id'] ?? null,
-                'order_no' => $orderNo,
-                'order_date' => $formData['order_date'],
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
-
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
-
-            $order->purchaseOrderItems()->createMany($items);
-
-            return $order;
-        });
+        $order = $this->purchaseOrderService->createPurchaseOrder($request->validated());
 
         $order->load([
             'party',
@@ -111,35 +77,7 @@ class PurchaseOrderController extends Controller
             ], 422);
         }
 
-        $formData = $request->validated();
-        $orderNo = $formData['order_no'] ?? $purchaseOrder->order_no;
-
-        $purchaseOrder = DB::transaction(function () use ($purchaseOrder, $formData, $orderNo) {
-            $purchaseOrder->update([
-                'party_id' => $formData['party_id'] ?? null,
-                'order_no' => $orderNo,
-                'order_date' => $formData['order_date'],
-                'remarks' => $formData['remarks'] ?? null,
-            ]);
-
-            $purchaseOrder->purchaseOrderItems()->delete();
-
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
-
-            $purchaseOrder->purchaseOrderItems()->createMany($items);
-
-            return $purchaseOrder;
-        });
+        $this->purchaseOrderService->updatePurchaseOrder($request->validated(), $purchaseOrder);
 
         $purchaseOrder->load([
             'party',
@@ -179,13 +117,7 @@ class PurchaseOrderController extends Controller
             ]);
         }
 
-        $user = auth('admin')->user();
-
-        $purchaseOrder->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        $this->purchaseOrderService->approvePurchaseOrder($purchaseOrder);
 
         $purchaseOrder->load([
             'party',
@@ -198,107 +130,5 @@ class PurchaseOrderController extends Controller
             'data' => PurchaseOrderResource::make($purchaseOrder),
             'message' => 'Purchase Order Approved Successfully',
         ]);
-    }
-
-    /**
-     * @Permissions("convert_purchase_order_to_bill", group="purchase_order", desc="Convert Purchase Order To Bill")
-     */
-    public function convertToBill(Request $request, PurchaseOrder $purchaseOrder)
-    {
-        if ($purchaseOrder->status !== StatusEnum::APPROVED) {
-            return response()->json([
-                'message' => 'Only approved purchase orders can be converted to bill.',
-            ], 422);
-        }
-
-        if ($purchaseOrder->bills()->exists()) {
-            return response()->json([
-                'message' => 'Purchase order already converted to bill.',
-            ], 422);
-        }
-
-        $data = $request->validate([
-            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
-            'due_date' => ['nullable', 'date'],
-        ]);
-
-        $purchaseOrder->loadMissing([
-            'purchaseOrderItems',
-            'party',
-        ]);
-
-        $user = auth('admin')->user();
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-        $billNo = $this->generateBillNo($fiscalYearId, $setting->fiscalYear?->year_code);
-        $billDate = now()->toDateString();
-
-        $bill = DB::transaction(function () use ($purchaseOrder, $user, $fiscalYearId, $billNo, $billDate, $data) {
-            $bill = Bill::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $purchaseOrder->party_id,
-                'purchase_order_id' => $purchaseOrder->id,
-                'bill_no' => $billNo,
-                'bill_date' => $billDate,
-                'due_date' => $data['due_date'] ?? null,
-                'remarks' => $purchaseOrder->remarks,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $user->id,
-                'approved_at' => null,
-                'status' => StatusEnum::DRAFT->value,
-            ]);
-
-            $items = $purchaseOrder->purchaseOrderItems->map(function ($item) use ($data) {
-                return [
-                    'product_variant_id' => $item->product_variant_id,
-                    'warehouse_id' => $data['warehouse_id'],
-                    'unit_id' => $item->unit_id,
-                    'quantity' => $item->quantity,
-                    'rate' => $item->rate,
-                    'tax_id' => $item->tax_id,
-                    'tax_amount' => $item->tax_amount,
-                    'discount_amount' => $item->discount_amount,
-                ];
-            })->all();
-
-            $bill->billItems()->createMany($items);
-
-            return $bill;
-        });
-
-        $bill->load([
-            'party',
-            'billItems.productVariant.product',
-            'billItems.unit',
-            'billItems.tax',
-            'billItems.warehouse',
-        ]);
-
-        return response()->json([
-            'data' => BillResource::make($bill),
-            'message' => 'Bill created from purchase order successfully.',
-        ]);
-    }
-
-    private function generateOrderNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = PurchaseOrder::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'PO-'.($count + 1).$suffix;
-    }
-
-    private function generateBillNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Bill::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'BILL-'.($count + 1).$suffix;
     }
 }

@@ -74,21 +74,6 @@ export const usePurchaseOrderStore = defineStore('purchaseOrder', {
                     throw err;
                 });
         },
-        convertToBill(id, payload) {
-            return apiAdmin(`${apiUrl}/${id}/convert-to-bill`, 'post', payload)
-                .then((res) => {
-                    const index = this.orders.data.findIndex(d => d.id === id);
-                    if (index !== -1) {
-                        this.orders.data[index] = {
-                            ...this.orders.data[index],
-                            bill_count: (this.orders.data[index].bill_count || 0) + 1,
-                        };
-                    }
-                    return res;
-                }).catch((err) => {
-                    throw err;
-                });
-        },
         deleteOrder(id) {
             return apiAdmin(`${apiUrl}/${id}`, 'delete')
                 .then((res) => {

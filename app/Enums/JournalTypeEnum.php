@@ -4,8 +4,8 @@ namespace App\Enums;
 
 enum JournalTypeEnum: string
 {
-    case PURCHASE = 'purchase';
-    case SALE = 'sale';
+    case PURCHASE_BILL = 'purchase-bill';
+    case INVOICE = 'invoice';
     case JOURNAL_VOUCHER = 'journal-voucher';
     case PAYMENT_VOUCHER = 'payment-voucher';
     case RECEIPT_VOUCHER = 'receipt-voucher';
@@ -22,8 +22,8 @@ enum JournalTypeEnum: string
     public static function getLabel(self $value): string
     {
         return match ($value) {
-            self::PURCHASE => 'Purchase',
-            self::SALE => 'Sale',
+            self::PURCHASE_BILL => 'Purchase Bill',
+            self::INVOICE => 'Invoice',
             self::JOURNAL_VOUCHER => 'Journal Voucher',
             self::PAYMENT_VOUCHER => 'Payment Voucher',
             self::RECEIPT_VOUCHER => 'Receipt Voucher',

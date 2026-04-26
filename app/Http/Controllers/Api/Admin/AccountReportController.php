@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Services\AccountReportService;
+use App\Services\Accounting\AccountReportService;
 
 class AccountReportController extends Controller
 {

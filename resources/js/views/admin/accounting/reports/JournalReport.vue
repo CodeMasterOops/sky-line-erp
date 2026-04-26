@@ -76,7 +76,7 @@
                                         {{ row.sn }}
                                     </td>
                                     <td v-if="itemIndex === 0" :rowspan="row.items.length">
-                                        <div>{{ row.date }}</div>
+                                        <div>{{ adToBsDate(row.date) }}</div>
                                         <small v-if="row.type_label" class="text-muted">{{ row.type_label }}</small>
                                     </td>
                                     <td v-if="itemIndex === 0" :rowspan="row.items.length">
@@ -123,7 +123,7 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
-import {formatAmount} from "@/helpers/helper.js";
+import {adToBsDate, formatAmount} from "@/helpers/helper.js";
 import {useEnumStore} from "@/stores/admin/enum.js";
 
 const adminSettingStore = useAdminSettingStore();

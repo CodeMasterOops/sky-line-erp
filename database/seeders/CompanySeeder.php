@@ -6,7 +6,7 @@ use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
 use Illuminate\Database\Seeder;
-use App\Services\CoaInsertService;
+use App\Services\Accounting\CoaInsertService;
 use App\Services\CompanyBootstrapService;
 
 class CompanySeeder extends Seeder

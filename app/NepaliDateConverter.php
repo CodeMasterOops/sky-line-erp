@@ -688,7 +688,7 @@ class NepaliDateConverter
 
     /**
      * @param  $dateTimeString  'Y-m-d H:i:s format
-    */
+     */
     public function convertDateToNepaliDateTime($dateTimeString)
     {
         $dateTime = explode(' ', $dateTimeString);

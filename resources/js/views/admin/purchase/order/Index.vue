@@ -97,8 +97,8 @@
     <CreatePurchaseOrder v-model:create-modal-opened="createModalOpened"/>
     <EditPurchaseOrder v-model:order_id="edit_order_id"/>
     <PurchaseOrderDetailModal v-model:detail-order-id="detail_order_id"/>
-    <CreateBillFromReference
-        v-model:open="invoiceModalOpened"
+    <CreateBill
+        v-model:create-modal-opened="invoiceModalOpened"
         v-model:purchase-order-id="invoiceReferenceId"
     />
 </template>
@@ -113,7 +113,7 @@ import debounce from 'lodash/debounce';
 import CreatePurchaseOrder from './Create.vue';
 import EditPurchaseOrder from './Edit.vue';
 import PurchaseOrderDetailModal from './DetailModal.vue';
-import CreateBillFromReference from '@/views/admin/purchase/bill/CreateFromReference.vue';
+import CreateBill from '@/views/admin/purchase/bill/Create.vue';
 import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
 
 const purchaseOrderStore = usePurchaseOrderStore();

@@ -13,7 +13,6 @@
                             <div class="input-blocks">
                                 <VDatepicker
                                     id="bill_date"
-                                    input-type="date"
                                     v-model="form.bill_date"
                                     label="Bill Date"
                                     @validate="validateField('bill_date')"
@@ -25,7 +24,6 @@
                             <div class="input-blocks">
                                 <VDatepicker
                                     id="due_date"
-                                    input-type="date"
                                     v-model="form.due_date"
                                     label="Due Date"
                                     @validate="validateField('due_date')"
@@ -100,7 +98,8 @@
                             <div class="table-responsive no-pagination">
                                 <table class="table datanew table-bordered mb-0 order-lines-table">
                                     <caption class="text-muted small caption-top text-start px-1">
-                                        Sale (ref.) is the list price from the product; it is not used for stock valuation.
+                                        Sale (ref.) is the list price from the product; it is not used for stock
+                                        valuation.
                                         Ref. margin is (list − net purchase per unit) ÷ list, before tax.
                                     </caption>
                                     <thead>
@@ -112,15 +111,18 @@
                                         <th
                                             class="po-col-rate"
                                             title="Purchase rate; inventory cost is net of line discount and excludes tax.">
-                                            Rate (purchase)</th>
+                                            Rate (purchase)
+                                        </th>
                                         <th
                                             class="po-col-ref"
                                             title="List sales price from the product master; reference only.">
-                                            Sale (ref.)</th>
+                                            Sale (ref.)
+                                        </th>
                                         <th
                                             class="text-end po-col-mrg"
                                             title="Gross margin vs. list: (list sale − net purchase per unit) ÷ list sale, before tax.">
-                                            Ref. margin</th>
+                                            Ref. margin
+                                        </th>
                                         <th class="po-col-disc">Discount</th>
                                         <th class="po-col-tax">Tax</th>
                                         <th>Tax Type</th>
@@ -135,7 +137,8 @@
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
-                                    <tr v-for="(item, index) in form.items" :key="`${index}-${item.product_variant_id}`">
+                                    <tr v-for="(item, index) in form.items"
+                                        :key="`${index}-${item.product_variant_id}`">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate po-col-product"
@@ -190,7 +193,8 @@
                                             />
                                         </td>
                                         <td>
-                                            <select class="form-select form-select-sm" v-model="form.items[index].tax_line_type">
+                                            <select class="form-select form-select-sm"
+                                                    v-model="form.items[index].tax_line_type">
                                                 <option value="taxable">Taxable</option>
                                                 <option value="exempt">Exempt</option>
                                                 <option value="zero_rated">Zero Rated</option>
@@ -296,23 +300,27 @@ import {usePurchaseLineReferenceMargin} from '@/composables/purchaseLineReferenc
 import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
+import {usePurchaseOrderStore} from "@/stores/admin/purchase/purchase-order.js";
 
 const billStore = useBillStore();
 const unitStore = useUnitStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
+const purchaseOrderStore = usePurchaseOrderStore();
 
 const {currentAdDate} = useDateHelper();
 const {formatRefGrossMargin} = usePurchaseLineReferenceMargin();
 
 const createModalOpened = defineModel('createModalOpened');
+const purchaseOrderId = defineModel('purchaseOrderId');
 const createSupplierOpened = ref(false);
 
 const {units} = storeToRefs(unitStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
+const {order} = storeToRefs(purchaseOrderStore);
 
 const branches = ref([]);
 
@@ -333,9 +341,7 @@ const debouncedSupplierSearch = debounce((query) => {
     });
 }, 300);
 
-watch(
-    createModalOpened,
-    (opened) => {
+watch(createModalOpened, (opened) => {
         if (opened) {
             unitStore.getUnits();
             taxStore.getTaxes();
@@ -348,6 +354,9 @@ watch(
                     search: '',
                 },
             });
+            if (purchaseOrderId.value) {
+                loadFromPurchaseOrder();
+            }
         }
     },
     {flush: 'post'}
@@ -357,6 +366,7 @@ const getInitialState = () => ({
     bill_date: currentAdDate,
     due_date: '',
     party_id: '',
+    purchase_order_id: '',
     warehouse_id: '',
     branch_id: '',
     seller_pan: '',
@@ -367,6 +377,27 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+const loadFromPurchaseOrder = async () => {
+    await purchaseOrderStore.getOrder(purchaseOrderId.value)
+    form.party_id = order.value.data.party_id || '';
+    form.remarks = order.value.data.remarks || '';
+    form.purchase_order_id = purchaseOrderId.value;
+
+    order.value.data.items.forEach(item => {
+        form.items.push({
+            product_variant_id: item.product_variant_id,
+            product_label: variantLabel(item.product_variant),
+            list_sale_snapshot: item.product_variant?.sales_price || 0,
+            unit_id: item.unit_id ?? '',
+            quantity: item.quantity,
+            rate: item.rate,
+            tax_id: item.tax_id,
+            tax_line_type: 'taxable',
+            discount_amount: item.discount_amount ?? '',
+        });
+    })
+}
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -505,7 +536,7 @@ const buildBillPayload = () => {
         bill_date: form.bill_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
-        branch_id: form.branch_id || null,
+        purchase_order_id: form.purchase_order_id || null,
         remarks: form.remarks,
         status: form.status,
         items: form.items.map((item) => ({
@@ -520,6 +551,7 @@ const buildBillPayload = () => {
                 item.discount_amount === '' || item.discount_amount == null
                     ? null
                     : Number(item.discount_amount),
+            tax_line_type: item.tax_line_type || 'taxable',
         })),
     };
 };
@@ -557,23 +589,29 @@ function resetForm() {
 .order-lines-table :deep(.form-select) {
     min-width: 4.25rem;
 }
+
 .order-lines-table th,
 .order-lines-table td {
     vertical-align: middle;
 }
+
 .order-lines-table .po-col-product {
     min-width: 11rem;
     max-width: 16rem;
 }
+
 .order-lines-table .po-col-unit {
     min-width: 7rem;
 }
+
 .order-lines-table .po-col-tax {
     min-width: 7.5rem;
 }
+
 .order-lines-table .po-col-sn {
     width: 2.5rem;
 }
+
 .order-lines-table .po-col-action {
     width: 3rem;
 }
