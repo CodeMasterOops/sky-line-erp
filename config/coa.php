@@ -406,6 +406,12 @@ return [
                         'description' => null,
                         'category' => null,
                     ],
+                    [
+                        'name' => 'Cost of Goods Sold',
+                        'code' => 'COGS',
+                        'description' => null,
+                        'category' => null,
+                    ],
                 ],
             ],
             [
