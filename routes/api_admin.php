@@ -76,6 +76,7 @@ use App\Http\Controllers\Api\Admin\BudgetController;
 use App\Http\Controllers\Api\Admin\CashFlowForecastController;
 // Phase 6 — Multi-branch
 use App\Http\Controllers\Api\Admin\BranchController;
+use App\Http\Controllers\Api\Admin\PosController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -407,6 +408,18 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('branch/{branch}/pl-report', [BranchController::class, 'plReport'])->name('branch.pl-report');
         Route::get('branch/consolidated-report', [BranchController::class, 'consolidatedReport'])->name('branch.consolidated-report');
         Route::apiResource('branch', BranchController::class);
+    });
+
+    // POS
+    Route::prefix('pos')->as('pos.')->middleware('checkRole')->controller(PosController::class)->group(function () {
+        Route::get('products', 'products')->name('products');
+        Route::get('customers', 'customers')->name('customers');
+        Route::get('warehouses', 'warehouses')->name('warehouses');
+        Route::get('today-summary', 'todaySummary')->name('today-summary');
+        Route::post('checkout', 'checkout')->name('checkout');
+        Route::post('hold', 'holdOrder')->name('hold');
+        Route::get('held-orders', 'heldOrders')->name('held-orders');
+        Route::delete('held-orders/{posHeldOrder}', 'deleteHeldOrder')->name('held-orders.destroy');
     });
 
     // global settings
