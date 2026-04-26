@@ -65,11 +65,11 @@ export default {
   border-radius: 10px;
   background: linear-gradient(
     145deg,
-    rgba(254, 159, 67, 0.12) 0%,
+    rgba(19, 88, 241, 0.1) 0%,
     rgba(255, 255, 255, 0.95) 45%,
-    rgba(99, 115, 129, 0.06) 100%
+    rgba(64, 171, 230, 0.06) 100%
   );
-  border: 1px solid rgba(254, 159, 67, 0.22);
+  border: 1px solid rgba(19, 88, 241, 0.2);
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
 }
 
@@ -88,7 +88,7 @@ export default {
 
 .sidebar-trial-plan-card__mini-icon {
   font-size: 1.25rem;
-  color: #fe9f43;
+  color: #1358f1;
   line-height: 1;
 }
 
@@ -96,7 +96,7 @@ export default {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #212b36;
+  color: #001440;
   line-height: 1;
 }
 
@@ -108,7 +108,7 @@ export default {
 
 .sidebar-trial-plan-card__plan {
   font-size: 14px;
-  color: #212b36;
+  color: #001440;
   line-height: 1.3;
 }
 
@@ -116,15 +116,15 @@ export default {
   font-size: 10px;
   font-weight: 600;
   padding: 0.35em 0.65em;
-  background: rgba(254, 159, 67, 0.15);
-  color: #b76e00;
-  border: 1px solid rgba(254, 159, 67, 0.35);
+  background: rgba(19, 88, 241, 0.12);
+  color: #0d47c9;
+  border: 1px solid rgba(19, 88, 241, 0.28);
 }
 
 .sidebar-trial-plan-card__days {
   font-size: 11px;
   font-weight: 600;
-  color: #212b36;
+  color: #001440;
 }
 
 .sidebar-trial-plan-card__hint {
@@ -139,22 +139,22 @@ export default {
 }
 
 .sidebar-trial-plan-card__progress .progress-bar {
-  background: linear-gradient(90deg, #fe9f43, #ffb347);
+  background: linear-gradient(90deg, #1358f1, #40abe6);
   border-radius: 4px;
 }
 
 .sidebar-trial-plan-card__btn {
-  border: 1px solid rgba(254, 159, 67, 0.45);
-  color: #b76e00;
+  border: 1px solid rgba(19, 88, 241, 0.4);
+  color: #1358f1;
   background: rgba(255, 255, 255, 0.85);
   font-weight: 600;
   border-radius: 8px;
 }
 
 .sidebar-trial-plan-card__btn:hover {
-  background: rgba(254, 159, 67, 0.12);
-  color: #92400e;
-  border-color: #fe9f43;
+  background: rgba(19, 88, 241, 0.1);
+  color: #0d47c9;
+  border-color: #1358f1;
 }
 
 :global(body.mini-sidebar) .sidebar-trial-plan-card__inner--full {

@@ -20,7 +20,12 @@
       <ul>
         <template v-for="(menu, menuIdx) in section.menu" :key="menu.menuValue + '-' + menuIdx">
           <li v-if="!menu.hasSubRoute && !menu.hasSubRouteTwo" :class="{ active: isMenuActive(menu) }">
-            <router-link v-if="menu.route" :to="menu.route">
+            <router-link
+              v-if="menu.route"
+              :to="menu.route"
+              active-class="active"
+              exact-active-class="active"
+            >
               <i :class="menu.icon" class="fs-16 me-2"></i>
               <span>{{ menu.menuValue }}</span>
             </router-link>
@@ -40,7 +45,12 @@
             </a>
             <ul :class="isSubmenuDropped(menu, section) || isActive(menu) ? 'd-block' : 'd-none'">
               <li v-for="(subMenu, index) in menu.subMenus" :key="index">
-                <router-link v-if="subMenu.route" :to="subMenu.route">{{ subMenu.menuValue }}</router-link>
+                <router-link
+                  v-if="subMenu.route"
+                  :to="subMenu.route"
+                  active-class="active"
+                  exact-active-class="active"
+                >{{ subMenu.menuValue }}</router-link>
               </li>
             </ul>
           </li>
@@ -63,7 +73,8 @@
                   <router-link
                     v-if="subMenus.route"
                     :to="subMenus.route"
-                    router-link-active="active"
+                    active-class="active"
+                    exact-active-class="active"
                     >{{ subMenus.menuValue }}</router-link
                   >
                 </template>
@@ -81,7 +92,12 @@
                     </a>
                     <ul :class="{ 'd-block': openSubmenuOneItem === subMenus, 'd-none': openSubmenuOneItem !== subMenus }">
                       <li v-for="subMenuTwo in subMenus.subMenusTwo" :key="subMenuTwo.menuValue">
-                        <router-link v-if="subMenuTwo.route" :to="subMenuTwo.route">{{ subMenuTwo.menuValue }}</router-link>
+                        <router-link
+                          v-if="subMenuTwo.route"
+                          :to="subMenuTwo.route"
+                          active-class="active"
+                          exact-active-class="active"
+                        >{{ subMenuTwo.menuValue }}</router-link>
                       </li>
                     </ul>
                   </li>
