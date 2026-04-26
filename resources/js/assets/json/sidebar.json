@@ -549,12 +549,6 @@
           "permission": "list_account_setting"
         },
         {
-          "menuValue": "IRD EBS Settings",
-          "route": { "name": "admin.ird-settings" },
-          "icon": "ti ti-building-government",
-          "permission": "edit_setting"
-        },
-        {
           "menuValue": "Branches",
           "route": { "name": "admin.branch-list" },
           "icon": "ti ti-building",

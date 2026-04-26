@@ -77,6 +77,8 @@ use App\Http\Controllers\Api\Admin\CashFlowForecastController;
 // Phase 6 — Multi-branch
 use App\Http\Controllers\Api\Admin\BranchController;
 use App\Http\Controllers\Api\Admin\PosController;
+use App\Http\Controllers\Api\Admin\SalesReportController;
+use App\Http\Controllers\Api\Admin\PurchaseReportController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -94,6 +96,10 @@ Route::middleware('auth:admin')->group(function () {
 
         // dashboard
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+        // sales & purchase reports
+        Route::get('sales-report', SalesReportController::class)->name('sales-report');
+        Route::get('purchase-report', PurchaseReportController::class)->name('purchase-report');
 
         Route::apiResource('setting', SettingController::class)->only('index', 'store');
 
