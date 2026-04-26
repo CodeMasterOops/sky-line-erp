@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Accounting;
 
 use Carbon\Carbon;
 use App\Models\Bill;

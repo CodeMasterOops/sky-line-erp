@@ -196,7 +196,6 @@ Route::middleware('auth:admin')->group(function () {
 
         // purchase order
         Route::post('purchase-order/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve'])->name('purchase-order.approve');
-        Route::post('purchase-order/{purchaseOrder}/convert-to-bill', [PurchaseOrderController::class, 'convertToBill'])->name('purchase-order.convert-to-bill');
         Route::apiResource('purchase-order', PurchaseOrderController::class);
 
         // bill

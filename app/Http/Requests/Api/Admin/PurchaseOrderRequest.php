@@ -19,7 +19,7 @@ class PurchaseOrderRequest extends FormRequest
         return [
             'order_no' => ['nullable', 'string', 'max:255'],
             'order_date' => ['required', 'date'],
-            'party_id' => ['nullable', TRule::exists('parties', 'id')->withoutTrashed()],
+            'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],

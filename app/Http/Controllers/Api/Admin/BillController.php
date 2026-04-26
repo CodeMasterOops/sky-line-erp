@@ -5,22 +5,17 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\Bill;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
-use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\BillResource;
 use App\Http\Requests\Api\Admin\BillRequest;
-use Illuminate\Validation\ValidationException;
-use App\Services\Inventory\InventoryCostCalculator;
-use App\Services\Inventory\InventoryLayerReceiptService;
-use App\Services\Inventory\InventoryDocumentReversalService;
+use App\Services\Purchase\PurchaseBillService;
 
 class BillController extends Controller
 {
     public function __construct(
-        private InventoryLayerReceiptService $inventoryReceipt,
-        private InventoryDocumentReversalService $documentReversal,
+        private readonly PurchaseBillService $purchaseBillService,
     ) {}
 
     /**
@@ -41,57 +36,7 @@ class BillController extends Controller
      */
     public function store(BillRequest $request)
     {
-        $formData = $request->validated();
-        $user = auth('admin')->user();
-        $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-        $billNo = $formData['bill_no'] ?? $this->generateBillNo($fiscalYearId, $setting->fiscalYear?->year_code);
-
-        try {
-            $bill = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $billNo) {
-                $bill = Bill::create([
-                    'fiscal_year_id' => $fiscalYearId,
-                    'party_id' => $formData['party_id'] ?? null,
-                    'purchase_order_id' => $formData['purchase_order_id'] ?? null,
-                    'bill_no' => $billNo,
-                    'bill_date' => $formData['bill_date'],
-                    'due_date' => $formData['due_date'] ?? null,
-                    'remarks' => $formData['remarks'] ?? null,
-                    'create_user_id' => $user->id,
-                    'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                    'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                    'status' => $status,
-                ]);
-
-                $items = collect($formData['items'] ?? [])->map(function ($item) {
-                    return [
-                        'product_variant_id' => $item['product_variant_id'],
-                        'warehouse_id' => $item['warehouse_id'],
-                        'unit_id' => $item['unit_id'] ?? null,
-                        'quantity' => $item['quantity'],
-                        'rate' => $item['rate'],
-                        'tax_id' => $item['tax_id'] ?? null,
-                        'tax_amount' => $item['tax_amount'] ?? 0,
-                        'discount_amount' => $item['discount_amount'] ?? 0,
-                    ];
-                })->all();
-
-                $bill->billItems()->createMany($items);
-
-                if ($status === StatusEnum::APPROVED->value) {
-                    $bill->refresh();
-                    $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
-                }
-
-                return $bill;
-            });
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
-        }
+        $bill = $this->purchaseBillService->createBill($request->validated());
 
         $bill->load([
             'party',
@@ -140,38 +85,7 @@ class BillController extends Controller
             ], 422);
         }
 
-        $formData = $request->validated();
-        $billNo = $formData['bill_no'] ?? $bill->bill_no;
-
-        $bill = DB::transaction(function () use ($bill, $formData, $billNo) {
-            $bill->update([
-                'party_id' => $formData['party_id'] ?? null,
-                'purchase_order_id' => $formData['purchase_order_id'] ?? $bill->purchase_order_id,
-                'bill_no' => $billNo,
-                'bill_date' => $formData['bill_date'],
-                'due_date' => $formData['due_date'] ?? null,
-                'remarks' => $formData['remarks'] ?? null,
-            ]);
-
-            $bill->billItems()->delete();
-
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
-
-            $bill->billItems()->createMany($items);
-
-            return $bill;
-        });
+        $this->purchaseBillService->updateBill($request->validated(), $bill);
 
         $bill->load([
             'party',
@@ -224,23 +138,7 @@ class BillController extends Controller
             ], 422);
         }
 
-        $user = auth('admin')->user();
-
-        try {
-            DB::transaction(function () use ($bill, $user) {
-                $this->documentReversal->reverseApprovedBill(
-                    $bill,
-                    $user->id,
-                    $bill->remarks,
-                );
-                $bill->update(['voided_at' => now()]);
-            });
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
-        }
+        $this->purchaseBillService->voidBill($bill);
 
         $bill->load([
             'party',
@@ -274,24 +172,7 @@ class BillController extends Controller
             ]);
         }
 
-        $user = auth('admin')->user();
-
-        try {
-            DB::transaction(function () use ($bill, $user) {
-                $bill->update([
-                    'approve_user_id' => $user->id,
-                    'approved_at' => now(),
-                    'status' => StatusEnum::APPROVED->value,
-                ]);
-
-                $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
-            });
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
-        }
+        $this->purchaseBillService->approveBill($bill);
 
         $bill->load([
             'party',
@@ -305,33 +186,6 @@ class BillController extends Controller
             'data' => BillResource::make($bill),
             'message' => 'Bill Approved Successfully',
         ]);
-    }
-
-    private function applyInventoryReceiptsForApprovedBill(Bill $bill, \App\Models\Company $company, \App\Models\User $user): void
-    {
-        $bill->loadMissing('billItems');
-
-        foreach ($bill->billItems as $item) {
-            $qty = (int) $item->quantity;
-            if ($qty <= 0) {
-                continue;
-            }
-
-            $unitCost = InventoryCostCalculator::unitCostFromBillItem($item);
-
-            $this->inventoryReceipt->receive(
-                $company,
-                $bill,
-                $item->product_variant_id,
-                $item->warehouse_id,
-                $qty,
-                $unitCost,
-                ChangeTypeEnum::PURCHASE,
-                $user->id,
-                $bill->remarks,
-                $item->id,
-            );
-        }
     }
 
     /**
@@ -397,16 +251,5 @@ class BillController extends Controller
         return response()->json([
             'data' => $rows,
         ]);
-    }
-
-    private function generateBillNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Bill::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'BILL-'.($count + 1).$suffix;
     }
 }

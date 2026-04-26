@@ -8,7 +8,7 @@
                 <form @submit.prevent="saveAccountSetting">
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="cash_sales_account_id"
                                 v-model="form.cash_sales_account_id"
                                 :options="accounts.data"
@@ -16,7 +16,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="bank_sales_account_id"
                                 v-model="form.bank_sales_account_id"
                                 :options="accounts.data"
@@ -24,7 +24,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="cash_purchase_account_id"
                                 v-model="form.cash_purchase_account_id"
                                 :options="accounts.data"
@@ -32,7 +32,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="bank_purchase_account_id"
                                 v-model="form.bank_purchase_account_id"
                                 :options="accounts.data"
@@ -40,7 +40,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="vat_account_id"
                                 v-model="form.vat_account_id"
                                 :options="accounts.data"
@@ -48,7 +48,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="advance_tax_account_id"
                                 v-model="form.advance_tax_account_id"
                                 :options="accounts.data"
@@ -56,7 +56,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="sales_discount_account_id"
                                 v-model="form.sales_discount_account_id"
                                 :options="accounts.data"
@@ -64,7 +64,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="purchase_discount_account_id"
                                 v-model="form.purchase_discount_account_id"
                                 :options="accounts.data"
@@ -72,7 +72,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="customer_account_id"
                                 v-model="form.customer_account_id"
                                 :options="accounts.data"
@@ -80,7 +80,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="supplier_account_id"
                                 v-model="form.supplier_account_id"
                                 :options="accounts.data"
@@ -88,7 +88,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="employee_account_id"
                                 v-model="form.employee_account_id"
                                 :options="accounts.data"
@@ -96,7 +96,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="other_contact_account_id"
                                 v-model="form.other_contact_account_id"
                                 :options="accounts.data"
@@ -104,7 +104,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="purchase_account_id"
                                 v-model="form.purchase_account_id"
                                 :options="accounts.data"
@@ -112,7 +112,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="sales_account_id"
                                 v-model="form.sales_account_id"
                                 :options="accounts.data"
@@ -120,7 +120,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="inventory_account_id"
                                 v-model="form.inventory_account_id"
                                 :options="accounts.data"
@@ -128,7 +128,7 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <VSelect
+                            <VMultiselect
                                 id="cogs_account_id"
                                 v-model="form.cogs_account_id"
                                 :options="accounts.data"

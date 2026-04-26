@@ -49,5 +49,4 @@ class SettingController extends Controller
             'message' => 'Setting Updated Successfully',
         ]);
     }
-
 }
