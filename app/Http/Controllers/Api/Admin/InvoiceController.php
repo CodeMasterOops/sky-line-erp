@@ -14,7 +14,9 @@ use Illuminate\Validation\ValidationException;
 use App\Http\Requests\Api\Admin\InvoiceRequest;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Services\Inventory\InventoryDocumentReversalService;
+use App\Jobs\SyncInvoiceToIrdJob;
 use App\Services\Accounting\InvoiceGlPostingService;
+use App\Services\Nepal\NepaliDateService;
 
 class InvoiceController extends Controller
 {
@@ -22,6 +24,7 @@ class InvoiceController extends Controller
         private InventoryLayerIssueService $inventoryIssue,
         private InventoryDocumentReversalService $documentReversal,
         private InvoiceGlPostingService $invoiceGl,
+        private NepaliDateService $nepaliDate,
     ) {}
 
     /**
@@ -51,6 +54,12 @@ class InvoiceController extends Controller
 
         try {
             $invoice = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $invoiceNo) {
+                $invoiceDateBs = null;
+                try {
+                    $bs = $this->nepaliDate->adToBs($formData['invoice_date']);
+                    $invoiceDateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
+                } catch (\Throwable) {}
+
                 $invoice = Invoice::create([
                     'fiscal_year_id' => $fiscalYearId,
                     'party_id' => $formData['party_id'] ?? null,
@@ -58,6 +67,7 @@ class InvoiceController extends Controller
                     'reference_id' => $formData['reference_id'] ?? null,
                     'invoice_no' => $invoiceNo,
                     'invoice_date' => $formData['invoice_date'],
+                    'invoice_date_bs' => $invoiceDateBs,
                     'due_date' => $formData['due_date'] ?? null,
                     'remarks' => $formData['remarks'] ?? null,
                     'create_user_id' => $user->id,
@@ -98,6 +108,7 @@ class InvoiceController extends Controller
 
         if ($status === StatusEnum::APPROVED->value) {
             $this->invoiceGl->postFromInvoice($invoice->refresh());
+            SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');
         }
 
         $invoice->load([
@@ -304,6 +315,7 @@ class InvoiceController extends Controller
         }
 
         $this->invoiceGl->postFromInvoice($invoice->refresh());
+        SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');
 
         $invoice->load([
             'party',

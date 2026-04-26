@@ -48,7 +48,15 @@
                                 label="Warehouse"
                                 @validate="validateField('warehouse_id')"
                                 :error="errors.warehouse_id"
+                                @update:model-value="onWarehouseChange"
                             />
+                        </div>
+                        <div class="col-lg-6 col-sm-6 col-12">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" v-model="form.branch_id">
+                                <option value="">— No Branch —</option>
+                                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }} ({{ b.code }})</option>
+                            </select>
                         </div>
 
                         <div class="col-lg-6 col-sm-6 col-12">
@@ -91,6 +99,7 @@
                                         <th>Tax Type</th>
                                         <th class="inv-col-amt">Tax amt</th>
                                         <th class="inv-col-line">Line total</th>
+                                        <th style="min-width:9rem">Batch (FEFO)</th>
                                         <th class="text-center inv-col-action">Action</th>
                                     </tr>
                                     </thead>
@@ -164,6 +173,21 @@
                                         </td>
                                         <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
                                         <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm"
+                                                v-model="form.items[index].batch_id"
+                                                :disabled="!batchOptions[`${item.product_variant_id}-${form.warehouse_id}`]?.length">
+                                                <option value="">— none —</option>
+                                                <option
+                                                    v-for="b in (batchOptions[`${item.product_variant_id}-${form.warehouse_id}`] ?? [])"
+                                                    :key="b.id"
+                                                    :value="b.id">
+                                                    {{ b.batch_no }}
+                                                    <template v-if="b.expiry_date"> · exp {{ b.expiry_date }}</template>
+                                                    · {{ b.remaining_qty }} left
+                                                </option>
+                                            </select>
+                                        </td>
                                         <td class="text-center">
                                             <button
                                                 type="button"
@@ -253,6 +277,7 @@ import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
 const invoiceStore = useInvoiceStore();
@@ -260,6 +285,39 @@ const unitStore = useUnitStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
+
+// --- Branch & Batch (Phase 3/6) ---
+const branches = ref([]);
+const batchOptions = ref({}); // key: `${variant_id}-${warehouse_id}` → batches[]
+
+const loadBranches = async () => {
+    try {
+        const res = await apiAdmin('branch');
+        branches.value = res.data.data ?? [];
+    } catch { /* branches are optional */ }
+};
+
+const fetchBatchOptions = async (variantId, warehouseId) => {
+    if (!variantId || !warehouseId) return;
+    const key = `${variantId}-${warehouseId}`;
+    if (batchOptions.value[key]) return; // already loaded
+    try {
+        const res = await apiAdmin(`batch/fefo?product_variant_id=${variantId}&warehouse_id=${warehouseId}`);
+        batchOptions.value = { ...batchOptions.value, [key]: res.data.data ?? [] };
+    } catch { /* no batches for this variant/warehouse */ }
+};
+
+const onWarehouseChange = (warehouseId) => {
+    // Reload batch options for all existing line items with the new warehouse
+    form.items.forEach((item) => {
+        if (item.product_variant_id) {
+            batchOptions.value = { ...batchOptions.value };
+            delete batchOptions.value[`${item.product_variant_id}-${warehouseId}`];
+            fetchBatchOptions(item.product_variant_id, warehouseId);
+        }
+        item.batch_id = '';
+    });
+};
 
 const createModalOpened = defineModel('createModalOpened');
 
@@ -287,6 +345,7 @@ watch(
             unitStore.getUnits();
             taxStore.getTaxes();
             warehouseStore.getWarehouses();
+            loadBranches();
             partyStore.getParties({
                 filter: {
                     type: 'customer',
@@ -304,6 +363,7 @@ const getInitialState = () => ({
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    branch_id: '',
     buyer_pan: '',
     bijak_no: '',
     remarks: '',
@@ -345,7 +405,12 @@ const onVariantSelected = (variant) => {
         tax_id: '',
         tax_line_type: 'taxable',
         discount_amount: '0',
+        batch_id: '',
     });
+    // Load FEFO batches for this variant+warehouse combo
+    if (form.warehouse_id) {
+        fetchBatchOptions(vid, form.warehouse_id);
+    }
 };
 
 const removeItem = (index) => {
@@ -438,6 +503,7 @@ const buildInvoicePayload = () => {
         invoice_date: form.invoice_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
+        branch_id: form.branch_id || null,
         remarks: form.remarks,
         status: form.status,
         items: form.items.map((item) => ({
@@ -449,6 +515,7 @@ const buildInvoicePayload = () => {
             tax_id: item.tax_id || null,
             tax_amount: calcLineTax(item),
             discount_amount: item.discount_amount || null,
+            batch_id: item.batch_id || null,
         })),
     };
 };
@@ -478,6 +545,7 @@ const closeCreateModal = () => {
 function resetForm() {
     Object.assign(form, getInitialState());
     errors.value = {};
+    batchOptions.value = {};
 }
 </script>
 

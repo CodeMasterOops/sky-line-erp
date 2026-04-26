@@ -37,12 +37,11 @@
                 <table class="table table-sm">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 35%">Product</th>
+                            <th style="width: 30%">Product</th>
                             <th class="text-end">Ordered Qty</th>
                             <th class="text-end">Received Qty *</th>
                             <th class="text-end">Unit Cost *</th>
-                            <th>Batch No</th>
-                            <th>Expiry Date</th>
+                            <th>Batch Info</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -65,11 +64,21 @@
                             <td>
                                 <input type="number" class="form-control form-control-sm text-end" v-model="item.unit_cost" min="0" step="0.01" />
                             </td>
-                            <td>
-                                <input type="text" class="form-control form-control-sm" v-model="item.batch_no" placeholder="Batch" />
-                            </td>
-                            <td>
-                                <input type="date" class="form-control form-control-sm" v-model="item.expiry_date" />
+                            <td style="min-width:16rem">
+                                <div class="d-flex align-items-center gap-1 mb-1">
+                                    <input type="checkbox" class="form-check-input mt-0" v-model="item.create_batch" :id="`cb-batch-${idx}`" />
+                                    <label :for="`cb-batch-${idx}`" class="form-label mb-0 small text-nowrap">
+                                        {{ item.batch_id ? 'Batch linked ✓' : 'Create & Link Batch' }}
+                                    </label>
+                                </div>
+                                <template v-if="item.create_batch && !item.batch_id">
+                                    <input type="text" class="form-control form-control-sm mb-1" v-model="item.batch_no" placeholder="Batch No *" />
+                                    <input type="date" class="form-control form-control-sm mb-1" v-model="item.mfg_date" title="Mfg Date" />
+                                    <input type="date" class="form-control form-control-sm" v-model="item.expiry_date" title="Expiry Date" />
+                                </template>
+                                <span v-else-if="item.batch_id" class="badge bg-success-subtle text-success small">
+                                    Batch #{{ item.batch_id }}
+                                </span>
                             </td>
                             <td>
                                 <button class="btn btn-sm btn-danger" @click="removeItem(idx)">
@@ -78,7 +87,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="7">
+                            <td colspan="6">
                                 <button class="btn btn-sm btn-outline-primary" @click="addItem">
                                     <i class="ti ti-plus me-1"></i> Add Item
                                 </button>
@@ -112,27 +121,74 @@ const supplierOptions = ref([]);
 const warehouseOptions = ref([]);
 const productOptions = ref([]);
 
+const newItemTemplate = () => ({
+    product_variant_id: null,
+    ordered_qty: 0,
+    received_qty: 1,
+    unit_cost: 0,
+    // batch fields
+    create_batch: false,
+    batch_id: null,
+    batch_no: '',
+    mfg_date: null,
+    expiry_date: null,
+});
+
 const form = ref({
     party_id: null,
     warehouse_id: null,
     received_date: new Date().toISOString().split('T')[0],
     supplier_invoice_no: '',
     remarks: '',
-    items: [{ product_variant_id: null, ordered_qty: 0, received_qty: 1, unit_cost: 0, batch_no: '', expiry_date: null }],
+    items: [newItemTemplate()],
 });
 
 const addItem = () => {
-    form.value.items.push({ product_variant_id: null, ordered_qty: 0, received_qty: 1, unit_cost: 0, batch_no: '', expiry_date: null });
+    form.value.items.push(newItemTemplate());
 };
 
 const removeItem = (idx) => {
     form.value.items.splice(idx, 1);
 };
 
+const createBatchForItem = async (item) => {
+    if (!item.create_batch || item.batch_id || !item.batch_no) return;
+    const payload = {
+        product_variant_id: item.product_variant_id,
+        warehouse_id: form.value.warehouse_id,
+        batch_no: item.batch_no,
+        mfg_date: item.mfg_date || null,
+        expiry_date: item.expiry_date || null,
+        initial_qty: Number(item.received_qty) || 0,
+        unit_cost: Number(item.unit_cost) || 0,
+    };
+    const res = await apiAdmin('batch', 'post', payload);
+    item.batch_id = res.data.data?.id ?? null;
+};
+
 const save = async () => {
     saving.value = true;
     try {
-        const res = await apiAdmin('grn', 'post', form.value);
+        // Create batches first for lines that need it
+        await Promise.all(
+            form.value.items
+                .filter((i) => i.create_batch && !i.batch_id && i.batch_no)
+                .map((i) => createBatchForItem(i))
+        );
+
+        const payload = {
+            ...form.value,
+            items: form.value.items.map((item) => ({
+                product_variant_id: item.product_variant_id,
+                ordered_qty: item.ordered_qty,
+                received_qty: item.received_qty,
+                unit_cost: item.unit_cost,
+                batch_id: item.batch_id || null,
+                batch_no: item.batch_no || null,
+                expiry_date: item.expiry_date || null,
+            })),
+        };
+        const res = await apiAdmin('grn', 'post', payload);
         toast('success', res.data.message);
         router.push({ name: 'admin.grn-list' });
     } catch (e) {

@@ -36,5 +36,16 @@
                 "routes": "/admin/settings/payment-mode"
             }
         ]
+    },
+    {
+        "icon": "file-text",
+        "title": "Nepal IRD",
+        "page": "nepal-ird",
+        "subMenu": [
+            {
+                "title": "IRD EBS Settings",
+                "routes": "/admin/settings/ird-settings"
+            }
+        ]
     }
 ]

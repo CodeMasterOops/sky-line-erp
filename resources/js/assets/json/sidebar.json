@@ -176,6 +176,33 @@
           ]
         },
         {
+          "menuValue": "Manufacturing",
+          "icon": "ti ti-tool",
+          "hasSubRoute": true,
+          "subMenus": [
+            {
+              "menuValue": "Batch / Lot Tracking",
+              "route": { "name": "admin.batch-list" },
+              "permission": "list_batch"
+            },
+            {
+              "menuValue": "Bill of Materials",
+              "route": { "name": "admin.bom-list" },
+              "permission": "list_bom"
+            },
+            {
+              "menuValue": "Production Orders",
+              "route": { "name": "admin.production-order-list" },
+              "permission": "list_production_order"
+            },
+            {
+              "menuValue": "Bin Locations",
+              "route": { "name": "admin.bin-list" },
+              "permission": "list_bin"
+            }
+          ]
+        },
+        {
           "menuValue": "Reports",
           "icon": "ti ti-report-analytics",
           "hasSubRoute": true,
@@ -268,13 +295,37 @@
           "permission": "list_bank_account"
         },
         {
+          "menuValue": "PDC Cheques",
+          "route": { "name": "admin.cheque-list" },
+          "icon": "ti ti-credit-card",
+          "permission": "list_cheque"
+        },
+        {
+          "menuValue": "Budget Management",
+          "route": { "name": "admin.budget-list" },
+          "icon": "ti ti-chart-pie",
+          "permission": "list_budget"
+        },
+        {
+          "menuValue": "Cash Flow Forecast",
+          "route": { "name": "admin.cash-flow-forecast" },
+          "icon": "ti ti-chart-line",
+          "permission": "view_cash_flow_forecast"
+        },
+        {
+          "menuValue": "Branch P&L",
+          "route": { "name": "admin.branch-pl" },
+          "icon": "ti ti-building-community",
+          "permission": "list_branch"
+        },
+        {
           "menuValue": "Accounting Periods",
           "route": { "name": "admin.accounting-periods" },
           "icon": "ti ti-calendar-time",
           "permission": "list_accounting_period"
         },
         {
-          "menuValue": "Nepal VAT",
+          "menuValue": "Nepal VAT / TDS",
           "icon": "ti ti-file-certificate",
           "hasSubRoute": true,
           "subMenus": [
@@ -296,6 +347,16 @@
             {
               "menuValue": "TDS Report",
               "route": { "name": "admin.tds-report" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "TDS Challan & Certificate",
+              "route": { "name": "admin.tds-challan" },
+              "permission": "list_account"
+            },
+            {
+              "menuValue": "IRD EBS Sync Status",
+              "route": { "name": "admin.ird-sync" },
               "permission": "list_account"
             }
           ]
@@ -486,6 +547,18 @@
           "route": { "name": "admin.account-settings" },
           "icon": "ti ti-settings",
           "permission": "list_account_setting"
+        },
+        {
+          "menuValue": "IRD EBS Settings",
+          "route": { "name": "admin.ird-settings" },
+          "icon": "ti ti-building-government",
+          "permission": "edit_setting"
+        },
+        {
+          "menuValue": "Branches",
+          "route": { "name": "admin.branch-list" },
+          "icon": "ti ti-building",
+          "permission": "list_branch"
         }
       ]
     }

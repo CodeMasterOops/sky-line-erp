@@ -26,6 +26,7 @@ class Invoice extends Model
         'bijak_no',
         'buyer_pan',
         'invoice_date',
+        'invoice_date_bs',
         'due_date',
         'remarks',
         'create_user_id',
@@ -33,6 +34,11 @@ class Invoice extends Model
         'approved_at',
         'voided_at',
         'status',
+        'ird_sync_status',
+        'ird_internal_id',
+        'ird_qr_data',
+        'ird_synced_at',
+        'ird_error',
     ];
 
     protected $casts = [
@@ -41,6 +47,7 @@ class Invoice extends Model
         'reference_id' => 'integer',
         'approved_at' => 'datetime',
         'voided_at' => 'datetime',
+        'ird_synced_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
 

@@ -61,6 +61,21 @@ use App\Http\Controllers\Api\Admin\HR\SalaryStructureController;
 use App\Http\Controllers\Api\Admin\HR\PayrollController;
 use App\Http\Controllers\Api\Admin\HR\PayslipController;
 use App\Http\Controllers\Api\Admin\HR\HrReportController;
+use App\Http\Controllers\Api\Admin\Nepal\InvoicePdfController;
+use App\Http\Controllers\Api\Admin\Nepal\IrdSettingController;
+use App\Http\Controllers\Api\Admin\Nepal\VatD3Controller;
+use App\Http\Controllers\Api\Admin\Nepal\TdsChallanController;
+// Phase 3 — Inventory Enhancements
+use App\Http\Controllers\Api\Admin\BatchController;
+use App\Http\Controllers\Api\Admin\BinController;
+use App\Http\Controllers\Api\Admin\BomController;
+use App\Http\Controllers\Api\Admin\ProductionOrderController;
+// Phase 5 — Finance & Banking
+use App\Http\Controllers\Api\Admin\ChequeController;
+use App\Http\Controllers\Api\Admin\BudgetController;
+use App\Http\Controllers\Api\Admin\CashFlowForecastController;
+// Phase 6 — Multi-branch
+use App\Http\Controllers\Api\Admin\BranchController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -267,6 +282,33 @@ Route::middleware('auth:admin')->group(function () {
         // serial numbers
         Route::apiResource('serial-number', SerialNumberController::class)->only(['index', 'show']);
 
+        // Nepal compliance — Phase 1
+        Route::prefix('nepal')->as('nepal.')->group(function () {
+            // Invoice PDF download
+            Route::get('invoice/{invoice}/pdf', InvoicePdfController::class)->name('invoice.pdf');
+
+            // IRD EBS settings & sync management
+            Route::prefix('ird')->as('ird.')->controller(IrdSettingController::class)->group(function () {
+                Route::get('settings', 'show')->name('settings');
+                Route::put('settings', 'update')->name('settings.update');
+                Route::post('invoice/{invoice}/retry-sync', 'retrySync')->name('retry-sync');
+                Route::get('sync-summary', 'syncSummary')->name('sync-summary');
+            });
+
+            // VAT D3 Return
+            Route::prefix('vat-d3')->as('vat-d3.')->controller(VatD3Controller::class)->group(function () {
+                Route::get('summary', 'summary')->name('summary');
+                Route::get('export-csv', 'exportCsv')->name('export-csv');
+            });
+
+            // TDS Challan & Certificate
+            Route::prefix('tds')->as('tds.')->controller(TdsChallanController::class)->group(function () {
+                Route::get('summary', 'summary')->name('summary');
+                Route::get('challan-pdf', 'downloadChallan')->name('challan-pdf');
+                Route::get('certificate-pdf', 'downloadCertificate')->name('certificate-pdf');
+            });
+        });
+
         // accounting reports
         Route::prefix('account-report')->as('account-report.')->controller(AccountReportController::class)->group(function () {
             Route::get('trial-balance', 'trialBalance')->name('trial-balance');
@@ -319,6 +361,52 @@ Route::middleware('auth:admin')->group(function () {
                 Route::get('tds-salary', [HrReportController::class, 'tdsSalary'])->name('tds-salary');
             });
         });
+    });
+
+    // ==================== Phase 3 — Inventory Enhancements ====================
+    Route::middleware('checkRole')->group(function () {
+        // Batches / Lot tracking
+        Route::get('batch/expiry-alerts', [BatchController::class, 'expiryAlerts'])->name('batch.expiry-alerts');
+        Route::get('batch/fefo', [BatchController::class, 'fefoList'])->name('batch.fefo');
+        Route::apiResource('batch', BatchController::class)->except(['destroy']);
+
+        // Bin management
+        Route::apiResource('bin', BinController::class);
+
+        // Bill of Materials
+        Route::apiResource('bom', BomController::class);
+
+        // Production Orders
+        Route::post('production-order/{productionOrder}/start', [ProductionOrderController::class, 'start'])->name('production-order.start');
+        Route::post('production-order/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->name('production-order.complete');
+        Route::post('production-order/{productionOrder}/cancel', [ProductionOrderController::class, 'cancel'])->name('production-order.cancel');
+        Route::apiResource('production-order', ProductionOrderController::class)->except(['update', 'destroy']);
+
+        // ==================== Phase 5 — Finance & Banking ====================
+        // PDC Cheques
+        Route::prefix('cheque')->as('cheque.')->controller(ChequeController::class)->group(function () {
+            Route::get('summary', 'summary')->name('summary');
+            Route::post('{cheque}/present', 'present')->name('present');
+            Route::post('{cheque}/clear', 'clear')->name('clear');
+            Route::post('{cheque}/bounce', 'bounce')->name('bounce');
+            Route::post('{cheque}/cancel', 'cancel')->name('cancel');
+        });
+        Route::apiResource('cheque', ChequeController::class)->except(['update', 'destroy']);
+
+        // Budget management
+        Route::get('budget/{budget}/vs-actual', [BudgetController::class, 'vsActual'])->name('budget.vs-actual');
+        Route::apiResource('budget', BudgetController::class);
+
+        // Cash flow forecasting
+        Route::get('cash-flow-forecast', CashFlowForecastController::class)->name('cash-flow-forecast');
+
+        // Bank CSV import (extends existing bank reconciliation)
+        Route::post('bank-reconciliation/bank-accounts/{bankAccount}/import-csv', [BankReconciliationController::class, 'importCsv'])->name('bank-reconciliation.import-csv');
+
+        // ==================== Phase 6 — Multi-branch ====================
+        Route::get('branch/{branch}/pl-report', [BranchController::class, 'plReport'])->name('branch.pl-report');
+        Route::get('branch/consolidated-report', [BranchController::class, 'consolidatedReport'])->name('branch.consolidated-report');
+        Route::apiResource('branch', BranchController::class);
     });
 
     // global settings

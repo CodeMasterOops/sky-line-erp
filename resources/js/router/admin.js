@@ -115,6 +115,12 @@ const routes = [
                         component: () => import('@/views/admin/settings/payment-mode/Index.vue')
                     },
                     {
+                        path: 'ird-settings',
+                        name: 'admin.ird-settings',
+                        meta: { pageTitle: 'IRD EBS Settings' },
+                        component: () => import('@/views/admin/settings/ird/IrdSettings.vue'),
+                    },
+                    {
                         path: "", // default child route
                         redirect: "general-settings", // redirect /admin/settings -> /admin/settings/general-settings
                     },
@@ -539,6 +545,18 @@ const routes = [
                 component: () => import("@/views/admin/accounting/reports/TdsReport.vue"),
             },
             {
+                path: "tds-challan",
+                name: "admin.tds-challan",
+                meta: { pageTitle: "TDS Challan & Certificate" },
+                component: () => import("@/views/admin/accounting/tds-challan/Index.vue"),
+            },
+            {
+                path: "ird-sync",
+                name: "admin.ird-sync",
+                meta: { pageTitle: "IRD EBS Sync Status" },
+                component: () => import("@/views/admin/accounting/ird-sync/Index.vue"),
+            },
+            {
                 path: "ar-aging",
                 name: "admin.ar-aging",
                 meta: { pageTitle: "AR Aging Report" },
@@ -749,6 +767,63 @@ const routes = [
                 name: "admin.hr-report-tds-salary",
                 meta: {pageTitle: "TDS Salary Report"},
                 component: () => import("@/views/admin/hr/reports/TdsSalaryReport.vue"),
+            },
+            // ---- Phase 3: Inventory Enhancements ----
+            {
+                path: "inventory/batches",
+                name: "admin.batch-list",
+                meta: {pageTitle: "Batch / Lot Tracking"},
+                component: () => import("@/views/admin/inventory/batch/Index.vue"),
+            },
+            {
+                path: "inventory/bom",
+                name: "admin.bom-list",
+                meta: {pageTitle: "Bill of Materials"},
+                component: () => import("@/views/admin/inventory/bom/Index.vue"),
+            },
+            {
+                path: "inventory/production-orders",
+                name: "admin.production-order-list",
+                meta: {pageTitle: "Production Orders"},
+                component: () => import("@/views/admin/inventory/production/Index.vue"),
+            },
+            {
+                path: "inventory/bins",
+                name: "admin.bin-list",
+                meta: {pageTitle: "Bin Locations"},
+                component: () => import("@/views/admin/inventory/bins/Index.vue"),
+            },
+            // ---- Phase 5: Finance & Banking ----
+            {
+                path: "banking/cheques",
+                name: "admin.cheque-list",
+                meta: {pageTitle: "PDC Cheque Management"},
+                component: () => import("@/views/admin/banking/cheques/Index.vue"),
+            },
+            {
+                path: "accounting/budget",
+                name: "admin.budget-list",
+                meta: {pageTitle: "Budget Management"},
+                component: () => import("@/views/admin/accounting/budget/Index.vue"),
+            },
+            {
+                path: "accounting/cash-flow-forecast",
+                name: "admin.cash-flow-forecast",
+                meta: {pageTitle: "Cash Flow Forecast"},
+                component: () => import("@/views/admin/accounting/cash-flow-forecast/Index.vue"),
+            },
+            // ---- Phase 6: Multi-branch ----
+            {
+                path: "settings/branches",
+                name: "admin.branch-list",
+                meta: {pageTitle: "Branch Management"},
+                component: () => import("@/views/admin/settings/branches/Index.vue"),
+            },
+            {
+                path: "accounting/branch-pl",
+                name: "admin.branch-pl",
+                meta: {pageTitle: "Branch P&L / Consolidated"},
+                component: () => import("@/views/admin/accounting/branch-pl/Index.vue"),
             },
         ],
     },

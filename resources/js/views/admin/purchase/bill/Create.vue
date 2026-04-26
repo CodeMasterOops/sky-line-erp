@@ -68,6 +68,15 @@
                                 />
                             </div>
                         </div>
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <label class="form-label">Branch</label>
+                                <select class="form-select" v-model="form.branch_id">
+                                    <option value="">— No Branch —</option>
+                                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }} ({{ b.code }})</option>
+                                </select>
+                            </div>
+                        </div>
 
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="input-blocks">
@@ -284,6 +293,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {usePurchaseLineReferenceMargin} from '@/composables/purchaseLineReferenceMargin.js';
+import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 
@@ -304,6 +314,14 @@ const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 
+const branches = ref([]);
+const loadBranches = async () => {
+    try {
+        const res = await apiAdmin('branch');
+        branches.value = res.data.data ?? [];
+    } catch { /* optional */ }
+};
+
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
         filter: {
@@ -321,6 +339,7 @@ watch(
             unitStore.getUnits();
             taxStore.getTaxes();
             warehouseStore.getWarehouses();
+            loadBranches();
             partyStore.getParties({
                 filter: {
                     type: 'supplier',
@@ -338,6 +357,7 @@ const getInitialState = () => ({
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    branch_id: '',
     seller_pan: '',
     remarks: '',
     status: 'draft',
@@ -484,6 +504,7 @@ const buildBillPayload = () => {
         bill_date: form.bill_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
+        branch_id: form.branch_id || null,
         remarks: form.remarks,
         status: form.status,
         items: form.items.map((item) => ({

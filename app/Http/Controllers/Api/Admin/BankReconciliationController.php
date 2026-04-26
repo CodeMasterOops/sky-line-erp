@@ -7,6 +7,7 @@ use App\Models\BankStatementLine;
 use App\Models\JournalItem;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\NepalBankStatementParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -223,5 +224,47 @@ class BankReconciliationController extends Controller
             ->value('balance');
 
         return round((float) ($balance ?? 0), 2);
+    }
+
+    /**
+     * @Permissions("create_bank_statement", group="bank_reconciliation", desc="Import CSV from Nepal Banks")
+     */
+    public function importCsv(Request $request, BankAccount $bankAccount, NepalBankStatementParser $parser)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120',
+            'bank' => 'nullable|string|in:nmb,nabil,himalayan,global_ime,auto',
+        ]);
+
+        $csvContent = file_get_contents($request->file('file')->getRealPath());
+        $bank       = $request->bank ?? 'auto';
+
+        $parsed = $parser->parse($csvContent, $bank);
+
+        if ($parsed->isEmpty()) {
+            return response()->json(['message' => 'No valid rows found in the CSV file.'], 422);
+        }
+
+        $created = DB::transaction(function () use ($parsed, $bankAccount) {
+            $rows = [];
+            foreach ($parsed as $row) {
+                $rows[] = BankStatementLine::create([
+                    'bank_account_id'  => $bankAccount->id,
+                    'transaction_date' => $row['date'],
+                    'description'      => $row['description'] ?? null,
+                    'reference'        => $row['reference'] ?? null,
+                    'debit'            => $row['debit'],
+                    'credit'           => $row['credit'],
+                    'balance'          => $row['balance'] ?? null,
+                    'status'           => 'unmatched',
+                ]);
+            }
+            return $rows;
+        });
+
+        return response()->json([
+            'message'       => count($created).' rows imported from CSV.',
+            'imported_count'=> count($created),
+        ]);
     }
 }
