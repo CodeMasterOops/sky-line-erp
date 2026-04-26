@@ -776,19 +776,27 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $companyId = auth('admin')->user()->company_id;
 
+        // Filter by journal date when available (accurate accounting date);
+        // fall back to created_at for deductions without a linked journal.
         $deductions = DB::table('tds_deductions')
             ->leftJoin('parties', 'parties.id', '=', 'tds_deductions.party_id')
+            ->leftJoin('journals', 'journals.id', '=', 'tds_deductions.journal_id')
             ->where('tds_deductions.company_id', $companyId)
-            ->whereBetween('tds_deductions.created_at', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
+            ->whereBetween(
+                DB::raw('COALESCE(journals.date, DATE(tds_deductions.created_at))'),
+                [$period['start_date']->toDateString(), $period['end_date']->toDateString()]
+            )
             ->select([
-                'parties.name as party_name',
-                'parties.pan as party_pan',
+                DB::raw("COALESCE(parties.name, 'N/A') as party_name"),
+                DB::raw("COALESCE(parties.pan, '') as party_pan"),
                 'tds_deductions.tds_category',
                 'tds_deductions.base_amount',
                 'tds_deductions.tds_rate',
                 'tds_deductions.tds_amount',
                 'tds_deductions.period_month',
+                DB::raw('COALESCE(journals.date, DATE(tds_deductions.created_at)) as effective_date'),
             ])
+            ->orderBy('effective_date')
             ->get();
 
         return [

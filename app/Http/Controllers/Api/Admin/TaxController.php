@@ -7,15 +7,24 @@ use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\TaxResource;
 use App\Http\Requests\Api\Admin\TaxRequest;
+use Illuminate\Http\Request;
 
 class TaxController extends Controller
 {
     /**
      * @Permissions("list_tax", group="tax", desc="List Tax")
+     *
+     * Pass ?for=invoice or ?for=bill to get only VAT-type taxes suitable for line items.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $taxes = Tax::all();
+        $query = Tax::query();
+
+        if (in_array($request->query('for'), ['invoice', 'bill', 'line_item'])) {
+            $query->lineItem();
+        }
+
+        $taxes = $query->get();
 
         return TaxResource::collection($taxes);
     }

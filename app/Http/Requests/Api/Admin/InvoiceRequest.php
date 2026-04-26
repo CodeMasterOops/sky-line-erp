@@ -4,6 +4,8 @@ namespace App\Http\Requests\Api\Admin;
 
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
+use App\Enums\TaxTypeEnum;
+use App\Enums\TaxLineTypeEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -31,9 +33,22 @@ class InvoiceRequest extends FormRequest
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
-            'items.*.tax_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
+            'items.*.tax_id' => [
+                'nullable',
+                TRule::exists('taxes', 'id')->withoutTrashed(),
+                function ($attribute, $value, $fail) {
+                    if ($value === null) {
+                        return;
+                    }
+                    $tax = \App\Models\Tax::withoutGlobalScopes()->find($value);
+                    if ($tax && $tax->type === TaxTypeEnum::TDS) {
+                        $fail('TDS taxes cannot be applied to invoice lines. TDS is a withholding tax deducted at payment time.');
+                    }
+                },
+            ],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
         ];
     }
 }

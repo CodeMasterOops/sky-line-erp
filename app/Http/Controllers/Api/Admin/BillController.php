@@ -74,6 +74,7 @@ class BillController extends Controller
                         'tax_id' => $item['tax_id'] ?? null,
                         'tax_amount' => $item['tax_amount'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
+                        'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
                     ];
                 })->all();
 
@@ -165,6 +166,7 @@ class BillController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
+                    'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
                 ];
             })->all();
 

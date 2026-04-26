@@ -14,12 +14,14 @@ use Illuminate\Validation\ValidationException;
 use App\Http\Requests\Api\Admin\InvoiceRequest;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Services\Inventory\InventoryDocumentReversalService;
+use App\Services\Accounting\InvoiceGlPostingService;
 
 class InvoiceController extends Controller
 {
     public function __construct(
         private InventoryLayerIssueService $inventoryIssue,
         private InventoryDocumentReversalService $documentReversal,
+        private InvoiceGlPostingService $invoiceGl,
     ) {}
 
     /**
@@ -74,6 +76,7 @@ class InvoiceController extends Controller
                         'tax_id' => $item['tax_id'] ?? null,
                         'tax_amount' => $item['tax_amount'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
+                        'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
                     ];
                 })->all();
 
@@ -91,6 +94,10 @@ class InvoiceController extends Controller
                 'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
                 'errors' => $e->errors(),
             ], 422);
+        }
+
+        if ($status === StatusEnum::APPROVED->value) {
+            $this->invoiceGl->postFromInvoice($invoice->refresh());
         }
 
         $invoice->load([
@@ -167,6 +174,7 @@ class InvoiceController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
+                    'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
                 ];
             })->all();
 
@@ -294,6 +302,8 @@ class InvoiceController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         }
+
+        $this->invoiceGl->postFromInvoice($invoice->refresh());
 
         $invoice->load([
             'party',
