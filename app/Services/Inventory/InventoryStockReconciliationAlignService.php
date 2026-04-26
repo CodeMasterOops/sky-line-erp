@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Bin;
 use App\Models\Stock;
 use App\Models\Company;
 use App\Models\StockLayer;
@@ -32,12 +33,15 @@ class InventoryStockReconciliationAlignService
         ?float $unitCostForIncrease = null,
     ): void {
         DB::transaction(function () use ($company, $productVariantId, $warehouseId, $unitCostForIncrease) {
-            $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
+            $binId = Bin::defaultIdForWarehouse($company->id, $warehouseId);
+
+            $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId, $binId);
 
             $stock = Stock::withoutGlobalScopes()
                 ->where('company_id', $company->id)
                 ->where('product_variant_id', $productVariantId)
                 ->where('warehouse_id', $warehouseId)
+                ->where('bin_id', $binId)
                 ->lockForUpdate()
                 ->first();
 
@@ -48,7 +52,7 @@ class InventoryStockReconciliationAlignService
             }
 
             $stockQty = (int) $stock->quantity;
-            $valued = $this->sumValuedQuantity($company->id, $productVariantId, $warehouseId);
+            $valued = $this->sumValuedQuantity($company->id, $productVariantId, $warehouseId, $binId);
             $diff = $stockQty - $valued;
 
             if ($diff === 0) {
@@ -56,11 +60,12 @@ class InventoryStockReconciliationAlignService
             }
 
             if ($diff > 0) {
-                $cost = $unitCostForIncrease ?? $this->weightedAverageUnitCost($company->id, $productVariantId, $warehouseId);
+                $cost = $unitCostForIncrease ?? $this->weightedAverageUnitCost($company->id, $productVariantId, $warehouseId, $binId);
                 $this->ledger->receipt(
                     $company,
                     $productVariantId,
                     $warehouseId,
+                    $binId,
                     $diff,
                     (float) $cost,
                     null,
@@ -70,7 +75,7 @@ class InventoryStockReconciliationAlignService
                 return;
             }
 
-            $this->ledger->consume($company, $productVariantId, $warehouseId, abs($diff));
+            $this->ledger->consume($company, $productVariantId, $warehouseId, $binId, abs($diff));
         });
     }
 
@@ -84,12 +89,15 @@ class InventoryStockReconciliationAlignService
         int $warehouseId,
     ): void {
         DB::transaction(function () use ($company, $productVariantId, $warehouseId) {
-            $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
+            $binId = Bin::defaultIdForWarehouse($company->id, $warehouseId);
+
+            $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId, $binId);
 
             $stock = Stock::withoutGlobalScopes()
                 ->where('company_id', $company->id)
                 ->where('product_variant_id', $productVariantId)
                 ->where('warehouse_id', $warehouseId)
+                ->where('bin_id', $binId)
                 ->lockForUpdate()
                 ->first();
 
@@ -99,28 +107,30 @@ class InventoryStockReconciliationAlignService
                 ]);
             }
 
-            $valued = $this->sumValuedQuantity($company->id, $productVariantId, $warehouseId);
+            $valued = $this->sumValuedQuantity($company->id, $productVariantId, $warehouseId, $binId);
             $stock->quantity = $valued;
             $stock->save();
         });
     }
 
-    private function sumValuedQuantity(int $companyId, int $productVariantId, int $warehouseId): int
+    private function sumValuedQuantity(int $companyId, int $productVariantId, int $warehouseId, int $binId): int
     {
         return (int) StockLayer::withoutGlobalScopes()
             ->where('company_id', $companyId)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
+            ->where('bin_id', $binId)
             ->whereNull('deleted_at')
             ->sum('qty_remaining');
     }
 
-    private function weightedAverageUnitCost(int $companyId, int $productVariantId, int $warehouseId): float
+    private function weightedAverageUnitCost(int $companyId, int $productVariantId, int $warehouseId, int $binId): float
     {
         $layers = StockLayer::withoutGlobalScopes()
             ->where('company_id', $companyId)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
+            ->where('bin_id', $binId)
             ->whereNull('deleted_at')
             ->where('qty_remaining', '>', 0)
             ->get(['qty_remaining', 'unit_cost']);

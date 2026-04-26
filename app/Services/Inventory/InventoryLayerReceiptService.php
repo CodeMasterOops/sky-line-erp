@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Bin;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
@@ -29,24 +30,28 @@ class InventoryLayerReceiptService
         ?int $userId,
         ?string $remarks,
         ?int $sourceBillItemId = null,
+        ?int $binId = null,
     ): StockMovement {
         if ($quantity <= 0) {
-            throw \InvalidArgumentException('Receipt quantity must be positive.');
+            throw new \InvalidArgumentException('Receipt quantity must be positive.');
         }
 
-        $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
+        $binId = $binId ?? Bin::defaultIdForWarehouse($company->id, $warehouseId);
+
+        $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId, $binId);
 
         $this->ledger->receipt(
             $company,
             $productVariantId,
             $warehouseId,
+            $binId,
             $quantity,
             $unitCost,
             $sourceBillItemId,
             null,
         );
 
-        $this->quantities->adjust($company->id, $productVariantId, $warehouseId, $quantity);
+        $this->quantities->adjust($company->id, $productVariantId, $warehouseId, $binId, $quantity);
 
         $totalCost = round($quantity * $unitCost, 4);
         $movementUnitCost = round($totalCost / $quantity, 4);
@@ -55,6 +60,7 @@ class InventoryLayerReceiptService
             'company_id' => $company->id,
             'product_variant_id' => $productVariantId,
             'warehouse_id' => $warehouseId,
+            'bin_id' => $binId,
             'type' => $changeType,
             'direction' => StockDirectionEnum::IN,
             'quantity' => $quantity,

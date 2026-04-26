@@ -7,16 +7,16 @@ use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
+use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\NepaliDateService;
 use App\Http\Resources\Admin\InvoiceResource;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\Api\Admin\InvoiceRequest;
+use App\Services\Accounting\InvoiceGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Services\Inventory\InventoryDocumentReversalService;
-use App\Jobs\SyncInvoiceToIrdJob;
-use App\Services\Accounting\InvoiceGlPostingService;
-use App\Services\Nepal\NepaliDateService;
 
 class InvoiceController extends Controller
 {
@@ -58,7 +58,8 @@ class InvoiceController extends Controller
                 try {
                     $bs = $this->nepaliDate->adToBs($formData['invoice_date']);
                     $invoiceDateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
-                } catch (\Throwable) {}
+                } catch (\Throwable) {
+                }
 
                 $invoice = Invoice::create([
                     'fiscal_year_id' => $fiscalYearId,
@@ -80,6 +81,7 @@ class InvoiceController extends Controller
                     return [
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
+                        'bin_id' => $item['bin_id'],
                         'unit_id' => $item['unit_id'] ?? null,
                         'quantity' => $item['quantity'],
                         'rate' => $item['rate'],
@@ -117,6 +119,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -136,6 +139,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.bin',
             'receiptAllocations.receipt',
         ]);
 
@@ -179,6 +183,7 @@ class InvoiceController extends Controller
                 return [
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
+                    'bin_id' => $item['bin_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -200,6 +205,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -269,6 +275,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -323,6 +330,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -350,6 +358,7 @@ class InvoiceController extends Controller
                 ChangeTypeEnum::SALE,
                 $user->id,
                 $invoice->remarks,
+                (int) $item->bin_id,
             );
         }
     }

@@ -16,6 +16,7 @@ class StockLayer extends Model
         'company_id',
         'product_variant_id',
         'warehouse_id',
+        'bin_id',
         'qty_remaining',
         'unit_cost',
         'received_at',
@@ -37,6 +38,11 @@ class StockLayer extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function bin(): BelongsTo
+    {
+        return $this->belongsTo(Bin::class);
     }
 
     public function sourceBillItem(): BelongsTo

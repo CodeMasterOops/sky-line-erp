@@ -15,10 +15,18 @@ class InvoiceItemResource extends JsonResource
             'product_variant_id' => $this->product_variant_id ?? '',
             'product_variant' => ProductVariantResource::make($this->whenLoaded('productVariant')),
             'warehouse_id' => $this->warehouse_id ?? '',
+            'bin_id' => $this->bin_id ?? '',
             'warehouse' => $this->whenLoaded('warehouse', function () {
                 return [
                     'id' => $this->warehouse->id,
                     'name' => $this->warehouse->name ?? '',
+                ];
+            }),
+            'bin' => $this->whenLoaded('bin', function () {
+                return [
+                    'id' => $this->bin->id,
+                    'name' => $this->bin->name ?? '',
+                    'code' => $this->bin->code ?? '',
                 ];
             }),
             'unit_id' => $this->unit_id ?? '',

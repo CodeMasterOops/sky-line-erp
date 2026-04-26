@@ -20,6 +20,7 @@ class StockMovement extends Model
         'company_id',
         'product_variant_id',
         'warehouse_id',
+        'bin_id',
         'type',
         'direction',
         'quantity',
@@ -53,5 +54,10 @@ class StockMovement extends Model
     public function glJournal(): BelongsTo
     {
         return $this->belongsTo(Journal::class, 'gl_journal_id');
+    }
+
+    public function bin(): BelongsTo
+    {
+        return $this->belongsTo(Bin::class);
     }
 }

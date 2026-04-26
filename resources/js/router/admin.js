@@ -803,7 +803,7 @@ const routes = [
             {
                 path: "inventory/bins",
                 name: "admin.bin-list",
-                meta: {pageTitle: "Bin Locations"},
+                meta: {pageTitle: "Bin locations"},
                 component: () => import("@/views/admin/inventory/bins/Index.vue"),
             },
             // ---- Phase 5: Finance & Banking ----

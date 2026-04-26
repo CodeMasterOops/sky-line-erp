@@ -2,23 +2,25 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Enums\ChangeTypeEnum;
-use App\Enums\PartyTypeEnum;
-use App\Enums\StatusEnum;
-use App\Models\AccountSetting;
-use App\Models\Invoice;
+use App\Models\Bin;
 use App\Models\Party;
-use App\Models\PosHeldOrder;
+use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\Receipt;
+use App\Enums\StatusEnum;
 use App\Models\Warehouse;
-use App\Services\Accounting\InvoiceGlPostingService;
-use App\Services\Inventory\InventoryLayerIssueService;
-use App\Services\Nepal\NepaliDateService;
+use App\Enums\PartyTypeEnum;
+use App\Models\PosHeldOrder;
 use Illuminate\Http\Request;
+use App\Enums\ChangeTypeEnum;
+use App\Models\AccountSetting;
+use Illuminate\Validation\Rule;
+use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Jobs\SyncInvoiceToIrdJob;
+use App\Services\Nepal\NepaliDateService;
+use App\Services\Accounting\InvoiceGlPostingService;
+use App\Services\Inventory\InventoryLayerIssueService;
 
 class PosController extends Controller
 {
@@ -51,7 +53,7 @@ class PosController extends Controller
         }
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
+            $like = '%'.$search.'%';
             $query->where(function ($q) use ($like) {
                 $q->where('name', 'like', $like)->orWhere('code', 'like', $like);
             });
@@ -62,19 +64,20 @@ class PosController extends Controller
         $data = $products->flatMap(function ($product) {
             return $product->variants->map(function ($variant) use ($product) {
                 $stock = $variant->stocks->sum('quantity');
+
                 return [
-                    'id'            => $variant->id,
-                    'product_id'    => $product->id,
-                    'name'          => $product->name . ($variant->variant_label ? ' - ' . $variant->variant_label : ''),
-                    'sku'           => $variant->sku,
-                    'sales_price'   => $variant->sales_price ?? 0,
-                    'purchase_price'=> $variant->purchase_price ?? 0,
-                    'image'         => $product->image,
-                    'category_id'   => $product->product_category_id,
+                    'id' => $variant->id,
+                    'product_id' => $product->id,
+                    'name' => $product->name.($variant->variant_label ? ' - '.$variant->variant_label : ''),
+                    'sku' => $variant->sku,
+                    'sales_price' => $variant->sales_price ?? 0,
+                    'purchase_price' => $variant->purchase_price ?? 0,
+                    'image' => $product->image,
+                    'category_id' => $product->product_category_id,
                     'category_name' => $product->productCategory?->name ?? '',
-                    'unit_id'       => $product->unit_id,
-                    'stock'         => (float) $stock,
-                    'is_default'    => $variant->is_default,
+                    'unit_id' => $product->unit_id,
+                    'stock' => (float) $stock,
+                    'is_default' => $variant->is_default,
                 ];
             });
         });
@@ -92,7 +95,7 @@ class PosController extends Controller
         $query = Party::where('type', PartyTypeEnum::CUSTOMER)->where('is_active', true);
 
         if ($search !== '') {
-            $like = '%' . $search . '%';
+            $like = '%'.$search.'%';
             $query->where(function ($q) use ($like) {
                 $q->where('name', 'like', $like)->orWhere('phone', 'like', $like);
             });
@@ -153,10 +156,10 @@ class PosController extends Controller
 
         return response()->json([
             'data' => [
-                'sale_count'  => (int) ($totals->sale_count ?? 0),
-                'sale_total'  => round($saleTotal, 2),
-                'cogs'        => round($cogs, 2),
-                'profit'      => round($profit, 2),
+                'sale_count' => (int) ($totals->sale_count ?? 0),
+                'sale_total' => round($saleTotal, 2),
+                'cogs' => round($cogs, 2),
+                'profit' => round($profit, 2),
             ],
         ]);
     }
@@ -168,6 +171,7 @@ class PosController extends Controller
      * {
      *   party_id: int|null,
      *   warehouse_id: int,
+     *   bin_id: int|null (optional; default warehouse __DEFAULT__ bin),
      *   payment_method: 'cash'|'card'|'scan',
      *   items: [{product_variant_id, unit_id, quantity, rate, tax_id, tax_amount, discount_amount}],
      *   remarks: string|null
@@ -176,18 +180,19 @@ class PosController extends Controller
     public function checkout(Request $request)
     {
         $request->validate([
-            'warehouse_id'          => ['required', 'integer'],
-            'payment_method'        => ['required', 'string'],
-            'items'                 => ['required', 'array', 'min:1'],
+            'warehouse_id' => ['required', 'integer'],
+            'bin_id' => ['nullable', 'integer', Rule::exists('bins', 'id')->where(fn ($q) => $q->where('warehouse_id', (int) $request->input('warehouse_id')))],
+            'payment_method' => ['required', 'string'],
+            'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', 'integer'],
-            'items.*.quantity'      => ['required', 'numeric', 'min:0.001'],
-            'items.*.rate'          => ['required', 'numeric', 'min:0'],
-            'items.*.unit_id'       => ['nullable', 'integer'],
-            'items.*.tax_id'        => ['nullable', 'integer'],
-            'items.*.tax_amount'    => ['nullable', 'numeric', 'min:0'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
+            'items.*.rate' => ['required', 'numeric', 'min:0'],
+            'items.*.unit_id' => ['nullable', 'integer'],
+            'items.*.tax_id' => ['nullable', 'integer'],
+            'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
-            'party_id'              => ['nullable', 'integer'],
-            'remarks'               => ['nullable', 'string'],
+            'party_id' => ['nullable', 'integer'],
+            'remarks' => ['nullable', 'string'],
         ]);
 
         $user = auth('admin')->user();
@@ -195,46 +200,53 @@ class PosController extends Controller
         $fiscalYearId = $company->fiscal_year_id;
         $today = now()->toDateString();
 
+        $warehouseId = (int) $request->warehouse_id;
+        $issueBinId = $request->filled('bin_id')
+            ? (int) $request->input('bin_id')
+            : Bin::defaultIdForWarehouse($company->id, $warehouseId);
+
         $accountSetting = AccountSetting::first();
         $accountId = $this->resolveAccountId($request->payment_method, $accountSetting);
 
         $invoiceCount = Invoice::withTrashed()->where('fiscal_year_id', $fiscalYearId)->count();
         $yearCode = $company->fiscalYear?->year_code;
-        $suffix = $yearCode ? '/' . $yearCode : '';
-        $invoiceNo = 'INV-' . ($invoiceCount + 1) . $suffix;
+        $suffix = $yearCode ? '/'.$yearCode : '';
+        $invoiceNo = 'INV-'.($invoiceCount + 1).$suffix;
 
         try {
-            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $invoiceNo, $accountId, $accountSetting) {
+            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $invoiceNo, $accountId, $issueBinId) {
                 $invoiceDateBs = null;
                 try {
                     $bs = $this->nepaliDate->adToBs($today);
                     $invoiceDateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
-                } catch (\Throwable) {}
+                } catch (\Throwable) {
+                }
 
                 $invoice = Invoice::create([
-                    'fiscal_year_id'   => $fiscalYearId,
-                    'party_id'         => $request->party_id ?? null,
-                    'invoice_no'       => $invoiceNo,
-                    'invoice_date'     => $today,
-                    'invoice_date_bs'  => $invoiceDateBs,
-                    'due_date'         => $today,
-                    'remarks'          => $request->remarks ?? 'POS Sale',
-                    'create_user_id'   => $user->id,
-                    'approve_user_id'  => $user->id,
-                    'approved_at'      => now(),
-                    'status'           => StatusEnum::APPROVED->value,
+                    'fiscal_year_id' => $fiscalYearId,
+                    'party_id' => $request->party_id ?? null,
+                    'invoice_no' => $invoiceNo,
+                    'invoice_date' => $today,
+                    'invoice_date_bs' => $invoiceDateBs,
+                    'due_date' => $today,
+                    'remarks' => $request->remarks ?? 'POS Sale',
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED->value,
                 ]);
 
                 $items = collect($request->items)->map(fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id'       => $request->warehouse_id,
-                    'unit_id'            => $item['unit_id'] ?? null,
-                    'quantity'           => $item['quantity'],
-                    'rate'               => $item['rate'],
-                    'tax_id'             => $item['tax_id'] ?? null,
-                    'tax_amount'         => $item['tax_amount'] ?? 0,
-                    'discount_amount'    => $item['discount_amount'] ?? 0,
-                    'tax_line_type'      => 'taxable',
+                    'warehouse_id' => $request->warehouse_id,
+                    'bin_id' => $issueBinId,
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'rate' => $item['rate'],
+                    'tax_id' => $item['tax_id'] ?? null,
+                    'tax_amount' => $item['tax_amount'] ?? 0,
+                    'discount_amount' => $item['discount_amount'] ?? 0,
+                    'tax_line_type' => 'taxable',
                 ])->all();
 
                 $invoice->invoiceItems()->createMany($items);
@@ -252,6 +264,7 @@ class PosController extends Controller
                             ChangeTypeEnum::SALE,
                             $user->id,
                             $invoice->remarks,
+                            (int) $item->bin_id,
                         );
                     }
                 }
@@ -265,26 +278,26 @@ class PosController extends Controller
                 if ($accountId && $grandTotal > 0) {
                     $receiptCount = Receipt::withTrashed()->where('fiscal_year_id', $fiscalYearId)->count();
                     $yearCode = $company->fiscalYear?->year_code;
-                    $suffix = $yearCode ? '/' . $yearCode : '';
-                    $receiptNo = 'RC-' . ($receiptCount + 1) . $suffix;
+                    $suffix = $yearCode ? '/'.$yearCode : '';
+                    $receiptNo = 'RC-'.($receiptCount + 1).$suffix;
 
                     $receipt = Receipt::create([
-                        'fiscal_year_id'   => $fiscalYearId,
-                        'party_id'         => $request->party_id ?? null,
-                        'receipt_no'       => $receiptNo,
-                        'receipt_date'     => $today,
-                        'payment_method'   => $request->payment_method,
-                        'account_id'       => $accountId,
-                        'remarks'          => 'POS Payment - ' . $invoiceNo,
-                        'create_user_id'   => $user->id,
-                        'approve_user_id'  => $user->id,
-                        'approved_at'      => now(),
-                        'status'           => StatusEnum::APPROVED->value,
+                        'fiscal_year_id' => $fiscalYearId,
+                        'party_id' => $request->party_id ?? null,
+                        'receipt_no' => $receiptNo,
+                        'receipt_date' => $today,
+                        'payment_method' => $request->payment_method,
+                        'account_id' => $accountId,
+                        'remarks' => 'POS Payment - '.$invoiceNo,
+                        'create_user_id' => $user->id,
+                        'approve_user_id' => $user->id,
+                        'approved_at' => now(),
+                        'status' => StatusEnum::APPROVED->value,
                     ]);
 
                     $receipt->allocations()->create([
                         'invoice_id' => $invoice->id,
-                        'amount'     => round($grandTotal, 2),
+                        'amount' => round($grandTotal, 2),
                     ]);
 
                     $invoice->setAttribute('receipt_no', $receipt->receipt_no);
@@ -297,7 +310,7 @@ class PosController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
@@ -308,7 +321,8 @@ class PosController extends Controller
 
         try {
             SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         $invoice->load([
             'party',
@@ -319,27 +333,27 @@ class PosController extends Controller
         ]);
 
         $responseData = [
-            'id'           => $invoice->id,
-            'invoice_no'   => $invoice->invoice_no,
-            'receipt_no'   => $invoice->receipt_no ?? null,
-            'receipt_id'   => $invoice->receipt_id ?? null,
+            'id' => $invoice->id,
+            'invoice_no' => $invoice->invoice_no,
+            'receipt_no' => $invoice->receipt_no ?? null,
+            'receipt_id' => $invoice->receipt_id ?? null,
             'invoice_date' => $invoice->invoice_date,
-            'party_id'     => $invoice->party_id,
-            'party_name'   => $invoice->party?->name ?? 'Walk-in Customer',
-            'grand_total'  => $invoice->grand_total ?? 0,
+            'party_id' => $invoice->party_id,
+            'party_name' => $invoice->party?->name ?? 'Walk-in Customer',
+            'grand_total' => $invoice->grand_total ?? 0,
             'payment_method' => $request->payment_method,
-            'items'        => $invoice->invoiceItems->map(fn ($item) => [
-                'name'     => $item->productVariant?->product?->name ?? '',
+            'items' => $invoice->invoiceItems->map(fn ($item) => [
+                'name' => $item->productVariant?->product?->name ?? '',
                 'quantity' => $item->quantity,
-                'rate'     => $item->rate,
+                'rate' => $item->rate,
                 'tax_amount' => $item->tax_amount,
                 'discount_amount' => $item->discount_amount,
-                'total'    => ($item->quantity * $item->rate) - $item->discount_amount + $item->tax_amount,
+                'total' => ($item->quantity * $item->rate) - $item->discount_amount + $item->tax_amount,
             ]),
         ];
 
         return response()->json([
-            'data'    => $responseData,
+            'data' => $responseData,
             'message' => 'Sale completed successfully',
         ], 201);
     }
@@ -350,22 +364,22 @@ class PosController extends Controller
     public function holdOrder(Request $request)
     {
         $request->validate([
-            'label'                  => ['nullable', 'string', 'max:255'],
-            'party_id'               => ['nullable', 'integer'],
-            'order_data'             => ['required', 'array'],
-            'order_data.items'       => ['required', 'array', 'min:1'],
+            'label' => ['nullable', 'string', 'max:255'],
+            'party_id' => ['nullable', 'integer'],
+            'order_data' => ['required', 'array'],
+            'order_data.items' => ['required', 'array', 'min:1'],
         ]);
 
         $held = PosHeldOrder::create([
-            'party_id'   => $request->party_id,
-            'label'      => $request->label,
+            'party_id' => $request->party_id,
+            'label' => $request->label,
             'order_data' => $request->order_data,
         ]);
 
         $held->load('party:id,name');
 
         return response()->json([
-            'data'    => $this->formatHeldOrder($held),
+            'data' => $this->formatHeldOrder($held),
             'message' => 'Order held successfully',
         ], 201);
     }
@@ -401,7 +415,7 @@ class PosController extends Controller
         }
 
         return match (strtolower($paymentMethod)) {
-            'cash'  => $setting->cash_sales_account_id,
+            'cash' => $setting->cash_sales_account_id,
             default => $setting->bank_sales_account_id,
         };
     }
@@ -409,9 +423,9 @@ class PosController extends Controller
     private function formatHeldOrder(PosHeldOrder $order): array
     {
         return [
-            'id'         => $order->id,
-            'label'      => $order->label,
-            'party_id'   => $order->party_id,
+            'id' => $order->id,
+            'label' => $order->label,
+            'party_id' => $order->party_id,
             'party_name' => $order->party?->name ?? 'Walk-in Customer',
             'order_data' => $order->order_data,
             'created_at' => $order->created_at?->toDateTimeString(),

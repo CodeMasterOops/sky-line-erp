@@ -15,6 +15,8 @@ class StockTransferItem extends Model
         'product_variant_id',
         'unit_id',
         'quantity',
+        'from_bin_id',
+        'to_bin_id',
     ];
 
     public function stockTransfer(): BelongsTo
@@ -30,5 +32,15 @@ class StockTransferItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function fromBin(): BelongsTo
+    {
+        return $this->belongsTo(Bin::class, 'from_bin_id');
+    }
+
+    public function toBin(): BelongsTo
+    {
+        return $this->belongsTo(Bin::class, 'to_bin_id');
     }
 }

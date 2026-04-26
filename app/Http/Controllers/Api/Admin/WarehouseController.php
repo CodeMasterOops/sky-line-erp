@@ -15,7 +15,7 @@ class WarehouseController extends Controller
      */
     public function index()
     {
-        $warehouses = Warehouse::all();
+        $warehouses = Warehouse::query()->withCount('bins')->get();
 
         return WarehouseResource::collection($warehouses);
     }
@@ -26,6 +26,7 @@ class WarehouseController extends Controller
     public function store(WarehouseRequest $request)
     {
         $warehouse = Warehouse::create($request->validated());
+        $warehouse->loadCount('bins');
 
         return response()->json([
             'data' => WarehouseResource::make($warehouse),
@@ -38,6 +39,8 @@ class WarehouseController extends Controller
      */
     public function show(Warehouse $warehouse)
     {
+        $warehouse->loadCount('bins');
+
         return WarehouseResource::make($warehouse);
     }
 
@@ -47,6 +50,7 @@ class WarehouseController extends Controller
     public function update(WarehouseRequest $request, Warehouse $warehouse)
     {
         $warehouse->update($request->validated());
+        $warehouse->loadCount('bins');
 
         return response()->json([
             'data' => WarehouseResource::make($warehouse),

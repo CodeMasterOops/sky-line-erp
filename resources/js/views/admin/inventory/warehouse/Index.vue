@@ -25,6 +25,16 @@
                             <template v-if="column.key === 'sn'">
                                 {{ index + 1 }}
                             </template>
+                            <template v-if="column.key === 'bins_count'">
+                                <span class="me-2">{{ record.bins_count ?? 0 }}</span>
+                                <router-link
+                                    v-if="hasPermission('list_bin')"
+                                    :to="{ name: 'admin.bin-list', query: { warehouse_id: String(record.id) } }"
+                                    class="text-primary text-nowrap"
+                                >
+                                    Manage
+                                </router-link>
+                            </template>
                             <template v-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
                                     <a class="me-2" href="javascript:void(0);"
@@ -52,6 +62,7 @@ import {onMounted, ref} from 'vue';
 import Swal from 'sweetalert2';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+import {hasPermission} from '@/helpers/checkPermission';
 import {storeToRefs} from 'pinia';
 import CreateWarehouse from './Create.vue';
 import EditWarehouse from './Edit.vue';
@@ -99,6 +110,11 @@ const columns = [
                 return a > b ? -1 : b > a ? 1 : 0;
             },
         },
+    },
+    {
+        title: 'Bins',
+        key: 'bins_count',
+        align: 'right',
     },
     {
         title: 'Phone',

@@ -14,6 +14,7 @@ class DebitNoteItem extends Model
         'debit_note_id',
         'product_variant_id',
         'warehouse_id',
+        'bin_id',
         'quantity',
         'unit_id',
         'rate',
@@ -26,6 +27,7 @@ class DebitNoteItem extends Model
         'debit_note_id' => 'integer',
         'product_variant_id' => 'integer',
         'warehouse_id' => 'integer',
+        'bin_id' => 'integer',
         'unit_id' => 'integer',
         'tax_id' => 'integer',
         'quantity' => 'integer',
@@ -57,5 +59,10 @@ class DebitNoteItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function bin(): BelongsTo
+    {
+        return $this->belongsTo(Bin::class);
     }
 }

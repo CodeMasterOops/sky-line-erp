@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Models\Bin;
 use App\Models\Bill;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
@@ -232,8 +233,9 @@ class PurchaseOrderController extends Controller
         $fiscalYearId = $setting->fiscal_year_id;
         $billNo = $this->generateBillNo($fiscalYearId, $setting->fiscalYear?->year_code);
         $billDate = now()->toDateString();
+        $defaultBinId = Bin::defaultIdForWarehouse($setting->id, (int) $data['warehouse_id']);
 
-        $bill = DB::transaction(function () use ($purchaseOrder, $user, $fiscalYearId, $billNo, $billDate, $data) {
+        $bill = DB::transaction(function () use ($purchaseOrder, $user, $fiscalYearId, $billNo, $billDate, $data, $defaultBinId) {
             $bill = Bill::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $purchaseOrder->party_id,
@@ -248,10 +250,11 @@ class PurchaseOrderController extends Controller
                 'status' => StatusEnum::DRAFT->value,
             ]);
 
-            $items = $purchaseOrder->purchaseOrderItems->map(function ($item) use ($data) {
+            $items = $purchaseOrder->purchaseOrderItems->map(function ($item) use ($data, $defaultBinId) {
                 return [
                     'product_variant_id' => $item->product_variant_id,
                     'warehouse_id' => $data['warehouse_id'],
+                    'bin_id' => $defaultBinId,
                     'unit_id' => $item->unit_id,
                     'quantity' => $item->quantity,
                     'rate' => $item->rate,

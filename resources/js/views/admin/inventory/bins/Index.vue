@@ -1,5 +1,9 @@
 <template>
-    <PageHeader title="Bin Locations" subtitle="Warehouse bin-level storage management" @refresh="fetchBins">
+    <PageHeader
+        title="Bin locations"
+        :subtitle="pageSubtitle"
+        @refresh="fetchBins"
+    >
         <template #actions>
             <button v-can="'create_bin'" type="button" class="btn btn-primary" @click="openCreate">
                 <i class="ti ti-circle-plus me-2"></i> Add Bin
@@ -12,8 +16,12 @@
             <div class="card-body py-2">
                 <div class="row g-2">
                     <div class="col-md-4">
-                        <select class="form-select form-select-sm" v-model="filter.warehouse_id" @change="fetchBins">
-                            <option value="">All Warehouses</option>
+                        <select
+                            class="form-select form-select-sm"
+                            v-model="filter.warehouse_id"
+                            @change="onWarehouseFilterChange"
+                        >
+                            <option value="">All warehouses</option>
                             <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
                         </select>
                     </div>
@@ -105,11 +113,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+
+const route = useRoute();
+const router = useRouter();
 
 const loading = ref(false);
 const saving = ref(false);
@@ -120,6 +132,39 @@ const editId = ref(null);
 const filter = ref({ warehouse_id: '' });
 
 const form = ref({ warehouse_id: '', name: '', code: '', zone: '', rack: '', level: '', is_active: true, description: '' });
+
+const selectedWarehouseName = computed(() => {
+    const wid = filter.value.warehouse_id;
+    if (!wid) {
+        return '';
+    }
+    const w = warehouses.value.find((x) => String(x.id) === String(wid));
+    return w?.name || '';
+});
+
+const pageSubtitle = computed(() => {
+    if (selectedWarehouseName.value) {
+        return `Storage locations for ${selectedWarehouseName.value}`;
+    }
+    return 'Per-warehouse storage locations';
+});
+
+function syncQueryFromFilter() {
+    const wid = filter.value.warehouse_id;
+    if (wid) {
+        if (String(route.query.warehouse_id) !== String(wid)) {
+            router.replace({ name: 'admin.bin-list', query: { ...route.query, warehouse_id: String(wid) } });
+        }
+    } else if (route.query.warehouse_id) {
+        const nextQuery = { ...route.query };
+        delete nextQuery.warehouse_id;
+        router.replace({ name: 'admin.bin-list', query: nextQuery });
+    }
+}
+
+function onWarehouseFilterChange() {
+    syncQueryFromFilter();
+}
 
 const columns = [
     { title: 'Bin Name', dataIndex: 'name', key: 'name' },
@@ -132,7 +177,25 @@ const columns = [
     { title: 'Action', key: 'action' },
 ];
 
-onMounted(() => { fetchBins(); fetchWarehouses(); });
+function applyRouteWarehouse() {
+    const wid = route.query.warehouse_id;
+    filter.value.warehouse_id = wid != null && wid !== '' ? String(wid) : '';
+}
+
+onMounted(() => {
+    applyRouteWarehouse();
+    fetchWarehouses().then(() => {
+        fetchBins();
+    });
+});
+
+watch(
+    () => route.query.warehouse_id,
+    () => {
+        applyRouteWarehouse();
+        fetchBins();
+    },
+);
 
 async function fetchBins() {
     loading.value = true;
@@ -150,7 +213,8 @@ async function fetchWarehouses() {
 
 function openCreate() {
     editId.value = null;
-    form.value = { warehouse_id: '', name: '', code: '', zone: '', rack: '', level: '', is_active: true, description: '' };
+    const wid = filter.value.warehouse_id || '';
+    form.value = { warehouse_id: wid, name: '', code: '', zone: '', rack: '', level: '', is_active: true, description: '' };
     formModal.value = true;
 }
 

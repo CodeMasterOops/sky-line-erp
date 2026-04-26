@@ -16,6 +16,7 @@ class Stock extends Model
         'company_id',
         'product_variant_id',
         'warehouse_id',
+        'bin_id',
         'quantity',
         'on_hold',
     ];
@@ -28,6 +29,11 @@ class Stock extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function bin(): BelongsTo
+    {
+        return $this->belongsTo(Bin::class);
     }
 
     public function productVariant(): BelongsTo

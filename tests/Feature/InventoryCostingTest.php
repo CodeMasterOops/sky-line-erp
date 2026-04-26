@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Bin;
 use App\Models\Bill;
 use App\Models\User;
 use App\Models\Stock;
@@ -76,6 +77,8 @@ beforeEach(function () {
         'sku' => 'SKU-1',
         'is_default' => true,
     ]);
+
+    $this->mainBinId = Bin::defaultIdForWarehouse($this->company->id, $this->warehouse->id);
 });
 
 test('fifo receipt creates stock and one layer', function () {
@@ -92,6 +95,7 @@ test('fifo receipt creates stock and one layer', function () {
         'bill_id' => $bill->id,
         'product_variant_id' => $this->variant->id,
         'warehouse_id' => $this->warehouse->id,
+        'bin_id' => $this->mainBinId,
         'quantity' => 10,
         'rate' => 5,
         'discount_amount' => 0,
@@ -118,6 +122,7 @@ test('fifo receipt creates stock and one layer', function () {
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->first();
 
     expect($stock)->not->toBeNull();
@@ -128,6 +133,7 @@ test('fifo receipt creates stock and one layer', function () {
             ->where('company_id', $this->company->id)
             ->where('product_variant_id', $this->variant->id)
             ->where('warehouse_id', $this->warehouse->id)
+            ->where('bin_id', $this->mainBinId)
             ->where('qty_remaining', '>', 0)
             ->count()
     )->toBe(1);
@@ -151,6 +157,7 @@ test('fifo issue consumes oldest layer first', function () {
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 5,
             'rate' => 2,
             'discount_amount' => 0,
@@ -172,6 +179,7 @@ test('fifo issue consumes oldest layer first', function () {
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 5,
             'rate' => 4,
             'discount_amount' => 0,
@@ -218,6 +226,7 @@ test('fifo issue consumes oldest layer first', function () {
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->first();
 
     expect($stock->quantity)->toBe(3);
@@ -271,6 +280,7 @@ test('weighted average merges layers on receipt', function () {
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 10,
             'rate' => 10,
             'discount_amount' => 0,
@@ -292,6 +302,7 @@ test('weighted average merges layers on receipt', function () {
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 10,
             'rate' => 20,
             'discount_amount' => 0,
@@ -314,6 +325,7 @@ test('weighted average merges layers on receipt', function () {
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->where('qty_remaining', '>', 0)
         ->get();
 
@@ -345,6 +357,7 @@ test('weighted average issue uses merged average for COGS', function () {
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 10,
             'rate' => 10,
             'discount_amount' => 0,
@@ -366,6 +379,7 @@ test('weighted average issue uses merged average for COGS', function () {
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 10,
             'rate' => 20,
             'discount_amount' => 0,
@@ -424,6 +438,7 @@ test('switching company costing from fifo to weighted average consolidates open 
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 5,
             'rate' => 2,
             'discount_amount' => 0,
@@ -445,6 +460,7 @@ test('switching company costing from fifo to weighted average consolidates open 
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 5,
             'rate' => 4,
             'discount_amount' => 0,
@@ -477,6 +493,7 @@ test('switching company costing from fifo to weighted average consolidates open 
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->where('qty_remaining', '>', 0)
         ->get();
 
@@ -501,6 +518,7 @@ test('void approved invoice restores stock and layer quantity', function () {
             'bill_id' => $bill->id,
             'product_variant_id' => $this->variant->id,
             'warehouse_id' => $this->warehouse->id,
+            'bin_id' => $this->mainBinId,
             'quantity' => 10,
             'rate' => 5,
             'discount_amount' => 0,
@@ -551,6 +569,7 @@ test('void approved invoice restores stock and layer quantity', function () {
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->first();
 
     expect($stock->quantity)->toBe(10);
@@ -559,6 +578,7 @@ test('void approved invoice restores stock and layer quantity', function () {
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->where('qty_remaining', '>', 0)
         ->sum('qty_remaining');
 
@@ -607,6 +627,7 @@ test('stock adjustment in and out updates valued quantity', function () {
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->first();
 
     expect($stock->quantity)->toBe(3);
@@ -632,6 +653,7 @@ test('stock transfer moves quantity between warehouses', function () {
         'bill_id' => $bill->id,
         'product_variant_id' => $this->variant->id,
         'warehouse_id' => $this->warehouse->id,
+        'bin_id' => $this->mainBinId,
         'quantity' => 10,
         'rate' => 3,
         'discount_amount' => 0,
@@ -662,10 +684,14 @@ test('stock transfer moves quantity between warehouses', function () {
         'status' => StatusEnum::DRAFT,
     ]);
 
+    $binB = Bin::defaultIdForWarehouse($this->company->id, $warehouseB->id);
+
     $line = StockTransferItem::create([
         'stock_transfer_id' => $transfer->id,
         'product_variant_id' => $this->variant->id,
         'quantity' => 10,
+        'from_bin_id' => $this->mainBinId,
+        'to_bin_id' => $binB,
     ]);
 
     $xfer = app(InventoryLayerTransferService::class);
@@ -677,12 +703,14 @@ test('stock transfer moves quantity between warehouses', function () {
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->first();
 
     $qtyTo = Stock::withoutGlobalScopes()
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $warehouseB->id)
+        ->where('bin_id', $binB)
         ->first();
 
     expect($qtyFrom->quantity)->toBe(0);
@@ -694,6 +722,7 @@ test('product resource aggregates total_stock and stock_by_warehouse', function 
         'company_id' => $this->company->id,
         'product_variant_id' => $this->variant->id,
         'warehouse_id' => $this->warehouse->id,
+        'bin_id' => $this->mainBinId,
         'quantity' => 7,
         'on_hold' => 0,
     ]);
@@ -704,10 +733,13 @@ test('product resource aggregates total_stock and stock_by_warehouse', function 
         'code' => 'W2',
     ]);
 
+    $branchBinId = Bin::defaultIdForWarehouse($this->company->id, $warehouseB->id);
+
     Stock::withoutGlobalScopes()->create([
         'company_id' => $this->company->id,
         'product_variant_id' => $this->variant->id,
         'warehouse_id' => $warehouseB->id,
+        'bin_id' => $branchBinId,
         'quantity' => 3,
         'on_hold' => 0,
     ]);
@@ -769,6 +801,7 @@ test('purchase receipt posts gl journal when inventory and purchase accounts are
         'bill_id' => $bill->id,
         'product_variant_id' => $this->variant->id,
         'warehouse_id' => $this->warehouse->id,
+        'bin_id' => $this->mainBinId,
         'quantity' => 4,
         'rate' => 10,
         'discount_amount' => 0,
@@ -820,6 +853,7 @@ test('reconciliation align valued to on hand adds layers when on hand is oversta
         'bill_id' => $bill->id,
         'product_variant_id' => $this->variant->id,
         'warehouse_id' => $this->warehouse->id,
+        'bin_id' => $this->mainBinId,
         'quantity' => 10,
         'rate' => 5,
         'discount_amount' => 0,
@@ -846,6 +880,7 @@ test('reconciliation align valued to on hand adds layers when on hand is oversta
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->first();
 
     $stock->quantity = 12;
@@ -859,6 +894,7 @@ test('reconciliation align valued to on hand adds layers when on hand is oversta
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->whereNull('deleted_at')
         ->sum('qty_remaining');
 
@@ -880,6 +916,7 @@ test('reconciliation align on hand to valued fixes overstated stock row', functi
         'bill_id' => $bill->id,
         'product_variant_id' => $this->variant->id,
         'warehouse_id' => $this->warehouse->id,
+        'bin_id' => $this->mainBinId,
         'quantity' => 10,
         'rate' => 5,
         'discount_amount' => 0,
@@ -906,6 +943,7 @@ test('reconciliation align on hand to valued fixes overstated stock row', functi
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->first();
 
     $stock->quantity = 12;
@@ -919,6 +957,7 @@ test('reconciliation align on hand to valued fixes overstated stock row', functi
         ->where('company_id', $this->company->id)
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
+        ->where('bin_id', $this->mainBinId)
         ->whereNull('deleted_at')
         ->sum('qty_remaining');
 

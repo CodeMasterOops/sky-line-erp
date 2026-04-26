@@ -52,6 +52,18 @@
                             />
                         </div>
                         <div class="col-lg-6 col-sm-6 col-12">
+                            <VSelect
+                                id="issue_bin_id"
+                                v-model="form.bin_id"
+                                :options="bins"
+                                :disabled="!form.warehouse_id"
+                                label="Issue from bin"
+                                placeholder="Bin"
+                                @validate="validateField('bin_id')"
+                                :error="errors.bin_id"
+                            />
+                        </div>
+                        <div class="col-lg-6 col-sm-6 col-12">
                             <label class="form-label">Branch</label>
                             <select class="form-select" v-model="form.branch_id">
                                 <option value="">— No Branch —</option>
@@ -278,6 +290,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {apiAdmin} from '@/helpers/api.js';
+import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
 const invoiceStore = useInvoiceStore();
@@ -288,6 +301,7 @@ const warehouseStore = useWarehouseStore();
 
 // --- Branch & Batch (Phase 3/6) ---
 const branches = ref([]);
+const bins = ref([]);
 const batchOptions = ref({}); // key: `${variant_id}-${warehouse_id}` → batches[]
 
 const loadBranches = async () => {
@@ -307,7 +321,13 @@ const fetchBatchOptions = async (variantId, warehouseId) => {
     } catch { /* no batches for this variant/warehouse */ }
 };
 
-const onWarehouseChange = (warehouseId) => {
+const onWarehouseChange = async (warehouseId) => {
+    bins.value = warehouseId ? await fetchBinsForWarehouse(warehouseId) : [];
+    if (warehouseId) {
+        form.bin_id = defaultBinIdFromList(bins.value);
+    } else {
+        form.bin_id = '';
+    }
     // Reload batch options for all existing line items with the new warehouse
     form.items.forEach((item) => {
         if (item.product_variant_id) {
@@ -363,6 +383,7 @@ const getInitialState = () => ({
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    bin_id: '',
     branch_id: '',
     buyer_pan: '',
     bijak_no: '',
@@ -422,6 +443,7 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
+    bin_id: string().required('Issue bin is required.'),
     items: array()
         .of(
             object({
@@ -509,6 +531,7 @@ const buildInvoicePayload = () => {
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
+            bin_id: form.bin_id,
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,
@@ -546,6 +569,7 @@ function resetForm() {
     Object.assign(form, getInitialState());
     errors.value = {};
     batchOptions.value = {};
+    bins.value = [];
 }
 </script>
 

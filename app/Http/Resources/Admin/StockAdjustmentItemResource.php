@@ -21,6 +21,14 @@ class StockAdjustmentItemResource extends JsonResource
                     'name' => $this->unit->name ?? '',
                 ];
             }),
+            'bin_id' => $this->bin_id ?? '',
+            'bin' => $this->whenLoaded('bin', function () {
+                return [
+                    'id' => $this->bin->id,
+                    'name' => $this->bin->name ?? '',
+                    'code' => $this->bin->code ?? '',
+                ];
+            }),
             'direction' => $this->direction ?? '',
             'quantity' => $this->quantity ?? 0,
             'unit_cost' => $this->unit_cost,

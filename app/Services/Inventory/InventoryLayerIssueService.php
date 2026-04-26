@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Bin;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
@@ -27,16 +28,19 @@ class InventoryLayerIssueService
         ChangeTypeEnum $changeType,
         ?int $userId,
         ?string $remarks,
+        ?int $binId = null,
     ): StockMovement {
         if ($quantity <= 0) {
-            throw \InvalidArgumentException('Issue quantity must be positive.');
+            throw new \InvalidArgumentException('Issue quantity must be positive.');
         }
 
-        $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
+        $binId = $binId ?? Bin::defaultIdForWarehouse($company->id, $warehouseId);
 
-        $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $quantity);
+        $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId, $binId);
 
-        $this->quantities->adjust($company->id, $productVariantId, $warehouseId, -$quantity);
+        $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $binId, $quantity);
+
+        $this->quantities->adjust($company->id, $productVariantId, $warehouseId, $binId, -$quantity);
 
         $totalCost = 0.0;
         foreach ($lines as $line) {
@@ -49,6 +53,7 @@ class InventoryLayerIssueService
             'company_id' => $company->id,
             'product_variant_id' => $productVariantId,
             'warehouse_id' => $warehouseId,
+            'bin_id' => $binId,
             'type' => $changeType,
             'direction' => StockDirectionEnum::OUT,
             'quantity' => $quantity,

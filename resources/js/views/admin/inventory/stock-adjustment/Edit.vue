@@ -44,6 +44,7 @@
                                 <th style="width: 50px;">SN</th>
                                 <th>Product</th>
                                 <th style="width: 160px;">Unit</th>
+                                <th style="width: 160px;">Bin</th>
                                 <th style="width: 120px;">Type</th>
                                 <th style="width: 140px;">Quantity</th>
                                 <th style="width: 120px;">Unit cost</th>
@@ -67,6 +68,16 @@
                                         :options="units.data"
                                         @validate="validateField(`items[${index}].unit_id`)"
                                         :error="errors[`items[${index}].unit_id`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VSelect
+                                        v-model="form.items[index].bin_id"
+                                        :options="bins"
+                                        :disabled="!form.warehouse_id"
+                                        placeholder="Bin"
+                                        @validate="validateField(`items[${index}].bin_id`)"
+                                        :error="errors[`items[${index}].bin_id`]"
                                     />
                                 </td>
                                 <td>
@@ -138,7 +149,8 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue';
+import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -177,6 +189,7 @@ const initialState = {
         {
             product_variant_id: '',
             unit_id: '',
+            bin_id: '',
             direction: 'in',
             quantity: '',
             unit_cost: '',
@@ -186,6 +199,8 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+const bins = ref([]);
+const isHydratingAdjustment = ref(false);
 
 const directionOptions = [
     {id: 'in', name: 'In'},
@@ -196,11 +211,28 @@ const addItem = () => {
     form.items.push({
         product_variant_id: '',
         unit_id: '',
+        bin_id: defaultBinIdFromList(bins.value),
         direction: 'in',
         quantity: '',
         unit_cost: '',
     });
 };
+
+function syncLineBinsToWarehouse(warehouseId) {
+    if (!warehouseId) {
+        form.items.forEach((row) => {
+            row.bin_id = '';
+        });
+        return;
+    }
+    const allowed = new Set(bins.value.map((b) => String(b.id)));
+    const fallback = defaultBinIdFromList(bins.value);
+    form.items.forEach((row) => {
+        if (!row.bin_id || !allowed.has(String(row.bin_id))) {
+            row.bin_id = fallback;
+        }
+    });
+}
 
 const removeItem = (index) => {
     if (form.items.length === 1) return;
@@ -209,22 +241,40 @@ const removeItem = (index) => {
 
 watch(() => edit_adjustment_id.value, async (id) => {
     if (id) {
+        isHydratingAdjustment.value = true;
         await stockAdjustmentStore.getAdjustment(id);
+        const d = adjustment.value.data;
+        const wh = d.warehouse_id;
+        bins.value = wh ? await fetchBinsForWarehouse(String(wh)) : [];
         Object.keys(form).forEach(key => {
             if (key === 'items') {
-                form.items = (adjustment.value.data.items || []).map(item => ({
+                form.items = (d.items || []).map(item => ({
                     product_variant_id: item.product_variant_id || '',
                     unit_id: item.unit_id || '',
+                    bin_id: item.bin_id != null && item.bin_id !== '' ? String(item.bin_id) : defaultBinIdFromList(bins.value),
                     direction: item.direction || 'in',
                     quantity: item.quantity || '',
                     unit_cost: item.unit_cost ?? '',
                 }));
             } else {
-                form[key] = adjustment.value.data[key] || '';
+                form[key] = d[key] ?? (key === 'status' ? 'draft' : '');
             }
         });
+        await nextTick();
+        isHydratingAdjustment.value = false;
     }
 });
+
+watch(
+    () => form.warehouse_id,
+    async (v) => {
+        if (isHydratingAdjustment.value) {
+            return;
+        }
+        bins.value = v ? await fetchBinsForWarehouse(v) : [];
+        syncLineBinsToWarehouse(v);
+    }
+);
 
 const isDraft = computed(() => adjustment.value.data.status === 'draft');
 
@@ -238,6 +288,7 @@ const validations = object({
             direction: string().required('Type is required.'),
             quantity: string().required('Quantity is required.'),
             unit_id: string().nullable(),
+            bin_id: string().required('Bin is required.'),
             unit_cost: string().when('direction', {
                 is: 'in',
                 then: (schema) => schema.required('Unit cost is required for adjustment in.'),
@@ -272,6 +323,8 @@ const closeEditModal = () => {
 };
 
 function resetForm() {
+    isHydratingAdjustment.value = false;
+    bins.value = [];
     Object.assign(form, {...initialState});
     errors.value = {};
 }

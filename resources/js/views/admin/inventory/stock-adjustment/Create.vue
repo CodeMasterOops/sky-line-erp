@@ -43,6 +43,7 @@
                                 <th style="width: 50px;">SN</th>
                                 <th>Product</th>
                                 <th style="width: 160px;">Unit</th>
+                                <th style="width: 160px;">Bin</th>
                                 <th style="width: 120px;">Type</th>
                                 <th style="width: 140px;">Quantity</th>
                                 <th style="width: 120px;">Unit cost</th>
@@ -66,6 +67,16 @@
                                         :options="units.data"
                                         @validate="validateField(`items[${index}].unit_id`)"
                                         :error="errors[`items[${index}].unit_id`]"
+                                    />
+                                </td>
+                                <td>
+                                    <VSelect
+                                        v-model="form.items[index].bin_id"
+                                        :options="bins"
+                                        :disabled="!form.warehouse_id"
+                                        placeholder="Bin"
+                                        @validate="validateField(`items[${index}].bin_id`)"
+                                        :error="errors[`items[${index}].bin_id`]"
                                     />
                                 </td>
                                 <td>
@@ -147,7 +158,8 @@
 </template>
 
 <script setup>
-import {onMounted, reactive, ref} from 'vue';
+import {onMounted, reactive, ref, watch} from 'vue';
+import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -188,6 +200,7 @@ const initialState = {
         {
             product_variant_id: '',
             unit_id: '',
+            bin_id: '',
             direction: 'in',
             quantity: '',
             unit_cost: '',
@@ -197,6 +210,28 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+const bins = ref([]);
+
+function applyBinDefaultToAllLines() {
+    const id = defaultBinIdFromList(bins.value);
+    form.items.forEach((row) => {
+        row.bin_id = id;
+    });
+}
+
+watch(
+    () => form.warehouse_id,
+    async (v) => {
+        bins.value = v ? await fetchBinsForWarehouse(v) : [];
+        if (v) {
+            applyBinDefaultToAllLines();
+        } else {
+            form.items.forEach((row) => {
+                row.bin_id = '';
+            });
+        }
+    }
+);
 
 const directionOptions = [
     {id: 'in', name: 'In'},
@@ -207,6 +242,7 @@ const addItem = () => {
     form.items.push({
         product_variant_id: '',
         unit_id: '',
+        bin_id: defaultBinIdFromList(bins.value),
         direction: 'in',
         quantity: '',
         unit_cost: '',
@@ -228,6 +264,7 @@ const validations = object({
             direction: string().required('Type is required.'),
             quantity: string().required('Quantity is required.'),
             unit_id: string().nullable(),
+            bin_id: string().required('Bin is required.'),
             unit_cost: string().when('direction', {
                 is: 'in',
                 then: (schema) => schema.required('Unit cost is required for adjustment in.'),
@@ -262,6 +299,7 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
+    bins.value = [];
     Object.assign(form, {...initialState});
     errors.value = {};
 }

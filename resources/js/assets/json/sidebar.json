@@ -143,10 +143,21 @@
           "permission": "list_unit"
         },
         {
-          "menuValue": "Warehouses",
-          "route": { "name": "admin.warehouse-list" },
-          "icon": "ti ti-home",
-          "permission": "list_warehouse"
+          "menuValue": "Storage",
+          "icon": "ti ti-layout-grid",
+          "hasSubRoute": true,
+          "subMenus": [
+            {
+              "menuValue": "Warehouses",
+              "route": { "name": "admin.warehouse-list" },
+              "permission": "list_warehouse"
+            },
+            {
+              "menuValue": "Bin locations",
+              "route": { "name": "admin.bin-list" },
+              "permission": "list_bin"
+            }
+          ]
         },
         {
           "menuValue": "Operations",
@@ -194,11 +205,6 @@
               "menuValue": "Production Orders",
               "route": { "name": "admin.production-order-list" },
               "permission": "list_production_order"
-            },
-            {
-              "menuValue": "Bin Locations",
-              "route": { "name": "admin.bin-list" },
-              "permission": "list_bin"
             }
           ]
         },

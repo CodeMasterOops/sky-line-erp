@@ -9,15 +9,16 @@ use Illuminate\Database\UniqueConstraintViolationException;
 class StockQuantityService
 {
     /**
-     * Lock the stock row for this SKU/warehouse (create with zero qty if missing) inside the current transaction.
+     * Lock the stock row for this SKU/warehouse/bin (create with zero qty if missing) inside the current transaction.
      */
-    public function lockForUpdateOrCreate(int $companyId, int $productVariantId, int $warehouseId): void
+    public function lockForUpdateOrCreate(int $companyId, int $productVariantId, int $warehouseId, int $binId): void
     {
         $stock = Stock::withoutGlobalScopes()
             ->withTrashed()
             ->where('company_id', $companyId)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
+            ->where('bin_id', $binId)
             ->lockForUpdate()
             ->first();
 
@@ -30,6 +31,7 @@ class StockQuantityService
                 'company_id' => $companyId,
                 'product_variant_id' => $productVariantId,
                 'warehouse_id' => $warehouseId,
+                'bin_id' => $binId,
                 'quantity' => 0,
                 'on_hold' => 0,
             ]);
@@ -41,29 +43,31 @@ class StockQuantityService
             ->where('company_id', $companyId)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
+            ->where('bin_id', $binId)
             ->lockForUpdate()
             ->firstOrFail();
     }
 
     /**
-     * Adjust on-hand quantity for a variant at a warehouse (delta may be negative).
+     * Adjust on-hand quantity for a variant at a warehouse and bin (delta may be negative).
      */
-    public function adjust(int $companyId, int $productVariantId, int $warehouseId, int $delta): void
+    public function adjust(int $companyId, int $productVariantId, int $warehouseId, int $binId, int $delta): void
     {
         try {
-            $this->performAdjust($companyId, $productVariantId, $warehouseId, $delta);
+            $this->performAdjust($companyId, $productVariantId, $warehouseId, $binId, $delta);
         } catch (UniqueConstraintViolationException) {
-            $this->performAdjust($companyId, $productVariantId, $warehouseId, $delta);
+            $this->performAdjust($companyId, $productVariantId, $warehouseId, $binId, $delta);
         }
     }
 
-    private function performAdjust(int $companyId, int $productVariantId, int $warehouseId, int $delta): void
+    private function performAdjust(int $companyId, int $productVariantId, int $warehouseId, int $binId, int $delta): void
     {
         $stock = Stock::withoutGlobalScopes()
             ->withTrashed()
             ->where('company_id', $companyId)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
+            ->where('bin_id', $binId)
             ->lockForUpdate()
             ->first();
 
@@ -74,7 +78,7 @@ class StockQuantityService
             $newQty = (int) $stock->quantity + $delta;
             if ($newQty < 0) {
                 throw ValidationException::withMessages([
-                    'quantity' => __('Insufficient on-hand stock for this product at the selected warehouse.'),
+                    'quantity' => __('Insufficient on-hand stock for this product at the selected warehouse and bin.'),
                 ]);
             }
             $stock->quantity = $newQty;
@@ -85,7 +89,7 @@ class StockQuantityService
 
         if ($delta < 0) {
             throw ValidationException::withMessages([
-                'quantity' => __('Insufficient on-hand stock for this product at the selected warehouse.'),
+                'quantity' => __('Insufficient on-hand stock for this product at the selected warehouse and bin.'),
             ]);
         }
 
@@ -94,11 +98,12 @@ class StockQuantityService
                 'company_id' => $companyId,
                 'product_variant_id' => $productVariantId,
                 'warehouse_id' => $warehouseId,
+                'bin_id' => $binId,
                 'quantity' => $delta,
                 'on_hold' => 0,
             ]);
         } catch (UniqueConstraintViolationException) {
-            $this->performAdjust($companyId, $productVariantId, $warehouseId, $delta);
+            $this->performAdjust($companyId, $productVariantId, $warehouseId, $binId, $delta);
         }
     }
 }

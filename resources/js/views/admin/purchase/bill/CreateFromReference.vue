@@ -45,6 +45,18 @@
                         :error="errors.warehouse_id"
                     />
                 </div>
+                <div class="col-md-6">
+                    <VSelect
+                        id="receiving_bin_id"
+                        v-model="form.bin_id"
+                        :options="bins"
+                        :disabled="!form.warehouse_id"
+                        label="Receiving bin"
+                        placeholder="Bin"
+                        @validate="validateField('bin_id')"
+                        :error="errors.bin_id"
+                    />
+                </div>
 
                 <div class="col-12">
                     <div class="table-responsive">
@@ -190,6 +202,7 @@
 
 <script setup>
 import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -232,11 +245,14 @@ onMounted(() => {
     warehouseStore.getWarehouses();
 });
 
+const bins = ref([]);
+
 const initialState = {
     bill_date: currentAdDate,
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    bin_id: '',
     remarks: '',
     purchase_order_id: '',
     status: 'draft',
@@ -254,6 +270,18 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+
+watch(
+    () => form.warehouse_id,
+    async (v) => {
+        bins.value = v ? await fetchBinsForWarehouse(v) : [];
+        if (v) {
+            form.bin_id = defaultBinIdFromList(bins.value);
+        } else {
+            form.bin_id = '';
+        }
+    }
+);
 
 const addItem = () => {
     form.items.push({
@@ -276,6 +304,7 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
+    bin_id: string().required('Receiving bin is required.'),
     items: array().of(
         object({
             product_variant_id: string().required('Product is required.'),
@@ -351,6 +380,7 @@ const syncLineItems = () => {
         return {
             ...item,
             warehouse_id: form.warehouse_id,
+            bin_id: form.bin_id,
             tax_amount: lineTax,
         };
     });
