@@ -46,6 +46,10 @@ const props = defineProps({
         type: String,
         default: "form-control",
     },
+    inputType: {
+        type: String,
+        default: "date",
+    },
     label: {
         type: String,
     },

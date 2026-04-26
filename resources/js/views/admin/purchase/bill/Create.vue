@@ -339,18 +339,6 @@ const loadBranches = async () => {
     } catch { /* optional */ }
 };
 
-watch(
-    () => form.warehouse_id,
-    async (v) => {
-        bins.value = v ? await fetchBinsForWarehouse(v) : [];
-        if (v) {
-            form.bin_id = defaultBinIdFromList(bins.value);
-        } else {
-            form.bin_id = '';
-        }
-    }
-);
-
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
         filter: {
@@ -396,6 +384,18 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+watch(
+    () => form.warehouse_id,
+    async (v) => {
+        bins.value = v ? await fetchBinsForWarehouse(v) : [];
+        if (v) {
+            form.bin_id = defaultBinIdFromList(bins.value);
+        } else {
+            form.bin_id = '';
+        }
+    }
+);
 
 function variantLabel(variant) {
     let label = variant.name || '';
