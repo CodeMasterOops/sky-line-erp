@@ -5,16 +5,16 @@
         "page": "settings",
         "subMenu": [
             {
+                "title": "My profile",
+                "routes": "/admin/settings/profile"
+            },
+            {
                 "title": "Company details",
                 "routes": "/admin/settings/setting"
             },
             {
                 "title": "Branches",
                 "routes": "/admin/settings/branches"
-            },
-            {
-                "title": "My profile",
-                "routes": "/admin/settings/profile"
             },
             {
                 "title": "Security",

@@ -158,7 +158,7 @@
         data-bs-placement="top"
         data-bs-title="Settings"
       >
-        <router-link :to="{ name: 'admin.general-settings' }">
+        <router-link :to="{ name: 'admin.setting' }">
           <i class="ti ti-settings"></i>
         </router-link>
       </li>
@@ -188,7 +188,7 @@
             <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">
               <i class="ti ti-user me-2"></i>My Profile
             </router-link>
-            <router-link class="dropdown-item" :to="{ name: 'admin.general-settings' }">
+            <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">
               <i class="ti ti-settings me-2"></i>Settings
             </router-link>
             <hr class="m-0" />
@@ -210,7 +210,7 @@
       ><i class="fa fa-ellipsis-v"></i></a>
       <div class="dropdown-menu dropdown-menu-right">
         <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">My Profile</router-link>
-        <router-link class="dropdown-item" :to="{ name: 'admin.general-settings' }">Settings</router-link>
+        <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">Settings</router-link>
         <button class="dropdown-item" type="button" @click.prevent="logout">Logout</button>
       </div>
     </div>

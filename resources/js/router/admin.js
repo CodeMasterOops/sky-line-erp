@@ -136,7 +136,7 @@ const routes = [
                     },
                     {
                         path: "", // default child route
-                        redirect: "general-settings", // redirect /admin/settings -> /admin/settings/general-settings
+                        redirect: "setting", // redirect /admin/settings -> /admin/settings/setting (company settings)
                     },
                 ],
             },
@@ -250,6 +250,14 @@ const routes = [
                     pageTitle: "Quotation List",
                 },
                 component: () => import("@/views/admin/sales/quotation/Index.vue"),
+            },
+            {
+                path: "reports",
+                name: "admin.reports-hub",
+                meta: {
+                    pageTitle: "Reports",
+                },
+                component: () => import("@/views/admin/reports/ReportsHub.vue"),
             },
             {
                 path: "sales-report",

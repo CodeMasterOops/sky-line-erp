@@ -514,6 +514,11 @@
       "title": "Reports",
       "menu": [
         {
+          "menuValue": "All Reports",
+          "route": { "name": "admin.reports-hub" },
+          "icon": "ti ti-layout-grid"
+        },
+        {
           "menuValue": "Sales Report",
           "route": { "name": "admin.sales-report" },
           "icon": "ti ti-report-analytics",

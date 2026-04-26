@@ -19,6 +19,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.role-edit': 'edit_role',
     'admin.user-list': 'list_user',
     'admin.notification-list': null,
+    'admin.reports-hub': null,
     'admin.sales-list': 'list_sales_order',
     'admin.invoice-list': 'list_invoice',
     'admin.invoice-view': { any: ['list_invoice', 'show_invoice'] },
@@ -73,6 +74,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.hr-report-payroll': 'list_payroll',
     'admin.hr-report-attendance': 'list_attendance',
     'admin.hr-report-leave': 'list_leave_application',
+    'admin.hr-report-tds-salary': 'list_payroll',
     'admin.pos': 'list_product',
 };
 

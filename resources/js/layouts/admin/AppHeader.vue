@@ -151,22 +151,6 @@
                 </router-link>
             </li>
 
-            <!-- Flag -->
-            <li class="nav-item dropdown has-arrow flag-nav nav-item-box">
-                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="javascript:void(0);" role="button">
-                    <img src="@/assets/images/flags/us-flag.svg" alt="Language" class="img-fluid">
-                </a>
-                <div class="dropdown-menu dropdown-menu-right">
-                    <a href="javascript:void(0);" class="dropdown-item">
-                        <img src="@/assets/images/flags/english.svg" alt="" height="16">English
-                    </a>
-                    <a href="javascript:void(0);" class="dropdown-item">
-                        <img src="@/assets/images/flags/arabic.svg" alt="" height="16">Arabic
-                    </a>
-                </div>
-            </li>
-            <!-- /Flag -->
-
             <li class="nav-item nav-item-box">
                 <a href="javascript:void(0);" id="btnFullscreen" @click.prevent="initFullScreen">
                     <i class="fa fa-arrows-alt"></i>
@@ -233,7 +217,7 @@
             <!-- /Notifications -->
 
             <li class="nav-item nav-item-box">
-                <router-link :to="{ name: 'admin.general-settings' }"><i class="fa fa-cog"></i></router-link>
+                <router-link :to="{ name: 'admin.setting' }"><i class="fa fa-cog"></i></router-link>
             </li>
             <li class="nav-item dropdown has-arrow main-drop profile-nav">
                 <a href="javascript:void(0);" class="nav-link userset" data-bs-toggle="dropdown">
@@ -256,10 +240,10 @@
                     <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">
                         <i class="ti ti-user-circle me-2"></i>My Profile
                     </router-link>
-                    <router-link class="dropdown-item" to="/sales-report/sales-report">
+                    <router-link class="dropdown-item" :to="{ name: 'admin.reports-hub' }">
                         <i class="ti ti-file-text me-2"></i>Reports
                     </router-link>
-                    <router-link class="dropdown-item" to="/settings/general-settings">
+                    <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">
                         <i class="ti ti-settings-2 me-2"></i>Settings
                     </router-link>
                     <hr class="my-2">
@@ -275,7 +259,7 @@
                aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
             <div class="dropdown-menu dropdown-menu-right">
                 <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">My Profile</router-link>
-                <router-link class="dropdown-item" to="/settings/general-settings">Settings</router-link>
+                <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">Settings</router-link>
                 <button class="dropdown-item" type="button" @click.prevent="logout">Logout</button>
             </div>
         </div>
