@@ -20,7 +20,8 @@ export const usePartyStore = defineStore('party', {
     actions: {
         getParties({filter}) {
             this.parties.loading = true;
-            return apiAdmin(`${apiUrl}?${new URLSearchParams(filter).toString()}`)
+            const q = { ...filter };
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(q).toString()}`)
                 .then((res) => {
                     this.parties.data = res.data.data;
                     this.parties.meta = res.data.meta;

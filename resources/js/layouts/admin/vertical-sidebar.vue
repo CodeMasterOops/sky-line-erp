@@ -23,8 +23,9 @@
             <router-link
               v-if="menu.route"
               :to="menu.route"
-              active-class="active"
-              exact-active-class="active"
+              active-class=""
+              exact-active-class=""
+              :class="{ active: isMenuActive(menu) }"
             >
               <i :class="menu.icon" class="fs-16 me-2"></i>
               <span>{{ menu.menuValue }}</span>
@@ -48,8 +49,9 @@
                 <router-link
                   v-if="subMenu.route"
                   :to="subMenu.route"
-                  active-class="active"
-                  exact-active-class="active"
+                  active-class=""
+                  exact-active-class=""
+                  :class="{ active: isRouteTargetActive(subMenu.route) }"
                 >{{ subMenu.menuValue }}</router-link>
               </li>
             </ul>
@@ -73,8 +75,9 @@
                   <router-link
                     v-if="subMenus.route"
                     :to="subMenus.route"
-                    active-class="active"
-                    exact-active-class="active"
+                    active-class=""
+                    exact-active-class=""
+                    :class="{ active: isRouteTargetActive(subMenus.route) }"
                     >{{ subMenus.menuValue }}</router-link
                   >
                 </template>
@@ -95,8 +98,9 @@
                         <router-link
                           v-if="subMenuTwo.route"
                           :to="subMenuTwo.route"
-                          active-class="active"
-                          exact-active-class="active"
+                          active-class=""
+                          exact-active-class=""
+                          :class="{ active: isRouteTargetActive(subMenuTwo.route) }"
                         >{{ subMenuTwo.menuValue }}</router-link>
                       </li>
                     </ul>
@@ -135,17 +139,23 @@ export default {
     },
     isMenuActive() {
       return (menu) => {
-        const name = menu.route?.name;
-        if (name && this.$route.name === name) return true;
-        if (menu.active_link && this.$route.path === menu.active_link) return true;
+        if (menu.active_link && this.$route.path === menu.active_link) {
+          return true;
+        }
+        if (menu.route && this.isRouteTargetActive(menu.route)) {
+          return true;
+        }
         return false;
       };
     },
     isActive() {
       return (menu) => {
         if (menu.subMenus && Array.isArray(menu.subMenus)) {
-          const childNames = menu.subMenus.map((s) => s.route && s.route.name).filter(Boolean);
-          if (childNames.includes(this.$route.name)) {
+          if (
+            menu.subMenus.some(
+              (s) => s.route && this.isRouteTargetActive(s.route)
+            )
+          ) {
             return true;
           }
         }
@@ -167,7 +177,7 @@ export default {
     },
   },
   watch: {
-    "$route.name"() {
+    "$route.fullPath"() {
       this.syncSubmenuFromRoute();
     },
     displaySections() {
@@ -178,6 +188,31 @@ export default {
     this.syncSubmenuFromRoute();
   },
   methods: {
+    /**
+     * True when the current route matches a sidebar link target, including
+     * `query` (e.g. same route name, different `?type=` for customers vs suppliers).
+     */
+    isRouteTargetActive(to) {
+      if (!to) {
+        return false;
+      }
+      if (to.name) {
+        if (this.$route.name !== to.name) {
+          return false;
+        }
+        if (to.query && typeof to.query === "object" && Object.keys(to.query).length) {
+          for (const [k, v] of Object.entries(to.query)) {
+            const cur = this.$route.query[k];
+            const cur0 = Array.isArray(cur) ? cur[0] : cur;
+            if (String(cur0 ?? "") !== String(v)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      return false;
+    },
     sectionTitle(section) {
       return section.title ?? section.tittle ?? "";
     },
@@ -199,8 +234,10 @@ export default {
         (section.menu || []).forEach((menu) => {
           if (!menu.hasSubRoute || !menu.subMenus) return;
           const key = this.submenuKey(section, menu);
-          const childNames = menu.subMenus.map((s) => s.route && s.route.name).filter(Boolean);
-          if (childNames.includes(this.$route.name)) {
+          const anyChildActive = menu.subMenus.some(
+            (s) => s.route && this.isRouteTargetActive(s.route)
+          );
+          if (anyChildActive) {
             this.submenuExpanded = { ...this.submenuExpanded, [key]: true };
           }
         });

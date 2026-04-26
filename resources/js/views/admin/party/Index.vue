@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Party List" subtitle="Manage your parties" @refresh="fetchParties">
+    <PageHeader :title="pageTitle" :subtitle="pageSubtitle" @refresh="fetchParties">
         <template #actions>
             <button
                 v-can="'create_party'"
@@ -61,12 +61,13 @@
             </div>
         </div>
     </section>
-    <CreateParty v-model:create-modal-opened="createModalOpened"/>
+    <CreateParty v-model:create-modal-opened="createModalOpened" :type="filter.type || undefined"/>
     <EditParty v-model:party_id="edit_party_id"/>
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
+import {useRoute} from 'vue-router';
 import debounce from 'lodash/debounce';
 import Swal from 'sweetalert2';
 import {toast} from '@/helpers/toast';
@@ -76,11 +77,18 @@ import CreateParty from './Create.vue';
 import EditParty from './Edit.vue';
 import {usePartyStore} from "@/stores/admin/party.js";
 
-const partyStore = usePartyStore();
+const VALID_PARTY_TYPES = ['customer', 'supplier', 'lead'];
 
-onMounted(() => {
-    fetchParties();
-});
+function normalizePartyTypeFromQuery(queryType) {
+    const t = Array.isArray(queryType) ? queryType[0] : queryType;
+    if (t && VALID_PARTY_TYPES.includes(t)) {
+        return t;
+    }
+    return '';
+}
+
+const partyStore = usePartyStore();
+const route = useRoute();
 
 const edit_party_id = ref('');
 const createModalOpened = ref(false);
@@ -94,11 +102,6 @@ const filter = reactive({
     limit: 10
 });
 
-watch(() => filter.type, () => {
-    filter.page = 1;
-    fetchParties();
-});
-
 const fetchParties = () => {
     partyStore.getParties({filter});
 };
@@ -107,6 +110,42 @@ const debouncedFetch = debounce(() => {
     filter.page = 1;
     fetchParties();
 }, 300);
+
+const pageTitle = computed(() => {
+    switch (filter.type) {
+        case 'customer':
+            return 'Customers';
+        case 'supplier':
+            return 'Suppliers';
+        case 'lead':
+            return 'Leads';
+        default:
+            return 'Party list';
+    }
+});
+
+const pageSubtitle = computed(() => {
+    switch (filter.type) {
+        case 'customer':
+            return 'People and businesses you sell to';
+        case 'supplier':
+            return 'Vendors you purchase from';
+        case 'lead':
+            return 'Prospects before they become customers';
+        default:
+            return 'Manage your parties';
+    }
+});
+
+watch(
+    () => route.query.type,
+    () => {
+        filter.type = normalizePartyTypeFromQuery(route.query.type);
+        filter.page = 1;
+        fetchParties();
+    },
+    { immediate: true }
+);
 
 const pagination = computed(() => ({
     total: parties.value.meta.total || 0,
