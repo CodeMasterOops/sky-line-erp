@@ -80,6 +80,7 @@ use App\Http\Controllers\Api\Admin\BranchController;
 use App\Http\Controllers\Api\Admin\PosController;
 use App\Http\Controllers\Api\Admin\SalesReportController;
 use App\Http\Controllers\Api\Admin\PurchaseReportController;
+use App\Http\Controllers\Api\Admin\BarcodeController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -147,6 +148,12 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('product/variant/all', [ProductController::class, 'productVariants'])->name('product.variant.all');
         Route::get('product/variant/search', [ProductController::class, 'searchProductVariants'])->name('product.variant.search');
         Route::apiResource('product', ProductController::class);
+
+        // barcode generation & label printing
+        Route::prefix('barcode')->as('barcode.')->controller(BarcodeController::class)->group(function () {
+            Route::post('pdf', 'pdf')->name('pdf');
+            Route::post('preview', 'preview')->name('preview');
+        });
 
         // product attribute
         Route::apiResource('attribute', AttributeController::class);
