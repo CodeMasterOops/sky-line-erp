@@ -48,8 +48,6 @@
                                 <th>Rate</th>
                                 <th>Discount</th>
                                 <th>Tax</th>
-                                <th>Tax amt</th>
-                                <th>Line total</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -60,8 +58,6 @@
                                 <td>{{ formatN(item.rate) }}</td>
                                 <td>{{ formatN(item.discount_amount) }}</td>
                                 <td>{{ taxLabel(item) }}</td>
-                                <td>{{ formatN(item.tax_amount) }}</td>
-                                <td>{{ formatN(lineTotal(item)) }}</td>
                             </tr>
                             </tbody>
                         </table>
@@ -76,7 +72,15 @@
                                     </li>
                                     <li>
                                         <h4>Discount</h4>
-                                        <h5>{{ formatN(detailData.discount_total) }}</h5>
+                                        <h5>{{ formatN(detailTotalDiscount) }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Non-taxable (net)</h4>
+                                        <h5>{{ formatN(detailData.non_taxable_base) }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Taxable (net)</h4>
+                                        <h5>{{ formatN(detailData.taxable_base) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Tax</h4>
@@ -125,6 +129,13 @@ const detailBillId = defineModel('detailBillId', {type: String, default: ''});
 
 const detailData = computed(() => bill.value.data || {});
 
+const detailTotalDiscount = computed(() => {
+    const d = detailData.value;
+    const line = Number(d.discount_total ?? d.line_discount_total ?? 0) || 0;
+    const orderAmt = Number(d.order_discount_amount ?? 0) || 0;
+    return line + orderAmt;
+});
+
 watch(
     () => detailBillId.value,
     (id) => {
@@ -158,14 +169,6 @@ const taxLabel = (item) => {
         return r ? `${item.tax.name} (${r})` : item.tax.name;
     }
     return '—';
-};
-
-const lineTotal = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const disc = Number(item.discount_amount || 0);
-    const taxAmt = Number(item.tax_amount || 0);
-    return qty * rate - disc + taxAmt;
 };
 
 const voidBill = async () => {
