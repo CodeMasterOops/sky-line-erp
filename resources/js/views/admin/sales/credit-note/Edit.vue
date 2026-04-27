@@ -69,6 +69,7 @@
                         <div v-if="isDraft" class="col-12">
                             <ProductVariantSearchInput
                                 label="Product name / code / SKU"
+                                required
                                 @select="onVariantSelected"
                             />
                         </div>

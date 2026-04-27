@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Models\StockTransfer;
+use App\Models\ProductVariant;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -61,13 +62,7 @@ class StockTransferController extends Controller
                     'status' => $status,
                 ]);
 
-                $items = collect($formData['items'] ?? [])->map(function ($item) {
-                    return [
-                        'product_variant_id' => $item['product_variant_id'],
-                        'unit_id' => $item['unit_id'] ?? null,
-                        'quantity' => $item['quantity'],
-                    ];
-                })->all();
+                $items = $this->normalizedStockTransferItems($formData['items'] ?? []);
 
                 $transfer->stockTransferItems()->createMany($items);
 
@@ -136,13 +131,7 @@ class StockTransferController extends Controller
 
             $stockTransfer->stockTransferItems()->delete();
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                ];
-            })->all();
+            $items = $this->normalizedStockTransferItems($formData['items'] ?? []);
 
             $stockTransfer->stockTransferItems()->createMany($items);
 
@@ -217,6 +206,38 @@ class StockTransferController extends Controller
             'data' => StockTransferResource::make($stockTransfer),
             'message' => 'Stock Transfer Approved Successfully',
         ]);
+    }
+
+    /**
+     * Quantity is always in the variant’s stock unit; unit_id is stored for display only and defaults from the product.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array{product_variant_id: int, unit_id: ?int, quantity: int}>
+     */
+    private function normalizedStockTransferItems(array $items): array
+    {
+        $variantIds = collect($items)->pluck('product_variant_id')->unique()->filter()->all();
+        $unitByVariantId = ProductVariant::query()
+            ->whereIn('id', $variantIds)
+            ->with('product:id,unit_id')
+            ->get()
+            ->keyBy('id')
+            ->map(fn (ProductVariant $v) => $v->product?->unit_id);
+
+        return collect($items)->map(function (array $item) use ($unitByVariantId) {
+            $vid = (int) $item['product_variant_id'];
+            $fromRequest = $item['unit_id'] ?? null;
+            $fallback = $unitByVariantId->get($vid);
+            $unitId = ($fromRequest !== null && $fromRequest !== '')
+                ? (int) $fromRequest
+                : ($fallback !== null && $fallback !== '' ? (int) $fallback : null);
+
+            return [
+                'product_variant_id' => $vid,
+                'unit_id' => $unitId,
+                'quantity' => (int) $item['quantity'],
+            ];
+        })->all();
     }
 
     private function applyApprovalEffects(StockTransfer $transfer): void

@@ -1,6 +1,9 @@
 <template>
     <div class="product-variant-search" ref="rootEl">
-        <label v-if="label">{{ label }}</label>
+        <label v-if="label" class="form-label">
+            {{ label }}
+            <VRequiredMark v-if="required" />
+        </label>
         <div class="input-groupicon select-code">
             <input ref="inputRef" v-model="query" type="text" class="form-control" :placeholder="placeholder"
                 autocomplete="off" @input="onQueryInput" @keydown.enter.prevent="onEnter" @paste="onPaste"
@@ -32,6 +35,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import debounce from 'lodash/debounce';
 import { useProductStore } from '@/stores/admin/inventory/product.js';
+import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
 const props = defineProps({
     label: {
@@ -41,6 +45,10 @@ const props = defineProps({
     placeholder: {
         type: String,
         default: 'Search by name, code, or SKU — Enter to add',
+    },
+    required: {
+        type: Boolean,
+        default: false,
     },
 });
 
