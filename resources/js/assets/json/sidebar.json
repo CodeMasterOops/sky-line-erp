@@ -143,16 +143,10 @@
           "permission": "list_unit"
         },
         {
-          "menuValue": "Storage",
+          "menuValue": "Warehouses",
+          "route": { "name": "admin.warehouse-list" },
           "icon": "ti ti-layout-grid",
-          "hasSubRoute": true,
-          "subMenus": [
-            {
-              "menuValue": "Warehouses",
-              "route": { "name": "admin.warehouse-list" },
-              "permission": "list_warehouse"
-            }
-          ]
+          "permission": "list_warehouse"
         },
         {
           "menuValue": "Operations",
