@@ -1,5 +1,8 @@
 <template>
-  <label v-if="label" :for="id" class="form-label">{{ label }}</label>
+  <label v-if="label" :for="id" class="form-label">
+    {{ label }}
+    <VRequiredMark v-if="required" />
+  </label>
   <select
       :id="id"
       v-bind:class="[selectClass,{'is-invalid':error}]"
@@ -71,7 +74,11 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false
-  }
+  },
+  required: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const updateInputValue = (event) => {

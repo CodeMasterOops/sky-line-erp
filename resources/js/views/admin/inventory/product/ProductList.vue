@@ -92,6 +92,10 @@
                             {{ formatMoney(record.total_inventory_value) }}
                         </template>
 
+                        <template v-else-if="column.key === 'tax'">
+                            {{ formatProductTax(record) }}
+                        </template>
+
                         <template v-else-if="column.key === 'action'">
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
@@ -207,6 +211,18 @@ function formatMoney(value) {
     return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatProductTax(record) {
+    const t = record?.tax;
+    if (!t?.name) {
+        return 'No Vat';
+    }
+    const rate = t.rate;
+    if (rate !== undefined && rate !== null && rate !== '') {
+        return `${t.name} (${Number(rate)}%)`;
+    }
+    return t.name;
+}
+
 const pagination = computed(() => ({
     total: products.value.meta.total,
     current: products.value.meta.current_page,
@@ -243,9 +259,14 @@ const columns = [
         sorter: true,
     },
     {
-        title: "Unit",
-        dataIndex: "unit",
-        sorter: true,
+        title: "VAT",
+        key: "tax",
+        dataIndex: "tax",
+        sorter: (a, b) => {
+            const an = (a.tax?.name ?? '').toLowerCase();
+            const bn = (b.tax?.name ?? '').toLowerCase();
+            return an.localeCompare(bn);
+        },
     },
     {
         title: "Total stock",
@@ -258,12 +279,6 @@ const columns = [
         key: "total_inventory_value",
         dataIndex: "total_inventory_value",
         sorter: (a, b) => (a.total_inventory_value ?? 0) - (b.total_inventory_value ?? 0),
-    },
-    {
-        title: "Reorder",
-        key: "reorder",
-        dataIndex: "reorder_quantity",
-        sorter: (a, b) => (a.reorder_quantity ?? 0) - (b.reorder_quantity ?? 0),
     },
     {
         title: "Action",

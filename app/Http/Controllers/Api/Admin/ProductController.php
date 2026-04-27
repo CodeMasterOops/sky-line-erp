@@ -85,6 +85,7 @@ class ProductController extends Controller
             'productCategory',
             'brand',
             'unit',
+            'tax',
             'defaultVariant',
             'variants' => fn ($q) => $q->with($variantRelations),
         ])
@@ -121,6 +122,8 @@ class ProductController extends Controller
             return $product;
         });
 
+        $product->load('tax');
+
         return response()->json([
             'data' => ProductResource::make($product),
             'message' => 'Product Added Successfully',
@@ -133,6 +136,7 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load([
+            'tax',
             'variants.variantOptions.attribute',
             'variants.stocks.warehouse',
         ]);
@@ -154,6 +158,7 @@ class ProductController extends Controller
             'code',
             'unit_id',
             'brand_id',
+            'tax_id',
             'has_variants',
             'reorder_quantity',
             'description',
@@ -198,6 +203,7 @@ class ProductController extends Controller
         });
 
         $product->load([
+            'tax',
             'variants.variantOptions.attribute',
             'variants.stocks.warehouse',
         ]);

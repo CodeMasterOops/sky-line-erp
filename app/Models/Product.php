@@ -25,6 +25,7 @@ class Product extends Model
         'image',
         'unit_id',
         'brand_id',
+        'tax_id',
         'has_variants',
         'reorder_quantity',
         'min_stock_level',
@@ -74,6 +75,11 @@ class Product extends Model
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function tax(): BelongsTo
+    {
+        return $this->belongsTo(Tax::class);
     }
 
     public function defaultVariant(): HasOne

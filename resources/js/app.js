@@ -21,6 +21,7 @@ import "@/assets/scss/app.scss";
 
 //base components
 import VInput from "@/components/base/VInput.vue";
+import VRequiredMark from "@/components/base/VRequiredMark.vue";
 import VTextarea from "@/components/base/VTextarea.vue";
 import VSelect from "@/components/base/VSelect.vue";
 import VMultiselect from "@/components/base/VMultiselect.vue";
@@ -67,6 +68,7 @@ createApp(App)
     .component("PosLoader", PosLoader)
     .component("IconHome", IconHome)
     .component("VInput", VInput)
+    .component("VRequiredMark", VRequiredMark)
     .component("VTextarea", VTextarea)
     .component("VSelect", VSelect)
     .component("Multiselect", Multiselect)

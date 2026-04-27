@@ -1,5 +1,8 @@
 <template>
-  <label v-if="label" :for="id" class="form-label">{{ label }}</label>
+  <label v-if="label" :for="id" class="form-label">
+    {{ label }}
+    <VRequiredMark v-if="required" />
+  </label>
   <input
       :type="inputType"
       v-bind:step="inputType==='number'?'any':null"
@@ -53,6 +56,10 @@ const props = defineProps({
   readonly: {
     type: Boolean,
     default: false
+  },
+  required: {
+    type: Boolean,
+    default: false,
   },
   minValue: {
     type: Number,

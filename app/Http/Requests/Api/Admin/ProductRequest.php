@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Admin;
 
+use App\Models\Tax;
 use App\Tenancy\TRule;
 use App\Enums\ProductTypeEnum;
 use Illuminate\Validation\Rule;
@@ -22,6 +23,18 @@ class ProductRequest extends FormRequest
             'image' => ['nullable', 'image'],
             'unit_id' => ['required', TRule::exists('units', 'id')->withoutTrashed()],
             'brand_id' => ['nullable', TRule::exists('brands', 'id')->withoutTrashed()],
+            'tax_id' => [
+                'nullable',
+                TRule::exists('taxes', 'id')->withoutTrashed(),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+                    if (! Tax::query()->whereKey($value)->lineItem()->exists()) {
+                        $fail(__('The selected tax must be a VAT rate.'));
+                    }
+                },
+            ],
             'reorder_quantity' => ['nullable', 'integer'],
             'description' => ['nullable'],
             'has_variants' => [

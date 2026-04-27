@@ -14,120 +14,133 @@
                 </h2>
                 <div id="collapseProductInfo" class="accordion-collapse collapse show"
                     aria-labelledby="headingProductInfo">
-                    <div class="accordion-body border-top">
-                        <div class="row g-3">
+                    <div class="accordion-body border-top product-info-accordion-body">
+                        <!-- Full width: type picker must not share a row with short fields (avoids ragged columns). -->
+                        <div class="row mb-3 mb-lg-4">
                             <div class="col-12">
-                                <div>
-                                    <label class="form-label">
-                                        What are you adding?
-                                        <span class="text-danger ms-1">*</span>
-                                    </label>
-                                    <p class="text-muted small mb-3">
-                                        Pick whether this is a stocked item or a billable service. Services always use
-                                        one
-                                        price row; products can be simple or variable in the next section.
-                                    </p>
-                                    <div class="row g-2">
-                                        <div class="col-md-6">
-                                            <button type="button"
-                                                class="w-100 text-start p-3 rounded-3 border bg-white product-pricing-card"
-                                                :class="{ 'border-primary border-2 shadow-sm': form.product_type === 'product' }"
-                                                @click="setProductType('product')">
-                                                <div class="fw-semibold text-dark">
-                                                    <i class="ti ti-package me-1 text-primary"></i>
-                                                    Product
-                                                </div>
-                                                <div class="small text-muted mt-1 mb-0">
-                                                    Stocked goods you sell; supports simple or variable pricing below.
-                                                </div>
-                                            </button>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <button type="button"
-                                                class="w-100 text-start p-3 rounded-3 border bg-white product-pricing-card"
-                                                :class="{ 'border-primary border-2 shadow-sm': form.product_type === 'service' }"
-                                                @click="setProductType('service')">
-                                                <div class="fw-semibold text-dark">
-                                                    <i class="ti ti-briefcase me-1 text-primary"></i>
-                                                    Service
-                                                </div>
-                                                <div class="small text-muted mt-1 mb-0">
-                                                    Labor, time, or fees; one SKU and one price row (no variants).
-                                                </div>
-                                            </button>
-                                        </div>
+                                <label class="form-label">
+                                    What are you adding?
+                                    <VRequiredMark />
+                                </label>
+                                <p class="text-muted small mb-3">
+                                    Pick whether this is a stocked item or a billable service. Services always use
+                                    one price row; products can be simple or variable in the next section.
+                                </p>
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-12 col-md-6">
+                                        <button type="button"
+                                            class="w-100 text-start p-3 rounded-3 border bg-white product-pricing-card"
+                                            :class="{ 'border-primary border-2 shadow-sm': form.product_type === 'product' }"
+                                            @click="setProductType('product')">
+                                            <div class="fw-semibold text-dark">
+                                                <i class="ti ti-package me-1 text-primary"></i>
+                                                Product
+                                            </div>
+                                            <div class="small text-muted mt-1 mb-0">
+                                                Stocked goods you sell; supports simple or variable pricing below.
+                                            </div>
+                                        </button>
                                     </div>
-                                    <div v-if="errors.product_type" class="text-danger small mt-1">
-                                        {{ errors.product_type }}
+                                    <div class="col-12 col-md-6">
+                                        <button type="button"
+                                            class="w-100 text-start p-3 rounded-3 border bg-white product-pricing-card"
+                                            :class="{ 'border-primary border-2 shadow-sm': form.product_type === 'service' }"
+                                            @click="setProductType('service')">
+                                            <div class="fw-semibold text-dark">
+                                                <i class="ti ti-briefcase me-1 text-primary"></i>
+                                                Service
+                                            </div>
+                                            <div class="small text-muted mt-1 mb-0">
+                                                Labor, time, or fees; one SKU and one price row (no variants).
+                                            </div>
+                                        </button>
                                     </div>
                                 </div>
+                                <div v-if="errors.product_type" class="text-danger small mt-2">
+                                    {{ errors.product_type }}
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <VInput id="name" v-model="form.name" label="Name" @validate="validateField('name')"
-                                    :error="errors.name" />
+                        </div>
+
+                        <!-- 1 col (xs) / 2 cols (md) / 3 cols (xl). Description is outside this row so col-12 works. -->
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 g-lg-4 product-form-fields">
+                            <div class="col">
+                                <VInput id="name" v-model="form.name" label="Name" required
+                                    @validate="validateField('name')" :error="errors.name" />
                             </div>
-                            <div class="col-sm-6 col-12">
-                                <div class="list position-relative">
-                                    <label class="form-label" for="code">
-                                        Product code
-                                        <span class="text-danger ms-1">*</span>
-                                    </label>
+                            <div class="col">
+                                <label class="form-label" for="code">
+                                    Product code
+                                    <VRequiredMark />
+                                </label>
+                                <div class="input-group product-form-input-group">
                                     <input id="code" v-model="form.code" type="text"
-                                        placeholder="e.g. internal or supplier code" class="form-control list"
+                                        placeholder="e.g. internal or supplier code" class="form-control"
                                         :class="{ 'is-invalid': errors.code }" autocomplete="off"
                                         @blur="validateField('code')">
-                                    <button type="button" class="btn btn-primaryadd" @click="generateProductCode">
+                                    <button type="button" class="btn btn-primary" @click="generateProductCode">
                                         Generate
                                     </button>
-                                    <div v-if="errors.code" class="invalid-feedback d-block">
-                                        {{ errors.code }}
-                                    </div>
+                                </div>
+                                <div v-if="errors.code" class="invalid-feedback d-block">
+                                    {{ errors.code }}
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col">
                                 <VMultiselect id="product_category_id" v-model="form.product_category_id"
-                                    :options="productCategories.data" label="Category"
+                                    :options="productCategories.data" label="Category" required
                                     @validate="validateField('product_category_id')"
                                     :error="errors.product_category_id" />
                             </div>
-                            <div class="col-md-6">
+                            <div class="col">
                                 <VMultiselect id="unit_id" v-model="form.unit_id" :options="units.data" label="Unit"
+                                    required
                                     @validate="validateField('unit_id')" :error="errors.unit_id" />
                             </div>
-                            <div class="col-md-6">
+                            <div class="col">
                                 <VMultiselect id="brand_id" v-model="form.brand_id" :options="brands.data" label="Brand"
                                     @validate="validateField('brand_id')" :error="errors.brand_id" />
                             </div>
-                            <div v-if="isPhysicalProduct" class="col-md-6">
-                                <div class="mb-3 list position-relative">
-                                    <label class="form-label" for="product-item-barcode">
-                                        Item barcode
-                                        <span class="text-danger ms-1">*</span>
-                                    </label>
-                                    <input id="product-item-barcode" v-model="itemBarcode" type="text"
-                                        class="form-control list" placeholder="Scan or generate" autocomplete="off">
-                                    <button type="button" class="btn btn-primaryadd" @click="generateItemBarcode">
-                                        Generate
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div v-if="isPhysicalProduct" class="col-md-6">
-                                <VInput input-type="number" id="reorder_quantity" v-model="form.reorder_quantity"
-                                    label="Reorder quantity" @validate="validateField('reorder_quantity')"
-                                    :error="errors.reorder_quantity" />
-                            </div>
-                            <div v-if="isPhysicalProduct" class="col-md-6">
-                                <VInput input-type="number" id="min_stock_level" v-model="form.min_stock_level"
-                                    label="Min Stock Level" @validate="validateField('min_stock_level')"
-                                    :error="errors.min_stock_level" />
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col">
                                 <VInput id="hsn_code" v-model="form.hsn_code"
                                     label="HSN / HS Code" placeholder="e.g. 9403"
                                     @validate="validateField('hsn_code')"
                                     :error="errors.hsn_code" />
                             </div>
+                            <div class="col">
+                                <VSelect id="tax_id" v-model="form.tax_id" label="VAT"
+                                    placeholder="default VAT"
+                                    :options="taxes.data"
+                                    @validate="validateField('tax_id')"
+                                    :error="errors.tax_id" />
+                            </div>
+                            <div v-if="isPhysicalProduct" class="col">
+                                <label class="form-label" for="product-item-barcode">
+                                    Item barcode
+                                    <VRequiredMark />
+                                </label>
+                                <div class="input-group product-form-input-group">
+                                    <input id="product-item-barcode" v-model="itemBarcode" type="text"
+                                        class="form-control" placeholder="Scan or generate" autocomplete="off">
+                                    <button type="button" class="btn btn-primary" @click="generateItemBarcode">
+                                        Generate
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div v-if="isPhysicalProduct" class="col">
+                                <VInput input-type="number" id="reorder_quantity" v-model="form.reorder_quantity"
+                                    label="Reorder quantity" :required="isPhysicalProduct"
+                                    @validate="validateField('reorder_quantity')" :error="errors.reorder_quantity" />
+                            </div>
+                            <div v-if="isPhysicalProduct" class="col">
+                                <VInput input-type="number" id="min_stock_level" v-model="form.min_stock_level"
+                                    label="Min Stock Level" @validate="validateField('min_stock_level')"
+                                    :error="errors.min_stock_level" />
+                            </div>
+                        </div>
+
+                        <div class="row mt-1 mt-lg-2">
                             <div class="col-12">
                                 <VTextarea id="description" v-model="form.description" label="Description"
                                     @validate="validateField('description')" :error="errors.description" />
@@ -163,15 +176,15 @@
                         <p v-else class="text-muted small mb-3">
                             Set default purchase and selling prices for quoting; services are not held as stock.
                         </p>
-                        <div v-if="isPhysicalProduct" class="row g-3 mb-1">
+                        <div v-if="isPhysicalProduct" class="row g-3 g-lg-4 mb-1">
                             <div class="col-12">
                                 <label class="form-label mb-1">Pricing model</label>
                                 <p class="text-muted small mb-3">
                                     Simple items use one SKU and price. Variable items use options (for example size and
                                     color) and get one row per combination.
                                 </p>
-                                <div class="row g-2">
-                                    <div class="col-md-6">
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-12 col-md-6">
                                         <button type="button"
                                             class="w-100 text-start p-3 rounded-3 border bg-white product-pricing-card"
                                             :class="{ 'border-primary border-2 shadow-sm': !form.has_variants }"
@@ -185,7 +198,7 @@
                                             </div>
                                         </button>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-12 col-md-6">
                                         <button type="button"
                                             class="w-100 text-start p-3 rounded-3 border bg-white product-pricing-card"
                                             :class="{ 'border-primary border-2 shadow-sm': form.has_variants }"
@@ -253,7 +266,8 @@
                                             </div>
                                             <div class="row g-3">
                                                 <div class="col-12 col-lg-5">
-                                                    <label class="form-label small mb-1">Option name</label>
+                                                    <label class="form-label small mb-1">Option name
+                                                        <VRequiredMark /></label>
                                                     <VSelect :model-value="selectedVariants[index].attribute_id"
                                                         :options="selectableAttributes(variant.attribute_id)"
                                                         placeholder="Select attribute"
@@ -262,7 +276,8 @@
                                                 <div class="col-12">
                                                     <div
                                                         class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                                        <label class="form-label small mb-0">Values</label>
+                                                        <label class="form-label small mb-0">Values
+                                                            <VRequiredMark /></label>
                                                         <div v-if="selectedVariants[index].attribute_id && attributeValues(selectedVariants[index].attribute_id).length"
                                                             class="btn-group btn-group-sm ms-auto">
                                                             <button type="button" class="btn btn-outline-secondary"
@@ -337,11 +352,11 @@
                                                     <th v-for="attr in variantColumnAttributes" :key="attr.attr_id">
                                                         {{ attr.attr_name }}
                                                     </th>
-                                                    <th>SKU</th>
+                                                    <th>SKU <VRequiredMark /></th>
                                                     <th class="text-end" title="Default purchase; actual cost comes from received stock">
-                                                        Purchase Price (Default)</th>
+                                                        Purchase Price (Default) <VRequiredMark /></th>
                                                     <th class="text-end" title="Default selling price for sales and purchase screens">
-                                                        Selling Price</th>
+                                                        Selling Price <VRequiredMark /></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -353,14 +368,14 @@
                                                     </td>
                                                     <td>
                                                         <VInput v-model="form.variants[index].sku" placeholder="SKU"
-                                                            input-class="form-control form-control-sm py-1"
+                                                            input-class="form-control form-control-sm py-1" required
                                                             @validate="validateField(`variants[${index}].sku`)"
                                                             :error="errors[`variants[${index}].sku`]" />
                                                     </td>
                                                     <td class="text-end">
                                                         <VInput input-type="number"
                                                             v-model="form.variants[index].purchase_price"
-                                                            placeholder="0"
+                                                            placeholder="0" required
                                                             input-class="form-control form-control-sm py-1 text-end"
                                                             @validate="validateField(`variants[${index}].purchase_price`)"
                                                             :error="errors[`variants[${index}].purchase_price`]" />
@@ -368,6 +383,7 @@
                                                     <td class="text-end">
                                                         <VInput input-type="number"
                                                             v-model="form.variants[index].sales_price" placeholder="0"
+                                                            required
                                                             input-class="form-control form-control-sm py-1 text-end"
                                                             @validate="validateField(`variants[${index}].sales_price`)"
                                                             :error="errors[`variants[${index}].sales_price`]" />
@@ -381,21 +397,24 @@
                         </template>
 
                         <template v-else-if="form.variants.length">
-                            <div class="row g-3 mt-1">
-                                <div class="col-md-4">
+                            <div
+                                class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 g-lg-4 mt-1 product-form-fields">
+                                <div class="col">
                                     <VInput id="sku" v-model="form.variants[0].sku" label="SKU"
                                         @validate="validateField(`variants[0].sku`)"
                                         :error="errors[`variants[0].sku`]" />
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col">
                                     <VInput input-type="number" id="purchase_price"
                                         v-model="form.variants[0].purchase_price" label="Purchase Price (Default)"
+                                        required
                                         @validate="validateField(`variants[0].purchase_price`)"
                                         :error="errors[`variants[0].purchase_price`]" />
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col">
                                     <VInput input-type="number" id="sales_price" v-model="form.variants[0].sales_price"
-                                        label="Selling Price" @validate="validateField(`variants[0].sales_price`)"
+                                        label="Selling Price" required
+                                        @validate="validateField(`variants[0].sales_price`)"
                                         :error="errors[`variants[0].sales_price`]" />
                                 </div>
                             </div>
@@ -436,6 +455,7 @@ import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 import { storeToRefs } from 'pinia';
 import { useAttributeStore } from '@/stores/admin/inventory/attribute.js';
 import { useSettingStore } from '@/stores/admin/setting.js';
+import { useTaxStore } from '@/stores/admin/setting/tax.js';
 
 const props = defineProps({
     mode: {
@@ -459,6 +479,7 @@ const categoryStore = useProductCategoryStore();
 const brandStore = useBrandStore();
 const attributeStore = useAttributeStore();
 const settingStore = useSettingStore();
+const taxStore = useTaxStore();
 
 const { units } = storeToRefs(unitStore);
 const { productCategories } = storeToRefs(categoryStore);
@@ -466,6 +487,7 @@ const { brands } = storeToRefs(brandStore);
 const { attributes } = storeToRefs(attributeStore);
 const { product } = storeToRefs(productStore);
 const { setting } = storeToRefs(settingStore);
+const { taxes } = storeToRefs(taxStore);
 
 const inventoryCostingMethodName = computed(() => {
     const raw = setting.value?.data?.inventory_costing_method;
@@ -490,6 +512,7 @@ const initialState = {
     image: '',
     unit_id: '',
     brand_id: '',
+    tax_id: '',
     reorder_quantity: '',
     min_stock_level: '',
     hsn_code: '',
@@ -562,6 +585,7 @@ async function hydrateFromProduct(data) {
             image: data.image ?? '',
             unit_id: data.unit_id ?? '',
             brand_id: data.brand_id ?? '',
+            tax_id: data.tax_id != null && data.tax_id !== '' ? String(data.tax_id) : '',
             reorder_quantity: data.reorder_quantity != null ? String(data.reorder_quantity) : '',
             min_stock_level: data.min_stock_level != null ? String(data.min_stock_level) : '',
             hsn_code: data.hsn_code ?? '',
@@ -894,6 +918,7 @@ const validations = object({
     code: string().required('Product code is required.'),
     unit_id: string().required('Unit is required.'),
     brand_id: string().nullable(),
+    tax_id: string().nullable(),
     reorder_quantity: string().when('product_type', {
         is: 'service',
         then: (s) => s.nullable(),
@@ -1003,6 +1028,7 @@ onMounted(async () => {
     brandStore.getBrands();
     attributeStore.getAttributes();
     await settingStore.getSetting();
+    await taxStore.getTaxes(false, { for: 'line_item' });
     if (isEdit.value && props.productId) {
         ready.value = false;
         await productStore.getProduct(props.productId);
@@ -1072,6 +1098,17 @@ function resetForm() {
 </script>
 
 <style scoped>
+/* Prevent selects / long content from breaking the md 2-col and xl 3-col grid */
+.product-form-fields > .col {
+    min-width: 0;
+}
+
+.product-form-input-group .btn {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    padding: 0.45rem 0.85rem;
+}
+
 .product-pricing-card {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
