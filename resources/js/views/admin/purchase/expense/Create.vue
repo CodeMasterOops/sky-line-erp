@@ -79,7 +79,8 @@
                                 <td>
                                     <VSelect
                                         v-model="form.items[index].tax_id"
-                                        :options="taxes.data"
+                                        select-class="form-select form-select-sm line-item-tax-select"
+                                        :options="lineTaxOptions"
                                         @validate="validateField(`items[${index}].tax_id`)"
                                         :error="errors[`items[${index}].tax_id`]"
                                     />
@@ -214,6 +215,7 @@ import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useExpenseStore} from '@/stores/admin/purchase/expense.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 
 const expenseStore = useExpenseStore();
 const accountStore = useAccountStore();
@@ -225,6 +227,8 @@ const createModalOpened = defineModel('createModalOpened');
 const {accounts} = storeToRefs(accountStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
+
+const lineTaxOptions = useLineItemTaxOptions(taxes);
 
 onMounted(() => {
     accountStore.getAccounts();

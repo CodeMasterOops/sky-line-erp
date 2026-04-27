@@ -94,7 +94,8 @@
                                 <td>
                                     <VSelect
                                         v-model="form.items[index].tax_id"
-                                        :options="taxes.data"
+                                        select-class="form-select form-select-sm line-item-tax-select"
+                                        :options="lineTaxOptions"
                                         @validate="validateField(`items[${index}].tax_id`)"
                                         :error="errors[`items[${index}].tax_id`]"
                                     />
@@ -224,6 +225,7 @@ import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 
 const quotationStore = useQuotationStore();
@@ -237,6 +239,8 @@ const {quotation} = storeToRefs(quotationStore);
 const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
+
+const lineTaxOptions = useLineItemTaxOptions(taxes);
 
 onMounted(() => {
     productStore.getProductVariants();

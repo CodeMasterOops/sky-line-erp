@@ -128,8 +128,8 @@
                                         <td>
                                             <VSelect
                                                 v-model="form.items[index].tax_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="taxes.data"
+                                                select-class="form-select form-select-sm line-item-tax-select"
+                                                :options="lineTaxOptions"
                                                 :disabled="!isDraft"
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
@@ -239,6 +239,7 @@ import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
@@ -251,6 +252,8 @@ const edit_order_id = defineModel('order_id');
 const {order} = storeToRefs(salesOrderStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
+
+const lineTaxOptions = useLineItemTaxOptions(taxes);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({

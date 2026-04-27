@@ -108,7 +108,7 @@
                                             <td>
                                                 <VSelect
                                                     v-model="form.items[index].tax_id"
-                                                    select-class="form-select form-select-sm po-line-tax-select"
+                                                    select-class="form-select form-select-sm line-item-tax-select"
                                                     :options="lineTaxOptions"
                                                     @validate="validateField(`items[${index}].tax_id`)"
                                                     :error="errors[`items[${index}].tax_id`]" />
@@ -204,7 +204,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import debounce from 'lodash/debounce';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -217,6 +217,7 @@ import { usePurchaseOrderStore } from '@/stores/admin/purchase/purchase-order.js
 import { useDateHelper } from '@/composables/dateHelper.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
@@ -233,11 +234,7 @@ const createSupplierOpened = ref(false);
 const { parties } = storeToRefs(partyStore);
 const { taxes } = storeToRefs(taxStore);
 
-/** No selection → API null; first option label matches theme `form-control-sm` row inputs. */
-const lineTaxOptions = computed(() => {
-    const list = Array.isArray(taxes.value.data) ? taxes.value.data : [];
-    return [{ id: '', name: 'No tax' }, ...list];
-});
+const lineTaxOptions = useLineItemTaxOptions(taxes);
 
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
@@ -397,16 +394,6 @@ function resetForm() {
 .order-lines-table :deep(.form-control),
 .order-lines-table :deep(.form-select) {
     min-width: 4.25rem;
-}
-
-/* Match `form-control-sm` in this theme: `.form-select` defaults to full-size min-height. */
-.order-lines-table :deep(select.form-select-sm.po-line-tax-select) {
-    min-height: calc(2px + 0.5rem + 0.8rem * 1.5);
-    padding: 0.25rem 1.75rem 0.25rem 0.8rem;
-    font-size: 0.8rem;
-    line-height: 1.5;
-    background-size: 0.9rem;
-    background-position: right 0.45rem center;
 }
 
 .order-lines-table th,

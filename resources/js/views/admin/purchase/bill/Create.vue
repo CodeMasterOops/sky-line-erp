@@ -179,7 +179,7 @@
                                         <td>
                                             <VSelect
                                                 v-model="form.items[index].tax_id"
-                                                select-class="form-select form-select-sm po-line-tax-select"
+                                                select-class="form-select form-select-sm line-item-tax-select"
                                                 :options="lineTaxOptions"
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
@@ -293,7 +293,7 @@
 </template>
 
 <script setup>
-import {computed, reactive, ref, watch} from 'vue';
+import {reactive, ref, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -307,6 +307,7 @@ import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
@@ -330,10 +331,7 @@ const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 const {order} = storeToRefs(purchaseOrderStore);
 
-const lineTaxOptions = computed(() => {
-    const list = Array.isArray(taxes.value.data) ? taxes.value.data : [];
-    return [{ id: '', name: 'No tax' }, ...list];
-});
+const lineTaxOptions = useLineItemTaxOptions(taxes);
 
 const branches = ref([]);
 
@@ -595,15 +593,6 @@ function resetForm() {
 
 .order-lines-table .po-col-action {
     width: 3rem;
-}
-
-.order-lines-table :deep(select.form-select-sm.po-line-tax-select) {
-    min-height: calc(2px + 0.5rem + 0.8rem * 1.5);
-    padding: 0.25rem 1.75rem 0.25rem 0.8rem;
-    font-size: 0.8rem;
-    line-height: 1.5;
-    background-size: 0.9rem;
-    background-position: right 0.45rem center;
 }
 
 .order-lines-table .po-discount-cell {

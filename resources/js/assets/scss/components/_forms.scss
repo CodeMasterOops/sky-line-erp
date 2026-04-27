@@ -1112,3 +1112,13 @@ input[type="number"]::-webkit-inner-spin-button {
   color: variables.$title-color;
   font-weight: variables.$font-weight-normal;
 }
+
+// Line-item tables: compact tax select matches qty/rate row height (VSelect + form-select-sm)
+select.form-select-sm.line-item-tax-select {
+  min-height: calc(2px + 0.5rem + 0.8rem * 1.5);
+  padding: 0.25rem 1.75rem 0.25rem 0.8rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  background-size: 0.9rem;
+  background-position: right 0.45rem center;
+}
