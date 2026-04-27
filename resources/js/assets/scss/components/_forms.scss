@@ -933,6 +933,17 @@ kbd {
 input[type="range"]::-webkit-slider-runnable-track {
   background-color: variables.$light;
 }
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 [dir="rtl"] {
   .form-checked-outline:checked[type="checkbox"]:before {
     inset-inline-start: 1px;
