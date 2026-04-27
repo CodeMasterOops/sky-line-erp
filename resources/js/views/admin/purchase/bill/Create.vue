@@ -298,6 +298,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {usePurchaseLineReferenceMargin} from '@/composables/purchaseLineReferenceMargin.js';
+import {mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
@@ -380,12 +381,16 @@ const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
 const loadFromPurchaseOrder = async () => {
-    await purchaseOrderStore.getOrder(purchaseOrderId.value)
-    form.party_id = order.value.data.party_id || '';
-    form.remarks = order.value.data.remarks || '';
+    await purchaseOrderStore.getOrder(purchaseOrderId.value);
+    const data = order.value.data;
+    form.party_id = data.party_id || '';
+    form.remarks = data.remarks || '';
     form.purchase_order_id = purchaseOrderId.value;
 
-    order.value.data.items.forEach(item => {
+    const items = data.items || [];
+    const mergedDiscounts = mergePoOrderDiscountIntoLineDiscounts(items, data.order_discount_amount);
+
+    items.forEach((item, i) => {
         form.items.push({
             product_variant_id: item.product_variant_id,
             product_label: variantLabel(item.product_variant),
@@ -395,10 +400,10 @@ const loadFromPurchaseOrder = async () => {
             rate: item.rate,
             tax_id: item.tax_id,
             tax_line_type: 'taxable',
-            discount_amount: item.discount_amount ?? '',
+            discount_amount: mergedDiscounts[i] != null ? String(mergedDiscounts[i]) : (item.discount_amount ?? ''),
         });
-    })
-}
+    });
+};
 
 function variantLabel(variant) {
     let label = variant.name || '';

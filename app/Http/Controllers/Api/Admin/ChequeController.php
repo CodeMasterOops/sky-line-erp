@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Annotation\Permissions;
-use App\Http\Controllers\Controller;
 use App\Models\Cheque;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Annotation\Permissions;
+use App\Http\Controllers\Controller;
 
 class ChequeController extends Controller
 {
@@ -33,27 +32,27 @@ class ChequeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'party_id'       => 'nullable|exists:parties,id',
-            'bank_account_id'=> 'nullable|exists:bank_accounts,id',
-            'cheque_no'      => 'required|string|max:50',
-            'bank_name'      => 'nullable|string|max:150',
-            'bank_branch'    => 'nullable|string|max:100',
-            'cheque_date'    => 'required|date',
-            'amount'         => 'required|numeric|min:0.01',
-            'type'           => 'required|in:payable,receivable',
+            'party_id' => 'nullable|exists:parties,id',
+            'bank_account_id' => 'nullable|exists:bank_accounts,id',
+            'cheque_no' => 'required|string|max:50',
+            'bank_name' => 'nullable|string|max:150',
+            'bank_branch' => 'nullable|string|max:100',
+            'cheque_date' => 'required|date',
+            'amount' => 'required|numeric|min:0.01',
+            'type' => 'required|in:payable,receivable',
             'reference_type' => 'nullable|string',
-            'reference_id'   => 'nullable|integer',
-            'remarks'        => 'nullable|string',
+            'reference_id' => 'nullable|integer',
+            'remarks' => 'nullable|string',
         ]);
 
-        $company    = auth()->user()->company;
+        $company = auth()->user()->company;
         $fiscalYear = $company->fiscalYear;
 
         $cheque = Cheque::create([
             ...$data,
-            'company_id'     => $company->id,
+            'company_id' => $company->id,
             'fiscal_year_id' => $fiscalYear->id,
-            'status'         => 'pending',
+            'status' => 'pending',
             'create_user_id' => auth()->id(),
         ]);
 
@@ -87,7 +86,7 @@ class ChequeController extends Controller
      */
     public function clear(Request $request, Cheque $cheque)
     {
-        abort_if(!in_array($cheque->status, ['pending', 'presented']), 422, 'Cheque cannot be cleared in current status.');
+        abort_if(! in_array($cheque->status, ['pending', 'presented']), 422, 'Cheque cannot be cleared in current status.');
 
         $data = $request->validate(['cleared_date' => 'required|date']);
 
@@ -101,7 +100,7 @@ class ChequeController extends Controller
      */
     public function bounce(Request $request, Cheque $cheque)
     {
-        abort_if(!in_array($cheque->status, ['presented']), 422, 'Only presented cheques can be bounced.');
+        abort_if(! in_array($cheque->status, ['presented']), 422, 'Only presented cheques can be bounced.');
 
         $data = $request->validate(['remarks' => 'nullable|string']);
 
@@ -141,8 +140,8 @@ class ChequeController extends Controller
             ->get(['id', 'cheque_no', 'party_id', 'cheque_date', 'amount', 'type']);
 
         return response()->json([
-            'data'         => $data,
-            'due_this_week'=> $dueThisWeek,
+            'data' => $data,
+            'due_this_week' => $dueThisWeek,
         ]);
     }
 }

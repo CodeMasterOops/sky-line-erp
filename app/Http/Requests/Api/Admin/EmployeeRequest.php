@@ -3,10 +3,10 @@
 namespace App\Http\Requests\Api\Admin;
 
 use App\Tenancy\TRule;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Validation\Rule;
 use App\Enums\EmployeeStatusEnum;
 use App\Enums\EmploymentTypeEnum;
-use App\Enums\TdsCategoryEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class EmployeeRequest extends FormRequest

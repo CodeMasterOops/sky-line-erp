@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use App\Enums\FixedAssetDepreciationMethodEnum;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Enums\FixedAssetDepreciationMethodEnum;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FixedAsset extends Model

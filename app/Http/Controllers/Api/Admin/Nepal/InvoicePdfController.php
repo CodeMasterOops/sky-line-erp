@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin\Nepal;
 
-use App\Annotation\Permissions;
-use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Annotation\Permissions;
+use Barryvdh\DomPDF\Facade\Pdf;
+use App\Http\Controllers\Controller;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Nepal\NepaliNumberService;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class InvoicePdfController extends Controller
@@ -39,7 +38,8 @@ class InvoicePdfController extends Controller
         try {
             $bs = $this->nepaliDate->adToBs($invoice->invoice_date);
             $invoiceDateBs = $this->nepaliDate->formatBsFull($bs['year'], $bs['month'], $bs['day']);
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         $subtotal = (float) $invoice->invoiceItems->sum(fn ($i) => $i->quantity * $i->rate);
         $totalDiscount = (float) $invoice->invoiceItems->sum('discount_amount');

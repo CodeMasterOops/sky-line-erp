@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\GoodsReceivedNote;
-use App\Annotation\Permissions;
 use App\Enums\StatusEnum;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
+use App\Models\GoodsReceivedNote;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 
 class GoodsReceivedNoteController extends Controller
 {

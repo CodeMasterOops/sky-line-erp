@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Enums\TaxTypeEnum;
-use App\Enums\TdsCategoryEnum;
 use App\Models\TaxTemplate;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Enums\TdsCategoryEnum;
+use App\Http\Controllers\Controller;
 
 class TaxTemplateController extends Controller
 {
@@ -14,15 +14,15 @@ class TaxTemplateController extends Controller
     {
         $templates = TaxTemplate::orderBy('name')->get()->map(function ($t) {
             return [
-                'id'               => $t->id,
-                'name'             => $t->name,
-                'rate'             => $t->rate,
-                'type'             => $t->type?->value,
-                'type_label'       => $t->type?->label(),
-                'tds_category'     => $t->tds_category?->value,
+                'id' => $t->id,
+                'name' => $t->name,
+                'rate' => $t->rate,
+                'type' => $t->type?->value,
+                'type_label' => $t->type?->label(),
+                'tds_category' => $t->tds_category?->value,
                 'tds_category_label' => $t->tds_category?->label(),
-                'is_default'       => $t->is_default,
-                'description'      => $t->description,
+                'is_default' => $t->is_default,
+                'description' => $t->description,
             ];
         });
 
@@ -35,18 +35,18 @@ class TaxTemplateController extends Controller
         $tdsCategoryValues = collect(TdsCategoryEnum::cases())->pluck('value')->toArray();
 
         $validated = $request->validate([
-            'name'         => ['required', 'string', 'max:100'],
-            'rate'         => ['required', 'numeric', 'min:0', 'max:100'],
-            'type'         => ['nullable', 'in:' . implode(',', $typeValues)],
-            'tds_category' => ['nullable', 'in:' . implode(',', $tdsCategoryValues)],
-            'is_default'   => ['boolean'],
-            'description'  => ['nullable', 'string', 'max:500'],
+            'name' => ['required', 'string', 'max:100'],
+            'rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'type' => ['nullable', 'in:'.implode(',', $typeValues)],
+            'tds_category' => ['nullable', 'in:'.implode(',', $tdsCategoryValues)],
+            'is_default' => ['boolean'],
+            'description' => ['nullable', 'string', 'max:500'],
         ]);
 
         $template = TaxTemplate::create($validated);
 
         return response()->json([
-            'data'    => $template,
+            'data' => $template,
             'message' => 'Tax template created.',
         ], 201);
     }
@@ -62,18 +62,18 @@ class TaxTemplateController extends Controller
         $tdsCategoryValues = collect(TdsCategoryEnum::cases())->pluck('value')->toArray();
 
         $validated = $request->validate([
-            'name'         => ['required', 'string', 'max:100'],
-            'rate'         => ['required', 'numeric', 'min:0', 'max:100'],
-            'type'         => ['nullable', 'in:' . implode(',', $typeValues)],
-            'tds_category' => ['nullable', 'in:' . implode(',', $tdsCategoryValues)],
-            'is_default'   => ['boolean'],
-            'description'  => ['nullable', 'string', 'max:500'],
+            'name' => ['required', 'string', 'max:100'],
+            'rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'type' => ['nullable', 'in:'.implode(',', $typeValues)],
+            'tds_category' => ['nullable', 'in:'.implode(',', $tdsCategoryValues)],
+            'is_default' => ['boolean'],
+            'description' => ['nullable', 'string', 'max:500'],
         ]);
 
         $taxTemplate->update($validated);
 
         return response()->json([
-            'data'    => $taxTemplate->fresh(),
+            'data' => $taxTemplate->fresh(),
             'message' => 'Tax template updated.',
         ]);
     }

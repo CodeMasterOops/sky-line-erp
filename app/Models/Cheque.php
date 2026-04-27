@@ -4,10 +4,10 @@ namespace App\Models;
 
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Cheque extends Model
 {
@@ -35,10 +35,10 @@ class Cheque extends Model
     ];
 
     protected $casts = [
-        'cheque_date'  => 'date',
+        'cheque_date' => 'date',
         'deposit_date' => 'date',
         'cleared_date' => 'date',
-        'amount'       => 'float',
+        'amount' => 'float',
     ];
 
     public function party(): BelongsTo

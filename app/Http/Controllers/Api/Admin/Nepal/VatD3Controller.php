@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin\Nepal;
 
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\AccountReportService;
 use App\Services\Nepal\NepaliDateService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
  * VAT D3 Return — generates the IRD-format D3 return export.
@@ -46,16 +46,16 @@ class VatD3Controller extends Controller
     public function exportCsv(Request $request)
     {
         $request->validate([
-            'type'       => 'required|in:sales,purchase,combined',
+            'type' => 'required|in:sales,purchase,combined',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
         $companyId = auth('admin')->user()->company_id;
-        $company   = auth('admin')->user()->company;
-        $type      = $request->get('type', 'combined');
+        $company = auth('admin')->user()->company;
+        $type = $request->get('type', 'combined');
         $startDate = $request->get('start_date');
-        $endDate   = $request->get('end_date');
+        $endDate = $request->get('end_date');
 
         $startBs = '';
         $endBs = '';
@@ -64,7 +64,8 @@ class VatD3Controller extends Controller
             $eBs = $this->nepaliDate->adToBs($endDate);
             $startBs = $this->nepaliDate->formatBs($sBs['year'], $sBs['month'], $sBs['day']);
             $endBs = $this->nepaliDate->formatBs($eBs['year'], $eBs['month'], $eBs['day']);
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         $rows = [];
 
@@ -75,19 +76,20 @@ class VatD3Controller extends Controller
                 try {
                     $bs = $this->nepaliDate->adToBs($row->invoice_date);
                     $dateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
-                } catch (\Throwable) {}
+                } catch (\Throwable) {
+                }
 
                 $rows[] = [
-                    'type'           => 'Sales',
-                    'doc_no'         => $row->invoice_no,
-                    'date_ad'        => $row->invoice_date,
-                    'date_bs'        => $dateBs,
-                    'pan'            => $row->buyer_pan ?? $row->party_pan ?? '',
-                    'party_name'     => $row->party_name ?? 'Cash Customer',
+                    'type' => 'Sales',
+                    'doc_no' => $row->invoice_no,
+                    'date_ad' => $row->invoice_date,
+                    'date_bs' => $dateBs,
+                    'pan' => $row->buyer_pan ?? $row->party_pan ?? '',
+                    'party_name' => $row->party_name ?? 'Cash Customer',
                     'taxable_amount' => round($row->taxable_amount ?? 0, 2),
-                    'vat_amount'     => round($row->vat_amount ?? 0, 2),
-                    'exempt_amount'  => round($row->exempt_amount ?? 0, 2),
-                    'total_amount'   => round(($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
+                    'vat_amount' => round($row->vat_amount ?? 0, 2),
+                    'exempt_amount' => round($row->exempt_amount ?? 0, 2),
+                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
                 ];
             }
         }
@@ -99,19 +101,20 @@ class VatD3Controller extends Controller
                 try {
                     $bs = $this->nepaliDate->adToBs($row->bill_date);
                     $dateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
-                } catch (\Throwable) {}
+                } catch (\Throwable) {
+                }
 
                 $rows[] = [
-                    'type'           => 'Purchase',
-                    'doc_no'         => $row->bill_no,
-                    'date_ad'        => $row->bill_date,
-                    'date_bs'        => $dateBs,
-                    'pan'            => $row->party_pan ?? '',
-                    'party_name'     => $row->party_name ?? '',
+                    'type' => 'Purchase',
+                    'doc_no' => $row->bill_no,
+                    'date_ad' => $row->bill_date,
+                    'date_bs' => $dateBs,
+                    'pan' => $row->party_pan ?? '',
+                    'party_name' => $row->party_name ?? '',
                     'taxable_amount' => round($row->taxable_amount ?? 0, 2),
-                    'vat_amount'     => round($row->input_vat ?? 0, 2),
-                    'exempt_amount'  => round($row->exempt_amount ?? 0, 2),
-                    'total_amount'   => round(($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0), 2),
+                    'vat_amount' => round($row->input_vat ?? 0, 2),
+                    'exempt_amount' => round($row->exempt_amount ?? 0, 2),
+                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0), 2),
                 ];
             }
         }
@@ -119,7 +122,7 @@ class VatD3Controller extends Controller
         // Generate CSV
         $filename = "VAT-D3-{$type}-{$startDate}-to-{$endDate}.csv";
         $headers = [
-            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
@@ -127,7 +130,7 @@ class VatD3Controller extends Controller
             $handle = fopen('php://output', 'w');
 
             // BOM for Excel UTF-8 compatibility
-            fputs($handle, "\xEF\xBB\xBF");
+            fwrite($handle, "\xEF\xBB\xBF");
 
             // Header section (IRD prescribed format)
             fputcsv($handle, ['PAN', $company->pan ?? '']);

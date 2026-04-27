@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('depreciation_account_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->unsignedBigInteger('accumulated_depreciation_account_id')->nullable();
             $table->foreign('accumulated_depreciation_account_id', 'fac_accum_dep_account_fk')
-                  ->references('id')->on('accounts')->nullOnDelete();
+                ->references('id')->on('accounts')->nullOnDelete();
             $table->timestamps();
             $table->softDeletes();
         });
@@ -44,7 +44,7 @@ return new class extends Migration
             $table->foreignId('depreciation_account_id')->nullable()->constrained('accounts')->nullOnDelete();
             $table->unsignedBigInteger('accumulated_depreciation_account_id')->nullable();
             $table->foreign('accumulated_depreciation_account_id', 'fa_accum_dep_account_fk')
-                  ->references('id')->on('accounts')->nullOnDelete();
+                ->references('id')->on('accounts')->nullOnDelete();
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();

@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use App\Enums\TaxTypeEnum;
-use App\Enums\TdsCategoryEnum;
 use App\Traits\MultiTenant;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 

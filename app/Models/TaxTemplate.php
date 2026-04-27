@@ -18,9 +18,9 @@ class TaxTemplate extends Model
     ];
 
     protected $casts = [
-        'rate'        => 'float',
-        'is_default'  => 'boolean',
-        'type'        => TaxTypeEnum::class,
+        'rate' => 'float',
+        'is_default' => 'boolean',
+        'type' => TaxTypeEnum::class,
         'tds_category' => TdsCategoryEnum::class,
     ];
 }

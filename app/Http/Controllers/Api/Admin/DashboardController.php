@@ -3,17 +3,12 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use Carbon\Carbon;
-use App\Models\Bill;
 use App\Models\Party;
 use App\Models\Stock;
 use App\Models\Invoice;
-use App\Models\Expense;
 use App\Models\Product;
-use App\Models\Quotation;
-use App\Models\CreditNote;
-use App\Models\DebitNote;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 
 class DashboardController extends Controller
 {
@@ -24,43 +19,42 @@ class DashboardController extends Controller
         [$salesTotal, $salesReturnTotal, $purchaseTotal, $purchaseReturnTotal] = $this->financialTotals($companyId);
 
         return response()->json([
-            'total_sales'           => round((float) $salesTotal, 2),
-            'total_sales_return'    => round((float) $salesReturnTotal, 2),
-            'total_purchase'        => round((float) $purchaseTotal, 2),
+            'total_sales' => round((float) $salesTotal, 2),
+            'total_sales_return' => round((float) $salesReturnTotal, 2),
+            'total_purchase' => round((float) $purchaseTotal, 2),
             'total_purchase_return' => round((float) $purchaseReturnTotal, 2),
-            'customers_count'       => Party::where('type', 'customer')->count(),
-            'suppliers_count'       => Party::where('type', 'supplier')->count(),
-            'products_count'        => Product::count(),
-            'orders_today'          => Invoice::whereDate('invoice_date', today())->count(),
-            'top_selling_products'  => $this->topSellingProducts($companyId),
-            'low_stock_products'    => $this->lowStockProducts($companyId),
-            'recent_transactions'   => [
-                'invoices'    => $this->recentInvoices($companyId),
-                'bills'       => $this->recentBills($companyId),
-                'quotations'  => $this->recentQuotations($companyId),
-                'expenses'    => $this->recentExpenses($companyId),
+            'customers_count' => Party::where('type', 'customer')->count(),
+            'suppliers_count' => Party::where('type', 'supplier')->count(),
+            'products_count' => Product::count(),
+            'orders_today' => Invoice::whereDate('invoice_date', today())->count(),
+            'top_selling_products' => $this->topSellingProducts($companyId),
+            'low_stock_products' => $this->lowStockProducts($companyId),
+            'recent_transactions' => [
+                'invoices' => $this->recentInvoices($companyId),
+                'bills' => $this->recentBills($companyId),
+                'quotations' => $this->recentQuotations($companyId),
+                'expenses' => $this->recentExpenses($companyId),
             ],
-            'top_customers'  => $this->topCustomers($companyId),
-            'chart_data'     => $this->chartData($companyId),
+            'top_customers' => $this->topCustomers($companyId),
+            'chart_data' => $this->chartData($companyId),
         ]);
     }
 
     /** Financial totals using raw aggregation – no model hydration. */
     private function financialTotals(int $companyId): array
     {
-        $itemTotal = fn (string $itemTable, string $fk, string $parentTable, string $dateCol) =>
-            DB::table($itemTable)
-                ->join($parentTable, "{$parentTable}.id", '=', "{$itemTable}.{$fk}")
-                ->where("{$parentTable}.company_id", $companyId)
-                ->whereNull("{$parentTable}.deleted_at")
-                ->whereNull("{$itemTable}.deleted_at")
-                ->selectRaw("COALESCE(SUM({$itemTable}.quantity * {$itemTable}.rate - {$itemTable}.discount_amount), 0) as total")
-                ->value('total') ?? 0;
+        $itemTotal = fn (string $itemTable, string $fk, string $parentTable, string $dateCol) => DB::table($itemTable)
+            ->join($parentTable, "{$parentTable}.id", '=', "{$itemTable}.{$fk}")
+            ->where("{$parentTable}.company_id", $companyId)
+            ->whereNull("{$parentTable}.deleted_at")
+            ->whereNull("{$itemTable}.deleted_at")
+            ->selectRaw("COALESCE(SUM({$itemTable}.quantity * {$itemTable}.rate - {$itemTable}.discount_amount), 0) as total")
+            ->value('total') ?? 0;
 
         return [
-            $itemTotal('invoice_items',    'invoice_id',    'invoices',    'invoice_date'),
+            $itemTotal('invoice_items', 'invoice_id', 'invoices', 'invoice_date'),
             $itemTotal('credit_note_items', 'credit_note_id', 'credit_notes', 'credit_note_date'),
-            $itemTotal('bill_items',       'bill_id',       'bills',       'bill_date'),
+            $itemTotal('bill_items', 'bill_id', 'bills', 'bill_date'),
             $itemTotal('debit_note_items', 'debit_note_id', 'debit_notes', 'debit_note_date'),
         ];
     }
@@ -130,8 +124,7 @@ class DashboardController extends Controller
     private function recentInvoices(int $companyId): array
     {
         return DB::table('invoices as inv')
-            ->leftJoin('invoice_items as ii', fn ($j) =>
-                $j->on('ii.invoice_id', '=', 'inv.id')->whereNull('ii.deleted_at'))
+            ->leftJoin('invoice_items as ii', fn ($j) => $j->on('ii.invoice_id', '=', 'inv.id')->whereNull('ii.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'inv.party_id')
             ->where('inv.company_id', $companyId)
             ->whereNull('inv.deleted_at')
@@ -155,8 +148,7 @@ class DashboardController extends Controller
     private function recentBills(int $companyId): array
     {
         return DB::table('bills as b')
-            ->leftJoin('bill_items as bi', fn ($j) =>
-                $j->on('bi.bill_id', '=', 'b.id')->whereNull('bi.deleted_at'))
+            ->leftJoin('bill_items as bi', fn ($j) => $j->on('bi.bill_id', '=', 'b.id')->whereNull('bi.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'b.party_id')
             ->where('b.company_id', $companyId)
             ->whereNull('b.deleted_at')
@@ -180,8 +172,7 @@ class DashboardController extends Controller
     private function recentQuotations(int $companyId): array
     {
         return DB::table('quotations as q')
-            ->leftJoin('quotation_items as qi', fn ($j) =>
-                $j->on('qi.quotation_id', '=', 'q.id')->whereNull('qi.deleted_at'))
+            ->leftJoin('quotation_items as qi', fn ($j) => $j->on('qi.quotation_id', '=', 'q.id')->whereNull('qi.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'q.party_id')
             ->where('q.company_id', $companyId)
             ->whereNull('q.deleted_at')
@@ -205,8 +196,7 @@ class DashboardController extends Controller
     private function recentExpenses(int $companyId): array
     {
         return DB::table('expenses as e')
-            ->leftJoin('expense_items as ei', fn ($j) =>
-                $j->on('ei.expense_id', '=', 'e.id')->whereNull('ei.deleted_at'))
+            ->leftJoin('expense_items as ei', fn ($j) => $j->on('ei.expense_id', '=', 'e.id')->whereNull('ei.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'e.party_id')
             ->where('e.company_id', $companyId)
             ->whereNull('e.deleted_at')
@@ -293,10 +283,10 @@ class DashboardController extends Controller
             ->map(fn ($i) => now()->subMonths(11 - $i)->format('Y-m'));
 
         return [
-            'labels'    => $months->map(fn ($m) => Carbon::createFromFormat('Y-m', $m)->format('M Y'))->values()->all(),
-            'sales'     => $months->map(fn ($m) => round((float) ($salesByMonth[$m] ?? 0), 2))->values()->all(),
+            'labels' => $months->map(fn ($m) => Carbon::createFromFormat('Y-m', $m)->format('M Y'))->values()->all(),
+            'sales' => $months->map(fn ($m) => round((float) ($salesByMonth[$m] ?? 0), 2))->values()->all(),
             'purchases' => $months->map(fn ($m) => round((float) ($purchasesByMonth[$m] ?? 0), 2))->values()->all(),
-            'expenses'  => $months->map(fn ($m) => round((float) ($expensesByMonth[$m] ?? 0), 2))->values()->all(),
+            'expenses' => $months->map(fn ($m) => round((float) ($expensesByMonth[$m] ?? 0), 2))->values()->all(),
         ];
     }
 }

@@ -4,8 +4,8 @@ namespace App\Services\Nepal;
 
 use App\Models\Company;
 use App\Models\Invoice;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Client for the IRD (Inland Revenue Department) Electronic Billing System (EBS) API.
@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 class IrdApiService
 {
     private const PRODUCTION_URL = 'https://api.ird.gov.np/api/';
+
     private const SANDBOX_URL = 'https://sandbox.ird.gov.np/api/';
 
     public function __construct(
@@ -47,7 +48,7 @@ class IrdApiService
             return [
                 'success' => false,
                 'skipped' => true,
-                'error'   => 'IRD EBS is not enabled for this company.',
+                'error' => 'IRD EBS is not enabled for this company.',
             ];
         }
 
@@ -55,7 +56,7 @@ class IrdApiService
             return [
                 'success' => false,
                 'skipped' => true,
-                'error'   => 'IRD credentials are incomplete. Configure IRD settings first.',
+                'error' => 'IRD credentials are incomplete. Configure IRD settings first.',
             ];
         }
 
@@ -72,9 +73,9 @@ class IrdApiService
                 $data = $response->json();
 
                 return [
-                    'success'         => true,
+                    'success' => true,
                     'ird_internal_id' => $data['data']['invoiceId'] ?? null,
-                    'ird_qr_data'     => $data['data']['qrCode'] ?? null,
+                    'ird_qr_data' => $data['data']['qrCode'] ?? null,
                 ];
             }
 
@@ -82,25 +83,25 @@ class IrdApiService
             $errorMsg = $errorBody['message'] ?? $response->body();
 
             Log::warning('IRD EBS sync failed', [
-                'invoice_id'  => $invoice->id,
-                'invoice_no'  => $invoice->invoice_no,
+                'invoice_id' => $invoice->id,
+                'invoice_no' => $invoice->invoice_no,
                 'status_code' => $response->status(),
-                'error'       => $errorMsg,
+                'error' => $errorMsg,
             ]);
 
             return [
                 'success' => false,
-                'error'   => "IRD API error ({$response->status()}): {$errorMsg}",
+                'error' => "IRD API error ({$response->status()}): {$errorMsg}",
             ];
         } catch (\Throwable $e) {
             Log::error('IRD EBS sync exception', [
                 'invoice_id' => $invoice->id,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
-                'error'   => 'Connection error: '.$e->getMessage(),
+                'error' => 'Connection error: '.$e->getMessage(),
             ];
         }
     }
@@ -134,37 +135,37 @@ class IrdApiService
 
         $items = $invoice->invoiceItems->map(function ($item) {
             return [
-                'itemName'       => $item->productVariant?->product?->name ?? 'Item',
-                'unit'           => $item->unit?->name ?? 'PCS',
-                'quantity'       => (float) $item->quantity,
-                'rate'           => round((float) $item->rate, 2),
-                'discount'       => round((float) $item->discount_amount, 2),
-                'taxableAmount'  => round((float) ($item->quantity * $item->rate) - $item->discount_amount, 2),
-                'vatAmount'      => round((float) $item->tax_amount, 2),
-                'taxLineType'    => $item->tax_line_type?->value ?? 'taxable',
+                'itemName' => $item->productVariant?->product?->name ?? 'Item',
+                'unit' => $item->unit?->name ?? 'PCS',
+                'quantity' => (float) $item->quantity,
+                'rate' => round((float) $item->rate, 2),
+                'discount' => round((float) $item->discount_amount, 2),
+                'taxableAmount' => round((float) ($item->quantity * $item->rate) - $item->discount_amount, 2),
+                'vatAmount' => round((float) $item->tax_amount, 2),
+                'taxLineType' => $item->tax_line_type?->value ?? 'taxable',
             ];
         })->values()->all();
 
         return [
-            'fiscalYear'     => $fiscalYearCode,
-            'branchOffice'   => $company->ird_branch_office,
-            'unitName'       => $company->ird_unit_name,
-            'fiscalDevice'   => $company->ird_fiscal_device,
-            'pan'            => $company->pan,
-            'buyerPan'       => $invoice->buyer_pan ?? $invoice->party?->pan ?? '',
-            'invoiceNo'      => $invoice->invoice_no,
-            'bijakNo'        => $invoice->bijak_no ?? $invoice->invoice_no,
-            'invoiceDateAd'  => is_string($invoice->invoice_date)
+            'fiscalYear' => $fiscalYearCode,
+            'branchOffice' => $company->ird_branch_office,
+            'unitName' => $company->ird_unit_name,
+            'fiscalDevice' => $company->ird_fiscal_device,
+            'pan' => $company->pan,
+            'buyerPan' => $invoice->buyer_pan ?? $invoice->party?->pan ?? '',
+            'invoiceNo' => $invoice->invoice_no,
+            'bijakNo' => $invoice->bijak_no ?? $invoice->invoice_no,
+            'invoiceDateAd' => is_string($invoice->invoice_date)
                                     ? $invoice->invoice_date
                                     : $invoice->invoice_date->toDateString(),
-            'invoiceDateBs'  => $bsDate,
-            'customerName'   => $invoice->party?->name ?? 'Cash Customer',
-            'vatTaxable'     => round($vatTaxableAmount, 2),
-            'vatAmount'      => round($vatAmount, 2),
-            'exemptAmount'   => round($exemptAmount, 2),
-            'zeroRated'      => round($zeroRatedAmount, 2),
-            'grandTotal'     => $grandTotal,
-            'items'          => $items,
+            'invoiceDateBs' => $bsDate,
+            'customerName' => $invoice->party?->name ?? 'Cash Customer',
+            'vatTaxable' => round($vatTaxableAmount, 2),
+            'vatAmount' => round($vatAmount, 2),
+            'exemptAmount' => round($exemptAmount, 2),
+            'zeroRated' => round($zeroRatedAmount, 2),
+            'grandTotal' => $grandTotal,
+            'items' => $items,
         ];
     }
 

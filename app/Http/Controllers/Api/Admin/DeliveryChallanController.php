@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\DeliveryChallan;
-use App\Annotation\Permissions;
 use App\Enums\StatusEnum;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
+use App\Models\DeliveryChallan;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 
 class DeliveryChallanController extends Controller
 {

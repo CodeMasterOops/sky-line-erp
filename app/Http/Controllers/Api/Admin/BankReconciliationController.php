@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\BankAccount;
-use App\Models\BankStatementLine;
 use App\Models\JournalItem;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use App\Models\BankStatementLine;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\NepalBankStatementParser;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class BankReconciliationController extends Controller
 {
@@ -177,7 +177,7 @@ class BankReconciliationController extends Controller
         foreach ($unmatchedLines as $line) {
             $amount = $line->credit > 0 ? $line->credit : -$line->debit;
 
-            $journalItem = JournalItem::whereHas('journal', function ($q) use ($companyId, $bankAccount, $line) {
+            $journalItem = JournalItem::whereHas('journal', function ($q) use ($companyId, $line) {
                 $q->where('company_id', $companyId)
                     ->whereBetween('date', [
                         $line->transaction_date->copy()->subDays(3)->toDateString(),
@@ -237,7 +237,7 @@ class BankReconciliationController extends Controller
         ]);
 
         $csvContent = file_get_contents($request->file('file')->getRealPath());
-        $bank       = $request->bank ?? 'auto';
+        $bank = $request->bank ?? 'auto';
 
         $parsed = $parser->parse($csvContent, $bank);
 
@@ -249,22 +249,23 @@ class BankReconciliationController extends Controller
             $rows = [];
             foreach ($parsed as $row) {
                 $rows[] = BankStatementLine::create([
-                    'bank_account_id'  => $bankAccount->id,
+                    'bank_account_id' => $bankAccount->id,
                     'transaction_date' => $row['date'],
-                    'description'      => $row['description'] ?? null,
-                    'reference'        => $row['reference'] ?? null,
-                    'debit'            => $row['debit'],
-                    'credit'           => $row['credit'],
-                    'balance'          => $row['balance'] ?? null,
-                    'status'           => 'unmatched',
+                    'description' => $row['description'] ?? null,
+                    'reference' => $row['reference'] ?? null,
+                    'debit' => $row['debit'],
+                    'credit' => $row['credit'],
+                    'balance' => $row['balance'] ?? null,
+                    'status' => 'unmatched',
                 ]);
             }
+
             return $rows;
         });
 
         return response()->json([
-            'message'       => count($created).' rows imported from CSV.',
-            'imported_count'=> count($created),
+            'message' => count($created).' rows imported from CSV.',
+            'imported_count' => count($created),
         ]);
     }
 }

@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Annotation\Permissions;
-use App\Http\Controllers\Controller;
-use App\Models\Account;
 use App\Models\Budget;
 use App\Models\BudgetLine;
 use App\Models\JournalItem;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 
 class BudgetController extends Controller
 {
@@ -32,15 +31,15 @@ class BudgetController extends Controller
     {
         $data = $request->validate([
             'fiscal_year_id' => 'required|exists:fiscal_years,id',
-            'branch_id'      => 'nullable|exists:branches,id',
-            'name'           => 'required|string|max:200',
-            'description'    => 'nullable|string',
-            'is_active'      => 'boolean',
-            'lines'          => 'required|array|min:1',
-            'lines.*.account_id'      => 'required|exists:accounts,id',
-            'lines.*.period_month'    => 'nullable|integer|min:1|max:12',
+            'branch_id' => 'nullable|exists:branches,id',
+            'name' => 'required|string|max:200',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+            'lines' => 'required|array|min:1',
+            'lines.*.account_id' => 'required|exists:accounts,id',
+            'lines.*.period_month' => 'nullable|integer|min:1|max:12',
             'lines.*.budgeted_amount' => 'required|numeric|min:0',
-            'lines.*.remarks'         => 'nullable|string',
+            'lines.*.remarks' => 'nullable|string',
         ]);
 
         return DB::transaction(function () use ($data) {
@@ -54,7 +53,7 @@ class BudgetController extends Controller
             }
 
             return response()->json([
-                'data'    => $budget->load(['fiscalYear:id,year_code', 'lines.account:id,name,code']),
+                'data' => $budget->load(['fiscalYear:id,year_code', 'lines.account:id,name,code']),
                 'message' => 'Budget created successfully',
             ], 201);
         });
@@ -76,14 +75,14 @@ class BudgetController extends Controller
     public function update(Request $request, Budget $budget)
     {
         $data = $request->validate([
-            'name'        => 'sometimes|string|max:200',
+            'name' => 'sometimes|string|max:200',
             'description' => 'nullable|string',
-            'is_active'   => 'boolean',
-            'lines'       => 'sometimes|array|min:1',
-            'lines.*.account_id'      => 'required|exists:accounts,id',
-            'lines.*.period_month'    => 'nullable|integer|min:1|max:12',
+            'is_active' => 'boolean',
+            'lines' => 'sometimes|array|min:1',
+            'lines.*.account_id' => 'required|exists:accounts,id',
+            'lines.*.period_month' => 'nullable|integer|min:1|max:12',
             'lines.*.budgeted_amount' => 'required|numeric|min:0',
-            'lines.*.remarks'         => 'nullable|string',
+            'lines.*.remarks' => 'nullable|string',
         ]);
 
         return DB::transaction(function () use ($data, $budget) {
@@ -100,7 +99,7 @@ class BudgetController extends Controller
             }
 
             return response()->json([
-                'data'    => $budget->fresh()->load(['fiscalYear:id,year_code', 'lines.account:id,name,code']),
+                'data' => $budget->fresh()->load(['fiscalYear:id,year_code', 'lines.account:id,name,code']),
                 'message' => 'Budget updated successfully',
             ]);
         });
@@ -123,11 +122,11 @@ class BudgetController extends Controller
     {
         $budget->load(['lines.account', 'fiscalYear']);
 
-        $company    = auth()->user()->company;
+        $company = auth()->user()->company;
         $fiscalYear = $budget->fiscalYear;
 
         $fromDate = $request->from_date ?? $fiscalYear->start_date;
-        $toDate   = $request->to_date   ?? $fiscalYear->end_date;
+        $toDate = $request->to_date ?? $fiscalYear->end_date;
 
         $rows = $budget->lines->map(function (BudgetLine $line) use ($company, $fromDate, $toDate) {
             $actual = JournalItem::query()
@@ -143,26 +142,26 @@ class BudgetController extends Controller
             $variance = $budgeted - (float) $actual;
 
             return [
-                'account_id'      => $line->account_id,
-                'account_name'    => $line->account?->name,
-                'account_code'    => $line->account?->code,
-                'period_month'    => $line->period_month,
+                'account_id' => $line->account_id,
+                'account_name' => $line->account?->name,
+                'account_code' => $line->account?->code,
+                'period_month' => $line->period_month,
                 'budgeted_amount' => $budgeted,
-                'actual_amount'   => round((float) $actual, 2),
-                'variance'        => round($variance, 2),
-                'variance_pct'    => $budgeted > 0 ? round($variance / $budgeted * 100, 1) : null,
+                'actual_amount' => round((float) $actual, 2),
+                'variance' => round($variance, 2),
+                'variance_pct' => $budgeted > 0 ? round($variance / $budgeted * 100, 1) : null,
             ];
         });
 
         return response()->json([
             'data' => [
-                'budget'    => $budget->only(['id', 'name']),
+                'budget' => $budget->only(['id', 'name']),
                 'from_date' => $fromDate,
-                'to_date'   => $toDate,
-                'rows'      => $rows,
-                'summary'   => [
+                'to_date' => $toDate,
+                'rows' => $rows,
+                'summary' => [
                     'total_budgeted' => $rows->sum('budgeted_amount'),
-                    'total_actual'   => $rows->sum('actual_amount'),
+                    'total_actual' => $rows->sum('actual_amount'),
                     'total_variance' => $rows->sum('variance'),
                 ],
             ],

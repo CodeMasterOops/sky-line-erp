@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Annotation\Permissions;
-use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
+use App\Http\Controllers\Controller;
 
 class BatchController extends Controller
 {
@@ -34,14 +34,14 @@ class BatchController extends Controller
     {
         $data = $request->validate([
             'product_variant_id' => 'required|exists:product_variants,id',
-            'warehouse_id'       => 'required|exists:warehouses,id',
-            'batch_no'           => 'required|string|max:100',
-            'lot_no'             => 'nullable|string|max:100',
-            'mfg_date'           => 'nullable|date',
-            'expiry_date'        => 'nullable|date|after_or_equal:mfg_date',
-            'initial_qty'        => 'required|numeric|min:0',
-            'unit_cost'          => 'nullable|numeric|min:0',
-            'remarks'            => 'nullable|string',
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'batch_no' => 'required|string|max:100',
+            'lot_no' => 'nullable|string|max:100',
+            'mfg_date' => 'nullable|date',
+            'expiry_date' => 'nullable|date|after_or_equal:mfg_date',
+            'initial_qty' => 'required|numeric|min:0',
+            'unit_cost' => 'nullable|numeric|min:0',
+            'remarks' => 'nullable|string',
         ]);
 
         $data['remaining_qty'] = $data['initial_qty'];
@@ -64,12 +64,12 @@ class BatchController extends Controller
     public function update(Request $request, Batch $batch)
     {
         $data = $request->validate([
-            'batch_no'    => 'sometimes|string|max:100',
-            'lot_no'      => 'nullable|string|max:100',
-            'mfg_date'    => 'nullable|date',
+            'batch_no' => 'sometimes|string|max:100',
+            'lot_no' => 'nullable|string|max:100',
+            'mfg_date' => 'nullable|date',
             'expiry_date' => 'nullable|date',
-            'status'      => 'sometimes|in:active,expired,depleted',
-            'remarks'     => 'nullable|string',
+            'status' => 'sometimes|in:active,expired,depleted',
+            'remarks' => 'nullable|string',
         ]);
 
         $batch->update($data);
@@ -106,7 +106,7 @@ class BatchController extends Controller
     {
         $request->validate([
             'product_variant_id' => 'required|exists:product_variants,id',
-            'warehouse_id'       => 'required|exists:warehouses,id',
+            'warehouse_id' => 'required|exists:warehouses,id',
         ]);
 
         $batches = Batch::where('product_variant_id', $request->product_variant_id)

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Journal;
 use App\Traits\MultiTenant;
 use App\Enums\PayrollStatusEnum;
 use Illuminate\Database\Eloquent\Model;

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Enums\AccountingPeriodStatusEnum;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
+use App\Enums\AccountingPeriodStatusEnum;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AccountingPeriod extends Model

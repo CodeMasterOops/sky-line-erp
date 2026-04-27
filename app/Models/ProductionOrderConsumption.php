@@ -21,7 +21,7 @@ class ProductionOrderConsumption extends Model
     protected $casts = [
         'required_qty' => 'float',
         'consumed_qty' => 'float',
-        'unit_cost'    => 'float',
+        'unit_cost' => 'float',
     ];
 
     public function productionOrder(): BelongsTo

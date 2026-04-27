@@ -16,6 +16,8 @@ class PurchaseOrderItem extends Model
         'quantity',
         'unit_id',
         'rate',
+        'line_discount_type',
+        'line_discount_value',
         'tax_id',
         'tax_amount',
         'discount_amount',
@@ -28,6 +30,7 @@ class PurchaseOrderItem extends Model
         'tax_id' => 'integer',
         'quantity' => 'integer',
         'rate' => 'float',
+        'line_discount_value' => 'float',
         'tax_amount' => 'float',
         'discount_amount' => 'float',
     ];

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Tax;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\TaxResource;
 use App\Http\Requests\Api\Admin\TaxRequest;
-use Illuminate\Http\Request;
 
 class TaxController extends Controller
 {

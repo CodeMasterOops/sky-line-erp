@@ -8,17 +8,17 @@ use App\Models\Holiday;
 use App\Models\Journal;
 use App\Models\Payslip;
 use App\Models\Employee;
+use App\Enums\StatusEnum;
 use App\Models\Attendance;
 use App\Models\FiscalYear;
 use App\Models\PayrollRun;
-use App\Models\PayslipItem;
 use App\Models\JournalItem;
+use App\Models\PayslipItem;
 use App\Models\TdsDeduction;
-use App\Enums\StatusEnum;
 use App\Enums\JournalTypeEnum;
+use Illuminate\Support\Facades\DB;
 use App\Enums\AttendanceStatusEnum;
 use App\Enums\SalaryComponentTypeEnum;
-use Illuminate\Support\Facades\DB;
 
 class PayrollService
 {
@@ -184,7 +184,7 @@ class PayrollService
                 'type' => JournalTypeEnum::PAYMENT_VOUCHER,
                 'reference_type' => PayrollRun::class,
                 'reference_id' => $payrollRun->id,
-                'voucher_no' => 'PAY-' . $payrollRun->id . '-' . $payrollRun->month,
+                'voucher_no' => 'PAY-'.$payrollRun->id.'-'.$payrollRun->month,
                 'date' => now()->toDateString(),
                 'remarks' => "Salary payment for {$monthLabel}",
                 'create_user_id' => auth('admin')->id(),

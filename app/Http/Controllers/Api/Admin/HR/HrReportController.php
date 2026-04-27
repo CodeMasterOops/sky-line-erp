@@ -6,7 +6,6 @@ use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\FiscalYear;
 use App\Models\PayrollRun;
-use App\Models\Payslip;
 use Illuminate\Http\Request;
 use App\Enums\LeaveStatusEnum;
 use App\Annotation\Permissions;

@@ -3,13 +3,13 @@
 namespace App\Jobs;
 
 use App\Models\Invoice;
-use App\Services\Nepal\IrdApiService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Support\Facades\Log;
+use App\Services\Nepal\IrdApiService;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class SyncInvoiceToIrdJob implements ShouldQueue
 {
@@ -43,20 +43,20 @@ class SyncInvoiceToIrdJob implements ShouldQueue
             $this->invoice->update([
                 'ird_sync_status' => 'synced',
                 'ird_internal_id' => $result['ird_internal_id'],
-                'ird_qr_data'     => $result['ird_qr_data'],
-                'ird_synced_at'   => now(),
-                'ird_error'       => null,
+                'ird_qr_data' => $result['ird_qr_data'],
+                'ird_synced_at' => now(),
+                'ird_error' => null,
             ]);
 
             Log::info('IRD EBS sync successful', [
-                'invoice_id'      => $this->invoice->id,
-                'invoice_no'      => $this->invoice->invoice_no,
+                'invoice_id' => $this->invoice->id,
+                'invoice_no' => $this->invoice->invoice_no,
                 'ird_internal_id' => $result['ird_internal_id'],
             ]);
         } else {
             $this->invoice->update([
                 'ird_sync_status' => 'failed',
-                'ird_error'       => $result['error'],
+                'ird_error' => $result['error'],
             ]);
 
             if ($this->attempts() < $this->tries) {
@@ -69,12 +69,12 @@ class SyncInvoiceToIrdJob implements ShouldQueue
     {
         $this->invoice->update([
             'ird_sync_status' => 'failed',
-            'ird_error'       => $exception->getMessage(),
+            'ird_error' => $exception->getMessage(),
         ]);
 
         Log::error('IRD EBS sync job failed permanently', [
             'invoice_id' => $this->invoice->id,
-            'error'      => $exception->getMessage(),
+            'error' => $exception->getMessage(),
         ]);
     }
 }

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Models\SerialNumber;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use App\Http\Controllers\Controller;
 
 class SerialNumberController extends Controller
 {
@@ -38,8 +38,8 @@ class SerialNumberController extends Controller
         if ($request->filled('expiry_within_days')) {
             $days = (int) $request->input('expiry_within_days');
             $query->whereNotNull('expiry_date')
-                  ->whereDate('expiry_date', '<=', now()->addDays($days))
-                  ->whereDate('expiry_date', '>=', now());
+                ->whereDate('expiry_date', '<=', now()->addDays($days))
+                ->whereDate('expiry_date', '>=', now());
         }
 
         $serials = $query->orderByDesc('created_at')
@@ -49,6 +49,7 @@ class SerialNumberController extends Controller
         $serials->getCollection()->transform(function ($sn) {
             $sn->product_name = $sn->productVariant?->product?->name ?? '-';
             $sn->source = $sn->receiptMovement ? 'GRN / Receipt' : '-';
+
             return $sn;
         });
 
@@ -62,6 +63,7 @@ class SerialNumberController extends Controller
     {
         $serialNumber->load(['productVariant.product', 'warehouse', 'receiptMovement', 'issueMovement']);
         $serialNumber->product_name = $serialNumber->productVariant?->product?->name ?? '-';
+
         return response()->json($serialNumber);
     }
 }

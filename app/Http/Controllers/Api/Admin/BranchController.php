@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Annotation\Permissions;
-use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
+use App\Http\Controllers\Controller;
 
 class BranchController extends Controller
 {
@@ -25,14 +25,14 @@ class BranchController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'           => 'required|string|max:150',
-            'code'           => 'required|string|max:20',
-            'address'        => 'nullable|string',
-            'phone'          => 'nullable|string|max:30',
-            'email'          => 'nullable|email|max:100',
-            'pan'            => 'nullable|string|max:20',
+            'name' => 'required|string|max:150',
+            'code' => 'required|string|max:20',
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|email|max:100',
+            'pan' => 'nullable|string|max:20',
             'is_head_office' => 'boolean',
-            'is_active'      => 'boolean',
+            'is_active' => 'boolean',
         ]);
 
         $branch = Branch::create($data);
@@ -54,14 +54,14 @@ class BranchController extends Controller
     public function update(Request $request, Branch $branch)
     {
         $data = $request->validate([
-            'name'           => 'sometimes|required|string|max:150',
-            'code'           => 'sometimes|required|string|max:20',
-            'address'        => 'nullable|string',
-            'phone'          => 'nullable|string|max:30',
-            'email'          => 'nullable|email|max:100',
-            'pan'            => 'nullable|string|max:20',
+            'name' => 'sometimes|required|string|max:150',
+            'code' => 'sometimes|required|string|max:20',
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string|max:30',
+            'email' => 'nullable|email|max:100',
+            'pan' => 'nullable|string|max:20',
             'is_head_office' => 'boolean',
-            'is_active'      => 'boolean',
+            'is_active' => 'boolean',
         ]);
 
         $branch->update($data);
@@ -86,7 +86,7 @@ class BranchController extends Controller
     {
         $request->validate([
             'from_date' => 'required|date',
-            'to_date'   => 'required|date|after_or_equal:from_date',
+            'to_date' => 'required|date|after_or_equal:from_date',
         ]);
 
         $company = auth()->user()->company;
@@ -121,12 +121,12 @@ class BranchController extends Controller
 
         return response()->json([
             'data' => [
-                'branch'       => $branch,
-                'from_date'    => $request->from_date,
-                'to_date'      => $request->to_date,
-                'total_revenue'  => round((float) $revenue, 2),
+                'branch' => $branch,
+                'from_date' => $request->from_date,
+                'to_date' => $request->to_date,
+                'total_revenue' => round((float) $revenue, 2),
                 'total_expenses' => round((float) $expenses, 2),
-                'net_profit'     => round((float) $revenue - (float) $expenses, 2),
+                'net_profit' => round((float) $revenue - (float) $expenses, 2),
             ],
         ]);
     }
@@ -138,10 +138,10 @@ class BranchController extends Controller
     {
         $request->validate([
             'from_date' => 'required|date',
-            'to_date'   => 'required|date|after_or_equal:from_date',
+            'to_date' => 'required|date|after_or_equal:from_date',
         ]);
 
-        $company  = auth()->user()->company;
+        $company = auth()->user()->company;
         $branches = Branch::where('company_id', $company->id)->get();
 
         $rows = $branches->map(function (Branch $branch) use ($request, $company) {
@@ -172,10 +172,10 @@ class BranchController extends Controller
                 ->value('total') ?? 0;
 
             return [
-                'branch'         => $branch->only(['id', 'name', 'code']),
-                'total_revenue'  => round((float) $revenue, 2),
+                'branch' => $branch->only(['id', 'name', 'code']),
+                'total_revenue' => round((float) $revenue, 2),
                 'total_expenses' => round((float) $expenses, 2),
-                'net_profit'     => round((float) $revenue - (float) $expenses, 2),
+                'net_profit' => round((float) $revenue - (float) $expenses, 2),
             ];
         });
 

@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Api\Admin\Nepal;
 
-use App\Annotation\Permissions;
-use App\Http\Controllers\Controller;
 use App\Models\Party;
-use App\Models\TdsDeduction;
+use Illuminate\Http\Request;
+use App\Annotation\Permissions;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Nepal\NepaliNumberService;
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class TdsChallanController extends Controller
 {
@@ -28,12 +27,12 @@ class TdsChallanController extends Controller
     {
         $request->validate([
             'start_date' => 'required|date',
-            'end_date'   => 'required|date',
+            'end_date' => 'required|date',
         ]);
 
         $companyId = auth('admin')->user()->company_id;
         $startDate = $request->get('start_date');
-        $endDate   = $request->get('end_date');
+        $endDate = $request->get('end_date');
 
         $rows = DB::table('tds_deductions')
             ->leftJoin('parties', 'parties.id', '=', 'tds_deductions.party_id')
@@ -62,7 +61,7 @@ class TdsChallanController extends Controller
                 'rows' => $rows,
                 'summary' => [
                     'total_base' => round($rows->sum('base_amount'), 2),
-                    'total_tds'  => round($rows->sum('tds_amount'), 2),
+                    'total_tds' => round($rows->sum('tds_amount'), 2),
                 ],
             ],
         ]);
@@ -74,15 +73,15 @@ class TdsChallanController extends Controller
     public function downloadChallan(Request $request)
     {
         $request->validate([
-            'start_date'   => 'required|date',
-            'end_date'     => 'required|date',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
             'deposit_date' => 'nullable|date',
         ]);
 
-        $companyId   = auth('admin')->user()->company_id;
-        $company     = auth('admin')->user()->company;
-        $startDate   = $request->get('start_date');
-        $endDate     = $request->get('end_date');
+        $companyId = auth('admin')->user()->company_id;
+        $company = auth('admin')->user()->company;
+        $startDate = $request->get('start_date');
+        $endDate = $request->get('end_date');
         $depositDate = $request->get('deposit_date', now()->toDateString());
 
         $deductions = DB::table('tds_deductions')
@@ -112,13 +111,14 @@ class TdsChallanController extends Controller
             $sBs = $this->nepaliDate->adToBs($startDate);
             $periodMonthBs = $this->nepaliDate->monthName($sBs['month']).' '.$sBs['year'];
             $taxYearBs = $sBs['year'].'-'.($sBs['year'] + 1);
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         // Use first revenue code (most common) or default
         $revenueCode = '11112';
 
         $totalBase = round($deductions->sum('base_amount'), 2);
-        $totalTds  = round($deductions->sum('tds_amount'), 2);
+        $totalTds = round($deductions->sum('tds_amount'), 2);
         $amountInWords = $this->nepaliNumber->amountToWords($totalTds);
 
         $pdf = Pdf::loadView('pdf.tds-challan', compact(
@@ -135,16 +135,16 @@ class TdsChallanController extends Controller
     public function downloadCertificate(Request $request)
     {
         $request->validate([
-            'party_id'   => 'required|integer',
+            'party_id' => 'required|integer',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date',
+            'end_date' => 'required|date',
         ]);
 
         $companyId = auth('admin')->user()->company_id;
-        $company   = auth('admin')->user()->company;
-        $partyId   = $request->get('party_id');
+        $company = auth('admin')->user()->company;
+        $partyId = $request->get('party_id');
         $startDate = $request->get('start_date');
-        $endDate   = $request->get('end_date');
+        $endDate = $request->get('end_date');
 
         $party = Party::find($partyId);
         if (! $party || $party->company_id !== $companyId) {
@@ -180,10 +180,11 @@ class TdsChallanController extends Controller
         try {
             $sBs = $this->nepaliDate->adToBs($startDate);
             $taxYearBs = $sBs['year'].'-'.($sBs['year'] + 1);
-        } catch (\Throwable) {}
+        } catch (\Throwable) {
+        }
 
         $totalBase = round($deductions->sum('base_amount'), 2);
-        $totalTds  = round($deductions->sum('tds_amount'), 2);
+        $totalTds = round($deductions->sum('tds_amount'), 2);
         $amountInWords = $this->nepaliNumber->amountToWords($totalTds);
         $certNo = strtoupper(substr(md5($partyId.$startDate.$endDate), 0, 8));
 

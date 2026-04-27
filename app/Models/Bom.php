@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Bom extends Model
 {
@@ -28,7 +28,7 @@ class Bom extends Model
 
     protected $casts = [
         'output_qty' => 'float',
-        'is_active'  => 'boolean',
+        'is_active' => 'boolean',
         'is_default' => 'boolean',
     ];
 

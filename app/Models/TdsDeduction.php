@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use App\Enums\TdsCategoryEnum;
 use App\Traits\MultiTenant;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TdsDeduction extends Model
 {

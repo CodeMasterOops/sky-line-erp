@@ -18,7 +18,7 @@ class BomItem extends Model
     ];
 
     protected $casts = [
-        'quantity'    => 'float',
+        'quantity' => 'float',
         'wastage_pct' => 'float',
     ];
 

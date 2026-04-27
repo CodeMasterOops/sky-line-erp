@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin\Nepal;
 
-use App\Annotation\Permissions;
-use App\Http\Controllers\Controller;
-use App\Jobs\SyncInvoiceToIrdJob;
 use App\Models\Company;
 use App\Models\Invoice;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
+use App\Jobs\SyncInvoiceToIrdJob;
+use App\Http\Controllers\Controller;
 
 class IrdSettingController extends Controller
 {
@@ -20,12 +20,12 @@ class IrdSettingController extends Controller
 
         return response()->json([
             'data' => [
-                'ird_username'      => $company->ird_username,
+                'ird_username' => $company->ird_username,
                 'ird_branch_office' => $company->ird_branch_office,
-                'ird_unit_name'     => $company->ird_unit_name,
+                'ird_unit_name' => $company->ird_unit_name,
                 'ird_fiscal_device' => $company->ird_fiscal_device,
-                'ird_ebs_enabled'   => $company->ird_ebs_enabled,
-                'has_password'      => ! empty($company->ird_password),
+                'ird_ebs_enabled' => $company->ird_ebs_enabled,
+                'has_password' => ! empty($company->ird_password),
             ],
         ]);
     }
@@ -36,22 +36,22 @@ class IrdSettingController extends Controller
     public function update(Request $request)
     {
         $validated = $request->validate([
-            'ird_username'      => 'nullable|string|max:100',
-            'ird_password'      => 'nullable|string|max:255',
+            'ird_username' => 'nullable|string|max:100',
+            'ird_password' => 'nullable|string|max:255',
             'ird_branch_office' => 'nullable|string|max:50',
-            'ird_unit_name'     => 'nullable|string|max:200',
+            'ird_unit_name' => 'nullable|string|max:200',
             'ird_fiscal_device' => 'nullable|string|max:100',
-            'ird_ebs_enabled'   => 'boolean',
+            'ird_ebs_enabled' => 'boolean',
         ]);
 
         $company = auth('admin')->user()->company;
 
         $updateData = [
-            'ird_username'      => $validated['ird_username'] ?? $company->ird_username,
+            'ird_username' => $validated['ird_username'] ?? $company->ird_username,
             'ird_branch_office' => $validated['ird_branch_office'] ?? $company->ird_branch_office,
-            'ird_unit_name'     => $validated['ird_unit_name'] ?? $company->ird_unit_name,
+            'ird_unit_name' => $validated['ird_unit_name'] ?? $company->ird_unit_name,
             'ird_fiscal_device' => $validated['ird_fiscal_device'] ?? $company->ird_fiscal_device,
-            'ird_ebs_enabled'   => $validated['ird_ebs_enabled'] ?? $company->ird_ebs_enabled,
+            'ird_ebs_enabled' => $validated['ird_ebs_enabled'] ?? $company->ird_ebs_enabled,
         ];
 
         // Only update password if a new one is provided
@@ -102,7 +102,7 @@ class IrdSettingController extends Controller
         return response()->json([
             'data' => [
                 'summary' => $counts,
-                'failed'  => $failed,
+                'failed' => $failed,
             ],
         ]);
     }

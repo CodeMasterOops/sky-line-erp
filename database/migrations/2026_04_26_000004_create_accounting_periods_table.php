@@ -1,7 +1,7 @@
 <?php
 
-use App\Enums\AccountingPeriodStatusEnum;
 use Illuminate\Support\Facades\Schema;
+use App\Enums\AccountingPeriodStatusEnum;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 

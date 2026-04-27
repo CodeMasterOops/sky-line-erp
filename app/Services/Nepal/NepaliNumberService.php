@@ -57,34 +57,40 @@ class NepaliNumberService
 
     public function numberToWordsEn(int $n): string
     {
-        if ($n === 0) return 'Zero';
-        if ($n < 0) return 'Minus '.$this->numberToWordsEn(abs($n));
+        if ($n === 0) {
+            return 'Zero';
+        }
+        if ($n < 0) {
+            return 'Minus '.$this->numberToWordsEn(abs($n));
+        }
 
         $parts = [];
 
         if ($n >= 1_00_00_00_000) {
-            $parts[] = $this->numberToWordsEn((int)($n / 1_00_00_00_000)).' Arab';
+            $parts[] = $this->numberToWordsEn((int) ($n / 1_00_00_00_000)).' Arab';
             $n %= 1_00_00_00_000;
         }
         if ($n >= 1_00_00_000) {
-            $parts[] = $this->numberToWordsEn((int)($n / 1_00_00_000)).' Crore';
+            $parts[] = $this->numberToWordsEn((int) ($n / 1_00_00_000)).' Crore';
             $n %= 1_00_00_000;
         }
         if ($n >= 1_00_000) {
-            $parts[] = $this->numberToWordsEn((int)($n / 1_00_000)).' Lakh';
+            $parts[] = $this->numberToWordsEn((int) ($n / 1_00_000)).' Lakh';
             $n %= 1_00_000;
         }
         if ($n >= 1_000) {
-            $parts[] = $this->numberToWordsEn((int)($n / 1_000)).' Thousand';
+            $parts[] = $this->numberToWordsEn((int) ($n / 1_000)).' Thousand';
             $n %= 1_000;
         }
         if ($n >= 100) {
-            $parts[] = self::EN_ONES[(int)($n / 100)].' Hundred';
+            $parts[] = self::EN_ONES[(int) ($n / 100)].' Hundred';
             $n %= 100;
         }
         if ($n >= 20) {
-            $word = self::EN_TENS[(int)($n / 10)];
-            if ($n % 10) $word .= '-'.self::EN_ONES[$n % 10];
+            $word = self::EN_TENS[(int) ($n / 10)];
+            if ($n % 10) {
+                $word .= '-'.self::EN_ONES[$n % 10];
+            }
             $parts[] = $word;
         } elseif ($n > 0) {
             $parts[] = self::EN_ONES[$n];

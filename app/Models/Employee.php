@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Enums\TdsCategoryEnum;
 use App\Enums\EmployeeStatusEnum;
 use App\Enums\EmploymentTypeEnum;
-use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;

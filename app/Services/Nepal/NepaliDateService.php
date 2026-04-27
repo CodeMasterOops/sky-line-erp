@@ -126,6 +126,7 @@ class NepaliDateService
 
     // Reference: 1 Baisakh 2000 BS = 13 April 1943 AD
     private const BS_REFERENCE_YEAR = 2000;
+
     private const AD_REFERENCE = '1943-04-13';
 
     /**
@@ -180,7 +181,7 @@ class NepaliDateService
         }
 
         if ($bsMonth < 1 || $bsMonth > 12) {
-            throw new InvalidArgumentException("BS month must be between 1 and 12.");
+            throw new InvalidArgumentException('BS month must be between 1 and 12.');
         }
 
         $maxDay = self::BS_DATA[$bsYear][$bsMonth - 1];

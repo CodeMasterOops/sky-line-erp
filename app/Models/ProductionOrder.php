@@ -5,8 +5,8 @@ namespace App\Models;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductionOrder extends Model
 {
@@ -33,13 +33,13 @@ class ProductionOrder extends Model
     ];
 
     protected $casts = [
-        'planned_qty'  => 'float',
+        'planned_qty' => 'float',
         'produced_qty' => 'float',
         'planned_start' => 'date',
-        'planned_end'   => 'date',
-        'actual_start'  => 'datetime',
-        'actual_end'    => 'datetime',
-        'approved_at'   => 'datetime',
+        'planned_end' => 'date',
+        'actual_start' => 'datetime',
+        'actual_end' => 'datetime',
+        'approved_at' => 'datetime',
     ];
 
     public function bom(): BelongsTo

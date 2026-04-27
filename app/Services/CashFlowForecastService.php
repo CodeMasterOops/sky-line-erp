@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
 use App\Models\Bill;
 use App\Models\Cheque;
 use App\Models\Invoice;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 class CashFlowForecastService
@@ -17,24 +17,24 @@ class CashFlowForecastService
     public function forecast(int $companyId, float $openingBalance, int $days = 90): array
     {
         $from = now()->toDateString();
-        $to   = now()->addDays($days)->toDateString();
+        $to = now()->addDays($days)->toDateString();
 
-        $inflows  = $this->buildInflows($companyId, $from, $to);
+        $inflows = $this->buildInflows($companyId, $from, $to);
         $outflows = $this->buildOutflows($companyId, $from, $to);
-        $pdcIn    = $this->buildPdcInflows($companyId, $from, $to);
-        $pdcOut   = $this->buildPdcOutflows($companyId, $from, $to);
+        $pdcIn = $this->buildPdcInflows($companyId, $from, $to);
+        $pdcOut = $this->buildPdcOutflows($companyId, $from, $to);
 
         $daily = $this->mergeDailyRows($from, $to, $inflows, $outflows, $pdcIn, $pdcOut, $openingBalance);
 
         return [
-            'from'           => $from,
-            'to'             => $to,
-            'opening_balance'=> $openingBalance,
-            'daily'          => $daily,
-            'summary'        => [
-                'total_inflow'  => collect($daily)->sum('inflow'),
+            'from' => $from,
+            'to' => $to,
+            'opening_balance' => $openingBalance,
+            'daily' => $daily,
+            'summary' => [
+                'total_inflow' => collect($daily)->sum('inflow'),
                 'total_outflow' => collect($daily)->sum('outflow'),
-                'closing_balance'=> collect($daily)->last()['running_balance'] ?? $openingBalance,
+                'closing_balance' => collect($daily)->last()['running_balance'] ?? $openingBalance,
             ],
         ];
     }
@@ -95,22 +95,22 @@ class CashFlowForecastService
         Collection $pdcIn, Collection $pdcOut,
         float $runningBalance
     ): array {
-        $daily   = [];
+        $daily = [];
         $current = Carbon::parse($from);
-        $end     = Carbon::parse($to);
+        $end = Carbon::parse($to);
 
         while ($current->lte($end)) {
-            $dateKey  = $current->toDateString();
-            $inflow   = (float) ($inflows[$dateKey] ?? 0) + (float) ($pdcIn[$dateKey] ?? 0);
-            $outflow  = (float) ($outflows[$dateKey] ?? 0) + (float) ($pdcOut[$dateKey] ?? 0);
+            $dateKey = $current->toDateString();
+            $inflow = (float) ($inflows[$dateKey] ?? 0) + (float) ($pdcIn[$dateKey] ?? 0);
+            $outflow = (float) ($outflows[$dateKey] ?? 0) + (float) ($pdcOut[$dateKey] ?? 0);
             $runningBalance += $inflow - $outflow;
 
             if ($inflow > 0 || $outflow > 0) {
                 $daily[] = [
-                    'date'            => $dateKey,
-                    'inflow'          => round($inflow, 2),
-                    'outflow'         => round($outflow, 2),
-                    'net'             => round($inflow - $outflow, 2),
+                    'date' => $dateKey,
+                    'inflow' => round($inflow, 2),
+                    'outflow' => round($outflow, 2),
+                    'net' => round($inflow - $outflow, 2),
                     'running_balance' => round($runningBalance, 2),
                 ];
             }

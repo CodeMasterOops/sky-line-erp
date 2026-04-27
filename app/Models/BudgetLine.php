@@ -17,7 +17,7 @@ class BudgetLine extends Model
 
     protected $casts = [
         'budgeted_amount' => 'float',
-        'period_month'    => 'integer',
+        'period_month' => 'integer',
     ];
 
     public function budget(): BelongsTo

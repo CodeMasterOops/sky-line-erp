@@ -4,9 +4,9 @@ namespace App\Models;
 
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 
 class Batch extends Model
 {
@@ -28,11 +28,11 @@ class Batch extends Model
     ];
 
     protected $casts = [
-        'mfg_date'    => 'date',
+        'mfg_date' => 'date',
         'expiry_date' => 'date',
         'initial_qty' => 'float',
         'remaining_qty' => 'float',
-        'unit_cost'   => 'float',
+        'unit_cost' => 'float',
     ];
 
     public function productVariant(): BelongsTo

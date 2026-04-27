@@ -3,19 +3,16 @@
 namespace App\Services\Accounting;
 
 use Carbon\Carbon;
+use App\Models\Bill;
 use App\Models\Account;
 use App\Models\Invoice;
-use App\Models\Bill;
 use App\Models\Journal;
-use App\Models\Stock;
-use App\Models\StockLayer;
 use App\Enums\StatusEnum;
 use App\Models\FiscalYear;
 use App\Models\JournalItem;
 use App\Models\AccountGroup;
-use App\Enums\JournalTypeEnum;
-use App\Enums\TaxTypeEnum;
 use Illuminate\Http\Request;
+use App\Enums\JournalTypeEnum;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -540,7 +537,7 @@ class AccountReportService
             ->where('status', StatusEnum::APPROVED->value)
             ->whereNull('voided_at')
             ->get()
-            ->filter(function (Invoice $invoice) use ($companyId, $asOf) {
+            ->filter(function (Invoice $invoice) {
                 $paid = $invoice->receiptAllocations()->sum('allocated_amount');
                 $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
 

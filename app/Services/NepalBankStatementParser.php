@@ -15,24 +15,24 @@ class NepalBankStatementParser
      * Detect bank and parse the CSV file contents.
      *
      * @param  string  $csvContent  Raw CSV string
-     * @param  string  $bank        Hint: 'nmb'|'nabil'|'himalayan'|'global_ime'|'auto'
+     * @param  string  $bank  Hint: 'nmb'|'nabil'|'himalayan'|'global_ime'|'auto'
      * @return Collection<array{date, description, reference, debit, credit, balance}>
      */
     public function parse(string $csvContent, string $bank = 'auto'): Collection
     {
-        $lines  = array_filter(explode("\n", str_replace("\r\n", "\n", $csvContent)));
-        $rows   = array_map('str_getcsv', $lines);
+        $lines = array_filter(explode("\n", str_replace("\r\n", "\n", $csvContent)));
+        $rows = array_map('str_getcsv', $lines);
 
         if ($bank === 'auto') {
             $bank = $this->detect($rows);
         }
 
         return match ($bank) {
-            'nmb'       => $this->parseNmb($rows),
-            'nabil'     => $this->parseNabil($rows),
+            'nmb' => $this->parseNmb($rows),
+            'nabil' => $this->parseNabil($rows),
             'himalayan' => $this->parseHimalayan($rows),
-            'global_ime'=> $this->parseGlobalIme($rows),
-            default     => $this->parseGeneric($rows),
+            'global_ime' => $this->parseGlobalIme($rows),
+            default => $this->parseGeneric($rows),
         };
     }
 
@@ -48,6 +48,7 @@ class NepalBankStatementParser
         if (str_contains($header, 'Value Date') && str_contains($header, 'Description')) {
             return 'himalayan';
         }
+
         return 'generic';
     }
 
@@ -57,25 +58,29 @@ class NepalBankStatementParser
         $results = collect();
         $started = false;
         foreach ($rows as $row) {
-            if (!$started) {
+            if (! $started) {
                 if (isset($row[0]) && str_contains($row[0], 'Txn Date')) {
                     $started = true;
                 }
+
                 continue;
             }
-            if (empty(array_filter($row))) continue;
+            if (empty(array_filter($row))) {
+                continue;
+            }
 
-            $date   = $this->parseDate(trim($row[0] ?? ''));
-            $desc   = trim($row[1] ?? '');
-            $ref    = trim($row[2] ?? '');
-            $debit  = $this->toFloat($row[3] ?? 0);
+            $date = $this->parseDate(trim($row[0] ?? ''));
+            $desc = trim($row[1] ?? '');
+            $ref = trim($row[2] ?? '');
+            $debit = $this->toFloat($row[3] ?? 0);
             $credit = $this->toFloat($row[4] ?? 0);
-            $bal    = $this->toFloat($row[5] ?? 0);
+            $bal = $this->toFloat($row[5] ?? 0);
 
             if ($date) {
                 $results->push(compact('date', 'description', 'ref', 'debit', 'credit', 'bal') + ['description' => $desc, 'reference' => $ref, 'balance' => $bal]);
             }
         }
+
         return $results;
     }
 
@@ -85,25 +90,29 @@ class NepalBankStatementParser
         $results = collect();
         $started = false;
         foreach ($rows as $row) {
-            if (!$started) {
+            if (! $started) {
                 if (isset($row[0]) && str_contains($row[0], 'Transaction Date')) {
                     $started = true;
                 }
+
                 continue;
             }
-            if (empty(array_filter($row))) continue;
+            if (empty(array_filter($row))) {
+                continue;
+            }
 
-            $date   = $this->parseDate(trim($row[0] ?? ''));
-            $desc   = trim($row[1] ?? '');
-            $ref    = trim($row[2] ?? '');
-            $debit  = $this->toFloat($row[3] ?? 0);
+            $date = $this->parseDate(trim($row[0] ?? ''));
+            $desc = trim($row[1] ?? '');
+            $ref = trim($row[2] ?? '');
+            $debit = $this->toFloat($row[3] ?? 0);
             $credit = $this->toFloat($row[4] ?? 0);
-            $bal    = $this->toFloat($row[5] ?? 0);
+            $bal = $this->toFloat($row[5] ?? 0);
 
             if ($date) {
                 $results->push(['date' => $date, 'description' => $desc, 'reference' => $ref, 'debit' => $debit, 'credit' => $credit, 'balance' => $bal]);
             }
         }
+
         return $results;
     }
 
@@ -113,25 +122,29 @@ class NepalBankStatementParser
         $results = collect();
         $started = false;
         foreach ($rows as $row) {
-            if (!$started) {
+            if (! $started) {
                 if (isset($row[0]) && str_contains($row[0], 'Value Date')) {
                     $started = true;
                 }
+
                 continue;
             }
-            if (empty(array_filter($row))) continue;
+            if (empty(array_filter($row))) {
+                continue;
+            }
 
-            $date   = $this->parseDate(trim($row[0] ?? ''));
-            $desc   = trim($row[1] ?? '');
-            $ref    = trim($row[2] ?? '');
-            $debit  = $this->toFloat($row[3] ?? 0);
+            $date = $this->parseDate(trim($row[0] ?? ''));
+            $desc = trim($row[1] ?? '');
+            $ref = trim($row[2] ?? '');
+            $debit = $this->toFloat($row[3] ?? 0);
             $credit = $this->toFloat($row[4] ?? 0);
-            $bal    = $this->toFloat($row[5] ?? 0);
+            $bal = $this->toFloat($row[5] ?? 0);
 
             if ($date) {
                 $results->push(['date' => $date, 'description' => $desc, 'reference' => $ref, 'debit' => $debit, 'credit' => $credit, 'balance' => $bal]);
             }
         }
+
         return $results;
     }
 
@@ -147,31 +160,42 @@ class NepalBankStatementParser
         $results = collect();
         $skippedHeader = false;
         foreach ($rows as $row) {
-            if (!$skippedHeader) { $skippedHeader = true; continue; }
-            if (empty(array_filter($row))) continue;
+            if (! $skippedHeader) {
+                $skippedHeader = true;
 
-            $date   = $this->parseDate(trim($row[0] ?? ''));
-            $desc   = trim($row[1] ?? '');
-            $ref    = trim($row[2] ?? '');
-            $debit  = $this->toFloat($row[3] ?? 0);
+                continue;
+            }
+            if (empty(array_filter($row))) {
+                continue;
+            }
+
+            $date = $this->parseDate(trim($row[0] ?? ''));
+            $desc = trim($row[1] ?? '');
+            $ref = trim($row[2] ?? '');
+            $debit = $this->toFloat($row[3] ?? 0);
             $credit = $this->toFloat($row[4] ?? 0);
-            $bal    = $this->toFloat($row[5] ?? 0);
+            $bal = $this->toFloat($row[5] ?? 0);
 
             if ($date) {
                 $results->push(['date' => $date, 'description' => $desc, 'reference' => $ref, 'debit' => $debit, 'credit' => $credit, 'balance' => $bal]);
             }
         }
+
         return $results;
     }
 
     private function parseDate(string $value): ?string
     {
-        if (empty($value)) return null;
+        if (empty($value)) {
+            return null;
+        }
         foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd M Y', 'd-M-Y', 'm/d/Y'] as $format) {
             try {
                 return Carbon::createFromFormat($format, $value)?->toDateString();
-            } catch (\Throwable) {}
+            } catch (\Throwable) {
+            }
         }
+
         return null;
     }
 

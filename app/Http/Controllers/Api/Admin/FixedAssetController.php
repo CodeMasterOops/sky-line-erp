@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\FixedAsset;
-use App\Models\FixedAssetCategory;
-use App\Annotation\Permissions;
-use App\Enums\FixedAssetDepreciationMethodEnum;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Annotation\Permissions;
+use App\Models\FixedAssetCategory;
+use App\Http\Controllers\Controller;
 
 class FixedAssetController extends Controller
 {
