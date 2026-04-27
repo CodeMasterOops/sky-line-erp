@@ -90,7 +90,7 @@
           "permission": "list_grn"
         },
         {
-          "menuValue": "Bills",
+          "menuValue": "Purchase Bills",
           "route": { "name": "admin.bill-list" },
           "icon": "ti ti-file-invoice",
           "permission": "list_bill"
@@ -151,11 +151,6 @@
               "menuValue": "Warehouses",
               "route": { "name": "admin.warehouse-list" },
               "permission": "list_warehouse"
-            },
-            {
-              "menuValue": "Bin locations",
-              "route": { "name": "admin.bin-list" },
-              "permission": "list_bin"
             }
           ]
         },

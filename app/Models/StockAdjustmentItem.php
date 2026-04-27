@@ -16,14 +16,12 @@ class StockAdjustmentItem extends Model
         'stock_adjustment_id',
         'product_variant_id',
         'unit_id',
-        'bin_id',
         'direction',
         'quantity',
         'unit_cost',
     ];
 
     protected $casts = [
-        'bin_id' => 'integer',
         'quantity' => 'integer',
         'unit_cost' => 'float',
     ];
@@ -41,10 +39,5 @@ class StockAdjustmentItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
-    }
-
-    public function bin(): BelongsTo
-    {
-        return $this->belongsTo(Bin::class);
     }
 }

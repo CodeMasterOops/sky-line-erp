@@ -33,20 +33,18 @@ class InventoryCostingMethodSwitchService
         $pairs = StockLayer::withoutGlobalScopes()
             ->where('company_id', $company->id)
             ->where('qty_remaining', '>', 0)
-            ->select('product_variant_id', 'warehouse_id', 'bin_id')
+            ->select('product_variant_id', 'warehouse_id')
             ->distinct()
             ->get();
 
         foreach ($pairs as $pair) {
             $variantId = (int) $pair->product_variant_id;
             $warehouseId = (int) $pair->warehouse_id;
-            $binId = (int) $pair->bin_id;
 
             $layers = StockLayer::withoutGlobalScopes()
                 ->where('company_id', $company->id)
                 ->where('product_variant_id', $variantId)
                 ->where('warehouse_id', $warehouseId)
-                ->where('bin_id', $binId)
                 ->where('qty_remaining', '>', 0)
                 ->lockForUpdate()
                 ->orderBy('id')

@@ -53,8 +53,6 @@
                                 <th style="width: 50px;">SN</th>
                                 <th>Product Variant</th>
                                 <th style="width: 160px;">Unit</th>
-                                <th style="width: 160px;">From bin</th>
-                                <th style="width: 160px;">To bin</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 60px;">Action</th>
                             </tr>
@@ -76,26 +74,6 @@
                                         :options="units.data"
                                         @validate="validateField(`items[${index}].unit_id`)"
                                         :error="errors[`items[${index}].unit_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].from_bin_id"
-                                        :options="binsFrom"
-                                        :disabled="!form.from_warehouse_id"
-                                        placeholder="From bin"
-                                        @validate="validateField(`items[${index}].from_bin_id`)"
-                                        :error="errors[`items[${index}].from_bin_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].to_bin_id"
-                                        :options="binsTo"
-                                        :disabled="!form.to_warehouse_id"
-                                        placeholder="To bin"
-                                        @validate="validateField(`items[${index}].to_bin_id`)"
-                                        :error="errors[`items[${index}].to_bin_id`]"
                                     />
                                 </td>
                                 <td>
@@ -159,7 +137,7 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {computed, onMounted, reactive, ref} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -170,25 +148,6 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {useStockTransferStore} from '@/stores/admin/inventory/stock-transfer.js';
 import {useDateHelper} from "@/composables/dateHelper.js";
-import {apiAdmin} from '@/helpers/api.js';
-
-const DEFAULT_BIN_CODE = '__DEFAULT__';
-
-function defaultBinIdFromList(bins) {
-    if (!Array.isArray(bins) || !bins.length) {
-        return '';
-    }
-    const d = bins.find((b) => b.code === DEFAULT_BIN_CODE);
-    return String((d ?? bins[0]).id);
-}
-
-async function loadBinsForWarehouse(warehouseId) {
-    if (!warehouseId) {
-        return [];
-    }
-    const {data} = await apiAdmin(`bin?warehouse_id=${warehouseId}`);
-    return data.data ?? [];
-}
 
 const stockTransferStore = useStockTransferStore();
 const warehouseStore = useWarehouseStore();
@@ -220,8 +179,6 @@ const initialState = {
         {
             product_variant_id: '',
             unit_id: '',
-            from_bin_id: '',
-            to_bin_id: '',
             quantity: '',
         }
     ],
@@ -229,50 +186,6 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
-const binsFrom = ref([]);
-const binsTo = ref([]);
-
-function applyFromBinDefaults() {
-    const id = defaultBinIdFromList(binsFrom.value);
-    form.items.forEach((row) => {
-        row.from_bin_id = id;
-    });
-}
-
-function applyToBinDefaults() {
-    const id = defaultBinIdFromList(binsTo.value);
-    form.items.forEach((row) => {
-        row.to_bin_id = id;
-    });
-}
-
-watch(
-    () => form.from_warehouse_id,
-    async (v) => {
-        binsFrom.value = v ? await loadBinsForWarehouse(v) : [];
-        if (v) {
-            applyFromBinDefaults();
-        } else {
-            form.items.forEach((row) => {
-                row.from_bin_id = '';
-            });
-        }
-    }
-);
-
-watch(
-    () => form.to_warehouse_id,
-    async (v) => {
-        binsTo.value = v ? await loadBinsForWarehouse(v) : [];
-        if (v) {
-            applyToBinDefaults();
-        } else {
-            form.items.forEach((row) => {
-                row.to_bin_id = '';
-            });
-        }
-    }
-);
 
 const toWarehouses = computed(() => {
     if (!form.from_warehouse_id) {
@@ -285,8 +198,6 @@ const addItem = () => {
     form.items.push({
         product_variant_id: '',
         unit_id: '',
-        from_bin_id: defaultBinIdFromList(binsFrom.value),
-        to_bin_id: defaultBinIdFromList(binsTo.value),
         quantity: '',
     });
 };
@@ -306,8 +217,6 @@ const validations = object({
             product_variant_id: string().required('Product is required.'),
             quantity: string().required('Quantity is required.'),
             unit_id: string().nullable(),
-            from_bin_id: string().required('From bin is required.'),
-            to_bin_id: string().required('To bin is required.'),
         })
     ).min(1, 'At least one item is required.'),
 });

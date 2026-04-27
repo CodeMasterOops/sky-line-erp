@@ -70,20 +70,6 @@
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="input-blocks">
-                                <VSelect
-                                    id="receiving_bin_id"
-                                    v-model="form.bin_id"
-                                    :options="bins"
-                                    :disabled="!form.warehouse_id"
-                                    label="Receiving bin"
-                                    placeholder="Bin"
-                                    @validate="validateField('bin_id')"
-                                    :error="errors.bin_id"
-                                />
-                            </div>
-                        </div>
-                        <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
                                 <label class="form-label">Branch</label>
                                 <select class="form-select" v-model="form.branch_id">
                                     <option value="">— No Branch —</option>
@@ -294,7 +280,6 @@
 
 <script setup>
 import {computed, reactive, ref, watch} from 'vue';
-import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -330,7 +315,6 @@ const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 
 const branches = ref([]);
-const bins = ref([]);
 
 const loadBranches = async () => {
     try {
@@ -374,7 +358,6 @@ const getInitialState = () => ({
     due_date: '',
     party_id: '',
     warehouse_id: '',
-    bin_id: '',
     branch_id: '',
     seller_pan: '',
     remarks: '',
@@ -384,18 +367,6 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
-
-watch(
-    () => form.warehouse_id,
-    async (v) => {
-        bins.value = v ? await fetchBinsForWarehouse(v) : [];
-        if (v) {
-            form.bin_id = defaultBinIdFromList(bins.value);
-        } else {
-            form.bin_id = '';
-        }
-    }
-);
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -440,7 +411,6 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
-    bin_id: string().required('Receiving bin is required.'),
     items: array()
         .of(
             object({
@@ -541,7 +511,6 @@ const buildBillPayload = () => {
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
-            bin_id: form.bin_id,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),

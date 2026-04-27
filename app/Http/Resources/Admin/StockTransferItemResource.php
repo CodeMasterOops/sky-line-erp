@@ -22,22 +22,6 @@ class StockTransferItemResource extends JsonResource
                 ];
             }),
             'quantity' => $this->quantity ?? 0,
-            'from_bin_id' => $this->from_bin_id ?? '',
-            'to_bin_id' => $this->to_bin_id ?? '',
-            'from_bin' => $this->whenLoaded('fromBin', function () {
-                return [
-                    'id' => $this->fromBin->id,
-                    'name' => $this->fromBin->name ?? '',
-                    'code' => $this->fromBin->code ?? '',
-                ];
-            }),
-            'to_bin' => $this->whenLoaded('toBin', function () {
-                return [
-                    'id' => $this->toBin->id,
-                    'name' => $this->toBin->name ?? '',
-                    'code' => $this->toBin->code ?? '',
-                ];
-            }),
         ];
     }
 }

@@ -7,9 +7,7 @@ use App\Enums\StatusEnum;
 use App\Enums\TaxTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Http\Requests\Concerns\ValidatesDocumentLineBins;
 
 class BillRequest extends FormRequest
 {
@@ -31,7 +29,6 @@ class BillRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
-            'items.*.bin_id' => ['required', 'integer', TRule::exists('bins', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
@@ -52,15 +49,5 @@ class BillRequest extends FormRequest
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $v) {
-            ValidatesDocumentLineBins::eachBinBelongsToThatLinesWarehouse(
-                $v,
-                (array) $this->input('items', []),
-            );
-        });
     }
 }

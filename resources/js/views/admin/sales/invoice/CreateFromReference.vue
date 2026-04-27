@@ -49,19 +49,6 @@
                                 label="Warehouse"
                                 @validate="validateField('warehouse_id')"
                                 :error="errors.warehouse_id"
-                                @update:model-value="onWarehouseChange"
-                            />
-                        </div>
-                        <div class="col-lg-6 col-sm-6 col-12">
-                            <VSelect
-                                id="issue_bin_id"
-                                v-model="form.bin_id"
-                                :options="bins"
-                                :disabled="!form.warehouse_id"
-                                label="Issue from bin"
-                                placeholder="Bin"
-                                @validate="validateField('bin_id')"
-                                :error="errors.bin_id"
                             />
                         </div>
 
@@ -237,7 +224,6 @@ import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
-import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
@@ -264,7 +250,6 @@ const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 
 const loading = ref(false);
-const bins = ref([]);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({
@@ -316,7 +301,6 @@ const getInitialState = () => ({
     due_date: '',
     party_id: '',
     warehouse_id: '',
-    bin_id: '',
     remarks: '',
     reference_type: '',
     reference_id: '',
@@ -326,15 +310,6 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
-
-const onWarehouseChange = async (warehouseId) => {
-    bins.value = warehouseId ? await fetchBinsForWarehouse(warehouseId) : [];
-    if (warehouseId) {
-        form.bin_id = defaultBinIdFromList(bins.value);
-    } else {
-        form.bin_id = '';
-    }
-};
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -378,7 +353,6 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
-    bin_id: string().required('Issue bin is required.'),
     items: array()
         .of(
             object({
@@ -469,7 +443,6 @@ const buildInvoicePayload = () => {
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
-            bin_id: form.bin_id,
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,
@@ -551,7 +524,6 @@ const closeModal = () => {
 function resetForm() {
     Object.assign(form, getInitialState());
     errors.value = {};
-    bins.value = [];
 }
 </script>
 

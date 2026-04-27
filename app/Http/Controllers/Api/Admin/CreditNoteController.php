@@ -69,7 +69,6 @@ class CreditNoteController extends Controller
                         'invoice_item_id' => $item['invoice_item_id'] ?? null,
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
-                        'bin_id' => $item['bin_id'],
                         'unit_id' => $item['unit_id'] ?? null,
                         'quantity' => $item['quantity'],
                         'rate' => $item['rate'],
@@ -102,7 +101,6 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
-            'creditNoteItems.bin',
         ]);
 
         return response()->json([
@@ -123,7 +121,6 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
-            'creditNoteItems.bin',
         ]);
 
         return CreditNoteResource::make($creditNote);
@@ -165,7 +162,6 @@ class CreditNoteController extends Controller
                     'invoice_item_id' => $item['invoice_item_id'] ?? null,
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
-                    'bin_id' => $item['bin_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -187,7 +183,6 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
-            'creditNoteItems.bin',
         ]);
 
         return response()->json([
@@ -259,7 +254,6 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
-            'creditNoteItems.bin',
         ]);
 
         return response()->json([
@@ -312,7 +306,6 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
-            'creditNoteItems.bin',
         ]);
 
         return response()->json([
@@ -350,7 +343,6 @@ class CreditNoteController extends Controller
                 $user->id,
                 $creditNote->remarks,
                 null,
-                (int) $item->bin_id,
             );
         }
     }

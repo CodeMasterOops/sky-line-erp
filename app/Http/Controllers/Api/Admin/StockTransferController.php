@@ -66,8 +66,6 @@ class StockTransferController extends Controller
                         'product_variant_id' => $item['product_variant_id'],
                         'unit_id' => $item['unit_id'] ?? null,
                         'quantity' => $item['quantity'],
-                        'from_bin_id' => $item['from_bin_id'],
-                        'to_bin_id' => $item['to_bin_id'],
                     ];
                 })->all();
 
@@ -91,8 +89,6 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
-            'stockTransferItems.fromBin',
-            'stockTransferItems.toBin',
         ]);
 
         return response()->json([
@@ -111,8 +107,6 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
-            'stockTransferItems.fromBin',
-            'stockTransferItems.toBin',
         ]);
 
         return StockTransferResource::make($stockTransfer);
@@ -147,8 +141,6 @@ class StockTransferController extends Controller
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
-                    'from_bin_id' => $item['from_bin_id'],
-                    'to_bin_id' => $item['to_bin_id'],
                 ];
             })->all();
 
@@ -162,8 +154,6 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
-            'stockTransferItems.fromBin',
-            'stockTransferItems.toBin',
         ]);
 
         return response()->json([
@@ -221,8 +211,6 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
-            'stockTransferItems.fromBin',
-            'stockTransferItems.toBin',
         ]);
 
         return response()->json([

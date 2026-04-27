@@ -6,9 +6,7 @@ use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Http\Requests\Concerns\ValidatesDocumentLineBins;
 
 class CreditNoteRequest extends FormRequest
 {
@@ -29,7 +27,6 @@ class CreditNoteRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
-            'items.*.bin_id' => ['required', 'integer', TRule::exists('bins', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
@@ -60,15 +57,5 @@ class CreditNoteRequest extends FormRequest
                 },
             ],
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $v) {
-            ValidatesDocumentLineBins::eachBinBelongsToThatLinesWarehouse(
-                $v,
-                (array) $this->input('items', []),
-            );
-        });
     }
 }

@@ -69,20 +69,6 @@
                                 />
                             </div>
                         </div>
-                        <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VSelect
-                                    id="return_bin_id"
-                                    v-model="form.bin_id"
-                                    :options="bins"
-                                    :disabled="!form.warehouse_id"
-                                    label="Return to bin"
-                                    placeholder="Bin"
-                                    @validate="validateField('bin_id')"
-                                    :error="errors.bin_id"
-                                />
-                            </div>
-                        </div>
 
                         <div class="col-12">
                             <ProductVariantSearchInput
@@ -265,7 +251,6 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
-import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import CreateCustomer from '@/views/admin/party/Create.vue';
 
@@ -286,8 +271,6 @@ const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 const {invoices} = storeToRefs(invoiceStore);
-
-const bins = ref([]);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({
@@ -324,7 +307,6 @@ const getInitialState = () => ({
     party_id: '',
     invoice_id: '',
     warehouse_id: '',
-    bin_id: '',
     remarks: '',
     status: 'draft',
     items: [],
@@ -332,18 +314,6 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
-
-watch(
-    () => form.warehouse_id,
-    async (v) => {
-        bins.value = v ? await fetchBinsForWarehouse(v) : [];
-        if (v) {
-            form.bin_id = defaultBinIdFromList(bins.value);
-        } else {
-            form.bin_id = '';
-        }
-    }
-);
 
 const invoiceOptions = computed(() => invoices.value.data || []);
 
@@ -389,7 +359,6 @@ const validations = object({
     party_id: string().nullable(),
     invoice_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
-    bin_id: string().required('Return bin is required.'),
     items: array()
         .of(
             object({
@@ -489,7 +458,6 @@ const buildCreditNotePayload = () => {
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
-            bin_id: form.bin_id,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
@@ -526,7 +494,6 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
-    bins.value = [];
     Object.assign(form, getInitialState());
     errors.value = {};
 }

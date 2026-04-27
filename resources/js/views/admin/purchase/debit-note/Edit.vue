@@ -48,18 +48,6 @@
                         :error="errors.warehouse_id"
                     />
                 </div>
-                <div class="col-md-6">
-                    <VSelect
-                        id="issue_bin_id"
-                        v-model="form.bin_id"
-                        :options="bins"
-                        :disabled="!form.warehouse_id"
-                        label="Issue from bin"
-                        placeholder="Bin"
-                        @validate="validateField('bin_id')"
-                        :error="errors.bin_id"
-                    />
-                </div>
 
                 <div class="col-12">
                     <div class="table-responsive">
@@ -195,7 +183,6 @@
 
 <script setup>
 import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue';
-import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -241,7 +228,6 @@ const initialState = {
     party_id: '',
     bill_id: '',
     warehouse_id: '',
-    bin_id: '',
     remarks: '',
     status: 'draft',
     items: [
@@ -258,7 +244,6 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
-const bins = ref([]);
 const isHydratingDebit = ref(false);
 
 const addItem = () => {
@@ -299,34 +284,10 @@ watch(() => edit_debit_note_id.value, async (id) => {
                 form[key] = d[key] || '';
             }
         });
-        if (whId) {
-            bins.value = await fetchBinsForWarehouse(String(whId));
-            const bid = d.items?.[0]?.bin_id;
-            form.bin_id =
-                bid != null && bid !== '' ? String(bid) : defaultBinIdFromList(bins.value);
-        } else {
-            bins.value = [];
-            form.bin_id = '';
-        }
         await nextTick();
         isHydratingDebit.value = false;
     }
 });
-
-watch(
-    () => form.warehouse_id,
-    async (v) => {
-        if (isHydratingDebit.value) {
-            return;
-        }
-        bins.value = v ? await fetchBinsForWarehouse(v) : [];
-        if (v) {
-            form.bin_id = defaultBinIdFromList(bins.value);
-        } else {
-            form.bin_id = '';
-        }
-    }
-);
 
 const isDraft = computed(() => debitNote.value.data.status === 'draft');
 
@@ -335,7 +296,6 @@ const validations = object({
     party_id: string().nullable(),
     bill_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
-    bin_id: string().required('Issue bin is required.'),
     items: array().of(
         object({
             product_variant_id: string().required('Product is required.'),
@@ -411,7 +371,6 @@ const syncLineItems = () => {
         return {
             ...item,
             warehouse_id: form.warehouse_id,
-            bin_id: form.bin_id,
             tax_amount: lineTax,
         };
     });
@@ -444,7 +403,6 @@ const closeEditModal = () => {
 
 function resetForm() {
     isHydratingDebit.value = false;
-    bins.value = [];
     Object.assign(form, {...initialState});
     errors.value = {};
 }

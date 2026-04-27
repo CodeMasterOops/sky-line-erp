@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\Bin;
 use App\Models\Party;
 use App\Models\Invoice;
 use App\Models\Product;
@@ -14,7 +13,6 @@ use App\Models\PosHeldOrder;
 use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
 use App\Models\AccountSetting;
-use Illuminate\Validation\Rule;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -171,7 +169,6 @@ class PosController extends Controller
      * {
      *   party_id: int|null,
      *   warehouse_id: int,
-     *   bin_id: int|null (optional; default warehouse __DEFAULT__ bin),
      *   payment_method: 'cash'|'card'|'scan',
      *   items: [{product_variant_id, unit_id, quantity, rate, tax_id, tax_amount, discount_amount}],
      *   remarks: string|null
@@ -181,7 +178,6 @@ class PosController extends Controller
     {
         $request->validate([
             'warehouse_id' => ['required', 'integer'],
-            'bin_id' => ['nullable', 'integer', Rule::exists('bins', 'id')->where(fn ($q) => $q->where('warehouse_id', (int) $request->input('warehouse_id')))],
             'payment_method' => ['required', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', 'integer'],
@@ -200,11 +196,6 @@ class PosController extends Controller
         $fiscalYearId = $company->fiscal_year_id;
         $today = now()->toDateString();
 
-        $warehouseId = (int) $request->warehouse_id;
-        $issueBinId = $request->filled('bin_id')
-            ? (int) $request->input('bin_id')
-            : Bin::defaultIdForWarehouse($company->id, $warehouseId);
-
         $accountSetting = AccountSetting::first();
         $accountId = $this->resolveAccountId($request->payment_method, $accountSetting);
 
@@ -214,7 +205,7 @@ class PosController extends Controller
         $invoiceNo = 'INV-'.($invoiceCount + 1).$suffix;
 
         try {
-            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $invoiceNo, $accountId, $issueBinId) {
+            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $invoiceNo, $accountId) {
                 $invoiceDateBs = null;
                 try {
                     $bs = $this->nepaliDate->adToBs($today);
@@ -239,7 +230,6 @@ class PosController extends Controller
                 $items = collect($request->items)->map(fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $request->warehouse_id,
-                    'bin_id' => $issueBinId,
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -264,7 +254,6 @@ class PosController extends Controller
                             ChangeTypeEnum::SALE,
                             $user->id,
                             $invoice->remarks,
-                            (int) $item->bin_id,
                         );
                     }
                 }

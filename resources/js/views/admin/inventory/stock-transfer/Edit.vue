@@ -54,8 +54,6 @@
                                 <th style="width: 50px;">SN</th>
                                 <th>Product Variant</th>
                                 <th style="width: 160px;">Unit</th>
-                                <th style="width: 160px;">From bin</th>
-                                <th style="width: 160px;">To bin</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 60px;">Action</th>
                             </tr>
@@ -77,26 +75,6 @@
                                         :options="units.data"
                                         @validate="validateField(`items[${index}].unit_id`)"
                                         :error="errors[`items[${index}].unit_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].from_bin_id"
-                                        :options="binsFrom"
-                                        :disabled="!form.from_warehouse_id"
-                                        placeholder="From bin"
-                                        @validate="validateField(`items[${index}].from_bin_id`)"
-                                        :error="errors[`items[${index}].from_bin_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].to_bin_id"
-                                        :options="binsTo"
-                                        :disabled="!form.to_warehouse_id"
-                                        placeholder="To bin"
-                                        @validate="validateField(`items[${index}].to_bin_id`)"
-                                        :error="errors[`items[${index}].to_bin_id`]"
                                     />
                                 </td>
                                 <td>
@@ -150,7 +128,7 @@
 </template>
 
 <script setup>
-import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -160,25 +138,6 @@ import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {useStockTransferStore} from '@/stores/admin/inventory/stock-transfer.js';
-import {apiAdmin} from '@/helpers/api.js';
-
-const DEFAULT_BIN_CODE = '__DEFAULT__';
-
-function defaultBinIdFromList(bins) {
-    if (!Array.isArray(bins) || !bins.length) {
-        return '';
-    }
-    const d = bins.find((b) => b.code === DEFAULT_BIN_CODE);
-    return String((d ?? bins[0]).id);
-}
-
-async function loadBinsForWarehouse(warehouseId) {
-    if (!warehouseId) {
-        return [];
-    }
-    const {data} = await apiAdmin(`bin?warehouse_id=${warehouseId}`);
-    return data.data ?? [];
-}
 
 const stockTransferStore = useStockTransferStore();
 const warehouseStore = useWarehouseStore();
@@ -209,8 +168,6 @@ const initialState = {
         {
             product_variant_id: '',
             unit_id: '',
-            from_bin_id: '',
-            to_bin_id: '',
             quantity: '',
         }
     ],
@@ -218,63 +175,6 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
-const binsFrom = ref([]);
-const binsTo = ref([]);
-const isHydratingTransfer = ref(false);
-
-function syncFromBinsAfterWarehouseChange(v) {
-    if (!v) {
-        form.items.forEach((row) => {
-            row.from_bin_id = '';
-        });
-        return;
-    }
-    const allowed = new Set(binsFrom.value.map((b) => String(b.id)));
-    const fallback = defaultBinIdFromList(binsFrom.value);
-    form.items.forEach((row) => {
-        if (!row.from_bin_id || !allowed.has(String(row.from_bin_id))) {
-            row.from_bin_id = fallback;
-        }
-    });
-}
-
-function syncToBinsAfterWarehouseChange(v) {
-    if (!v) {
-        form.items.forEach((row) => {
-            row.to_bin_id = '';
-        });
-        return;
-    }
-    const allowed = new Set(binsTo.value.map((b) => String(b.id)));
-    const fallback = defaultBinIdFromList(binsTo.value);
-    form.items.forEach((row) => {
-        if (!row.to_bin_id || !allowed.has(String(row.to_bin_id))) {
-            row.to_bin_id = fallback;
-        }
-    });
-}
-
-watch(
-    () => form.from_warehouse_id,
-    async (v) => {
-        if (isHydratingTransfer.value) {
-            return;
-        }
-        binsFrom.value = v ? await loadBinsForWarehouse(v) : [];
-        syncFromBinsAfterWarehouseChange(v);
-    }
-);
-
-watch(
-    () => form.to_warehouse_id,
-    async (v) => {
-        if (isHydratingTransfer.value) {
-            return;
-        }
-        binsTo.value = v ? await loadBinsForWarehouse(v) : [];
-        syncToBinsAfterWarehouseChange(v);
-    }
-);
 
 const toWarehouses = computed(() => {
     if (!form.from_warehouse_id) {
@@ -287,8 +187,6 @@ const addItem = () => {
     form.items.push({
         product_variant_id: '',
         unit_id: '',
-        from_bin_id: defaultBinIdFromList(binsFrom.value),
-        to_bin_id: defaultBinIdFromList(binsTo.value),
         quantity: '',
     });
 };
@@ -300,18 +198,11 @@ const removeItem = (index) => {
 
 watch(() => edit_transfer_id.value, async (id) => {
     if (id) {
-        isHydratingTransfer.value = true;
         await stockTransferStore.getTransfer(id);
         const t = transfer.value.data;
-        const fw = t.from_warehouse_id;
-        const tw = t.to_warehouse_id;
-        binsFrom.value = fw ? await loadBinsForWarehouse(String(fw)) : [];
-        binsTo.value = tw ? await loadBinsForWarehouse(String(tw)) : [];
         form.items = (t.items || []).map(item => ({
             product_variant_id: String(item.product_variant_id ?? ''),
             unit_id: item.unit_id != null && item.unit_id !== '' ? String(item.unit_id) : '',
-            from_bin_id: item.from_bin_id != null && item.from_bin_id !== '' ? String(item.from_bin_id) : '',
-            to_bin_id: item.to_bin_id != null && item.to_bin_id !== '' ? String(item.to_bin_id) : '',
             quantity: item.quantity != null && item.quantity !== '' ? String(item.quantity) : '',
         }));
         form.reference_no = t.reference_no ?? '';
@@ -322,8 +213,6 @@ watch(() => edit_transfer_id.value, async (id) => {
             t.to_warehouse_id != null && t.to_warehouse_id !== '' ? String(t.to_warehouse_id) : '';
         form.remarks = t.remarks ?? '';
         form.status = t.status ?? 'draft';
-        await nextTick();
-        isHydratingTransfer.value = false;
     }
 });
 
@@ -339,8 +228,6 @@ const validations = object({
             product_variant_id: string().required('Product is required.'),
             quantity: string().required('Quantity is required.'),
             unit_id: string().nullable(),
-            from_bin_id: string().required('From bin is required.'),
-            to_bin_id: string().required('To bin is required.'),
         })
     ).min(1, 'At least one item is required.'),
 });
@@ -372,10 +259,7 @@ const closeEditModal = () => {
 };
 
 function resetForm() {
-    isHydratingTransfer.value = false;
     Object.assign(form, {...initialState});
     errors.value = {};
-    binsFrom.value = [];
-    binsTo.value = [];
 }
 </script>

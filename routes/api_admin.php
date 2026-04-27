@@ -68,7 +68,6 @@ use App\Http\Controllers\Api\Admin\Nepal\VatD3Controller;
 use App\Http\Controllers\Api\Admin\Nepal\TdsChallanController;
 // Phase 3 — Inventory Enhancements
 use App\Http\Controllers\Api\Admin\BatchController;
-use App\Http\Controllers\Api\Admin\BinController;
 use App\Http\Controllers\Api\Admin\BomController;
 use App\Http\Controllers\Api\Admin\ProductionOrderController;
 // Phase 5 — Finance & Banking
@@ -392,9 +391,6 @@ Route::middleware('auth:admin')->group(function () {
         Route::get('batch/expiry-alerts', [BatchController::class, 'expiryAlerts'])->name('batch.expiry-alerts');
         Route::get('batch/fefo', [BatchController::class, 'fefoList'])->name('batch.fefo');
         Route::apiResource('batch', BatchController::class)->except(['destroy']);
-
-        // Bin management
-        Route::apiResource('bin', BinController::class);
 
         // Bill of Materials
         Route::apiResource('bom', BomController::class);

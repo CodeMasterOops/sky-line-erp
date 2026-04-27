@@ -5,9 +5,7 @@ namespace App\Http\Requests\Api\Admin;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Http\Requests\Concerns\ValidatesDocumentLineBins;
 
 class DebitNoteRequest extends FormRequest
 {
@@ -28,7 +26,6 @@ class DebitNoteRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
-            'items.*.bin_id' => ['required', 'integer', TRule::exists('bins', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
@@ -36,15 +33,5 @@ class DebitNoteRequest extends FormRequest
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $v) {
-            ValidatesDocumentLineBins::eachBinBelongsToThatLinesWarehouse(
-                $v,
-                (array) $this->input('items', []),
-            );
-        });
     }
 }

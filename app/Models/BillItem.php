@@ -16,7 +16,6 @@ class BillItem extends Model
         'bill_id',
         'product_variant_id',
         'warehouse_id',
-        'bin_id',
         'quantity',
         'unit_id',
         'rate',
@@ -30,7 +29,6 @@ class BillItem extends Model
         'bill_id' => 'integer',
         'product_variant_id' => 'integer',
         'warehouse_id' => 'integer',
-        'bin_id' => 'integer',
         'unit_id' => 'integer',
         'tax_id' => 'integer',
         'quantity' => 'integer',
@@ -63,11 +61,6 @@ class BillItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
-    }
-
-    public function bin(): BelongsTo
-    {
-        return $this->belongsTo(Bin::class);
     }
 
     public function stockLayers(): HasMany

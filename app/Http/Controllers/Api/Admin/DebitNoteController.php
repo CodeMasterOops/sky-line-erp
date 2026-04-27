@@ -66,7 +66,6 @@ class DebitNoteController extends Controller
                     return [
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
-                        'bin_id' => $item['bin_id'],
                         'unit_id' => $item['unit_id'] ?? null,
                         'quantity' => $item['quantity'],
                         'rate' => $item['rate'],
@@ -99,7 +98,6 @@ class DebitNoteController extends Controller
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
-            'debitNoteItems.bin',
         ]);
 
         return response()->json([
@@ -120,7 +118,6 @@ class DebitNoteController extends Controller
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
-            'debitNoteItems.bin',
         ]);
 
         return DebitNoteResource::make($debitNote);
@@ -161,7 +158,6 @@ class DebitNoteController extends Controller
                 return [
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
-                    'bin_id' => $item['bin_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -183,7 +179,6 @@ class DebitNoteController extends Controller
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
-            'debitNoteItems.bin',
         ]);
 
         return response()->json([
@@ -254,7 +249,6 @@ class DebitNoteController extends Controller
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
-            'debitNoteItems.bin',
         ]);
 
         return response()->json([
@@ -307,7 +301,6 @@ class DebitNoteController extends Controller
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
-            'debitNoteItems.bin',
         ]);
 
         return response()->json([
@@ -335,7 +328,6 @@ class DebitNoteController extends Controller
                 ChangeTypeEnum::RETURN_OUT,
                 $user->id,
                 $debitNote->remarks,
-                (int) $item->bin_id,
             );
         }
     }

@@ -65,20 +65,6 @@
                                 />
                             </div>
                         </div>
-                        <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VSelect
-                                    id="return_bin_id"
-                                    v-model="form.bin_id"
-                                    :options="bins"
-                                    :disabled="!isDraft || !form.warehouse_id"
-                                    label="Return to bin"
-                                    placeholder="Bin"
-                                    @validate="validateField('bin_id')"
-                                    :error="errors.bin_id"
-                                />
-                            </div>
-                        </div>
 
                         <div v-if="isDraft" class="col-12">
                             <ProductVariantSearchInput
@@ -240,7 +226,6 @@
 <script setup>
 import {computed, nextTick, reactive, ref, watch} from 'vue';
 import debounce from 'lodash/debounce';
-import {defaultBinIdFromList, fetchBinsForWarehouse} from '@/composables/warehouseBins.js';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -285,7 +270,6 @@ const initialState = {
     party_id: '',
     invoice_id: '',
     warehouse_id: '',
-    bin_id: '',
     remarks: '',
     status: 'draft',
     items: [],
@@ -293,7 +277,6 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
-const bins = ref([]);
 const isHydratingCredit = ref(false);
 
 const invoiceOptions = computed(() => invoices.value.data || []);
@@ -405,32 +388,8 @@ watch(
                 form[key] = data[key] ?? (key === 'items' ? [] : '');
             }
         });
-        if (whId) {
-            bins.value = await fetchBinsForWarehouse(String(whId));
-            const bid = data.items?.[0]?.bin_id;
-            form.bin_id =
-                bid != null && bid !== '' ? String(bid) : defaultBinIdFromList(bins.value);
-        } else {
-            bins.value = [];
-            form.bin_id = '';
-        }
         await nextTick();
         isHydratingCredit.value = false;
-    }
-);
-
-watch(
-    () => form.warehouse_id,
-    async (v) => {
-        if (isHydratingCredit.value) {
-            return;
-        }
-        bins.value = v ? await fetchBinsForWarehouse(v) : [];
-        if (v) {
-            form.bin_id = defaultBinIdFromList(bins.value);
-        } else {
-            form.bin_id = '';
-        }
     }
 );
 
@@ -441,7 +400,6 @@ const validations = object({
     party_id: string().nullable(),
     invoice_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
-    bin_id: string().required('Return bin is required.'),
     items: array()
         .of(
             object({
@@ -540,7 +498,6 @@ const buildCreditNotePayload = () => {
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
-            bin_id: form.bin_id,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
@@ -580,7 +537,6 @@ const closeEditModal = () => {
 
 function resetForm() {
     isHydratingCredit.value = false;
-    bins.value = [];
     Object.assign(form, {...initialState});
     errors.value = {};
 }

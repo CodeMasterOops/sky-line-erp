@@ -68,7 +68,6 @@ class BillController extends Controller
                     return [
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
-                        'bin_id' => $item['bin_id'],
                         'unit_id' => $item['unit_id'] ?? null,
                         'quantity' => $item['quantity'],
                         'rate' => $item['rate'],
@@ -101,7 +100,6 @@ class BillController extends Controller
             'billItems.unit',
             'billItems.tax',
             'billItems.warehouse',
-            'billItems.bin',
         ]);
 
         return response()->json([
@@ -121,7 +119,6 @@ class BillController extends Controller
             'billItems.unit',
             'billItems.tax',
             'billItems.warehouse',
-            'billItems.bin',
         ]);
 
         return BillResource::make($bill);
@@ -163,7 +160,6 @@ class BillController extends Controller
                 return [
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
-                    'bin_id' => $item['bin_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -185,7 +181,6 @@ class BillController extends Controller
             'billItems.unit',
             'billItems.tax',
             'billItems.warehouse',
-            'billItems.bin',
         ]);
 
         return response()->json([
@@ -255,7 +250,6 @@ class BillController extends Controller
             'billItems.unit',
             'billItems.tax',
             'billItems.warehouse',
-            'billItems.bin',
         ]);
 
         return response()->json([
@@ -307,7 +301,6 @@ class BillController extends Controller
             'billItems.unit',
             'billItems.tax',
             'billItems.warehouse',
-            'billItems.bin',
         ]);
 
         return response()->json([
@@ -339,7 +332,6 @@ class BillController extends Controller
                 $user->id,
                 $bill->remarks,
                 $item->id,
-                (int) $item->bin_id,
             );
         }
     }

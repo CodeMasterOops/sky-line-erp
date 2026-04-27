@@ -16,7 +16,6 @@ class WarehouseResource extends JsonResource
             'code' => $this->code ?? '',
             'phone' => $this->phone ?? '',
             'address' => $this->address ?? '',
-            'bins_count' => (int) ($this->bins_count ?? 0),
         ];
     }
 }

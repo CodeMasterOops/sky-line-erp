@@ -81,7 +81,6 @@ class InvoiceController extends Controller
                     return [
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
-                        'bin_id' => $item['bin_id'],
                         'unit_id' => $item['unit_id'] ?? null,
                         'quantity' => $item['quantity'],
                         'rate' => $item['rate'],
@@ -119,7 +118,6 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
-            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -139,7 +137,6 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
-            'invoiceItems.bin',
             'receiptAllocations.receipt',
         ]);
 
@@ -183,7 +180,6 @@ class InvoiceController extends Controller
                 return [
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
-                    'bin_id' => $item['bin_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -205,7 +201,6 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
-            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -275,7 +270,6 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
-            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -330,7 +324,6 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
-            'invoiceItems.bin',
         ]);
 
         return response()->json([
@@ -358,7 +351,6 @@ class InvoiceController extends Controller
                 ChangeTypeEnum::SALE,
                 $user->id,
                 $invoice->remarks,
-                (int) $item->bin_id,
             );
         }
     }

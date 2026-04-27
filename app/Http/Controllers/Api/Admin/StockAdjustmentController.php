@@ -68,7 +68,6 @@ class StockAdjustmentController extends Controller
                     return [
                         'product_variant_id' => $item['product_variant_id'],
                         'unit_id' => $item['unit_id'] ?? null,
-                        'bin_id' => $item['bin_id'],
                         'direction' => $item['direction'],
                         'quantity' => $item['quantity'],
                         'unit_cost' => $item['unit_cost'] ?? null,
@@ -90,7 +89,7 @@ class StockAdjustmentController extends Controller
             ], 422);
         }
 
-        $adjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit', 'stockAdjustmentItems.bin']);
+        $adjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($adjustment),
@@ -107,7 +106,6 @@ class StockAdjustmentController extends Controller
             'warehouse',
             'stockAdjustmentItems.productVariant.product',
             'stockAdjustmentItems.unit',
-            'stockAdjustmentItems.bin',
         ]);
 
         return StockAdjustmentResource::make($stockAdjustment);
@@ -140,7 +138,6 @@ class StockAdjustmentController extends Controller
                 return [
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
-                    'bin_id' => $item['bin_id'],
                     'direction' => $item['direction'],
                     'quantity' => $item['quantity'],
                     'unit_cost' => $item['unit_cost'] ?? null,
@@ -152,7 +149,7 @@ class StockAdjustmentController extends Controller
             return $stockAdjustment;
         });
 
-        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit', 'stockAdjustmentItems.bin']);
+        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($stockAdjustment),
@@ -204,7 +201,7 @@ class StockAdjustmentController extends Controller
             ], 422);
         }
 
-        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit', 'stockAdjustmentItems.bin']);
+        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($stockAdjustment),
@@ -238,7 +235,6 @@ class StockAdjustmentController extends Controller
                     $user->id,
                     $adjustment->remarks,
                     null,
-                    (int) $item->bin_id,
                 );
             } else {
                 $this->inventoryIssue->issue(
@@ -250,7 +246,6 @@ class StockAdjustmentController extends Controller
                     ChangeTypeEnum::ADJUSTMENT_OUT,
                     $user->id,
                     $adjustment->remarks,
-                    (int) $item->bin_id,
                 );
             }
         }

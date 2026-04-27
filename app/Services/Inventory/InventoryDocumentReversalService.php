@@ -2,7 +2,6 @@
 
 namespace App\Services\Inventory;
 
-use App\Models\Bin;
 use App\Models\Bill;
 use App\Models\Company;
 use App\Models\Invoice;
@@ -50,14 +49,10 @@ class InventoryDocumentReversalService
                 $layer->save();
             }
 
-            $binId = (int) ($movement->bin_id
-                ?? Bin::defaultIdForWarehouse($invoice->company_id, (int) $movement->warehouse_id));
-
             $this->quantities->adjust(
                 $invoice->company_id,
                 $movement->product_variant_id,
                 (int) $movement->warehouse_id,
-                $binId,
                 (int) $movement->quantity,
             );
 
@@ -65,7 +60,6 @@ class InventoryDocumentReversalService
                 'company_id' => $invoice->company_id,
                 'product_variant_id' => $movement->product_variant_id,
                 'warehouse_id' => $movement->warehouse_id,
-                'bin_id' => $binId,
                 'type' => ChangeTypeEnum::RETURN_IN,
                 'direction' => StockDirectionEnum::IN,
                 'quantity' => $movement->quantity,
@@ -114,15 +108,10 @@ class InventoryDocumentReversalService
                 $toRemove -= $take;
             }
 
-            $binId = (int) ($item->bin_id
-                ?? $layers->first()->bin_id
-                ?? Bin::defaultIdForWarehouse($bill->company_id, (int) $item->warehouse_id));
-
             $this->quantities->adjust(
                 $bill->company_id,
                 $item->product_variant_id,
                 (int) $item->warehouse_id,
-                $binId,
                 -$qty,
             );
 
@@ -133,7 +122,6 @@ class InventoryDocumentReversalService
                 'company_id' => $bill->company_id,
                 'product_variant_id' => $item->product_variant_id,
                 'warehouse_id' => $item->warehouse_id,
-                'bin_id' => $binId,
                 'type' => ChangeTypeEnum::RETURN_OUT,
                 'direction' => StockDirectionEnum::OUT,
                 'quantity' => $qty,
@@ -174,14 +162,10 @@ class InventoryDocumentReversalService
                 $layer->save();
             }
 
-            $binId = (int) ($movement->bin_id
-                ?? Bin::defaultIdForWarehouse($debitNote->company_id, (int) $movement->warehouse_id));
-
             $this->quantities->adjust(
                 $debitNote->company_id,
                 $movement->product_variant_id,
                 (int) $movement->warehouse_id,
-                $binId,
                 (int) $movement->quantity,
             );
 
@@ -189,7 +173,6 @@ class InventoryDocumentReversalService
                 'company_id' => $debitNote->company_id,
                 'product_variant_id' => $movement->product_variant_id,
                 'warehouse_id' => $movement->warehouse_id,
-                'bin_id' => $binId,
                 'type' => ChangeTypeEnum::PURCHASE,
                 'direction' => StockDirectionEnum::IN,
                 'quantity' => $movement->quantity,
@@ -222,8 +205,6 @@ class InventoryDocumentReversalService
                 ChangeTypeEnum::ADJUSTMENT_OUT,
                 $userId,
                 $remarks,
-                (int) ($movement->bin_id
-                    ?? Bin::defaultIdForWarehouse($company->id, (int) $movement->warehouse_id)),
             );
         }
     }

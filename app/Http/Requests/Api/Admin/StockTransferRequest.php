@@ -27,16 +27,6 @@ class StockTransferRequest extends FormRequest
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.from_bin_id' => [
-                'required',
-                'integer',
-                TRule::exists('bins', 'id')->withoutTrashed()->where('warehouse_id', (string) $this->input('from_warehouse_id')),
-            ],
-            'items.*.to_bin_id' => [
-                'required',
-                'integer',
-                TRule::exists('bins', 'id')->withoutTrashed()->where('warehouse_id', (string) $this->input('to_warehouse_id')),
-            ],
         ];
 
         return match ($this->method()) {

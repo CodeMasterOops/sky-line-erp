@@ -8,7 +8,6 @@ use Illuminate\Validation\Rule;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
-use App\Http\Requests\Concerns\ValidatesDocumentLineBins;
 
 class StockAdjustmentRequest extends FormRequest
 {
@@ -31,7 +30,6 @@ class StockAdjustmentRequest extends FormRequest
             'items.*.direction' => ['required', Rule::in([StockDirectionEnum::IN->value, StockDirectionEnum::OUT->value])],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
-            'items.*.bin_id' => ['required', 'integer', TRule::exists('bins', 'id')->withoutTrashed()],
         ];
 
         return match ($this->method()) {
@@ -42,13 +40,6 @@ class StockAdjustmentRequest extends FormRequest
 
     public function withValidator(Validator $validator): void
     {
-        $validator->after(function (Validator $v) {
-            ValidatesDocumentLineBins::eachBinBelongsToFormWarehouse(
-                $v,
-                (array) $this->input('items', []),
-                $this->input('warehouse_id') ? (int) $this->input('warehouse_id') : null,
-            );
-        });
         $validator->after(function ($validator) {
             foreach ($this->input('items', []) as $i => $item) {
                 if (($item['direction'] ?? '') === StockDirectionEnum::IN->value) {

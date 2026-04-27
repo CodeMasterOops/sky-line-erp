@@ -34,20 +34,15 @@ class InventoryLayerTransferService
         $fromId = $transfer->from_warehouse_id;
         $toId = $transfer->to_warehouse_id;
 
-        $fromBinId = (int) $item->from_bin_id;
-        $toBinId = (int) $item->to_bin_id;
-
         $lockFirstW = (int) min($fromId, $toId);
         $lockSecondW = (int) max($fromId, $toId);
-        $lockFirstBin = $lockFirstW === (int) $fromId ? $fromBinId : $toBinId;
-        $lockSecondBin = $lockSecondW === (int) $fromId ? $fromBinId : $toBinId;
 
-        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirstW, $lockFirstBin);
-        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW, $lockSecondBin);
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirstW);
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW);
 
-        $lines = $this->ledger->consume($company, $variantId, (int) $fromId, $fromBinId, $qty);
+        $lines = $this->ledger->consume($company, $variantId, (int) $fromId, $qty);
 
-        $this->quantities->adjust($company->id, $variantId, (int) $fromId, $fromBinId, -$qty);
+        $this->quantities->adjust($company->id, $variantId, (int) $fromId, -$qty);
 
         $outTotal = 0.0;
         foreach ($lines as $line) {
@@ -60,7 +55,6 @@ class InventoryLayerTransferService
             'company_id' => $company->id,
             'product_variant_id' => $variantId,
             'warehouse_id' => $fromId,
-            'bin_id' => $fromBinId,
             'type' => ChangeTypeEnum::TRANSFER_OUT,
             'direction' => StockDirectionEnum::OUT,
             'quantity' => $qty,
@@ -83,7 +77,6 @@ class InventoryLayerTransferService
                 $company,
                 $variantId,
                 (int) $toId,
-                $toBinId,
                 $line['quantity'],
                 $line['unit_cost'],
                 null,
@@ -91,13 +84,12 @@ class InventoryLayerTransferService
             );
         }
 
-        $this->quantities->adjust($company->id, $variantId, (int) $toId, $toBinId, $qty);
+        $this->quantities->adjust($company->id, $variantId, (int) $toId, $qty);
 
         $transfer->stockMovements()->create([
             'company_id' => $company->id,
             'product_variant_id' => $variantId,
             'warehouse_id' => $toId,
-            'bin_id' => $toBinId,
             'type' => ChangeTypeEnum::TRANSFER_IN,
             'direction' => StockDirectionEnum::IN,
             'quantity' => $qty,

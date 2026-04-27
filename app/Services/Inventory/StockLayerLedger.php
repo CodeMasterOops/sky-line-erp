@@ -16,7 +16,6 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $binId,
         int $quantity,
     ): array {
         $method = $company->inventory_costing_method ?? InventoryCostingMethodEnum::FIFO;
@@ -26,14 +25,12 @@ class StockLayerLedger
                 $company,
                 $productVariantId,
                 $warehouseId,
-                $binId,
                 $quantity
             ),
             default => $this->consumeFifo(
                 $company,
                 $productVariantId,
                 $warehouseId,
-                $binId,
                 $quantity
             ),
         };
@@ -43,7 +40,6 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $binId,
         int $quantity,
         float $unitCost,
         ?int $sourceBillItemId = null,
@@ -57,7 +53,6 @@ class StockLayerLedger
                 $company,
                 $productVariantId,
                 $warehouseId,
-                $binId,
                 $quantity,
                 $unitCost,
                 $sourceBillItemId,
@@ -71,7 +66,6 @@ class StockLayerLedger
             $company,
             $productVariantId,
             $warehouseId,
-            $binId,
             $quantity,
             $unitCost,
             $sourceBillItemId,
@@ -83,7 +77,6 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $binId,
         int $quantity,
         float $unitCost,
         ?int $sourceBillItemId,
@@ -93,7 +86,6 @@ class StockLayerLedger
             'company_id' => $company->id,
             'product_variant_id' => $productVariantId,
             'warehouse_id' => $warehouseId,
-            'bin_id' => $binId,
             'qty_remaining' => $quantity,
             'unit_cost' => $unitCost,
             'received_at' => $receivedAt,
@@ -105,7 +97,6 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $binId,
         int $quantity,
         float $unitCost,
         ?int $sourceBillItemId,
@@ -115,7 +106,6 @@ class StockLayerLedger
             ->where('company_id', $company->id)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
-            ->where('bin_id', $binId)
             ->where('qty_remaining', '>', 0)
             ->lockForUpdate()
             ->orderBy('id')
@@ -126,7 +116,6 @@ class StockLayerLedger
                 'company_id' => $company->id,
                 'product_variant_id' => $productVariantId,
                 'warehouse_id' => $warehouseId,
-                'bin_id' => $binId,
                 'qty_remaining' => $quantity,
                 'unit_cost' => $unitCost,
                 'received_at' => $receivedAt,
@@ -156,14 +145,12 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $binId,
         int $quantity,
     ): array {
         $layers = StockLayer::withoutGlobalScopes()
             ->where('company_id', $company->id)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
-            ->where('bin_id', $binId)
             ->where('qty_remaining', '>', 0)
             ->orderBy('received_at')
             ->orderBy('id')
@@ -173,7 +160,7 @@ class StockLayerLedger
         $available = (int) $layers->sum('qty_remaining');
         if ($available < $quantity) {
             throw ValidationException::withMessages([
-                'quantity' => __('Insufficient valued stock for this product at the selected warehouse and bin.'),
+                'quantity' => __('Insufficient valued stock for this product at the selected warehouse.'),
             ]);
         }
 
@@ -211,14 +198,12 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $binId,
         int $quantity,
     ): array {
         $layer = StockLayer::withoutGlobalScopes()
             ->where('company_id', $company->id)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
-            ->where('bin_id', $binId)
             ->where('qty_remaining', '>', 0)
             ->lockForUpdate()
             ->orderBy('id')
@@ -226,7 +211,7 @@ class StockLayerLedger
 
         if (! $layer || (int) $layer->qty_remaining < $quantity) {
             throw ValidationException::withMessages([
-                'quantity' => __('Insufficient valued stock for this product at the selected warehouse and bin.'),
+                'quantity' => __('Insufficient valued stock for this product at the selected warehouse.'),
             ]);
         }
 

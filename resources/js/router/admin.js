@@ -800,12 +800,6 @@ const routes = [
                 meta: {pageTitle: "Production Orders"},
                 component: () => import("@/views/admin/inventory/production/Index.vue"),
             },
-            {
-                path: "inventory/bins",
-                name: "admin.bin-list",
-                meta: {pageTitle: "Bin locations"},
-                component: () => import("@/views/admin/inventory/bins/Index.vue"),
-            },
             // ---- Phase 5: Finance & Banking ----
             {
                 path: "banking/cheques",
