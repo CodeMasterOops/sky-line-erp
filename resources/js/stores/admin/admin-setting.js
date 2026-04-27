@@ -18,30 +18,32 @@ export const useAdminSettingStore = defineStore('admin-setting', {
 
     actions: {
         getFiscalYears() {
-            if (!this.fiscalYears.data.length) {
-                this.fiscalYears.loading = true;
-                return apiAdmin(`${apiUrl}/fiscal-year`)
-                    .then((res) => {
-                        this.fiscalYears.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.fiscalYears.loading = false;
-                    })
+            if (this.fiscalYears.data.length) {
+                return Promise.resolve();
             }
+            this.fiscalYears.loading = true;
+            return apiAdmin(`${apiUrl}/fiscal-year`)
+                .then((res) => {
+                    this.fiscalYears.data = res.data.data;
+                }).catch((err) => {
+                    showErrors(err);
+                }).finally(() => {
+                    this.fiscalYears.loading = false;
+                });
         },
         getCurrentFiscalYear(refetch = false) {
-            if (!Object.keys(this.currentFiscalYear.data).length || refetch) {
-                this.currentFiscalYear.loading = true;
-                return apiAdmin(`${apiUrl}/current-fiscal-year`)
-                    .then((res) => {
-                        this.currentFiscalYear.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.currentFiscalYear.loading = false;
-                    })
+            if (Object.keys(this.currentFiscalYear.data).length && !refetch) {
+                return Promise.resolve();
             }
+            this.currentFiscalYear.loading = true;
+            return apiAdmin(`${apiUrl}/current-fiscal-year`)
+                .then((res) => {
+                    this.currentFiscalYear.data = res.data.data;
+                }).catch((err) => {
+                    showErrors(err);
+                }).finally(() => {
+                    this.currentFiscalYear.loading = false;
+                });
         }
     }
 })
