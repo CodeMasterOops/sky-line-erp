@@ -36,6 +36,11 @@
                         @validate="validateField('party_id')"
                         :error="errors.party_id"
                     />
+                    <PartyMetaPanel
+                        v-if="resolvedParty"
+                        :party="resolvedParty"
+                        pan-heading="Buyer PAN"
+                    />
                 </div>
                 <div class="col-md-6">
                     <VSelect
@@ -53,14 +58,6 @@
                         v-model="form.bijak_no"
                         label="Bijak No (Invoice No)"
                         placeholder="Sequential bill number"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VInput
-                        id="buyer_pan"
-                        v-model="form.buyer_pan"
-                        label="Buyer PAN"
-                        placeholder="Buyer PAN (required for VAT invoices)"
                     />
                 </div>
 
@@ -248,7 +245,7 @@
 </template>
 
 <script setup>
-import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue';
+import {computed, nextTick, onMounted, reactive, ref, toRef, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -263,6 +260,8 @@ import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
+import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
 
 const invoiceStore = useInvoiceStore();
 const productStore = useProductStore();
@@ -304,7 +303,6 @@ const initialState = {
     due_date: '',
     party_id: '',
     warehouse_id: '',
-    buyer_pan: '',
     bijak_no: '',
     remarks: '',
     status: 'draft',
@@ -316,6 +314,10 @@ const initialState = {
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
 const isHydratingInvoice = ref(false);
+
+const documentParty = computed(() => invoice.value.data?.party ?? null);
+
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties, documentParty);
 
 const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     form,
@@ -344,7 +346,6 @@ watch(() => edit_invoice_id.value, async (id) => {
         form.due_date = data.due_date || '';
         form.party_id = data.party_id || '';
         form.warehouse_id = whId || '';
-        form.buyer_pan = data.buyer_pan || '';
         form.bijak_no = data.bijak_no || '';
         form.remarks = data.remarks || '';
         form.status = data.status || 'draft';

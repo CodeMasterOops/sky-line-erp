@@ -38,9 +38,9 @@ class VatD3Controller extends Controller
      * @Permissions("list_invoice", group="invoice", desc="Export VAT D3 CSV")
      *
      * Exports the VAT D3 return in IRD's prescribed CSV format.
-     * Sales Annex (D3-Sales): invoice_no, date_bs, buyer_pan, buyer_name,
+     * Sales Annex (D3-Sales): invoice_no, date_bs, party (buyer) pan, buyer_name,
      *                         taxable_amount, vat_amount, exempt_amount, total_amount
-     * Purchase Annex (D3-Purchase): bill_no, date_bs, seller_pan, seller_name,
+     * Purchase Annex (D3-Purchase): bill_no, date_bs, party (seller) pan, seller_name,
      *                               taxable_amount, input_vat, exempt_amount, total_amount
      */
     public function exportCsv(Request $request)
@@ -84,7 +84,7 @@ class VatD3Controller extends Controller
                     'doc_no' => $row->invoice_no,
                     'date_ad' => $row->invoice_date,
                     'date_bs' => $dateBs,
-                    'pan' => $row->buyer_pan ?? $row->party_pan ?? '',
+                    'pan' => $row->party_pan ?? '',
                     'party_name' => $row->party_name ?? 'Cash Customer',
                     'taxable_amount' => round($row->taxable_amount ?? 0, 2),
                     'vat_amount' => round($row->vat_amount ?? 0, 2),
@@ -191,12 +191,11 @@ class VatD3Controller extends Controller
             ->whereBetween('invoices.invoice_date', [$startDate, $endDate])
             ->groupBy(
                 'invoices.id', 'invoices.invoice_no', 'invoices.invoice_date',
-                'invoices.buyer_pan', 'parties.pan', 'parties.name'
+                'parties.pan', 'parties.name'
             )
             ->select([
                 'invoices.invoice_no',
                 'invoices.invoice_date',
-                'invoices.buyer_pan',
                 'parties.pan as party_pan',
                 'parties.name as party_name',
                 DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as taxable_amount"),

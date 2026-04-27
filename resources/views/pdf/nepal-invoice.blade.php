@@ -123,10 +123,10 @@
                             @endif
                         </td>
                     </tr>
-                    @if($invoice->buyer_pan ?? $invoice->party?->pan)
+                    @if($invoice->party?->pan)
                     <tr>
                         <td class="label">Buyer PAN:</td>
-                        <td>{{ $invoice->buyer_pan ?? $invoice->party?->pan }}</td>
+                        <td>{{ $invoice->party->pan }}</td>
                     </tr>
                     @endif
                 </table>

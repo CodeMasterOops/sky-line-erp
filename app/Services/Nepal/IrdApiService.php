@@ -152,7 +152,7 @@ class IrdApiService
             'unitName' => $company->ird_unit_name,
             'fiscalDevice' => $company->ird_fiscal_device,
             'pan' => $company->pan,
-            'buyerPan' => $invoice->buyer_pan ?? $invoice->party?->pan ?? '',
+            'buyerPan' => $invoice->party?->pan ?? '',
             'invoiceNo' => $invoice->invoice_no,
             'bijakNo' => $invoice->bijak_no ?? $invoice->invoice_no,
             'invoiceDateAd' => is_string($invoice->invoice_date)

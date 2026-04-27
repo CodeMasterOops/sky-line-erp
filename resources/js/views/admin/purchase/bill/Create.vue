@@ -57,6 +57,11 @@
                                     </div>
                                 </div>
                             </div>
+                            <PartyMetaPanel
+                                v-if="resolvedParty"
+                                :party="resolvedParty"
+                                pan-heading="Seller PAN"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="input-blocks">
@@ -77,17 +82,6 @@
                                     <option value="">— No Branch —</option>
                                     <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }} ({{ b.code }})</option>
                                 </select>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VInput
-                                    id="seller_pan"
-                                    v-model="form.seller_pan"
-                                    label="Seller PAN"
-                                    placeholder="Supplier PAN (required for VAT bills)"
-                                />
                             </div>
                         </div>
 
@@ -293,7 +287,7 @@
 </template>
 
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -311,7 +305,9 @@ import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePurchaseOrderStore} from "@/stores/admin/purchase/purchase-order.js";
 
 const billStore = useBillStore();
@@ -379,7 +375,6 @@ const getInitialState = () => ({
     purchase_order_id: '',
     warehouse_id: '',
     branch_id: '',
-    seller_pan: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',
@@ -389,6 +384,8 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
 
 const loadFromPurchaseOrder = async () => {
     await purchaseOrderStore.getOrder(purchaseOrderId.value);

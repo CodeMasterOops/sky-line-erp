@@ -26,7 +26,6 @@ class Invoice extends Model
         'reference_id',
         'invoice_no',
         'bijak_no',
-        'buyer_pan',
         'invoice_date',
         'invoice_date_bs',
         'due_date',

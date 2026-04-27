@@ -20,6 +20,10 @@ class BillResource extends JsonResource
             'purchase_order_id' => $this->purchase_order_id ?? '',
             'party_id' => $this->party_id ?? '',
             'party_name' => $this->party?->name ?? '',
+            'party' => $this->when(
+                $this->relationLoaded('party') && $this->party,
+                fn () => PartyResource::make($this->party)
+            ),
             'remarks' => $this->remarks ?? '',
             'order_discount_type' => $this->discount?->type ?? 'fixed',
             'order_discount_value' => $this->discount?->value !== null

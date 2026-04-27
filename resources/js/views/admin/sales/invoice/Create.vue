@@ -39,6 +39,11 @@
                                 @search-change="debouncedPartySearch"
                                 :error="errors.party_id"
                             />
+                            <PartyMetaPanel
+                                v-if="resolvedParty"
+                                :party="resolvedParty"
+                                pan-heading="Buyer PAN"
+                            />
                         </div>
                         <div class="col-lg-6 col-sm-6 col-12">
                             <VSelect
@@ -65,14 +70,6 @@
                                 v-model="form.bijak_no"
                                 label="Bijak No (Invoice No)"
                                 placeholder="Sequential bill number"
-                            />
-                        </div>
-                        <div class="col-lg-6 col-sm-6 col-12">
-                            <VInput
-                                id="buyer_pan"
-                                v-model="form.buyer_pan"
-                                label="Buyer PAN"
-                                placeholder="Buyer PAN (required for VAT invoices)"
                             />
                         </div>
 
@@ -287,7 +284,7 @@
 </template>
 
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -305,6 +302,8 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
 
 const invoiceStore = useInvoiceStore();
 const partyStore = usePartyStore();
@@ -389,7 +388,6 @@ const getInitialState = () => ({
     party_id: '',
     warehouse_id: '',
     branch_id: '',
-    buyer_pan: '',
     bijak_no: '',
     remarks: '',
     status: 'draft',
@@ -400,6 +398,8 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -482,7 +482,6 @@ const buildInvoicePayload = () => {
         due_date: form.due_date || null,
         party_id: form.party_id || null,
         branch_id: form.branch_id || null,
-        buyer_pan: form.buyer_pan || null,
         bijak_no: form.bijak_no || null,
         remarks: form.remarks,
         status: form.status,

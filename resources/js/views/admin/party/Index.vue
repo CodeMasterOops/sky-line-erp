@@ -67,7 +67,7 @@
 
 <script setup>
 import {computed, reactive, ref, watch} from 'vue';
-import {useRoute} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import debounce from 'lodash/debounce';
 import Swal from 'sweetalert2';
 import {toast} from '@/helpers/toast';
@@ -89,6 +89,7 @@ function normalizePartyTypeFromQuery(queryType) {
 
 const partyStore = usePartyStore();
 const route = useRoute();
+const router = useRouter();
 
 const edit_party_id = ref('');
 const createModalOpened = ref(false);
@@ -105,6 +106,21 @@ const filter = reactive({
 const fetchParties = () => {
     partyStore.getParties({filter});
 };
+
+watch(
+    () => route.query.open_party,
+    (q) => {
+        const raw = Array.isArray(q) ? q[0] : q;
+        if (raw == null || String(raw).trim() === '') {
+            return;
+        }
+        edit_party_id.value = String(raw);
+        const next = {...route.query};
+        delete next.open_party;
+        router.replace({query: next});
+    },
+    { immediate: true }
+);
 
 const debouncedFetch = debounce(() => {
     filter.page = 1;

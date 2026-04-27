@@ -63,6 +63,11 @@
                                     </div>
                                 </div>
                             </div>
+                            <PartyMetaPanel
+                                v-if="resolvedParty"
+                                :party="resolvedParty"
+                                pan-heading="Seller PAN"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="input-blocks">
@@ -74,18 +79,6 @@
                                     :disabled="!isDraft"
                                     @validate="validateField('warehouse_id')"
                                     :error="errors.warehouse_id"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VInput
-                                    id="seller_pan"
-                                    v-model="form.seller_pan"
-                                    label="Seller PAN"
-                                    placeholder="Supplier PAN (required for VAT bills)"
-                                    :disabled="!isDraft"
                                 />
                             </div>
                         </div>
@@ -296,7 +289,7 @@
 </template>
 
 <script setup>
-import {computed, nextTick, reactive, ref, watch} from 'vue';
+import {computed, nextTick, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -312,7 +305,9 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
 
 const billStore = useBillStore();
 const partyStore = usePartyStore();
@@ -344,7 +339,6 @@ const initialState = {
     due_date: '',
     party_id: '',
     warehouse_id: '',
-    seller_pan: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',
@@ -355,6 +349,10 @@ const initialState = {
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
 const isHydratingBill = ref(false);
+
+const documentParty = computed(() => bill.value.data?.party ?? null);
+
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties, documentParty);
 
 function variantLabel(variant) {
     let label = variant.name || '';
