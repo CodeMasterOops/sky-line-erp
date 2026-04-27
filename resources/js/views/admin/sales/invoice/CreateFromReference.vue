@@ -67,40 +67,34 @@
                                     <tr>
                                         <th class="inv-ref-col-sn">SN</th>
                                         <th class="inv-ref-col-product">Product</th>
-                                        <th class="inv-ref-col-unit">Unit</th>
                                         <th class="inv-ref-col-qty">Qty</th>
                                         <th class="inv-ref-col-rate">Rate (sale)</th>
-                                        <th class="inv-ref-col-purchase">Purchase</th>
                                         <th class="inv-ref-col-disc">Discount</th>
                                         <th class="inv-ref-col-tax">Tax</th>
-                                        <th class="inv-ref-col-amt">Tax amt</th>
-                                        <th class="inv-ref-col-line">Line total</th>
                                         <th class="text-center inv-ref-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="11" class="text-center text-muted py-4">
+                                        <td colspan="7" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
                                     <tr
                                         v-for="(item, index) in form.items"
-                                        :key="`${index}-${item.product_variant_id}`">
+                                        :key="`n-${index}-${item.product_variant_id}`"
+                                        v-memo="[
+                                            item.quantity,
+                                            item.rate,
+                                            item.line_discount_type,
+                                            item.line_discount_value,
+                                            item.tax_id,
+                                        ]">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate inv-ref-col-product"
                                             :title="item.product_label">
                                             {{ item.product_label }}
-                                        </td>
-                                        <td>
-                                            <VSelect
-                                                v-model="form.items[index].unit_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="units.data"
-                                                @validate="validateField(`items[${index}].unit_id`)"
-                                                :error="errors[`items[${index}].unit_id`]"
-                                            />
                                         </td>
                                         <td>
                                             <VInput
@@ -120,14 +114,23 @@
                                                 :error="errors[`items[${index}].rate`]"
                                             />
                                         </td>
-                                        <td class="text-end">{{ formatMoney(item.purchase_snapshot) }}</td>
-                                        <td>
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].discount_amount"
-                                                @validate="validateField(`items[${index}].discount_amount`)"
-                                                :error="errors[`items[${index}].discount_amount`]"
+                                        <td class="inv-ref-discount-cell">
+                                            <VDiscountAmountTypeGroup
+                                                :input-id="`inv_ref_line_disc_${index}`"
+                                                :input-aria-label="`Line ${index + 1} discount`"
+                                                v-model="form.items[index].line_discount_value"
+                                                v-model:discount-type="form.items[index].line_discount_type"
+                                                :error="errors[`items[${index}].line_discount_value`]"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="inv-ref-discount-input-group"
+                                                compact-toggle
+                                                @blur="validateField(`items[${index}].line_discount_value`)"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField(`items[${index}].line_discount_type`);
+                                                        validateField(`items[${index}].line_discount_value`);
+                                                    }
+                                                "
                                             />
                                         </td>
                                         <td>
@@ -139,8 +142,6 @@
                                                 :error="errors[`items[${index}].tax_id`]"
                                             />
                                         </td>
-                                        <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
-                                        <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
                                         <td class="text-center">
                                             <button
                                                 type="button"
@@ -156,25 +157,45 @@
                         </div>
 
                         <div class="col-lg-6 ms-auto">
-                            <div class="total-order w-100 max-widthauto m-auto mb-4">
-                                <ul>
-                                    <li>
-                                        <h4>Sub total</h4>
-                                        <h5>{{ summary.subtotal }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Discount</h4>
-                                        <h5>{{ summary.discount }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Tax</h4>
-                                        <h5>{{ summary.tax }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Grand total</h4>
-                                        <h5>{{ summary.grandTotal }}</h5>
-                                    </li>
-                                </ul>
+                            <div class="card bg-light mb-4">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Sub total</span>
+                                        <strong>{{ summary.subtotal }}</strong>
+                                    </div>
+                                    <div
+                                        class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
+                                        <span>Discount</span>
+                                        <div class="flex-grow-1" style="max-width: 14rem; min-width: 0">
+                                            <VDiscountAmountTypeGroup
+                                                v-model="form.order_discount_value"
+                                                v-model:discount-type="form.order_discount_type"
+                                                :error="errors.order_discount_value"
+                                                input-id="inv_ref_order_discount_value"
+                                                input-aria-label="Order-level discount"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="inv-ref-order-disc-input-group w-100"
+                                                compact-toggle
+                                                @blur="validateField('order_discount_value')"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField('order_discount_type');
+                                                        validateField('order_discount_value');
+                                                    }
+                                                "
+                                            />
+                                        </div>
+                                        <strong class="ms-auto">{{ summary.totalDiscount }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Tax</span>
+                                        <strong>{{ summary.tax }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                                        <span>Grand total</span>
+                                        <strong>{{ summary.grandTotal }}</strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -217,7 +238,7 @@
 </template>
 
 <script setup>
-import {computed, reactive, ref, watch} from 'vue';
+import {reactive, ref, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -225,16 +246,17 @@ import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
-import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
+import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
 const invoiceStore = useInvoiceStore();
-const unitStore = useUnitStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
@@ -245,7 +267,6 @@ const referenceType = defineModel('referenceType');
 
 const {currentAdDate} = useDateHelper();
 
-const {units} = storeToRefs(unitStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
@@ -266,7 +287,6 @@ watch(
     open,
     (isOpen) => {
         if (isOpen) {
-            unitStore.getUnits();
             taxStore.getTaxes();
             warehouseStore.getWarehouses();
             partyStore.getParties({
@@ -306,6 +326,8 @@ const getInitialState = () => ({
     reference_type: '',
     reference_id: '',
     status: 'draft',
+    order_discount_type: 'fixed',
+    order_discount_value: '0',
     items: [],
 });
 
@@ -341,7 +363,9 @@ const onVariantSelected = (variant) => {
         quantity: '1',
         rate: defaultLineRateString(variant),
         tax_id: '',
-        discount_amount: '0',
+        tax_line_type: 'taxable',
+        line_discount_type: 'fixed',
+        line_discount_value: '0',
     });
 };
 
@@ -354,6 +378,8 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
+    order_discount_type: string().nullable(),
+    order_discount_value: string().nullable(),
     items: array()
         .of(
             object({
@@ -362,7 +388,8 @@ const validations = object({
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
                 tax_id: string().nullable(),
-                discount_amount: string().nullable(),
+                line_discount_type: string().nullable(),
+                line_discount_value: string().nullable(),
             })
         )
         .min(1, 'At least one item is required.'),
@@ -370,66 +397,13 @@ const validations = object({
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getTaxRate = (taxId) => {
-    if (!taxId) {
-        return 0;
-    }
-    const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find((t) => t.id === numericId);
-    return tax ? Number(tax.rate || 0) : 0;
-};
-
-const calcLineTax = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    const taxRate = getTaxRate(item.tax_id);
-    const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-    return taxable * (taxRate / 100);
-};
-
-const calcLineTotal = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    return lineSubtotal - lineDiscount + calcLineTax(item);
-};
-
-const formatMoney = (value) => {
-    if (value === '' || value === null || value === undefined) {
-        return '—';
-    }
-    return Number(value).toFixed(2);
-};
-
-const summary = computed(() => {
-    let subtotal = 0;
-    let discount = 0;
-    let tax = 0;
-
-    form.items.forEach((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
-        const lineDiscount = Number(item.discount_amount || 0);
-        subtotal += lineSubtotal;
-        discount += lineDiscount;
-        tax += calcLineTax(item);
-    });
-
-    const grandTotal = subtotal - discount + tax;
-
-    return {
-        subtotal: subtotal.toFixed(2),
-        discount: discount.toFixed(2),
-        tax: tax.toFixed(2),
-        grandTotal: grandTotal.toFixed(2),
-    };
+const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
+    form,
+    taxes,
 });
 
 const buildInvoicePayload = () => {
+    syncTaxAmounts();
     const wid = form.warehouse_id || null;
     const refId = form.reference_id;
     const parsedRefId = refId !== '' && refId != null ? parseInt(String(refId), 10) : null;
@@ -441,15 +415,20 @@ const buildInvoicePayload = () => {
         reference_id: Number.isFinite(parsedRefId) ? parsedRefId : null,
         remarks: form.remarks,
         status: form.status,
-        items: form.items.map((item) => ({
+        order_discount_type: form.order_discount_type || 'fixed',
+        order_discount_value: form.order_discount_value ?? '0',
+        items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,
             tax_id: item.tax_id || null,
-            tax_amount: calcLineTax(item),
-            discount_amount: item.discount_amount || null,
+            tax_line_type: item.tax_line_type || 'taxable',
+            line_discount_type: item.line_discount_type || 'fixed',
+            line_discount_value: item.line_discount_value ?? '0',
+            tax_amount: calcLineTax(item, index),
+            discount_amount: String(lineDiscountMoneyFromItem(item)),
         })),
     };
 };
@@ -470,6 +449,9 @@ const loadReference = async () => {
         form.remarks = data.remarks || '';
         form.reference_type = referenceType.value === 'quotation' ? 'App\\Models\\Quotation' : 'App\\Models\\SalesOrder';
         form.reference_id = referenceId.value;
+        const odv = data.order_discount_value;
+        form.order_discount_type = data.order_discount_type || 'fixed';
+        form.order_discount_value = odv != null && odv !== '' ? String(odv) : '0';
         form.items = (data.items || []).map((item) => ({
             product_variant_id: item.product_variant_id || '',
             product_label: lineLabelFromRefItem(item),
@@ -478,9 +460,12 @@ const loadReference = async () => {
             quantity: item.quantity != null ? String(item.quantity) : '',
             rate: item.rate != null ? String(item.rate) : '',
             tax_id: item.tax_id || '',
-            discount_amount: item.discount_amount != null && item.discount_amount !== ''
-                ? String(item.discount_amount)
-                : '0',
+            tax_line_type: item.tax_line_type || 'taxable',
+            line_discount_type: item.line_discount_type || 'fixed',
+            line_discount_value:
+                item.line_discount_value != null && item.line_discount_value !== ''
+                    ? String(item.line_discount_value)
+                    : '0',
         }));
     } catch (e) {
         showErrors(e);
@@ -541,9 +526,6 @@ function resetForm() {
     min-width: 11rem;
     max-width: 16rem;
 }
-.invoice-ref-lines-table .inv-ref-col-unit {
-    min-width: 7rem;
-}
 .invoice-ref-lines-table .inv-ref-col-tax {
     min-width: 7.5rem;
 }
@@ -552,5 +534,11 @@ function resetForm() {
 }
 .invoice-ref-lines-table .inv-ref-col-action {
     width: 3rem;
+}
+.invoice-ref-lines-table .inv-ref-discount-cell {
+    min-width: 9rem;
+    position: relative;
+    z-index: 2;
+    overflow: visible;
 }
 </style>

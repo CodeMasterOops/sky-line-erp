@@ -24,9 +24,9 @@ class PurchaseOrderResource extends JsonResource
             'approve_user_id' => $this->approve_user_id ?? '',
             'approved_at' => $this->approved_at ?? null,
             'status' => $this->status?->value ?? '',
-            'order_discount_type' => $this->order_discount_type ?? 'fixed',
-            'order_discount_value' => $this->order_discount_value !== null
-                ? round((float) $this->order_discount_value, 2)
+            'order_discount_type' => $this->discount?->type ?? 'fixed',
+            'order_discount_value' => $this->discount?->value !== null
+                ? round((float) $this->discount->value, 2)
                 : null,
             'order_discount_amount' => $totals['order_discount_amount'],
             'subtotal' => $totals['subtotal'],
@@ -44,7 +44,7 @@ class PurchaseOrderResource extends JsonResource
     private function calculateTotals(): array
     {
         if (! $this->relationLoaded('purchaseOrderItems')) {
-            $ord = (float) ($this->order_discount_amount ?? 0);
+            $ord = (float) ($this->discount?->amount ?? 0);
 
             return [
                 'subtotal' => 0,
@@ -73,7 +73,7 @@ class PurchaseOrderResource extends JsonResource
         }
 
         $sumNet = array_sum($lineNets);
-        $orderDiscountAmount = (float) ($this->order_discount_amount ?? 0);
+        $orderDiscountAmount = (float) ($this->discount?->amount ?? 0);
 
         $taxIds = collect($this->purchaseOrderItems)->pluck('tax_id')->filter()->unique()->all();
         $taxRates = $taxIds === []

@@ -79,15 +79,16 @@ export function mergePoOrderDiscountIntoLineDiscounts(poItems, orderDiscountAmou
 
 /**
  * Per-line total after pro-rata order discount + line tax (matches stored line tax).
+ * @param {number|undefined} [lineTax] — pass calcLineTax(item, index) for live UI; else uses item.tax_amount
  */
-export function lineItemTotalForDisplay(item, index, items, orderDiscountAmount) {
-    const lineNets = (items || []).map((it) => {
-        const g = (Number(it.quantity) || 0) * (Number(it.rate) || 0);
-        const ld = Number(it.discount_amount) || 0;
-        return Math.max(0, g - ld);
-    });
+export function lineItemTotalForDisplay(item, index, items, orderDiscountAmount, lineTax) {
+    const lineNets = (items || []).map((it) => lineNetFromItem(it));
     const o = Math.max(0, Number(orderDiscountAmount) || 0);
     const allocs = buildOrderAllocations(lineNets, o);
     const after = Math.max(0, (lineNets[index] || 0) - (allocs[index] || 0));
-    return after + (Number(item.tax_amount) || 0);
+    const tax =
+        lineTax !== undefined && lineTax !== null
+            ? Number(lineTax)
+            : Number(item.tax_amount) || 0;
+    return after + tax;
 }

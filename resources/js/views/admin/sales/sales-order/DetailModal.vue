@@ -40,10 +40,8 @@
                                 <th>Product</th>
                                 <th>Qty</th>
                                 <th>Rate</th>
-                                <th>Discount</th>
+                                <th title="Line discount (amount)">Line disc.</th>
                                 <th>Tax</th>
-                                <th>Tax amt</th>
-                                <th>Line total</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -54,8 +52,6 @@
                                 <td>{{ formatN(item.rate) }}</td>
                                 <td>{{ formatN(item.discount_amount) }}</td>
                                 <td>{{ taxLabel(item) }}</td>
-                                <td>{{ formatN(item.tax_amount) }}</td>
-                                <td>{{ formatN(lineTotal(item)) }}</td>
                             </tr>
                             </tbody>
                         </table>
@@ -68,8 +64,12 @@
                                         <h4>Sub total</h4>
                                         <h5>{{ formatN(detailData.subtotal) }}</h5>
                                     </li>
+                                    <li v-if="detailData.order_discount_amount != null && Number(detailData.order_discount_amount) !== 0">
+                                        <h4>Order discount</h4>
+                                        <h5>{{ formatN(detailData.order_discount_amount) }}</h5>
+                                    </li>
                                     <li>
-                                        <h4>Discount</h4>
+                                        <h4>Discount (total)</h4>
                                         <h5>{{ formatN(detailData.discount_total) }}</h5>
                                     </li>
                                     <li>
@@ -137,11 +137,4 @@ const taxLabel = (item) => {
     return '—';
 };
 
-const lineTotal = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const disc = Number(item.discount_amount || 0);
-    const taxAmt = Number(item.tax_amount || 0);
-    return qty * rate - disc + taxAmt;
-};
 </script>

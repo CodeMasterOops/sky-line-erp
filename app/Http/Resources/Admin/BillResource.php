@@ -21,9 +21,9 @@ class BillResource extends JsonResource
             'party_id' => $this->party_id ?? '',
             'party_name' => $this->party?->name ?? '',
             'remarks' => $this->remarks ?? '',
-            'order_discount_type' => $this->order_discount_type ?? 'fixed',
-            'order_discount_value' => $this->order_discount_value !== null
-                ? round((float) $this->order_discount_value, 2)
+            'order_discount_type' => $this->discount?->type ?? 'fixed',
+            'order_discount_value' => $this->discount?->value !== null
+                ? round((float) $this->discount->value, 2)
                 : null,
             'order_discount_amount' => $totals['order_discount_amount'],
             'fiscal_year_id' => $this->fiscal_year_id ?? '',
@@ -46,7 +46,7 @@ class BillResource extends JsonResource
     private function calculateTotals(): array
     {
         if (! $this->relationLoaded('billItems')) {
-            $ord = (float) ($this->order_discount_amount ?? 0);
+            $ord = (float) ($this->discount?->amount ?? 0);
 
             return [
                 'subtotal' => 0,
@@ -75,7 +75,7 @@ class BillResource extends JsonResource
         }
 
         $sumNet = array_sum($lineNets);
-        $orderDiscountAmount = (float) ($this->order_discount_amount ?? 0);
+        $orderDiscountAmount = (float) ($this->discount?->amount ?? 0);
 
         $taxIds = collect($this->billItems)->pluck('tax_id')->filter()->unique()->all();
         $taxRates = $taxIds === []

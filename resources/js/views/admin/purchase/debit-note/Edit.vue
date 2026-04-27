@@ -56,7 +56,6 @@
                             <tr>
                                 <th style="width: 50px;">SN</th>
                                 <th>Product Variant</th>
-                                <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
                                 <th style="width: 160px;">Tax</th>
@@ -74,14 +73,6 @@
                                         @onInput="setRate(index, $event)"
                                         @validate="validateField(`items[${index}].product_variant_id`)"
                                         :error="errors[`items[${index}].product_variant_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].unit_id"
-                                        :options="units.data"
-                                        @validate="validateField(`items[${index}].unit_id`)"
-                                        :error="errors[`items[${index}].unit_id`]"
                                     />
                                 </td>
                                 <td>
@@ -188,7 +179,6 @@ import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
@@ -198,7 +188,6 @@ import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
 
 const billStore = useBillStore();
 const debitNoteStore = useDebitNoteStore();
-const unitStore = useUnitStore();
 const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
@@ -207,7 +196,6 @@ const warehouseStore = useWarehouseStore();
 const edit_debit_note_id = defineModel('debit_note_id');
 
 const {debitNote} = storeToRefs(debitNoteStore);
-const {units} = storeToRefs(unitStore);
 const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
@@ -215,7 +203,6 @@ const {warehouses} = storeToRefs(warehouseStore);
 const {bills} = storeToRefs(billStore);
 
 onMounted(() => {
-    unitStore.getUnits();
     productStore.getProductVariants();
     partyStore.getParties({filter: {type: 'supplier'}});
     taxStore.getTaxes();
@@ -319,6 +306,7 @@ const setRate = (index, value) => {
     const variant = getVariantById(value);
     if (variant) {
         form.items[index].rate = variant.purchase_price ?? '';
+        form.items[index].unit_id = variant.unit_id ?? '';
     }
 };
 

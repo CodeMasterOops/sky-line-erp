@@ -42,16 +42,37 @@ readonly class PurchaseBillService
                 'bill_date' => $formData['bill_date'],
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
-                'order_discount_type' => $formData['order_discount_type'],
-                'order_discount_value' => $formData['order_discount_value'] ?? null,
-                'order_discount_amount' => $formData['order_discount_amount'],
                 'create_user_id' => $user->id,
                 'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
                 'status' => $status,
             ]);
 
-            $bill->billItems()->createMany($items);
+            $bill->saveDiscount(
+                $formData['order_discount_type'],
+                $formData['order_discount_value'] ?? null,
+                $formData['order_discount_amount'],
+            );
+
+            foreach ($items as $item) {
+                $billItem = $bill->billItems()->create([
+                    'product_variant_id' => $item['product_variant_id'],
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_id' => $item['tax_id'] ?? null,
+                    'tax_amount' => $item['tax_amount'],
+                    'discount_amount' => $item['discount_amount'],
+                    'tax_line_type' => $item['tax_line_type'] ?? null,
+                ]);
+
+                $billItem->saveDiscount(
+                    $item['line_discount_type'],
+                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                    $item['discount_amount'],
+                );
+            }
 
             if ($status === StatusEnum::APPROVED->value) {
                 $bill->refresh();
@@ -69,13 +90,43 @@ readonly class PurchaseBillService
 
         DB::transaction(function () use ($bill, $formData) {
             $items = $formData['items'];
-            unset($formData['items']);
 
-            $bill->update($formData);
+            $bill->update([
+                'party_id' => $formData['party_id'] ?? null,
+                'purchase_order_id' => $formData['purchase_order_id'] ?? null,
+                'bill_no' => $formData['bill_no'] ?? $bill->bill_no,
+                'bill_date' => $formData['bill_date'],
+                'due_date' => $formData['due_date'] ?? null,
+                'remarks' => $formData['remarks'] ?? null,
+            ]);
+
+            $bill->saveDiscount(
+                $formData['order_discount_type'],
+                $formData['order_discount_value'] ?? null,
+                $formData['order_discount_amount'],
+            );
 
             $bill->billItems()->delete();
 
-            $bill->billItems()->createMany($items);
+            foreach ($items as $item) {
+                $billItem = $bill->billItems()->create([
+                    'product_variant_id' => $item['product_variant_id'],
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_id' => $item['tax_id'] ?? null,
+                    'tax_amount' => $item['tax_amount'],
+                    'discount_amount' => $item['discount_amount'],
+                    'tax_line_type' => $item['tax_line_type'] ?? null,
+                ]);
+
+                $billItem->saveDiscount(
+                    $item['line_discount_type'],
+                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                    $item['discount_amount'],
+                );
+            }
         });
     }
 
@@ -123,7 +174,7 @@ readonly class PurchaseBillService
 
     private function createJournal(Bill $bill): void
     {
-        $bill->loadMissing('billItems', 'party:id,name');
+        $bill->loadMissing('billItems', 'party:id,name', 'discount');
 
         $accountSetting = AccountSetting::first();
 
@@ -151,7 +202,7 @@ readonly class PurchaseBillService
             $taxTotal += (float) $item->tax_amount;
         }
 
-        $orderDiscountAmount = (float) ($bill->order_discount_amount ?? 0);
+        $orderDiscountAmount = (float) ($bill->discount?->amount ?? 0);
         $grandTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
         $taxableTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount;
 

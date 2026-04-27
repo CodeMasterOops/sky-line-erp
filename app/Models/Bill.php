@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusEnum;
+use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Bill extends Model
 {
+    use HasDiscount;
     use MultiTenant;
     use SoftDeletes;
 
@@ -25,9 +27,6 @@ class Bill extends Model
         'bill_date',
         'due_date',
         'remarks',
-        'order_discount_type',
-        'order_discount_value',
-        'order_discount_amount',
         'create_user_id',
         'approve_user_id',
         'approved_at',
@@ -42,8 +41,6 @@ class Bill extends Model
         'approved_at' => 'datetime',
         'voided_at' => 'datetime',
         'status' => StatusEnum::class,
-        'order_discount_value' => 'float',
-        'order_discount_amount' => 'float',
     ];
 
     public function scopeFilter($query, $param = [])

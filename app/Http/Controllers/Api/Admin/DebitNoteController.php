@@ -28,7 +28,7 @@ class DebitNoteController extends Controller
     public function index(Request $request)
     {
         $debitNotes = DebitNote::filter($request->all())
-            ->with(['party', 'bill', 'debitNoteItems'])
+            ->with(['party', 'bill', 'discount', 'debitNoteItems.discount'])
             ->latest('debit_note_date')
             ->paginate($request->limit ?? 25);
 
@@ -94,7 +94,7 @@ class DebitNoteController extends Controller
         $debitNote->load([
             'party',
             'bill',
-            'debitNoteItems.productVariant.product',
+            'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
@@ -114,7 +114,7 @@ class DebitNoteController extends Controller
         $debitNote->load([
             'party',
             'bill',
-            'debitNoteItems.productVariant.product',
+            'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
@@ -175,7 +175,7 @@ class DebitNoteController extends Controller
         $debitNote->load([
             'party',
             'bill',
-            'debitNoteItems.productVariant.product',
+            'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
@@ -245,7 +245,7 @@ class DebitNoteController extends Controller
         $debitNote->load([
             'party',
             'bill',
-            'debitNoteItems.productVariant.product',
+            'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',
@@ -297,7 +297,7 @@ class DebitNoteController extends Controller
         $debitNote->load([
             'party',
             'bill',
-            'debitNoteItems.productVariant.product',
+            'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
             'debitNoteItems.warehouse',

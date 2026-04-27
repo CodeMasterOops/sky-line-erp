@@ -123,8 +123,16 @@
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
-                                    <tr v-for="(item, index) in form.items"
-                                        :key="`${index}-${item.product_variant_id}`">
+                                    <tr
+                                        v-for="(item, index) in form.items"
+                                        :key="`n-${index}-${item.product_variant_id}`"
+                                        v-memo="[
+                                            item.quantity,
+                                            item.rate,
+                                            item.line_discount_type,
+                                            item.line_discount_value,
+                                            item.tax_id,
+                                        ]">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate po-col-product"
@@ -152,9 +160,11 @@
                                         <td class="po-discount-cell">
                                             <VDiscountAmountTypeGroup
                                                 :input-id="`bill_line_disc_${index}`"
+                                                :input-aria-label="`Line ${index + 1} discount`"
                                                 v-model="form.items[index].line_discount_value"
                                                 v-model:discount-type="form.items[index].line_discount_type"
                                                 :error="errors[`items[${index}].line_discount_value`]"
+                                                :disabled="isSubmitting"
                                                 extra-group-class="po-discount-input-group"
                                                 compact-toggle
                                                 @blur="validateField(`items[${index}].line_discount_value`)"
@@ -204,6 +214,8 @@
                                                 v-model:discount-type="form.order_discount_type"
                                                 :error="errors.order_discount_value"
                                                 input-id="bill_order_discount_value"
+                                                input-aria-label="Order-level discount"
+                                                :disabled="isSubmitting"
                                                 extra-group-class="po-order-disc-input-group w-100"
                                                 compact-toggle
                                                 @blur="validateField('order_discount_value')"
@@ -293,13 +305,8 @@ import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
-import {
-    buildOrderAllocations,
-    lineDiscountMoneyFromItem,
-    lineNetFromItem,
-    mergePoOrderDiscountIntoLineDiscounts,
-    orderDiscountMoney,
-} from '@/composables/purchaseOrderTotals.js';
+import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
+import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
@@ -499,85 +506,7 @@ const validations = object({
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getTaxRate = (taxId) => {
-    if (!taxId) {
-        return 0;
-    }
-    const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find((t) => t.id === numericId);
-    return tax ? Number(tax.rate || 0) : 0;
-};
-
-const orderLevelComputed = computed(() => {
-    const nets = form.items.map((it) => lineNetFromItem(it));
-    const sumLineNet = nets.reduce((a, b) => a + b, 0);
-    const orderDisc = orderDiscountMoney(
-        sumLineNet,
-        form.order_discount_type || 'fixed',
-        form.order_discount_value
-    );
-    const allocs = buildOrderAllocations(nets, orderDisc);
-    return { nets, sumLineNet, orderDisc, allocs };
-});
-
-const calcLineTax = (item, index) => {
-    const { nets, allocs } = orderLevelComputed.value;
-    const lineNet = nets[index] ?? 0;
-    const alloc = allocs[index] || 0;
-    const taxable = Math.max(0, lineNet - alloc);
-    const taxRate = getTaxRate(item.tax_id);
-    return taxable * (taxRate / 100);
-};
-
-const summary = computed(() => {
-    let subtotalGross = 0;
-    let lineDiscount = 0;
-    let tax = 0;
-    let nonTaxableBase = 0;
-    let taxableBase = 0;
-
-    const { nets, allocs, orderDisc } = orderLevelComputed.value;
-    const sumLineNet = nets.reduce((a, b) => a + b, 0);
-
-    form.items.forEach((item, index) => {
-        const g = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
-        const ld = lineDiscountMoneyFromItem(item);
-        subtotalGross += g;
-        lineDiscount += ld;
-        tax += calcLineTax(item, index);
-
-        const lineNet = nets[index] ?? 0;
-        const alloc = allocs[index] || 0;
-        const afterOrder = Math.max(0, lineNet - alloc);
-        const r = getTaxRate(item.tax_id);
-        if (r > 0) {
-            taxableBase += afterOrder;
-        } else {
-            nonTaxableBase += afterOrder;
-        }
-    });
-
-    const grandTotal = sumLineNet - orderDisc + tax;
-    const totalDiscountAmount = lineDiscount + orderDisc;
-
-    return {
-        subtotal: subtotalGross.toFixed(2),
-        lineDiscount: lineDiscount.toFixed(2),
-        orderDiscount: orderDisc.toFixed(2),
-        totalDiscount: totalDiscountAmount.toFixed(2),
-        nonTaxableBase: nonTaxableBase.toFixed(2),
-        taxableBase: taxableBase.toFixed(2),
-        tax: tax.toFixed(2),
-        grandTotal: grandTotal.toFixed(2),
-    };
-});
-
-const syncTaxAmounts = () => {
-    form.items = form.items.map((item, index) => ({
-        ...item,
-        tax_amount: calcLineTax(item, index),
-    }));
-};
+const {summary, syncTaxAmounts} = useLineOrderDiscountTotals({form, taxes});
 
 const lineQtyInt = (q) => {
     const n = parseInt(String(q ?? '0'), 10);

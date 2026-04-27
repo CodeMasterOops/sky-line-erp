@@ -26,6 +26,8 @@ class InvoiceRequest extends FormRequest
             'reference_type' => ['nullable', 'string', 'max:255', 'required_with:reference_id'],
             'reference_id' => ['nullable', 'integer', 'min:1', 'required_with:reference_type'],
             'remarks' => ['nullable', 'string'],
+            'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
+            'order_discount_value' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
@@ -33,6 +35,8 @@ class InvoiceRequest extends FormRequest
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
+            'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
+            'items.*.line_discount_value' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_id' => [
                 'nullable',
                 TRule::exists('taxes', 'id')->withoutTrashed(),

@@ -33,7 +33,7 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         $invoices = Invoice::filter($request->all())
-            ->with(['party', 'invoiceItems'])
+            ->with(['party', 'discount', 'invoiceItems.discount'])
             ->latest('invoice_date')
             ->paginate($request->limit ?? 25);
 
@@ -77,8 +77,16 @@ class InvoiceController extends Controller
                     'status' => $status,
                 ]);
 
-                $items = collect($formData['items'] ?? [])->map(function ($item) {
-                    return [
+                if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                    $invoice->saveDiscount(
+                        $formData['order_discount_type'] ?? 'fixed',
+                        isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                        0,
+                    );
+                }
+
+                foreach ($formData['items'] ?? [] as $item) {
+                    $invoiceItem = $invoice->invoiceItems()->create([
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
                         'unit_id' => $item['unit_id'] ?? null,
@@ -88,10 +96,16 @@ class InvoiceController extends Controller
                         'tax_amount' => $item['tax_amount'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
                         'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
-                    ];
-                })->all();
+                    ]);
 
-                $invoice->invoiceItems()->createMany($items);
+                    if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                        $invoiceItem->saveDiscount(
+                            $item['line_discount_type'] ?? 'fixed',
+                            isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                            $item['discount_amount'] ?? 0,
+                        );
+                    }
+                }
 
                 if ($status === StatusEnum::APPROVED->value) {
                     $invoice->refresh();
@@ -114,6 +128,8 @@ class InvoiceController extends Controller
 
         $invoice->load([
             'party',
+            'discount',
+            'invoiceItems.discount',
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
@@ -133,6 +149,8 @@ class InvoiceController extends Controller
     {
         $invoice->load([
             'party',
+            'discount',
+            'invoiceItems.discount',
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
@@ -174,10 +192,18 @@ class InvoiceController extends Controller
                 'remarks' => $formData['remarks'] ?? null,
             ]);
 
+            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                $invoice->saveDiscount(
+                    $formData['order_discount_type'] ?? 'fixed',
+                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                    0,
+                );
+            }
+
             $invoice->invoiceItems()->delete();
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
+            foreach ($formData['items'] ?? [] as $item) {
+                $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
                     'unit_id' => $item['unit_id'] ?? null,
@@ -187,16 +213,24 @@ class InvoiceController extends Controller
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
-                ];
-            })->all();
+                ]);
 
-            $invoice->invoiceItems()->createMany($items);
+                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                    $invoiceItem->saveDiscount(
+                        $item['line_discount_type'] ?? 'fixed',
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        $item['discount_amount'] ?? 0,
+                    );
+                }
+            }
 
             return $invoice;
         });
 
         $invoice->load([
             'party',
+            'discount',
+            'invoiceItems.discount',
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
@@ -266,6 +300,8 @@ class InvoiceController extends Controller
 
         $invoice->load([
             'party',
+            'discount',
+            'invoiceItems.discount',
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
@@ -320,6 +356,8 @@ class InvoiceController extends Controller
 
         $invoice->load([
             'party',
+            'discount',
+            'invoiceItems.discount',
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',

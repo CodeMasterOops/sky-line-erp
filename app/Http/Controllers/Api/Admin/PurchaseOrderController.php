@@ -23,7 +23,7 @@ class PurchaseOrderController extends Controller
     public function index(Request $request)
     {
         $orders = PurchaseOrder::filter($request->all())
-            ->with(['party', 'purchaseOrderItems'])
+            ->with(['party', 'discount', 'purchaseOrderItems.discount'])
             ->withCount(['bills'])
             ->latest('order_date')
             ->paginate($request->limit ?? 25);
@@ -40,6 +40,8 @@ class PurchaseOrderController extends Controller
 
         $order->load([
             'party',
+            'discount',
+            'purchaseOrderItems.discount',
             'purchaseOrderItems.productVariant.product',
             'purchaseOrderItems.unit',
             'purchaseOrderItems.tax',
@@ -58,6 +60,8 @@ class PurchaseOrderController extends Controller
     {
         $purchaseOrder->load([
             'party',
+            'discount',
+            'purchaseOrderItems.discount',
             'purchaseOrderItems.productVariant.product',
             'purchaseOrderItems.unit',
             'purchaseOrderItems.tax',
@@ -81,6 +85,8 @@ class PurchaseOrderController extends Controller
 
         $purchaseOrder->load([
             'party',
+            'discount',
+            'purchaseOrderItems.discount',
             'purchaseOrderItems.productVariant.product',
             'purchaseOrderItems.unit',
             'purchaseOrderItems.tax',
@@ -121,6 +127,8 @@ class PurchaseOrderController extends Controller
 
         $purchaseOrder->load([
             'party',
+            'discount',
+            'purchaseOrderItems.discount',
             'purchaseOrderItems.productVariant.product',
             'purchaseOrderItems.unit',
             'purchaseOrderItems.tax',

@@ -24,7 +24,7 @@ class QuotationController extends Controller
     public function index(Request $request)
     {
         $quotations = Quotation::filter($request->all())
-            ->with(['party'])
+            ->with(['party', 'discount'])
             ->withCount(['salesOrders', 'invoices'])
             ->latest('quotation_date')
             ->paginate($request->limit ?? 25);
@@ -58,8 +58,16 @@ class QuotationController extends Controller
                 'status' => $status,
             ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
+            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                $quotation->saveDiscount(
+                    $formData['order_discount_type'] ?? 'fixed',
+                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                    0,
+                );
+            }
+
+            foreach ($formData['items'] ?? [] as $item) {
+                $quotationItem = $quotation->quotationItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -67,17 +75,23 @@ class QuotationController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                ]);
 
-            $quotation->quotationItems()->createMany($items);
+                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                    $quotationItem->saveDiscount(
+                        $item['line_discount_type'] ?? 'fixed',
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        $item['discount_amount'] ?? 0,
+                    );
+                }
+            }
 
             return $quotation;
         });
 
         $quotation->load([
             'party',
-            'quotationItems.productVariant.product',
+            'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
         ]);
@@ -95,7 +109,7 @@ class QuotationController extends Controller
     {
         $quotation->load([
             'party',
-            'quotationItems.productVariant.product',
+            'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
         ]);
@@ -128,8 +142,16 @@ class QuotationController extends Controller
 
             $quotation->quotationItems()->delete();
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
+            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                $quotation->saveDiscount(
+                    $formData['order_discount_type'] ?? 'fixed',
+                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                    0,
+                );
+            }
+
+            foreach ($formData['items'] ?? [] as $item) {
+                $quotationItem = $quotation->quotationItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -137,17 +159,23 @@ class QuotationController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                ]);
 
-            $quotation->quotationItems()->createMany($items);
+                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                    $quotationItem->saveDiscount(
+                        $item['line_discount_type'] ?? 'fixed',
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        $item['discount_amount'] ?? 0,
+                    );
+                }
+            }
 
             return $quotation;
         });
 
         $quotation->load([
             'party',
-            'quotationItems.productVariant.product',
+            'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
         ]);
@@ -193,7 +221,7 @@ class QuotationController extends Controller
 
         $quotation->load([
             'party',
-            'quotationItems.productVariant.product',
+            'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
         ]);
@@ -264,7 +292,7 @@ class QuotationController extends Controller
 
         $salesOrder->load([
             'party',
-            'salesOrderItems.productVariant.product',
+            'discount', 'salesOrderItems.discount', 'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
         ]);
@@ -344,7 +372,7 @@ class QuotationController extends Controller
 
         $invoice->load([
             'party',
-            'invoiceItems.productVariant.product',
+            'discount', 'invoiceItems.discount', 'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',

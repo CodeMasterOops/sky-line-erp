@@ -19,7 +19,7 @@ class ExpenseController extends Controller
     public function index(Request $request)
     {
         $expenses = Expense::filter($request->all())
-            ->with(['party', 'expenseItems'])
+            ->with(['party', 'discount', 'expenseItems.discount'])
             ->latest('date')
             ->paginate($request->limit ?? 25);
 
@@ -72,7 +72,7 @@ class ExpenseController extends Controller
 
         $expense->load([
             'party',
-            'expenseItems.account',
+            'discount', 'expenseItems.discount', 'expenseItems.account',
             'expenseItems.tax',
         ]);
 
@@ -89,7 +89,7 @@ class ExpenseController extends Controller
     {
         $expense->load([
             'party',
-            'expenseItems.account',
+            'discount', 'expenseItems.discount', 'expenseItems.account',
             'expenseItems.tax',
         ]);
 
@@ -137,7 +137,7 @@ class ExpenseController extends Controller
 
         $expense->load([
             'party',
-            'expenseItems.account',
+            'discount', 'expenseItems.discount', 'expenseItems.account',
             'expenseItems.tax',
         ]);
 
@@ -182,7 +182,7 @@ class ExpenseController extends Controller
 
         $expense->load([
             'party',
-            'expenseItems.account',
+            'discount', 'expenseItems.discount', 'expenseItems.account',
             'expenseItems.tax',
         ]);
 

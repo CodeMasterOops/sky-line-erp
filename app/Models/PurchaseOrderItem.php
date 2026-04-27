@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HasDiscount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseOrderItem extends Model
 {
+    use HasDiscount;
     use SoftDeletes;
 
     protected $fillable = [
@@ -16,8 +18,6 @@ class PurchaseOrderItem extends Model
         'quantity',
         'unit_id',
         'rate',
-        'line_discount_type',
-        'line_discount_value',
         'tax_id',
         'tax_amount',
         'discount_amount',
@@ -30,7 +30,6 @@ class PurchaseOrderItem extends Model
         'tax_id' => 'integer',
         'quantity' => 'integer',
         'rate' => 'float',
-        'line_discount_value' => 'float',
         'tax_amount' => 'float',
         'discount_amount' => 'float',
     ];

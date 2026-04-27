@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusEnum;
+use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseOrder extends Model
 {
+    use HasDiscount;
     use MultiTenant;
     use SoftDeletes;
 
@@ -21,9 +23,6 @@ class PurchaseOrder extends Model
         'order_no',
         'order_date',
         'remarks',
-        'order_discount_type',
-        'order_discount_value',
-        'order_discount_amount',
         'create_user_id',
         'approve_user_id',
         'approved_at',
@@ -33,8 +32,6 @@ class PurchaseOrder extends Model
     protected $casts = [
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
-        'order_discount_value' => 'float',
-        'order_discount_amount' => 'float',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
     ];

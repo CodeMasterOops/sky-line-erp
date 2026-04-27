@@ -32,11 +32,33 @@ class PurchaseOrderService
 
         return DB::transaction(function () use ($formData) {
             $items = $formData['items'];
-            unset($formData['items']);
+            $orderDiscountType = $formData['order_discount_type'];
+            $orderDiscountValue = $formData['order_discount_value'] ?? null;
+            $orderDiscountAmount = $formData['order_discount_amount'];
+
+            unset($formData['items'], $formData['order_discount_type'], $formData['order_discount_value'], $formData['order_discount_amount']);
 
             $order = PurchaseOrder::create($formData);
 
-            $order->purchaseOrderItems()->createMany($items);
+            $order->saveDiscount($orderDiscountType, $orderDiscountValue, $orderDiscountAmount);
+
+            foreach ($items as $item) {
+                $orderItem = $order->purchaseOrderItems()->create([
+                    'product_variant_id' => $item['product_variant_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_id' => $item['tax_id'] ?? null,
+                    'tax_amount' => $item['tax_amount'],
+                    'discount_amount' => $item['discount_amount'],
+                ]);
+
+                $orderItem->saveDiscount(
+                    $item['line_discount_type'],
+                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                    $item['discount_amount'],
+                );
+            }
 
             return $order;
         });
@@ -48,13 +70,35 @@ class PurchaseOrderService
 
         DB::transaction(function () use ($purchaseOrder, $formData) {
             $items = $formData['items'];
-            unset($formData['items']);
+            $orderDiscountType = $formData['order_discount_type'];
+            $orderDiscountValue = $formData['order_discount_value'] ?? null;
+            $orderDiscountAmount = $formData['order_discount_amount'];
+
+            unset($formData['items'], $formData['order_discount_type'], $formData['order_discount_value'], $formData['order_discount_amount']);
 
             $purchaseOrder->update($formData);
 
+            $purchaseOrder->saveDiscount($orderDiscountType, $orderDiscountValue, $orderDiscountAmount);
+
             $purchaseOrder->purchaseOrderItems()->delete();
 
-            $purchaseOrder->purchaseOrderItems()->createMany($items);
+            foreach ($items as $item) {
+                $orderItem = $purchaseOrder->purchaseOrderItems()->create([
+                    'product_variant_id' => $item['product_variant_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_id' => $item['tax_id'] ?? null,
+                    'tax_amount' => $item['tax_amount'],
+                    'discount_amount' => $item['discount_amount'],
+                ]);
+
+                $orderItem->saveDiscount(
+                    $item['line_discount_type'],
+                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                    $item['discount_amount'],
+                );
+            }
         });
     }
 

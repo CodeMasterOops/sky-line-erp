@@ -50,8 +50,6 @@
                                 <th>Rate</th>
                                 <th>Discount</th>
                                 <th>Tax</th>
-                                <th>Tax amt</th>
-                                <th>Line total</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -62,8 +60,6 @@
                                 <td>{{ formatN(item.rate) }}</td>
                                 <td>{{ formatN(item.discount_amount) }}</td>
                                 <td>{{ taxLabel(item) }}</td>
-                                <td>{{ formatN(item.tax_amount) }}</td>
-                                <td>{{ formatN(lineTotal(item)) }}</td>
                             </tr>
                             </tbody>
                         </table>
@@ -160,14 +156,6 @@ const taxLabel = (item) => {
         return r ? `${item.tax.name} (${r})` : item.tax.name;
     }
     return '—';
-};
-
-const lineTotal = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const disc = Number(item.discount_amount || 0);
-    const taxAmt = Number(item.tax_amount || 0);
-    return qty * rate - disc + taxAmt;
 };
 
 const voidDebitNote = async () => {
