@@ -1,10 +1,7 @@
 <template>
     <PageHeader title="Purchase Orders" subtitle="Manage your purchase orders" @refresh="fetchOrders">
         <template #actions>
-            <button
-                v-can="'create_purchase_order'"
-                type="button"
-                @click.prevent="createModalOpened = true"
+            <button v-can="'create_purchase_order'" type="button" @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
                 Add New
@@ -13,111 +10,81 @@
     </PageHeader>
 
     <div class="card table-list-card">
-        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-            <div class="search-set">
-                <div class="search-input">
-                    <a href="javascript:void(0);" class="btn-searchset">
-                        <i class="ti ti-search fs-14 feather-search"></i>
+        <VTableToolbar v-model="filter.search" placeholder="Search purchase order" :is-filtered="isFiltered"
+            @search="onSearchInput" @reset="resetFilters">
+            <template #filters>
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ selectedStatus || 'Status' }}
                     </a>
-                    <input
-                        type="search"
-                        v-model="filter.search"
-                        class="form-control form-control-sm"
-                        placeholder="Search purchase order"
-                        @input="debouncedFetch"
-                    >
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', '')">All Statuses</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'draft')">Draft</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'approved')">Approved</a>
+                        </li>
+                    </ul>
                 </div>
-            </div>
-        </div>
+            </template>
+        </VTableToolbar>
+
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
-                <a-table
-                    class="table datanew table-hover table-center mb-0"
-                    :columns="columns"
-                    :data-source="orders.data"
-                    :pagination="pagination"
-                    :loading="orders.loading"
-                    @change="handleTableChange"
-                >
+                <a-table class="table datanew table-hover table-center mb-0" :columns="purchaseOrderColumns"
+                    :data-source="orders.data" :pagination="false" :loading="orders.loading"
+                    @change="handleTableChange">
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
-                            {{ index + 1 }}
+                            {{ (orders.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span
-                                class="badge"
+                            <span class="badge"
                                 :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
                                 {{ record.status }}
                             </span>
                         </template>
                         <template v-else-if="column.key === 'action'">
-                            <div class="action-table-data">
-                                <div class="edit-delete-action">
-                                    <a
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        title="View"
-                                        @click="openDetail(record.id)">
-                                        <i class="ti ti-eye"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 edit-icon p-2"
-                                        href="javascript:void(0);"
-                                        @click="editOrder(record.id)">
-                                        <i class="ti ti-edit"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="approveOrder(record.id)">
-                                        <i class="ti ti-check"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'approved' && !record.bill_count"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="convertToBill(record.id)">
-                                        <i class="ti ti-file-invoice"></i>
-                                    </a>
-                                    <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
-                                       @click="deleteOrder(record.id)">
-                                        <i class="ti ti-trash"></i>
-                                    </a>
-                                </div>
-                            </div>
+                            <VTableActions :actions="rowActions" :record="record" />
                         </template>
                     </template>
                 </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="orders.meta" />
             </div>
         </div>
     </div>
 
-    <CreatePurchaseOrder v-model:create-modal-opened="createModalOpened"/>
-    <EditPurchaseOrder v-model:order_id="edit_order_id"/>
-    <PurchaseOrderDetailModal v-model:detail-order-id="detail_order_id"/>
-    <CreateBill
-        v-model:create-modal-opened="invoiceModalOpened"
-        v-model:purchase-order-id="invoiceReferenceId"
-    />
+    <CreatePurchaseOrder v-model:create-modal-opened="createModalOpened" />
+    <EditPurchaseOrder v-model:order_id="edit_order_id" />
+    <PurchaseOrderDetailModal v-model:detail-order-id="detail_order_id" />
+    <CreateBill v-model:create-modal-opened="invoiceModalOpened" v-model:purchase-order-id="invoiceReferenceId" />
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
-import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
-import debounce from 'lodash/debounce';
+import { computed, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
 import CreatePurchaseOrder from './Create.vue';
 import EditPurchaseOrder from './Edit.vue';
 import PurchaseOrderDetailModal from './DetailModal.vue';
 import CreateBill from '@/views/admin/purchase/bill/Create.vue';
-import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
+import { usePurchaseOrderStore } from '@/stores/admin/purchase/purchase-order.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useTablePagination } from '@/composables/useTablePagination.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { purchaseOrderColumns, createRowActions } from './tableConfig.js';
 
 const purchaseOrderStore = usePurchaseOrderStore();
-const {orders} = storeToRefs(purchaseOrderStore);
+const { orders } = storeToRefs(purchaseOrderStore);
 
 const createModalOpened = ref(false);
 const edit_order_id = ref('');
@@ -125,127 +92,64 @@ const detail_order_id = ref('');
 const invoiceModalOpened = ref(false);
 const invoiceReferenceId = ref('');
 
-const filter = reactive({
-    search: '',
-    page: 1,
-    limit: 10
+const fetchOrders = () => purchaseOrderStore.getOrders({ filter });
+
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', status: '', page: 1, limit: 10 },
+    onFilter: fetchOrders,
 });
 
-const pagination = computed(() => ({
-    total: orders.value.meta.total || 0,
-    current: orders.value.meta.current_page || 1,
-    pageSize: orders.value.meta.per_page || filter.limit,
-    showSizeChanger: true,
-    showQuickJumper: true,
-}));
-
-const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Order No',
-        dataIndex: 'order_no',
-        sorter: true,
-    },
-    {
-        title: 'Date',
-        dataIndex: 'order_date',
-        sorter: true,
-    },
-    {
-        title: 'Supplier',
-        dataIndex: 'party_name',
-        sorter: true,
-    },
-    {
-        title: 'Amount',
-        dataIndex: 'grand_total',
-        sorter: true,
-    },
-    {
-        title: 'Status',
-        key: 'status',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-    },
-];
-
-onMounted(() => {
-    fetchOrders();
+const selectedStatus = computed(() => {
+    const s = filter.status;
+    if (!s) return '';
+    const labels = { draft: 'Draft', approved: 'Approved' };
+    return labels[s] ?? s;
 });
 
-const fetchOrders = () => {
-    purchaseOrderStore.getOrders({filter});
-};
+function setFilter(key, value) {
+    filter[key] = value;
+}
 
-const debouncedFetch = debounce(() => {
-    filter.page = 1;
-    fetchOrders();
-}, 300);
+const { handleTableChange } = useTablePagination({
+    meta: computed(() => orders.value.meta),
+    filter,
+});
 
-const handleTableChange = (pagination) => {
-    filter.page = pagination.current;
-    filter.limit = pagination.pageSize;
-    fetchOrders();
-};
+const { confirmDelete, confirmAction } = useConfirmAction();
 
-const editOrder = (id) => {
-    edit_order_id.value = id;
-};
+const editOrder = (id) => { edit_order_id.value = id; };
 
-const openDetail = (id) => {
-    detail_order_id.value = String(id);
-};
-
-const deleteOrder = async (id) => {
-    Swal.fire({
-        title: 'Are You Sure to Delete ? ',
-        text: 'If you delete this, it will be gone forever.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'red',
-        confirmButtonText: 'Yes'
-    }).then(async (result) => {
-        if (result.value) {
-            try {
-                let res = await purchaseOrderStore.deleteOrder(id);
-                toast(res.status, res.data.message);
-                fetchOrders();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
-};
-
-const approveOrder = async (id) => {
-    Swal.fire({
-        title: 'Approve Purchase Order?',
-        text: 'This will mark the order as approved.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: 'green',
-        confirmButtonText: 'Yes'
-    }).then(async (result) => {
-        if (result.value) {
-            try {
-                let res = await purchaseOrderStore.approveOrder(id);
-                toast(res.status, res.data.message);
-                fetchOrders();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
-};
+const openDetail = (id) => { detail_order_id.value = String(id); };
 
 const convertToBill = (id) => {
     invoiceReferenceId.value = id;
     invoiceModalOpened.value = true;
 };
+
+const handleDelete = (id) => {
+    confirmDelete(
+        () => purchaseOrderStore.deleteOrder(id),
+        fetchOrders,
+    );
+};
+
+const handleApprove = (id) => {
+    confirmAction({
+        title: 'Approve Purchase Order?',
+        text: 'This will mark the order as approved.',
+        icon: 'question',
+        confirmButtonColor: 'green',
+        confirmButtonText: 'Yes',
+        action: () => purchaseOrderStore.approveOrder(id),
+        onSuccess: fetchOrders,
+    });
+};
+
+const rowActions = createRowActions({
+    onView: openDetail,
+    onEdit: editOrder,
+    onApprove: handleApprove,
+    onConvertToBill: convertToBill,
+    onDelete: handleDelete,
+});
 </script>

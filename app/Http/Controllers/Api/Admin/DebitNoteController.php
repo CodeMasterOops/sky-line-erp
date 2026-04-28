@@ -62,8 +62,16 @@ class DebitNoteController extends Controller
                     'status' => $status,
                 ]);
 
-                $items = collect($formData['items'] ?? [])->map(function ($item) {
-                    return [
+                if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                    $debitNote->saveDiscount(
+                        $formData['order_discount_type'] ?? 'fixed',
+                        isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                        0,
+                    );
+                }
+
+                foreach ($formData['items'] ?? [] as $item) {
+                    $debitNoteItem = $debitNote->debitNoteItems()->create([
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
                         'unit_id' => $item['unit_id'] ?? null,
@@ -72,10 +80,16 @@ class DebitNoteController extends Controller
                         'tax_id' => $item['tax_id'] ?? null,
                         'tax_amount' => $item['tax_amount'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
-                    ];
-                })->all();
+                    ]);
 
-                $debitNote->debitNoteItems()->createMany($items);
+                    if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                        $debitNoteItem->saveDiscount(
+                            $item['line_discount_type'] ?? 'fixed',
+                            isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                            (float) ($item['discount_amount'] ?? 0),
+                        );
+                    }
+                }
 
                 if ($status === StatusEnum::APPROVED->value) {
                     $debitNote->refresh();
@@ -154,8 +168,16 @@ class DebitNoteController extends Controller
 
             $debitNote->debitNoteItems()->delete();
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
+            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                $debitNote->saveDiscount(
+                    $formData['order_discount_type'] ?? 'fixed',
+                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                    0,
+                );
+            }
+
+            foreach ($formData['items'] ?? [] as $item) {
+                $debitNoteItem = $debitNote->debitNoteItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
                     'unit_id' => $item['unit_id'] ?? null,
@@ -164,10 +186,16 @@ class DebitNoteController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                ]);
 
-            $debitNote->debitNoteItems()->createMany($items);
+                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                    $debitNoteItem->saveDiscount(
+                        $item['line_discount_type'] ?? 'fixed',
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        (float) ($item['discount_amount'] ?? 0),
+                    );
+                }
+            }
 
             return $debitNote;
         });
