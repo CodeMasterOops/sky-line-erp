@@ -12,11 +12,6 @@
                 "route": { "name": "admin.pos" },
                 "icon": "ti ti-device-laptop",
                 "permission": "list_product"
-            },
-            {
-                "menuValue": "Plans & pricing",
-                "route": { "name": "admin.billing-pricing" },
-                "icon": "ti ti-currency-dollar"
             }
         ]
     },
