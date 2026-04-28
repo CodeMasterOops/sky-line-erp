@@ -1,4 +1,4 @@
-import { reactive, watch, nextTick, onMounted } from 'vue';
+import { reactive, computed, watch, nextTick, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import debounce from 'lodash/debounce';
 
@@ -154,5 +154,9 @@ export function useUrlFilter({ defaults = {}, onFilter } = {}) {
         pushToUrl();
     }
 
-    return { filter, onSearchInput, resetFilters };
+    const isFiltered = computed(() =>
+        Object.keys(defaults).some(k => filter[k] !== defaults[k])
+    );
+
+    return { filter, onSearchInput, resetFilters, isFiltered };
 }

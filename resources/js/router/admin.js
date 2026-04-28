@@ -363,7 +363,7 @@ const routes = [
                     pageTitle: "Product List",
                 },
                 component: () =>
-                    import("@/views/admin/inventory/product/ProductList.vue"),
+                    import("@/views/admin/inventory/product/Index.vue"),
             },
             {
                 path: "party",

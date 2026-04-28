@@ -1,10 +1,7 @@
 <template>
     <PageHeader title="Sales Orders" subtitle="Manage your sales orders" @refresh="fetchOrders">
         <template #actions>
-            <button
-                v-can="'create_sales_order'"
-                type="button"
-                @click.prevent="createModalOpened = true"
+            <button v-can="'create_sales_order'" type="button" @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
                 Add Sales Order
@@ -13,139 +10,53 @@
     </PageHeader>
 
     <div class="card table-list-card">
-        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-            <div class="search-set">
-                <div class="search-input">
-                    <a href="javascript:void(0);" class="btn-searchset">
-                        <i class="ti ti-search fs-14 feather-search"></i>
-                    </a>
-                    <input
-                        type="search"
-                        v-model="filter.search"
-                        class="form-control form-control-sm"
-                        placeholder="Search order"
-                        @input="onSearchInput"
-                    >
-                </div>
-            </div>
-
-            <div class="d-flex align-items-center gap-2 flex-wrap">
+        <VTableToolbar v-model="filter.search" placeholder="Search order" :is-filtered="isFiltered"
+            @search="onSearchInput" @reset="resetFilters">
+            <template #filters>
                 <select v-model="filter.status" class="form-select form-select-sm" style="min-width: 140px;">
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
                     <option value="approved">Approved</option>
                 </select>
-
-                <input
-                    type="date"
-                    v-model="filter.date_from"
-                    class="form-control form-control-sm"
-                    title="From date"
-                    style="width: 145px;"
-                >
-                <input
-                    type="date"
-                    v-model="filter.date_to"
-                    class="form-control form-control-sm"
-                    title="To date"
-                    style="width: 145px;"
-                >
-
-                <button
-                    v-if="isFiltered"
-                    class="btn btn-sm btn-outline-secondary"
-                    @click="resetFilters">
-                    <i class="ti ti-x me-1"></i> Clear
-                </button>
-            </div>
-        </div>
+            </template>
+        </VTableToolbar>
 
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
-                <a-table
-                    class="table datanew table-hover table-center mb-0"
-                    :columns="columns"
-                    :data-source="orders.data"
-                    :pagination="false"
-                    :loading="orders.loading"
-                    @change="handleTableChange"
-                >
+                <a-table class="table datanew table-hover table-center mb-0" :columns="salesOrderColumns"
+                    :data-source="orders.data" :pagination="false" :loading="orders.loading"
+                    @change="handleTableChange">
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
-                            {{ index + 1 }}
+                            {{ (orders.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span
-                                class="badge"
-                                :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
+                            <span class="badge" :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
                                 {{ record.status }}
                             </span>
                         </template>
                         <template v-else-if="column.key === 'action'">
-                            <div class="action-table-data">
-                                <div class="edit-delete-action">
-                                    <a
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        title="View"
-                                        @click="openDetail(record.id)">
-                                        <i class="ti ti-eye"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 edit-icon p-2"
-                                        href="javascript:void(0);"
-                                        @click="editOrder(record.id)">
-                                        <i class="ti ti-edit"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="approveOrder(record.id)">
-                                        <i class="ti ti-check"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'approved' && !record.invoice_count"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="convertToInvoice(record.id)">
-                                        <i class="ti ti-file-invoice"></i>
-                                    </a>
-                                    <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
-                                       @click="deleteOrder(record.id)">
-                                        <i class="ti ti-trash"></i>
-                                    </a>
-                                </div>
-                            </div>
+                            <VTableActions :actions="rowActions" :record="record" />
                         </template>
                     </template>
                 </a-table>
-                <VPagination
-                    v-model:page="filter.page"
-                    v-model:limit="filter.limit"
-                    :meta="orders.meta"
-                />
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="orders.meta" />
             </div>
         </div>
     </div>
 
-    <CreateSalesOrder v-model:create-modal-opened="createModalOpened"/>
-    <EditSalesOrder v-model:order_id="edit_order_id"/>
-    <SalesOrderDetailModal v-model:detail-order-id="detail_order_id"/>
-    <CreateInvoiceFromReference
-        v-model:open="invoiceModalOpened"
-        v-model:reference-id="invoiceReferenceId"
-        v-model:reference-type="invoiceReferenceType"
-    />
+    <CreateSalesOrder v-model:create-modal-opened="createModalOpened" />
+    <EditSalesOrder v-model:order_id="edit_order_id" />
+    <SalesOrderDetailModal v-model:detail-order-id="detail_order_id" />
+    <CreateInvoiceFromReference v-model:open="invoiceModalOpened" v-model:reference-id="invoiceReferenceId"
+        v-model:reference-type="invoiceReferenceType" />
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
-import Swal from 'sweetalert2';
-import { toast } from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
 import CreateSalesOrder from './Create.vue';
 import EditSalesOrder from './Edit.vue';
 import SalesOrderDetailModal from './DetailModal.vue';
@@ -153,21 +64,23 @@ import CreateInvoiceFromReference from '@/views/admin/sales/invoice/CreateFromRe
 import { useSalesOrderStore } from '@/stores/admin/sales/sales-order.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { salesOrderColumns, createRowActions } from './tableConfig.js';
 
 const salesOrderStore = useSalesOrderStore();
 const { orders } = storeToRefs(salesOrderStore);
 
-const createModalOpened  = ref(false);
-const edit_order_id      = ref('');
-const detail_order_id    = ref('');
+const createModalOpened = ref(false);
+const edit_order_id = ref('');
+const detail_order_id = ref('');
 const invoiceModalOpened = ref(false);
 const invoiceReferenceId = ref('');
 const invoiceReferenceType = ref('');
 
 const fetchOrders = () => salesOrderStore.getOrders({ filter });
 
-const { filter, onSearchInput, resetFilters } = useUrlFilter({
-    defaults: { search: '', status: '', date_from: '', date_to: '', page: 1, limit: 10 },
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', status: '', page: 1, limit: 10 },
     onFilter: fetchOrders,
 });
 
@@ -176,70 +89,42 @@ const { handleTableChange } = useTablePagination({
     filter,
 });
 
-const isFiltered = computed(() =>
-    filter.search !== '' || filter.status !== '' ||
-    filter.date_from !== '' || filter.date_to !== ''
-);
-
-const columns = [
-    { title: 'SN',          key: 'sn',           width: 60 },
-    { title: 'Order No',    dataIndex: 'order_no',    sorter: true },
-    { title: 'Date',        dataIndex: 'order_date',  sorter: true },
-    { title: 'Customer',    dataIndex: 'party_name',  sorter: true },
-    { title: 'Grand Total', dataIndex: 'grand_total', sorter: true },
-    { title: 'Status',      key: 'status' },
-    { title: 'Action',      key: 'action' },
-];
+const { confirmDelete, confirmAction } = useConfirmAction();
 
 const editOrder = (id) => { edit_order_id.value = id; };
 
 const openDetail = (id) => { detail_order_id.value = String(id); };
 
-const deleteOrder = async (id) => {
-    Swal.fire({
-        title: 'Are You Sure to Delete ? ',
-        text: 'If you delete this, it will be gone forever.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'red',
-        confirmButtonText: 'Yes',
-    }).then(async (result) => {
-        if (result.value) {
-            try {
-                const res = await salesOrderStore.deleteOrder(id);
-                toast(res.status, res.data.message);
-                fetchOrders();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
+const handleDelete = (id) => {
+    confirmDelete(
+        () => salesOrderStore.deleteOrder(id),
+        fetchOrders,
+    );
 };
 
-const approveOrder = async (id) => {
-    Swal.fire({
+const handleApprove = (id) => {
+    confirmAction({
         title: 'Approve Sales Order?',
         text: 'This will mark the order as approved.',
         icon: 'question',
-        showCancelButton: true,
         confirmButtonColor: 'green',
-        confirmButtonText: 'Yes',
-    }).then(async (result) => {
-        if (result.value) {
-            try {
-                const res = await salesOrderStore.approveOrder(id);
-                toast(res.status, res.data.message);
-                fetchOrders();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
+        confirmButtonText: 'Approve',
+        action: () => salesOrderStore.approveOrder(id),
+        onSuccess: fetchOrders,
     });
 };
 
 const convertToInvoice = (id) => {
-    invoiceReferenceId.value   = id;
+    invoiceReferenceId.value = id;
     invoiceReferenceType.value = 'sales-order';
-    invoiceModalOpened.value   = true;
+    invoiceModalOpened.value = true;
 };
+
+const rowActions = createRowActions({
+    onView:    openDetail,
+    onEdit:    editOrder,
+    onApprove: handleApprove,
+    onConvert: convertToInvoice,
+    onDelete:  handleDelete,
+});
 </script>

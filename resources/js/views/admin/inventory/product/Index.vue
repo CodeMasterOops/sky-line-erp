@@ -1,120 +1,197 @@
 <template>
-      <product-header />
+    <PageHeader title="Product List" subtitle="Manage your products" @refresh="fetchProducts">
+        <template #actions>
+            <router-link :to="{ name: 'admin.product-create' }" v-can="'create_product'"
+                class="btn btn-primary d-flex align-items-center">
+                <i class="ti ti-circle-plus me-2"></i>
+                Add Product
+            </router-link>
+            <a href="#" class="btn btn-secondary color d-flex align-items-center" data-bs-toggle="modal"
+                data-bs-target="#view-notes">
+                <i class="ti ti-download me-2"></i>
+                Import Product
+            </a>
+        </template>
+    </PageHeader>
 
-    <section class="section">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                <h5 class="card-title">Product List</h5>
-                <router-link
-                    v-can="'create_product'"
-                    :to="{ name: 'admin.product-create' }"
-                    class="btn btn-sm btn-outline-primary">
-                    <i class="fa fa-plus-circle"> Add New</i>
-                </router-link>
-            </div>
-            <div class="card-body">
-                <VDataTable :meta="products.meta" v-model:filter="filter">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>SN</th>
-                            <th>Name</th>
-                            <th>Code</th>
-                            <th>Sales Price</th>
-                            <th>Purchase Price</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                        <VLoader v-if="products.loading" :colspan="6" />
-                        <template v-else-if="products.data.length">
-                            <tr v-for="(product,index) in products.data" :key="index">
-                                <th>{{ products.meta.from + index }}</th>
-                                <td>
-                                    {{ product.name }}
-                                </td>
-                                <td>
-                                    {{ product.code }}
-                                </td>
-                                <td>
-                                    {{ product.sales_price }}
-                                </td>
-                                <td>
-                                    {{ product.purchase_price }}
-                                </td>
-                                <td style="width:90px;">
-                                    <router-link
-                                        v-can="'edit_product'"
-                                        :to="{ name: 'admin.product-edit', params: { id: String(product.id) } }"
-                                        class="btn btn-sm btn-outline-primary">
-                                        <i class="fa fa-edit"> </i>
-                                    </router-link>
-                                    <button v-can="'delete_product'" @click="deleteProduct(product.id)" type="button"
-                                            class="btn btn-sm btn-outline-danger">
-                                        <i class="fa fa-trash"> </i>
-                                    </button>
-                                </td>
-                            </tr>
+    <div class="card table-list-card">
+        <VTableToolbar v-model="filter.search" placeholder="Search products" :is-filtered="isFiltered"
+            @search="onSearchInput" @reset="resetFilters">
+            <template #filters>
+                <!-- Category Dropdown -->
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ selectedCategoryName || 'Category' }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('product_category_id', '')">All Categories</a>
+                        </li>
+                        <li v-for="category in categoryList" :key="category.id">
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('product_category_id', category.id, category.name)">
+                                {{ category.name }}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Brand Dropdown -->
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ selectedBrandName || 'Brand' }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('brand_id', '')">All Brands</a>
+                        </li>
+                        <li v-for="brand in brands" :key="brand.id">
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('brand_id', brand.id, brand.name)">{{ brand.name }}</a>
+                        </li>
+                    </ul>
+                </div>
+            </template>
+        </VTableToolbar>
+
+        <div class="card-body">
+            <div class="custom-datatable-filter table-responsive">
+                <a-table class="table datanew table-hover table-center mb-0" :columns="productColumns"
+                    :data-source="products.data" :row-key="rowKey" :pagination="false"
+                    :loading="products.loading" @change="handleTableChange">
+                    <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'Product'">
+                            <div class="productimgname">
+                                <a href="javascript:void(0);" class="avatar avatar-md me-2">
+                                    <img :src="record.image || 'https://placehold.co/40x40'" alt="product">
+                                </a>
+                                <a href="javascript:void(0);">{{ record.name }}</a>
+                            </div>
                         </template>
-                        <tr v-else>
-                            <td colspan="6" class="text-center">
-                                No Result Found.
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </VDataTable>
+
+                        <template v-else-if="column.key === 'total_stock'">
+                            <button type="button" class="btn btn-link p-0 align-baseline fw-semibold"
+                                @click="openStockDetail(record)">
+                                {{ record.total_stock ?? 0 }}
+                            </button>
+                        </template>
+
+                        <template v-else-if="column.key === 'total_inventory_value'">
+                            {{ formatMoney(record.total_inventory_value) }}
+                        </template>
+
+                        <template v-else-if="column.key === 'tax'">
+                            {{ formatProductTax(record) }}
+                        </template>
+
+                        <template v-else-if="column.key === 'action'">
+                            <VTableActions :actions="rowActions" :record="record" />
+                        </template>
+                    </template>
+                </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="products.meta" />
             </div>
         </div>
-    </section>
+    </div>
+
+    <StockDetailModal v-model:product="stockDetailProduct" />
 </template>
 
 <script setup>
-import { onMounted, reactive, watch } from 'vue';
-import Swal from 'sweetalert2';
-import { toast } from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
+import StockDetailModal from './StockDetailModal.vue';
 import { useProductStore } from '@/stores/admin/inventory/product.js';
+import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
+import { useBrandStore } from '@/stores/admin/inventory/brand.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useTablePagination } from '@/composables/useTablePagination.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { formatMoney } from '@/helpers/formatMoney.js';
+import { productColumns, createRowActions } from './tableConfig.js';
 
+const router = useRouter();
 const productStore = useProductStore();
-
-onMounted(() => {
-    fetchProducts();
-});
+const categoryStore = useProductCategoryStore();
+const brandStore = useBrandStore();
 
 const { products } = storeToRefs(productStore);
+const { productCategories: categories } = storeToRefs(categoryStore);
+const { brands: brandList } = storeToRefs(brandStore);
 
-const filter = reactive({
-    product_category_id: '',
-    brand_id: ''
+const brands = computed(() => brandList.value.data || []);
+const categoryList = computed(() => categories.value.data || []);
+
+const selectedCategoryName = ref('');
+const selectedBrandName = ref('');
+const stockDetailProduct = ref(null);
+
+const fetchProducts = () => productStore.getProducts({ filter });
+
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: {
+        search: '',
+        product_category_id: '',
+        brand_id: '',
+        page: 1,
+        limit: 10,
+        include_inventory_value: 1,
+    },
+    onFilter: fetchProducts,
 });
 
-watch(() => filter, () => {
-    fetchProducts();
-}, { deep: true });
+const { handleTableChange } = useTablePagination({
+    meta: computed(() => products.value.meta),
+    filter,
+});
 
-const fetchProducts = () => {
-    productStore.getProducts({ filter });
+const { confirmDelete } = useConfirmAction();
+
+onMounted(async () => {
+    await Promise.all([categoryStore.getProductCategories(), brandStore.getBrands()]);
+});
+
+const rowKey = (row) => row.id;
+
+const setFilter = (key, value, name = '') => {
+    filter[key] = value;
+    if (key === 'product_category_id') selectedCategoryName.value = name;
+    if (key === 'brand_id') selectedBrandName.value = name;
 };
 
-const deleteProduct = async (id) => {
-    Swal.fire({
-        title: 'Are You Sure to Delete ? ',
-        text: 'If you delete this, it will be gone forever.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'red',
-        confirmButtonText: 'Yes'
-    }).then(async (result) => {
-        if (result.value) {
-            try {
-                let res = await productStore.deleteProduct(id);
-                toast(res.status, res.data.message);
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
+const openStockDetail = (record) => { stockDetailProduct.value = record; };
+
+const editProduct = (id) => {
+    router.push({ name: 'admin.product-edit', params: { id: String(id) } });
 };
+
+const handleDelete = (id) => {
+    confirmDelete(
+        () => productStore.deleteProduct(id),
+        fetchProducts,
+    );
+};
+
+const rowActions = createRowActions({
+    onEdit:   editProduct,
+    onDelete: handleDelete,
+});
+
+function formatProductTax(record) {
+    const t = record?.tax;
+    if (!t?.name) return 'No Vat';
+    const rate = t.rate;
+    if (rate !== undefined && rate !== null && rate !== '') {
+        return `${t.name} (${Number(rate)}%)`;
+    }
+    return t.name;
+}
 </script>
