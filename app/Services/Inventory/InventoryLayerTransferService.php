@@ -34,14 +34,15 @@ class InventoryLayerTransferService
         $fromId = $transfer->from_warehouse_id;
         $toId = $transfer->to_warehouse_id;
 
-        $lockFirst = min($fromId, $toId);
-        $lockSecond = max($fromId, $toId);
-        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirst);
-        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecond);
+        $lockFirstW = (int) min($fromId, $toId);
+        $lockSecondW = (int) max($fromId, $toId);
 
-        $lines = $this->ledger->consume($company, $variantId, $fromId, $qty);
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirstW);
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW);
 
-        $this->quantities->adjust($company->id, $variantId, $fromId, -$qty);
+        $lines = $this->ledger->consume($company, $variantId, (int) $fromId, $qty);
+
+        $this->quantities->adjust($company->id, $variantId, (int) $fromId, -$qty);
 
         $outTotal = 0.0;
         foreach ($lines as $line) {
@@ -75,7 +76,7 @@ class InventoryLayerTransferService
             $this->ledger->receipt(
                 $company,
                 $variantId,
-                $toId,
+                (int) $toId,
                 $line['quantity'],
                 $line['unit_cost'],
                 null,
@@ -83,7 +84,7 @@ class InventoryLayerTransferService
             );
         }
 
-        $this->quantities->adjust($company->id, $variantId, $toId, $qty);
+        $this->quantities->adjust($company->id, $variantId, (int) $toId, $qty);
 
         $transfer->stockMovements()->create([
             'company_id' => $company->id,

@@ -1,5 +1,8 @@
 <template>
-    <label v-if="label" :for="id" class="form-label">{{ label }}</label>
+    <label v-if="label" :for="id" class="form-label">
+        {{ label }}
+        <VRequiredMark v-if="required" />
+    </label>
     <Multiselect
         :id="id"
         :label="nameProp"
@@ -79,6 +82,10 @@ const props = defineProps({
     minChars: {
         type: Number,
         default: 0,
+    },
+    required: {
+        type: Boolean,
+        default: false,
     },
 })
 

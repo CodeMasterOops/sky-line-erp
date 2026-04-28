@@ -6,6 +6,7 @@ use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use App\Enums\StockDirectionEnum;
+use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockAdjustmentRequest extends FormRequest
@@ -37,7 +38,7 @@ class StockAdjustmentRequest extends FormRequest
         };
     }
 
-    public function withValidator($validator): void
+    public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
             foreach ($this->input('items', []) as $i => $item) {

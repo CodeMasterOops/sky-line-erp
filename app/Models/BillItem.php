@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TaxLineTypeEnum;
+use App\Traits\HasDiscount;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BillItem extends Model
 {
+    use HasDiscount;
     use SoftDeletes;
 
     protected $fillable = [

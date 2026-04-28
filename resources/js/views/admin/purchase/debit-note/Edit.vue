@@ -56,7 +56,6 @@
                             <tr>
                                 <th style="width: 50px;">SN</th>
                                 <th>Product Variant</th>
-                                <th style="width: 160px;">Unit</th>
                                 <th style="width: 120px;">Quantity</th>
                                 <th style="width: 140px;">Rate</th>
                                 <th style="width: 160px;">Tax</th>
@@ -74,14 +73,6 @@
                                         @onInput="setRate(index, $event)"
                                         @validate="validateField(`items[${index}].product_variant_id`)"
                                         :error="errors[`items[${index}].product_variant_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].unit_id"
-                                        :options="units.data"
-                                        @validate="validateField(`items[${index}].unit_id`)"
-                                        :error="errors[`items[${index}].unit_id`]"
                                     />
                                 </td>
                                 <td>
@@ -103,7 +94,8 @@
                                 <td>
                                     <VSelect
                                         v-model="form.items[index].tax_id"
-                                        :options="taxes.data"
+                                        select-class="form-select form-select-sm line-item-tax-select"
+                                        :options="lineTaxOptions"
                                         @validate="validateField(`items[${index}].tax_id`)"
                                         :error="errors[`items[${index}].tax_id`]"
                                     />
@@ -182,23 +174,22 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {computed, nextTick, onMounted, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 
 const billStore = useBillStore();
 const debitNoteStore = useDebitNoteStore();
-const unitStore = useUnitStore();
 const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
@@ -207,15 +198,15 @@ const warehouseStore = useWarehouseStore();
 const edit_debit_note_id = defineModel('debit_note_id');
 
 const {debitNote} = storeToRefs(debitNoteStore);
-const {units} = storeToRefs(unitStore);
 const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 const {bills} = storeToRefs(billStore);
 
+const lineTaxOptions = useLineItemTaxOptions(taxes);
+
 onMounted(() => {
-    unitStore.getUnits();
     productStore.getProductVariants();
     partyStore.getParties({filter: {type: 'supplier'}});
     taxStore.getTaxes();
@@ -244,6 +235,7 @@ const initialState = {
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+const isHydratingDebit = ref(false);
 
 const addItem = () => {
     form.items.push({
@@ -263,10 +255,13 @@ const removeItem = (index) => {
 
 watch(() => edit_debit_note_id.value, async (id) => {
     if (id) {
+        isHydratingDebit.value = true;
         await debitNoteStore.getDebitNote(id);
+        const d = debitNote.value.data;
+        const whId = d.items?.[0]?.warehouse_id;
         Object.keys(form).forEach(key => {
             if (key === 'items') {
-                form.items = (debitNote.value.data.items || []).map(item => ({
+                form.items = (d.items || []).map(item => ({
                     product_variant_id: item.product_variant_id || '',
                     unit_id: item.unit_id || '',
                     quantity: item.quantity || '',
@@ -275,11 +270,13 @@ watch(() => edit_debit_note_id.value, async (id) => {
                     discount_amount: item.discount_amount || '',
                 }));
             } else if (key === 'warehouse_id') {
-                form.warehouse_id = debitNote.value.data.items?.[0]?.warehouse_id || '';
+                form.warehouse_id = whId || '';
             } else {
-                form[key] = debitNote.value.data[key] || '';
+                form[key] = d[key] || '';
             }
         });
+        await nextTick();
+        isHydratingDebit.value = false;
     }
 });
 
@@ -313,6 +310,7 @@ const setRate = (index, value) => {
     const variant = getVariantById(value);
     if (variant) {
         form.items[index].rate = variant.purchase_price ?? '';
+        form.items[index].unit_id = variant.unit_id ?? '';
     }
 };
 
@@ -396,6 +394,7 @@ const closeEditModal = () => {
 };
 
 function resetForm() {
+    isHydratingDebit.value = false;
     Object.assign(form, {...initialState});
     errors.value = {};
 }

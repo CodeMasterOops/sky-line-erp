@@ -29,6 +29,15 @@ class Tax extends Model
         'is_system' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $tax) {
+            if ($tax->type === TaxTypeEnum::TDS && $tax->tds_category instanceof TdsCategoryEnum) {
+                $tax->rate = $tax->tds_category->rate();
+            }
+        });
+    }
+
     public function scopeVat($query)
     {
         return $query->whereIn('type', [
@@ -41,5 +50,19 @@ class Tax extends Model
     public function scopeTds($query)
     {
         return $query->where('type', TaxTypeEnum::TDS->value);
+    }
+
+    /**
+     * Line-item taxes are VAT types only.
+     * TDS is a withholding tax deducted at payment time, not on invoice lines.
+     */
+    public function scopeLineItem($query)
+    {
+        return $query->vat();
+    }
+
+    public function isLineItemTax(): bool
+    {
+        return $this->type !== null && $this->type->isVat();
     }
 }

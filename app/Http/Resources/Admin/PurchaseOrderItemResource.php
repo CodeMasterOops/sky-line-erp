@@ -23,6 +23,10 @@ class PurchaseOrderItemResource extends JsonResource
             }),
             'quantity' => $this->quantity ?? 0,
             'rate' => $this->rate ?? 0,
+            'line_discount_type' => $this->discount?->type ?? 'fixed',
+            'line_discount_value' => $this->discount?->value !== null
+                ? (float) $this->discount->value
+                : 0.0,
             'tax_id' => $this->tax_id ?? '',
             'tax' => TaxResource::make($this->whenLoaded('tax')),
             'tax_amount' => $this->tax_amount ?? 0,

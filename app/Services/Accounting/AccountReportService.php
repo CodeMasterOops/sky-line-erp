@@ -342,7 +342,7 @@ class AccountReportService
                 'date' => $invoice->invoice_date,
                 'bijak_no' => $invoice->bijak_no ?: $invoice->invoice_no,
                 'buyer_name' => $invoice->party?->name ?? '-',
-                'buyer_pan' => $invoice->buyer_pan ?? $invoice->party?->pan ?? '-',
+                'buyer_pan' => $invoice->party?->pan ?? '-',
                 'taxable_amount' => round((float) $taxableAmount, 2),
                 'vat_amount' => round((float) $vatAmount, 2),
                 'exempt_amount' => round((float) $exemptAmount, 2),
@@ -399,7 +399,7 @@ class AccountReportService
                 'date' => $bill->bill_date,
                 'bill_no' => $bill->bill_no,
                 'supplier_name' => $bill->party?->name ?? '-',
-                'supplier_pan' => $bill->seller_pan ?? $bill->party?->pan ?? '-',
+                'supplier_pan' => $bill->party?->pan ?? '-',
                 'taxable_amount' => round((float) $taxableAmount, 2),
                 'input_vat' => round((float) $inputVat, 2),
                 'exempt_amount' => round((float) $exemptAmount, 2),
@@ -773,19 +773,27 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $companyId = auth('admin')->user()->company_id;
 
+        // Filter by journal date when available (accurate accounting date);
+        // fall back to created_at for deductions without a linked journal.
         $deductions = DB::table('tds_deductions')
             ->leftJoin('parties', 'parties.id', '=', 'tds_deductions.party_id')
+            ->leftJoin('journals', 'journals.id', '=', 'tds_deductions.journal_id')
             ->where('tds_deductions.company_id', $companyId)
-            ->whereBetween('tds_deductions.created_at', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
+            ->whereBetween(
+                DB::raw('COALESCE(journals.date, DATE(tds_deductions.created_at))'),
+                [$period['start_date']->toDateString(), $period['end_date']->toDateString()]
+            )
             ->select([
-                'parties.name as party_name',
-                'parties.pan as party_pan',
+                DB::raw("COALESCE(parties.name, 'N/A') as party_name"),
+                DB::raw("COALESCE(parties.pan, '') as party_pan"),
                 'tds_deductions.tds_category',
                 'tds_deductions.base_amount',
                 'tds_deductions.tds_rate',
                 'tds_deductions.tds_amount',
                 'tds_deductions.period_month',
+                DB::raw('COALESCE(journals.date, DATE(tds_deductions.created_at)) as effective_date'),
             ])
+            ->orderBy('effective_date')
             ->get();
 
         return [

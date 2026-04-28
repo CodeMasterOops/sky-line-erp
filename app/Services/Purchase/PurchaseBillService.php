@@ -8,6 +8,7 @@ use App\Enums\ChangeTypeEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use App\Enums\AmountOrPercentDiscountTypeEnum;
 use App\Services\Inventory\InventoryCostCalculator;
 use App\Services\Inventory\InventoryLayerReceiptService;
 use App\Services\Inventory\InventoryDocumentReversalService;
@@ -15,8 +16,10 @@ use App\Services\Inventory\InventoryDocumentReversalService;
 readonly class PurchaseBillService
 {
     public function __construct(
+        private PurchaseOrderTotalsCalculator $totalsCalculator,
         private InventoryLayerReceiptService $inventoryReceipt,
-        private InventoryDocumentReversalService $documentReversal, ) {}
+        private InventoryDocumentReversalService $documentReversal,
+    ) {}
 
     public function createBill(array $formData)
     {
@@ -26,7 +29,11 @@ readonly class PurchaseBillService
         $fiscalYearId = $setting->fiscal_year_id;
         $billNo = $formData['bill_no'] ?? $this->generateBillNo($fiscalYearId, $setting->fiscalYear?->year_code);
 
+        $formData = $this->applyResolvedDiscounts($formData);
+
         return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $billNo) {
+            $items = $formData['items'];
+
             $bill = Bill::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
@@ -41,7 +48,31 @@ readonly class PurchaseBillService
                 'status' => $status,
             ]);
 
-            $bill->billItems()->createMany($formData['items']);
+            $bill->saveDiscount(
+                $formData['order_discount_type'],
+                $formData['order_discount_value'] ?? null,
+                $formData['order_discount_amount'],
+            );
+
+            foreach ($items as $item) {
+                $billItem = $bill->billItems()->create([
+                    'product_variant_id' => $item['product_variant_id'],
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_id' => $item['tax_id'] ?? null,
+                    'tax_amount' => $item['tax_amount'],
+                    'discount_amount' => $item['discount_amount'],
+                    'tax_line_type' => $item['tax_line_type'] ?? null,
+                ]);
+
+                $billItem->saveDiscount(
+                    $item['line_discount_type'],
+                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                    $item['discount_amount'],
+                );
+            }
 
             if ($status === StatusEnum::APPROVED->value) {
                 $bill->refresh();
@@ -55,13 +86,73 @@ readonly class PurchaseBillService
 
     public function updateBill(array $formData, Bill $bill): void
     {
+        $formData = $this->applyResolvedDiscounts($formData);
+
         DB::transaction(function () use ($bill, $formData) {
-            $bill->update($formData);
+            $items = $formData['items'];
+
+            $bill->update([
+                'party_id' => $formData['party_id'] ?? null,
+                'purchase_order_id' => $formData['purchase_order_id'] ?? null,
+                'bill_no' => $formData['bill_no'] ?? $bill->bill_no,
+                'bill_date' => $formData['bill_date'],
+                'due_date' => $formData['due_date'] ?? null,
+                'remarks' => $formData['remarks'] ?? null,
+            ]);
+
+            $bill->saveDiscount(
+                $formData['order_discount_type'],
+                $formData['order_discount_value'] ?? null,
+                $formData['order_discount_amount'],
+            );
 
             $bill->billItems()->delete();
 
-            $bill->billItems()->createMany($formData['items']);
+            foreach ($items as $item) {
+                $billItem = $bill->billItems()->create([
+                    'product_variant_id' => $item['product_variant_id'],
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'rate' => $item['rate'],
+                    'tax_id' => $item['tax_id'] ?? null,
+                    'tax_amount' => $item['tax_amount'],
+                    'discount_amount' => $item['discount_amount'],
+                    'tax_line_type' => $item['tax_line_type'] ?? null,
+                ]);
+
+                $billItem->saveDiscount(
+                    $item['line_discount_type'],
+                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                    $item['discount_amount'],
+                );
+            }
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $formData
+     * @return array<string, mixed>
+     */
+    private function applyResolvedDiscounts(array $formData): array
+    {
+        $orderType = AmountOrPercentDiscountTypeEnum::tryFromString($formData['order_discount_type'] ?? null);
+        $orderValue = (float) ($formData['order_discount_value'] ?? 0);
+
+        $result = $this->totalsCalculator->resolveItemsAndOrderDiscount(
+            $formData['items'],
+            $orderType,
+            $orderValue
+        );
+
+        $formData['items'] = $result['items'];
+        $formData['order_discount_type'] = $orderType->value;
+        if (array_key_exists('order_discount_value', $formData) && $formData['order_discount_value'] !== null) {
+            $formData['order_discount_value'] = round((float) $formData['order_discount_value'], 2);
+        }
+        $formData['order_discount_amount'] = $result['order_discount_amount'];
+
+        return $formData;
     }
 
     public function approveBill(Bill $bill): void
@@ -83,7 +174,7 @@ readonly class PurchaseBillService
 
     private function createJournal(Bill $bill): void
     {
-        $bill->loadMissing('billItems', 'party:id,name');
+        $bill->loadMissing('billItems', 'party:id,name', 'discount');
 
         $accountSetting = AccountSetting::first();
 
@@ -101,18 +192,19 @@ readonly class PurchaseBillService
         ]);
 
         $subTotal = 0;
-        $discountTotal = 0;
+        $lineDiscountTotal = 0;
         $taxTotal = 0;
 
         foreach ($bill->billItems as $item) {
             $lineSubtotal = (float) $item->quantity * (float) $item->rate;
             $subTotal += $lineSubtotal;
-            $discountTotal += $item->discount_amount;
-            $taxTotal += $item->tax_amount;
+            $lineDiscountTotal += (float) $item->discount_amount;
+            $taxTotal += (float) $item->tax_amount;
         }
 
-        $grandTotal = $subTotal - $discountTotal + $taxTotal;
-        $taxableTotal = $subTotal - $discountTotal;
+        $orderDiscountAmount = (float) ($bill->discount?->amount ?? 0);
+        $grandTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
+        $taxableTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount;
 
         // debit for purchase account
         $journal->journalItems()->create([

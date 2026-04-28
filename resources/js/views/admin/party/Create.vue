@@ -3,10 +3,11 @@
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened=false"
         modal-class="large-modal"
-        title="Add New Party">
+        :title="modalTitle">
         <template #modal-body>
             <form @submit.prevent="storeParty" class="row g-3">
                 <PartyTypeSelector
+                    v-if="!isTypeLocked"
                     id-prefix="party-create"
                     v-model="form.type"
                     :error="errors.type"
@@ -17,6 +18,7 @@
                         id="name"
                         v-model="form.name"
                         label="Name"
+                        required
                         @validate="validateField('name')"
                         :error="errors.name"
                     />
@@ -26,6 +28,7 @@
                         id="code"
                         v-model="form.code"
                         label="Code"
+                        required
                         @validate="validateField('code')"
                         :error="errors.code"
                     />
@@ -88,13 +91,15 @@
 </template>
 
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {usePartyStore} from "@/stores/admin/party.js";
 import PartyTypeSelector from '@/components/party/PartyTypeSelector.vue';
+
+const LOCKED_PARTY_TYPES = ['customer', 'supplier', 'lead'];
 
 const props = defineProps({
     type: {
@@ -106,8 +111,30 @@ const partyStore = usePartyStore();
 
 const createModalOpened = defineModel('createModalOpened');
 
-const initialState = {
-    type: props.type || 'customer',
+const isTypeLocked = computed(() => !!props.type && LOCKED_PARTY_TYPES.includes(props.type));
+
+const modalTitle = computed(() => {
+    if (props.type === 'supplier') {
+        return 'Add supplier';
+    }
+    if (props.type === 'customer') {
+        return 'Add customer';
+    }
+    if (props.type === 'lead') {
+        return 'Add lead';
+    }
+    return 'Add new party';
+});
+
+function defaultTypeForForm() {
+    if (isTypeLocked.value) {
+        return props.type;
+    }
+    return 'customer';
+}
+
+const form = reactive({
+    type: defaultTypeForForm(),
     name: '',
     code: '',
     phone: '',
@@ -115,16 +142,14 @@ const initialState = {
     pan: '',
     address: '',
     credit_limit: '',
-};
-
-const form = reactive({...initialState});
+});
 const isSubmitting = ref(false);
 
 watch(() => createModalOpened.value, (opened) => {
-    if (opened && props.type) {
-        form.type = props.type;
+    if (opened) {
+        form.type = defaultTypeForForm();
     }
-})
+});
 
 const validations = object({
     type: string().required('Party Type is required.'),
@@ -161,7 +186,16 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
-    Object.assign(form, {...initialState});
+    Object.assign(form, {
+        type: defaultTypeForForm(),
+        name: '',
+        code: '',
+        phone: '',
+        email: '',
+        pan: '',
+        address: '',
+        credit_limit: '',
+    });
     errors.value = {};
 }
 

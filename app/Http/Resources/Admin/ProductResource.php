@@ -20,6 +20,11 @@ class ProductResource extends JsonResource
             'image' => $this->image ?? '',
             'unit_id' => $this->unit_id ?? '',
             'brand_id' => $this->brand_id ?? '',
+            'tax_id' => $this->tax_id ?? '',
+            'tax' => $this->when(
+                $this->relationLoaded('tax') && $this->tax,
+                fn () => TaxResource::make($this->tax)
+            ),
             'has_variants' => (bool) ($this->has_variants ?? false),
             'reorder_quantity' => $this->reorder_quantity ?? 0,
             'description' => $this->description ?? '',

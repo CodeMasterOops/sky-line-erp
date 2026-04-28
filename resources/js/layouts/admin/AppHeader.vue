@@ -41,107 +41,35 @@
                     </span>
                 </router-link>
             </li>
-            <li class="nav-item dropdown link-nav">
-                <a href="javascript:void(0);" class="btn btn-primary btn-md d-inline-flex align-items-center"
-                   data-bs-toggle="dropdown">
-                    <i class="fa fa-plus-circle me-1"></i>Add New
+            <li
+                v-if="visibleQuickShortcuts.length"
+                class="nav-item dropdown link-nav"
+            >
+                <a
+                    href="javascript:void(0);"
+                    class="btn btn-primary btn-md d-inline-flex align-items-center"
+                    data-bs-toggle="dropdown"
+                    aria-label="Quick shortcuts"
+                    :title="'Jump to key screens'"
+                >
+                    <i class="fa fa-bolt me-1" aria-hidden="true"></i>
+                    <span class="d-none d-lg-inline">Shortcuts</span>
                 </a>
                 <div class="dropdown-menu dropdown-xl dropdown-menu-center">
                     <div class="row g-2">
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.product-category-list'}" class="link-item">
+                        <div
+                            v-for="s in visibleQuickShortcuts"
+                            :key="s.name"
+                            class="col-6 col-md-2"
+                        >
+                            <router-link
+                                :to="{ name: s.name }"
+                                class="link-item"
+                            >
                                 <span class="link-icon">
-                                    <i class="ti ti-brand-codepen"></i>
+                                    <i :class="s.icon"></i>
                                 </span>
-                                <p>Category</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.product-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-square-plus"></i>
-                                </span>
-                                <p>Product</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.purchase-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-shopping-bag"></i>
-                                </span>
-                                <p>Purchase</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.sales-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-shopping-cart"></i>
-                                </span>
-                                <p>Sale</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.expense-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-file-text"></i>
-                                </span>
-                                <p>Expense</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.quotation-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-device-floppy"></i>
-                                </span>
-                                <p>Quotation</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link to="/sales-returns" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-copy"></i>
-                                </span>
-                                <p>Return</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.user-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-user"></i>
-                                </span>
-                                <p>User</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.party-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-users"></i>
-                                </span>
-                                <p>Customer</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.party-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-shield"></i>
-                                </span>
-                                <p>Biller</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link :to="{name:'admin.party-list'}" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-user-check"></i>
-                                </span>
-                                <p>Supplier</p>
-                            </router-link>
-                        </div>
-                        <div class="col-md-2">
-                            <router-link to="/admin/stock-transfer" class="link-item">
-                                <span class="link-icon">
-                                    <i class="ti ti-truck"></i>
-                                </span>
-                                <p>Transfer</p>
+                                <p>{{ s.label }}</p>
                             </router-link>
                         </div>
                     </div>
@@ -153,22 +81,6 @@
                     <i class="fa fa-laptop me-1"></i>POS
                 </router-link>
             </li>
-
-            <!-- Flag -->
-            <li class="nav-item dropdown has-arrow flag-nav nav-item-box">
-                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="javascript:void(0);" role="button">
-                    <img src="@/assets/images/flags/us-flag.svg" alt="Language" class="img-fluid">
-                </a>
-                <div class="dropdown-menu dropdown-menu-right">
-                    <a href="javascript:void(0);" class="dropdown-item">
-                        <img src="@/assets/images/flags/english.svg" alt="" height="16">English
-                    </a>
-                    <a href="javascript:void(0);" class="dropdown-item">
-                        <img src="@/assets/images/flags/arabic.svg" alt="" height="16">Arabic
-                    </a>
-                </div>
-            </li>
-            <!-- /Flag -->
 
             <li class="nav-item nav-item-box">
                 <a href="javascript:void(0);" id="btnFullscreen" @click.prevent="initFullScreen">
@@ -259,10 +171,10 @@
                     <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">
                         <i class="ti ti-user-circle me-2"></i>My Profile
                     </router-link>
-                    <router-link class="dropdown-item" :to="{ name: 'admin.sales-report' }">
+                    <router-link class="dropdown-item" :to="{ name: 'admin.reports-hub' }">
                         <i class="ti ti-file-text me-2"></i>Reports
                     </router-link>
-                    <router-link class="dropdown-item" :to="{name:'admin.setting'}">
+                    <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">
                         <i class="ti ti-settings-2 me-2"></i>Settings
                     </router-link>
                     <hr class="my-2">
@@ -278,7 +190,7 @@
                aria-expanded="false"><i class="fa fa-ellipsis-v"></i></a>
             <div class="dropdown-menu dropdown-menu-right">
                 <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">My Profile</router-link>
-                <router-link class="dropdown-item" to="/settings/general-settings">Settings</router-link>
+                <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">Settings</router-link>
                 <button class="dropdown-item" type="button" @click.prevent="logout">Logout</button>
             </div>
         </div>
@@ -288,6 +200,8 @@
 <script setup>
 import userIcon from '@/assets/images/user-icon.png';
 import {computed, onMounted} from "vue";
+import {getAdminRoutePermission} from "@/router/adminRoutePermissions";
+import {satisfiesAdminRoutePermission} from "@/helpers/checkPermission";
 import {useProfileStore} from "@/stores/admin/profile";
 import {storeToRefs} from "pinia";
 import {useAdminAuthStore} from "@/stores/admin/auth";
@@ -303,6 +217,26 @@ const profileStore = useProfileStore();
 const authStore = useAdminAuthStore();
 const adminSettingStore = useAdminSettingStore();
 const router = useRouter();
+
+/** Name must match a route in `admin.js`; access follows `adminRoutePermissions.js`. */
+const QUICK_SHORTCUTS = [
+    { label: 'Dashboard', name: 'admin.dashboard', icon: 'ti ti-layout-dashboard' },
+    { label: 'POS', name: 'admin.pos', icon: 'ti ti-device-laptop' },
+    { label: 'Sales', name: 'admin.sales-list', icon: 'ti ti-shopping-cart' },
+    { label: 'Bills', name: 'admin.bill-list', icon: 'ti ti-file-description' },
+    { label: 'Products', name: 'admin.product-list', icon: 'ti ti-package' },
+    { label: 'Invoices', name: 'admin.invoice-list', icon: 'ti ti-receipt' },
+    { label: 'Expenses', name: 'admin.expense-list', icon: 'ti ti-file-invoice' },
+    { label: 'Parties', name: 'admin.party-list', icon: 'ti ti-users' },
+    { label: 'Reports', name: 'admin.reports-hub', icon: 'ti ti-report-analytics' },
+    { label: 'Settings', name: 'admin.setting', icon: 'ti ti-settings' },
+];
+
+const visibleQuickShortcuts = computed(() =>
+    QUICK_SHORTCUTS.filter((s) =>
+        satisfiesAdminRoutePermission(getAdminRoutePermission(s.name))
+    )
+);
 
 const toggleMobileBtn = () => {
     document.body.classList.toggle('slide-nav');

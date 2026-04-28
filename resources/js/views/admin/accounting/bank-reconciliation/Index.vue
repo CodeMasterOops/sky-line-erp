@@ -129,6 +129,58 @@
         </div>
     </div>
 
+    <!-- Import CSV Modal -->
+    <div v-if="showImport" class="modal d-block" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Bank Statement CSV</h5>
+                    <button type="button" class="btn-close" @click="showImport = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Bank Format *</label>
+                        <select class="form-select" v-model="importBank">
+                            <option value="auto">Auto-detect</option>
+                            <option value="nmb">NMB Bank</option>
+                            <option value="nabil">Nabil Bank</option>
+                            <option value="himalayan">Himalayan Bank</option>
+                            <option value="global_ime">Global IME Bank</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">CSV File *</label>
+                        <input
+                            type="file"
+                            class="form-control"
+                            accept=".csv,text/csv"
+                            ref="csvFileInput"
+                            @change="onCsvFileChange"
+                        />
+                        <div v-if="importFile" class="form-text text-success mt-1">
+                            <i class="ti ti-check me-1"></i>{{ importFile.name }}
+                        </div>
+                    </div>
+                    <div v-if="importResult" class="alert" :class="importResult.error ? 'alert-danger' : 'alert-success'">
+                        <template v-if="importResult.error">{{ importResult.error }}</template>
+                        <template v-else>
+                            <i class="ti ti-check-circle me-1"></i>
+                            Imported <strong>{{ importResult.imported }}</strong> lines
+                            <span v-if="importResult.skipped"> ({{ importResult.skipped }} skipped)</span>.
+                        </template>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="closeImportModal">Cancel</button>
+                    <button class="btn btn-primary" @click="submitCsvImport" :disabled="!importFile || importing">
+                        <span v-if="importing" class="spinner-border spinner-border-sm me-1"></span>
+                        Import
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Bank Account Modal -->
     <div v-if="showAddAccount" class="modal d-block" style="background: rgba(0,0,0,0.5)">
         <div class="modal-dialog">
@@ -182,6 +234,49 @@ const glAccountOptions = ref([]);
 const filters = ref({ start_date: null, end_date: null, status: null });
 const newAccount = ref({ account_id: null, bank_name: '', account_number: '', branch: '' });
 
+// CSV import state
+const importBank = ref('auto');
+const importFile = ref(null);
+const importing = ref(false);
+const importResult = ref(null);
+const csvFileInput = ref(null);
+
+const onCsvFileChange = (e) => {
+    importFile.value = e.target.files?.[0] ?? null;
+    importResult.value = null;
+};
+
+const submitCsvImport = async () => {
+    if (!importFile.value || !selectedAccount.value) return;
+    importing.value = true;
+    importResult.value = null;
+    try {
+        const fd = new FormData();
+        fd.append('file', importFile.value);
+        fd.append('bank', importBank.value);
+        const res = await apiAdmin(
+            `bank-reconciliation/bank-accounts/${selectedAccount.value.id}/import-csv`,
+            'post',
+            fd
+        );
+        importResult.value = res.data;
+        toast('success', `Imported ${res.data.imported ?? 0} lines successfully.`);
+        await loadLines();
+    } catch (err) {
+        importResult.value = { error: err?.response?.data?.message ?? 'Import failed.' };
+    } finally {
+        importing.value = false;
+    }
+};
+
+const closeImportModal = () => {
+    showImport.value = false;
+    importFile.value = null;
+    importResult.value = null;
+    importBank.value = 'auto';
+    if (csvFileInput.value) csvFileInput.value.value = '';
+};
+
 const loadBankAccounts = async () => {
     try {
         const res = await apiAdmin('bank-reconciliation/bank-accounts', 'get');
@@ -193,7 +288,7 @@ const loadGlAccounts = async () => {
     try {
         const res = await apiAdmin('account', 'get', { per_page: 500 });
         glAccountOptions.value = (res.data.data || []).map(a => ({ label: `${a.name} (${a.code})`, value: a.id }));
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
 };
 
 const selectAccount = async (ba) => {

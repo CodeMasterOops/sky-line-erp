@@ -69,6 +69,7 @@
                         <div v-if="isDraft" class="col-12">
                             <ProductVariantSearchInput
                                 label="Product name / code / SKU"
+                                required
                                 @select="onVariantSelected"
                             />
                         </div>
@@ -80,39 +81,36 @@
                                     <tr>
                                         <th class="so-col-sn">SN</th>
                                         <th class="so-col-product">Product</th>
-                                        <th class="so-col-unit">Unit</th>
                                         <th class="so-col-qty">Qty</th>
                                         <th class="so-col-rate">Rate (sale)</th>
-                                        <th class="so-col-purchase">Purchase</th>
                                         <th class="so-col-disc">Discount</th>
                                         <th class="so-col-tax">Tax</th>
-                                        <th class="so-col-amt">Tax amt</th>
-                                        <th class="so-col-line">Line total</th>
                                         <th v-if="isDraft" class="text-center so-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 11 : 10" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 7 : 6" class="text-center text-muted py-4">
                                             No line items.
                                         </td>
                                     </tr>
-                                    <tr v-for="(item, index) in form.items" :key="`${index}-${item.product_variant_id}`">
+                                    <tr
+                                        v-for="(item, index) in form.items"
+                                        :key="item.id != null && item.id !== '' ? `line-${item.id}` : `n-${index}-${item.product_variant_id}`"
+                                        v-memo="[
+                                            item.id,
+                                            item.quantity,
+                                            item.rate,
+                                            item.line_discount_type,
+                                            item.line_discount_value,
+                                            item.tax_id,
+                                            isDraft,
+                                        ]">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate so-col-product"
                                             :title="item.product_label">
                                             {{ item.product_label }}
-                                        </td>
-                                        <td>
-                                            <VSelect
-                                                v-model="form.items[index].unit_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="units.data"
-                                                :disabled="!isDraft"
-                                                @validate="validateField(`items[${index}].unit_id`)"
-                                                :error="errors[`items[${index}].unit_id`]"
-                                            />
                                         </td>
                                         <td>
                                             <VInput
@@ -134,29 +132,38 @@
                                                 :error="errors[`items[${index}].rate`]"
                                             />
                                         </td>
-                                        <td class="text-end">{{ formatMoney(item.purchase_snapshot) }}</td>
-                                        <td>
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].discount_amount"
-                                                :disabled="!isDraft"
-                                                @validate="validateField(`items[${index}].discount_amount`)"
-                                                :error="errors[`items[${index}].discount_amount`]"
-                                            />
+                                        <td :class="{'so-discount-cell': isDraft}">
+                                            <template v-if="isDraft">
+                                                <VDiscountAmountTypeGroup
+                                                    :input-id="`cn_edit_line_disc_${item.id ?? index}`"
+                                                    :input-aria-label="`Line ${index + 1} discount`"
+                                                    v-model="form.items[index].line_discount_value"
+                                                    v-model:discount-type="form.items[index].line_discount_type"
+                                                    :error="errors[`items[${index}].line_discount_value`]"
+                                                    :disabled="isSubmitting"
+                                                    extra-group-class="so-discount-input-group"
+                                                    compact-toggle
+                                                    @blur="validateField(`items[${index}].line_discount_value`)"
+                                                    @update:discount-type="
+                                                        () => {
+                                                            validateField(`items[${index}].line_discount_type`);
+                                                            validateField(`items[${index}].line_discount_value`);
+                                                        }
+                                                    "
+                                                />
+                                            </template>
+                                            <span v-else>{{ formatMoney(lineDiscountMoneyFromItem(item)) }}</span>
                                         </td>
                                         <td>
                                             <VSelect
                                                 v-model="form.items[index].tax_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="taxes.data"
+                                                select-class="form-select form-select-sm line-item-tax-select"
+                                                :options="lineTaxOptions"
                                                 :disabled="!isDraft"
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
                                             />
                                         </td>
-                                        <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
-                                        <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
                                         <td v-if="isDraft" class="text-center">
                                             <button
                                                 type="button"
@@ -172,25 +179,51 @@
                         </div>
 
                         <div class="col-lg-6 ms-auto">
-                            <div class="total-order w-100 max-widthauto m-auto mb-4">
-                                <ul>
-                                    <li>
-                                        <h4>Sub total</h4>
-                                        <h5>{{ summary.subtotal }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Discount</h4>
-                                        <h5>{{ summary.discount }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Tax</h4>
-                                        <h5>{{ summary.tax }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Grand total</h4>
-                                        <h5>{{ summary.grandTotal }}</h5>
-                                    </li>
-                                </ul>
+                            <div class="card bg-light mb-4">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Sub total</span>
+                                        <strong>{{ summary.subtotal }}</strong>
+                                    </div>
+                                    <template v-if="isDraft">
+                                        <div
+                                            class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
+                                            <span>Discount</span>
+                                            <div class="flex-grow-1" style="max-width: 14rem; min-width: 0">
+                                                <VDiscountAmountTypeGroup
+                                                    v-model="form.order_discount_value"
+                                                    v-model:discount-type="form.order_discount_type"
+                                                    :error="errors.order_discount_value"
+                                                    input-id="cn_edit_order_discount_value"
+                                                    input-aria-label="Order-level discount"
+                                                    :disabled="isSubmitting"
+                                                    extra-group-class="cn-order-disc-input-group w-100"
+                                                    compact-toggle
+                                                    @blur="validateField('order_discount_value')"
+                                                    @update:discount-type="
+                                                        () => {
+                                                            validateField('order_discount_type');
+                                                            validateField('order_discount_value');
+                                                        }
+                                                    "
+                                                />
+                                            </div>
+                                            <strong class="ms-auto">{{ summary.totalDiscount }}</strong>
+                                        </div>
+                                    </template>
+                                    <div v-else class="d-flex justify-content-between border-top pt-2 mt-2">
+                                        <span>Discount</span>
+                                        <strong>{{ summary.totalDiscount }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Tax</span>
+                                        <strong>{{ summary.tax }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                                        <span>Grand total</span>
+                                        <strong>{{ summary.grandTotal }}</strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -224,24 +257,26 @@
 </template>
 
 <script setup>
-import {computed, reactive, ref, watch} from 'vue';
+import {computed, nextTick, reactive, ref, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
+import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
+import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
 const invoiceStore = useInvoiceStore();
 const creditNoteStore = useCreditNoteStore();
-const unitStore = useUnitStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
@@ -249,11 +284,12 @@ const warehouseStore = useWarehouseStore();
 const edit_credit_note_id = defineModel('credit_note_id');
 
 const {creditNote} = storeToRefs(creditNoteStore);
-const {units} = storeToRefs(unitStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 const {invoices} = storeToRefs(invoiceStore);
+
+const lineTaxOptions = useLineItemTaxOptions(taxes);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({
@@ -272,11 +308,14 @@ const initialState = {
     warehouse_id: '',
     remarks: '',
     status: 'draft',
+    order_discount_type: 'fixed',
+    order_discount_value: '0',
     items: [],
 };
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+const isHydratingCredit = ref(false);
 
 const invoiceOptions = computed(() => invoices.value.data || []);
 
@@ -319,7 +358,8 @@ const onVariantSelected = (variant) => {
         quantity: '1',
         rate: defaultLineRateString(variant),
         tax_id: '',
-        discount_amount: '0',
+        line_discount_type: 'fixed',
+        line_discount_value: '0',
     });
 };
 
@@ -333,7 +373,6 @@ watch(
         if (!id) {
             return;
         }
-        unitStore.getUnits();
         taxStore.getTaxes();
         warehouseStore.getWarehouses();
         await invoiceStore.getInvoices({filter: {limit: 1000}});
@@ -365,27 +404,34 @@ watch(
             warehouseStore.warehouses.data = [{id: whId, name: whName}, ...warehouseStore.warehouses.data];
         }
 
-        Object.keys(form).forEach((key) => {
-            if (key === 'items') {
-                form.items = (data.items || []).map((item) => ({
-                    product_variant_id: item.product_variant_id || '',
-                    product_label: item.product_variant ? variantLabel(item.product_variant) : '',
-                    purchase_snapshot: item.product_variant?.purchase_price ?? 0,
-                    unit_id: item.unit_id || '',
-                    quantity: String(item.quantity ?? '1'),
-                    rate: rateStringFromApiLine(item),
-                    tax_id: item.tax_id || '',
-                    discount_amount:
-                        item.discount_amount !== null && item.discount_amount !== undefined
-                            ? String(item.discount_amount)
-                            : '0',
-                }));
-            } else if (key === 'warehouse_id') {
-                form.warehouse_id = whId || '';
-            } else {
-                form[key] = data[key] ?? (key === 'items' ? [] : '');
-            }
-        });
+        isHydratingCredit.value = true;
+        const odv = data.order_discount_value;
+        form.credit_note_date = data.credit_note_date || '';
+        form.party_id = data.party_id || '';
+        form.invoice_id = data.invoice_id || '';
+        form.remarks = data.remarks || '';
+        form.status = data.status || 'draft';
+        form.order_discount_type = data.order_discount_type || 'fixed';
+        form.order_discount_value = odv != null && odv !== '' ? String(odv) : '0';
+        form.warehouse_id = whId || '';
+        form.items = (data.items || []).map((item) => ({
+            id: item.id ?? '',
+            invoice_item_id: item.invoice_item_id ?? '',
+            product_variant_id: item.product_variant_id || '',
+            product_label: item.product_variant ? variantLabel(item.product_variant) : '',
+            purchase_snapshot: item.product_variant?.purchase_price ?? 0,
+            unit_id: item.unit_id || '',
+            quantity: String(item.quantity ?? '1'),
+            rate: rateStringFromApiLine(item),
+            tax_id: item.tax_id || '',
+            line_discount_type: item.line_discount_type || 'fixed',
+            line_discount_value:
+                item.line_discount_value != null && item.line_discount_value !== ''
+                    ? String(item.line_discount_value)
+                    : '0',
+        }));
+        await nextTick();
+        isHydratingCredit.value = false;
     }
 );
 
@@ -396,6 +442,8 @@ const validations = object({
     party_id: string().nullable(),
     invoice_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
+    order_discount_type: string().nullable(),
+    order_discount_value: string().nullable(),
     items: array()
         .of(
             object({
@@ -404,7 +452,8 @@ const validations = object({
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
                 tax_id: string().nullable(),
-                discount_amount: string().nullable(),
+                line_discount_type: string().nullable(),
+                line_discount_value: string().nullable(),
             })
         )
         .min(1, 'At least one item is required.'),
@@ -412,70 +461,16 @@ const validations = object({
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getTaxRate = (taxId) => {
-    if (!taxId) {
-        return 0;
-    }
-    const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find((t) => t.id === numericId);
-    return tax ? Number(tax.rate || 0) : 0;
-};
-
-const calcLineTax = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    const taxRate = getTaxRate(item.tax_id);
-    const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-    return taxable * (taxRate / 100);
-};
-
-const calcLineTotal = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    return lineSubtotal - lineDiscount + calcLineTax(item);
-};
+const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
+    form,
+    taxes,
+});
 
 const formatMoney = (value) => {
     if (value === '' || value === null || value === undefined) {
         return '—';
     }
     return Number(value).toFixed(2);
-};
-
-const summary = computed(() => {
-    let subtotal = 0;
-    let discount = 0;
-    let tax = 0;
-
-    form.items.forEach((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
-        const lineDiscount = Number(item.discount_amount || 0);
-        subtotal += lineSubtotal;
-        discount += lineDiscount;
-        tax += calcLineTax(item);
-    });
-
-    const grandTotal = subtotal - discount + tax;
-
-    return {
-        subtotal: subtotal.toFixed(2),
-        discount: discount.toFixed(2),
-        tax: tax.toFixed(2),
-        grandTotal: grandTotal.toFixed(2),
-    };
-});
-
-const syncTaxAmounts = () => {
-    form.items = form.items.map((item) => ({
-        ...item,
-        tax_amount: calcLineTax(item),
-    }));
 };
 
 const lineQtyInt = (q) => {
@@ -491,18 +486,21 @@ const buildCreditNotePayload = () => {
         party_id: form.party_id || null,
         invoice_id: form.invoice_id || null,
         remarks: form.remarks,
-        items: form.items.map((item) => ({
+        status: form.status,
+        order_discount_type: form.order_discount_type || 'fixed',
+        order_discount_value: form.order_discount_value ?? '0',
+        items: form.items.map((item, index) => ({
+            invoice_item_id: item.invoice_item_id || null,
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
             tax_id: item.tax_id || null,
-            tax_amount: item.tax_amount ?? 0,
-            discount_amount:
-                item.discount_amount === '' || item.discount_amount == null
-                    ? null
-                    : Number(item.discount_amount),
+            tax_amount: calcLineTax(item, index),
+            line_discount_type: item.line_discount_type || 'fixed',
+            line_discount_value: item.line_discount_value ?? '0',
+            discount_amount: String(lineDiscountMoneyFromItem(item)),
         })),
     };
 };
@@ -532,6 +530,7 @@ const closeEditModal = () => {
 };
 
 function resetForm() {
+    isHydratingCredit.value = false;
     Object.assign(form, {...initialState});
     errors.value = {};
 }
@@ -550,9 +549,6 @@ function resetForm() {
     min-width: 11rem;
     max-width: 16rem;
 }
-.sales-order-lines-table .so-col-unit {
-    min-width: 7rem;
-}
 .sales-order-lines-table .so-col-tax {
     min-width: 7.5rem;
 }
@@ -561,5 +557,11 @@ function resetForm() {
 }
 .sales-order-lines-table .so-col-action {
     width: 3rem;
+}
+.sales-order-lines-table .so-discount-cell {
+    min-width: 9rem;
+    position: relative;
+    z-index: 2;
+    overflow: visible;
 }
 </style>

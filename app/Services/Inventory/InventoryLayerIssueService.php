@@ -29,7 +29,7 @@ class InventoryLayerIssueService
         ?string $remarks,
     ): StockMovement {
         if ($quantity <= 0) {
-            throw \InvalidArgumentException('Issue quantity must be positive.');
+            throw new \InvalidArgumentException('Issue quantity must be positive.');
         }
 
         $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);

@@ -39,6 +39,11 @@
                                 @search-change="debouncedPartySearch"
                                 :error="errors.party_id"
                             />
+                            <PartyMetaPanel
+                                v-if="resolvedParty"
+                                :party="resolvedParty"
+                                pan-heading="Buyer PAN"
+                            />
                         </div>
                         <div class="col-lg-6 col-sm-6 col-12">
                             <VSelect
@@ -48,7 +53,15 @@
                                 label="Warehouse"
                                 @validate="validateField('warehouse_id')"
                                 :error="errors.warehouse_id"
+                                @update:model-value="onWarehouseChange"
                             />
+                        </div>
+                        <div class="col-lg-6 col-sm-6 col-12">
+                            <label class="form-label">Branch</label>
+                            <select class="form-select" v-model="form.branch_id">
+                                <option value="">— No Branch —</option>
+                                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }} ({{ b.code }})</option>
+                            </select>
                         </div>
 
                         <div class="col-lg-6 col-sm-6 col-12">
@@ -59,18 +72,11 @@
                                 placeholder="Sequential bill number"
                             />
                         </div>
-                        <div class="col-lg-6 col-sm-6 col-12">
-                            <VInput
-                                id="buyer_pan"
-                                v-model="form.buyer_pan"
-                                label="Buyer PAN"
-                                placeholder="Buyer PAN (required for VAT invoices)"
-                            />
-                        </div>
 
                         <div class="col-12">
                             <ProductVariantSearchInput
-                                label="Product *"
+                                label="Product"
+                                required
                                 @select="onVariantSelected"
                             />
                         </div>
@@ -82,41 +88,37 @@
                                     <tr>
                                         <th class="inv-col-sn">SN</th>
                                         <th class="inv-col-product">Product</th>
-                                        <th class="inv-col-unit">Unit</th>
                                         <th class="inv-col-qty">Qty</th>
                                         <th class="inv-col-rate">Rate (sale)</th>
-                                        <th class="inv-col-purchase">Purchase</th>
                                         <th class="inv-col-disc">Discount</th>
                                         <th class="inv-col-tax">Tax</th>
                                         <th>Tax Type</th>
-                                        <th class="inv-col-amt">Tax amt</th>
-                                        <th class="inv-col-line">Line total</th>
+                                        <th style="min-width:9rem">Batch (FEFO)</th>
                                         <th class="text-center inv-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="11" class="text-center text-muted py-4">
+                                        <td colspan="9" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
                                     <tr
                                         v-for="(item, index) in form.items"
-                                        :key="`${index}-${item.product_variant_id}`">
+                                        :key="`n-${index}-${item.product_variant_id}`"
+                                        v-memo="[
+                                            item.quantity,
+                                            item.rate,
+                                            item.line_discount_type,
+                                            item.line_discount_value,
+                                            item.tax_id,
+                                            item.tax_line_type,
+                                        ]">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate inv-col-product"
                                             :title="item.product_label">
                                             {{ item.product_label }}
-                                        </td>
-                                        <td>
-                                            <VSelect
-                                                v-model="form.items[index].unit_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="units.data"
-                                                @validate="validateField(`items[${index}].unit_id`)"
-                                                :error="errors[`items[${index}].unit_id`]"
-                                            />
                                         </td>
                                         <td>
                                             <VInput
@@ -136,21 +138,30 @@
                                                 :error="errors[`items[${index}].rate`]"
                                             />
                                         </td>
-                                        <td class="text-end">{{ formatMoney(item.purchase_snapshot) }}</td>
-                                        <td>
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].discount_amount"
-                                                @validate="validateField(`items[${index}].discount_amount`)"
-                                                :error="errors[`items[${index}].discount_amount`]"
+                                        <td class="inv-discount-cell">
+                                            <VDiscountAmountTypeGroup
+                                                :input-id="`inv_line_disc_${index}`"
+                                                :input-aria-label="`Line ${index + 1} discount`"
+                                                v-model="form.items[index].line_discount_value"
+                                                v-model:discount-type="form.items[index].line_discount_type"
+                                                :error="errors[`items[${index}].line_discount_value`]"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="inv-discount-input-group"
+                                                compact-toggle
+                                                @blur="validateField(`items[${index}].line_discount_value`)"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField(`items[${index}].line_discount_type`);
+                                                        validateField(`items[${index}].line_discount_value`);
+                                                    }
+                                                "
                                             />
                                         </td>
                                         <td>
                                             <VSelect
                                                 v-model="form.items[index].tax_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="taxes.data"
+                                                select-class="form-select form-select-sm line-item-tax-select"
+                                                :options="lineTaxOptions"
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
                                             />
@@ -162,8 +173,21 @@
                                                 <option value="zero_rated">Zero Rated</option>
                                             </select>
                                         </td>
-                                        <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
-                                        <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm"
+                                                v-model="form.items[index].batch_id"
+                                                :disabled="!batchOptions[`${item.product_variant_id}-${form.warehouse_id}`]?.length">
+                                                <option value="">— none —</option>
+                                                <option
+                                                    v-for="b in (batchOptions[`${item.product_variant_id}-${form.warehouse_id}`] ?? [])"
+                                                    :key="b.id"
+                                                    :value="b.id">
+                                                    {{ b.batch_no }}
+                                                    <template v-if="b.expiry_date"> · exp {{ b.expiry_date }}</template>
+                                                    · {{ b.remaining_qty }} left
+                                                </option>
+                                            </select>
+                                        </td>
                                         <td class="text-center">
                                             <button
                                                 type="button"
@@ -179,25 +203,45 @@
                         </div>
 
                         <div class="col-lg-6 ms-auto">
-                            <div class="total-order w-100 max-widthauto m-auto mb-4">
-                                <ul>
-                                    <li>
-                                        <h4>Sub total</h4>
-                                        <h5>{{ summary.subtotal }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Discount</h4>
-                                        <h5>{{ summary.discount }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Tax</h4>
-                                        <h5>{{ summary.tax }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Grand total</h4>
-                                        <h5>{{ summary.grandTotal }}</h5>
-                                    </li>
-                                </ul>
+                            <div class="card bg-light mb-4">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Sub total</span>
+                                        <strong>{{ summary.subtotal }}</strong>
+                                    </div>
+                                    <div
+                                        class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
+                                        <span>Discount</span>
+                                        <div class="flex-grow-1" style="max-width: 14rem; min-width: 0">
+                                            <VDiscountAmountTypeGroup
+                                                v-model="form.order_discount_value"
+                                                v-model:discount-type="form.order_discount_type"
+                                                :error="errors.order_discount_value"
+                                                input-id="inv_order_discount_value"
+                                                input-aria-label="Order-level discount"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="inv-order-disc-input-group w-100"
+                                                compact-toggle
+                                                @blur="validateField('order_discount_value')"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField('order_discount_type');
+                                                        validateField('order_discount_value');
+                                                    }
+                                                "
+                                            />
+                                        </div>
+                                        <strong class="ms-auto">{{ summary.totalDiscount }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Tax</span>
+                                        <strong>{{ summary.tax }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                                        <span>Grand total</span>
+                                        <strong>{{ summary.grandTotal }}</strong>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -240,35 +284,74 @@
 </template>
 
 <script setup>
-import {computed, reactive, ref, watch} from 'vue';
+import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {apiAdmin} from '@/helpers/api.js';
+import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
+import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
 
 const invoiceStore = useInvoiceStore();
-const unitStore = useUnitStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
+
+// --- Branch & Batch (Phase 3/6) ---
+const branches = ref([]);
+const batchOptions = ref({}); // key: `${variant_id}-${warehouse_id}` → batches[]
+
+const loadBranches = async () => {
+    try {
+        const res = await apiAdmin('branch');
+        branches.value = res.data.data ?? [];
+    } catch { /* branches are optional */ }
+};
+
+const fetchBatchOptions = async (variantId, warehouseId) => {
+    if (!variantId || !warehouseId) return;
+    const key = `${variantId}-${warehouseId}`;
+    if (batchOptions.value[key]) return; // already loaded
+    try {
+        const res = await apiAdmin(`batch/fefo?product_variant_id=${variantId}&warehouse_id=${warehouseId}`);
+        batchOptions.value = { ...batchOptions.value, [key]: res.data.data ?? [] };
+    } catch { /* no batches for this variant/warehouse */ }
+};
+
+const onWarehouseChange = async (warehouseId) => {
+    // Reload batch options for all existing line items with the new warehouse
+    form.items.forEach((item) => {
+        if (item.product_variant_id) {
+            batchOptions.value = { ...batchOptions.value };
+            delete batchOptions.value[`${item.product_variant_id}-${warehouseId}`];
+            fetchBatchOptions(item.product_variant_id, warehouseId);
+        }
+        item.batch_id = '';
+    });
+};
 
 const createModalOpened = defineModel('createModalOpened');
 
 const {currentAdDate} = useDateHelper();
 
-const {units} = storeToRefs(unitStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
+
+const lineTaxOptions = useLineItemTaxOptions(taxes);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({
@@ -284,9 +367,9 @@ watch(
     createModalOpened,
     (opened) => {
         if (opened) {
-            unitStore.getUnits();
             taxStore.getTaxes();
             warehouseStore.getWarehouses();
+            loadBranches();
             partyStore.getParties({
                 filter: {
                     type: 'customer',
@@ -304,15 +387,19 @@ const getInitialState = () => ({
     due_date: '',
     party_id: '',
     warehouse_id: '',
-    buyer_pan: '',
+    branch_id: '',
     bijak_no: '',
     remarks: '',
     status: 'draft',
+    order_discount_type: 'fixed',
+    order_discount_value: '0',
     items: [],
 });
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -344,8 +431,14 @@ const onVariantSelected = (variant) => {
         rate: defaultLineRateString(variant),
         tax_id: '',
         tax_line_type: 'taxable',
-        discount_amount: '0',
+        line_discount_type: 'fixed',
+        line_discount_value: '0',
+        batch_id: '',
     });
+    // Load FEFO batches for this variant+warehouse combo
+    if (form.warehouse_id) {
+        fetchBatchOptions(vid, form.warehouse_id);
+    }
 };
 
 const removeItem = (index) => {
@@ -357,6 +450,8 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
+    order_discount_type: string().nullable(),
+    order_discount_value: string().nullable(),
     items: array()
         .of(
             object({
@@ -365,7 +460,8 @@ const validations = object({
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
                 tax_id: string().nullable(),
-                discount_amount: string().nullable(),
+                line_discount_type: string().nullable(),
+                line_discount_value: string().nullable(),
             })
         )
         .min(1, 'At least one item is required.'),
@@ -373,82 +469,37 @@ const validations = object({
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getTaxRate = (taxId) => {
-    if (!taxId) {
-        return 0;
-    }
-    const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find((t) => t.id === numericId);
-    return tax ? Number(tax.rate || 0) : 0;
-};
-
-const calcLineTax = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    const taxRate = getTaxRate(item.tax_id);
-    const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-    return taxable * (taxRate / 100);
-};
-
-const calcLineTotal = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    return lineSubtotal - lineDiscount + calcLineTax(item);
-};
-
-const formatMoney = (value) => {
-    if (value === '' || value === null || value === undefined) {
-        return '—';
-    }
-    return Number(value).toFixed(2);
-};
-
-const summary = computed(() => {
-    let subtotal = 0;
-    let discount = 0;
-    let tax = 0;
-
-    form.items.forEach((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
-        const lineDiscount = Number(item.discount_amount || 0);
-        subtotal += lineSubtotal;
-        discount += lineDiscount;
-        tax += calcLineTax(item);
-    });
-
-    const grandTotal = subtotal - discount + tax;
-
-    return {
-        subtotal: subtotal.toFixed(2),
-        discount: discount.toFixed(2),
-        tax: tax.toFixed(2),
-        grandTotal: grandTotal.toFixed(2),
-    };
+const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
+    form,
+    taxes,
 });
 
 const buildInvoicePayload = () => {
+    syncTaxAmounts();
     const wid = form.warehouse_id || null;
     return {
         invoice_date: form.invoice_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
+        branch_id: form.branch_id || null,
+        bijak_no: form.bijak_no || null,
         remarks: form.remarks,
         status: form.status,
-        items: form.items.map((item) => ({
+        order_discount_type: form.order_discount_type || 'fixed',
+        order_discount_value: form.order_discount_value ?? '0',
+        items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,
             tax_id: item.tax_id || null,
-            tax_amount: calcLineTax(item),
-            discount_amount: item.discount_amount || null,
+            tax_line_type: item.tax_line_type || 'taxable',
+            line_discount_type: item.line_discount_type || 'fixed',
+            line_discount_value: item.line_discount_value ?? '0',
+            tax_amount: calcLineTax(item, index),
+            discount_amount: String(lineDiscountMoneyFromItem(item)),
+            batch_id: item.batch_id || null,
         })),
     };
 };
@@ -478,6 +529,7 @@ const closeCreateModal = () => {
 function resetForm() {
     Object.assign(form, getInitialState());
     errors.value = {};
+    batchOptions.value = {};
 }
 </script>
 
@@ -494,9 +546,6 @@ function resetForm() {
     min-width: 11rem;
     max-width: 16rem;
 }
-.invoice-lines-table .inv-col-unit {
-    min-width: 7rem;
-}
 .invoice-lines-table .inv-col-tax {
     min-width: 7.5rem;
 }
@@ -505,5 +554,12 @@ function resetForm() {
 }
 .invoice-lines-table .inv-col-action {
     width: 3rem;
+}
+
+.invoice-lines-table .inv-discount-cell {
+    min-width: 9rem;
+    position: relative;
+    z-index: 2;
+    overflow: visible;
 }
 </style>

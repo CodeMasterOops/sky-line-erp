@@ -8,7 +8,7 @@
         <template #modal-body>
             <div class="card border-0 shadow-none mb-0">
                 <div class="card-body p-0 border-0">
-                    <form @submit.prevent="storeBillWithStatus('draft')" class="row g-3">
+                    <form @submit.prevent="storeBillWithStatus('draft')" class="row g-1">
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="input-blocks">
                                 <VDatepicker
@@ -32,27 +32,36 @@
                             </div>
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks d-flex align-items-end gap-2 flex-wrap">
-                                <a
-                                    href="javascript:void(0);"
-                                    class="mb-2 text-primary"
-                                    title="Add supplier"
-                                    @click.prevent="createSupplierOpened = true">
-                                    <i class="ti ti-circle-plus"></i>
-                                </a>
+                            <div class="d-flex gap-2 align-items-end">
                                 <div class="flex-grow-1">
                                     <VMultiselect
                                         id="party_id"
                                         v-model="form.party_id"
                                         :options="parties.data"
-                                        label="Supplier"
+                                        label="Supplier Name"
                                         :filter-results="false"
                                         @validate="validateField('party_id')"
                                         @search-change="debouncedSupplierSearch"
                                         :error="errors.party_id"
                                     />
                                 </div>
+                                <div class="ps-0">
+                                    <div class="add-icon">
+                                        <a
+                                            href="#"
+                                            class="bg-dark text-white p-2 rounded d-inline-flex align-items-center justify-content-center"
+                                            title="Add supplier"
+                                            @click.prevent="createSupplierOpened = true">
+                                            <vue-feather type="plus-circle" class="plus"></vue-feather>
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
+                            <PartyMetaPanel
+                                v-if="resolvedParty"
+                                :party="resolvedParty"
+                                pan-heading="Seller PAN"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="input-blocks">
@@ -66,84 +75,63 @@
                                 />
                             </div>
                         </div>
-
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="input-blocks">
-                                <VInput
-                                    id="seller_pan"
-                                    v-model="form.seller_pan"
-                                    label="Seller PAN"
-                                    placeholder="Supplier PAN (required for VAT bills)"
-                                />
+                                <label class="form-label">Branch</label>
+                                <select class="form-select" v-model="form.branch_id">
+                                    <option value="">— No Branch —</option>
+                                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }} ({{ b.code }})</option>
+                                </select>
                             </div>
                         </div>
 
                         <div class="col-12">
                             <ProductVariantSearchInput
-                                label="Product *"
+                                label="Product"
+                                required
                                 @select="onVariantSelected"
                             />
                         </div>
 
                         <div class="col-12">
-                            <div class="table-responsive no-pagination">
+                            <div class="table-responsive no-pagination po-purchase-order-lines-wrap">
                                 <table class="table datanew table-bordered mb-0 order-lines-table">
-                                    <caption class="text-muted small caption-top text-start px-1">
-                                        Sale (ref.) is the list price from the product; it is not used for stock
-                                        valuation.
-                                        Ref. margin is (list − net purchase per unit) ÷ list, before tax.
-                                    </caption>
                                     <thead>
                                     <tr>
                                         <th class="po-col-sn">SN</th>
                                         <th class="po-col-product">Product</th>
-                                        <th class="po-col-unit">Unit</th>
                                         <th class="po-col-qty">Qty</th>
                                         <th
                                             class="po-col-rate"
                                             title="Purchase rate; inventory cost is net of line discount and excludes tax.">
                                             Rate (purchase)
                                         </th>
-                                        <th
-                                            class="po-col-ref"
-                                            title="List sales price from the product master; reference only.">
-                                            Sale (ref.)
-                                        </th>
-                                        <th
-                                            class="text-end po-col-mrg"
-                                            title="Gross margin vs. list: (list sale − net purchase per unit) ÷ list sale, before tax.">
-                                            Ref. margin
-                                        </th>
                                         <th class="po-col-disc">Discount</th>
                                         <th class="po-col-tax">Tax</th>
-                                        <th>Tax Type</th>
-                                        <th class="po-col-amt">Tax amt</th>
-                                        <th class="po-col-line">Line total</th>
                                         <th class="text-center po-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="12" class="text-center text-muted py-4">
+                                        <td colspan="7" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
-                                    <tr v-for="(item, index) in form.items"
-                                        :key="`${index}-${item.product_variant_id}`">
+                                    <tr
+                                        v-for="(item, index) in form.items"
+                                        :key="`n-${index}-${item.product_variant_id}`"
+                                        v-memo="[
+                                            item.quantity,
+                                            item.rate,
+                                            item.line_discount_type,
+                                            item.line_discount_value,
+                                            item.tax_id,
+                                        ]">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate po-col-product"
                                             :title="item.product_label">
                                             {{ item.product_label }}
-                                        </td>
-                                        <td>
-                                            <VSelect
-                                                v-model="form.items[index].unit_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="units.data"
-                                                @validate="validateField(`items[${index}].unit_id`)"
-                                                :error="errors[`items[${index}].unit_id`]"
-                                            />
                                         </td>
                                         <td>
                                             <VInput
@@ -163,36 +151,34 @@
                                                 :error="errors[`items[${index}].rate`]"
                                             />
                                         </td>
-                                        <td class="text-end">{{ formatMoney(item.list_sale_snapshot) }}</td>
-                                        <td class="text-end small">{{ formatRefGrossMargin(item) }}</td>
-                                        <td>
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].discount_amount"
-                                                @validate="validateField(`items[${index}].discount_amount`)"
-                                                :error="errors[`items[${index}].discount_amount`]"
+                                        <td class="po-discount-cell">
+                                            <VDiscountAmountTypeGroup
+                                                :input-id="`bill_line_disc_${index}`"
+                                                :input-aria-label="`Line ${index + 1} discount`"
+                                                v-model="form.items[index].line_discount_value"
+                                                v-model:discount-type="form.items[index].line_discount_type"
+                                                :error="errors[`items[${index}].line_discount_value`]"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="po-discount-input-group"
+                                                compact-toggle
+                                                @blur="validateField(`items[${index}].line_discount_value`)"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField(`items[${index}].line_discount_type`);
+                                                        validateField(`items[${index}].line_discount_value`);
+                                                    }
+                                                "
                                             />
                                         </td>
                                         <td>
                                             <VSelect
                                                 v-model="form.items[index].tax_id"
-                                                select-class="form-select form-select-sm"
-                                                :options="taxes.data"
+                                                select-class="form-select form-select-sm line-item-tax-select"
+                                                :options="lineTaxOptions"
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
                                             />
                                         </td>
-                                        <td>
-                                            <select class="form-select form-select-sm"
-                                                    v-model="form.items[index].tax_line_type">
-                                                <option value="taxable">Taxable</option>
-                                                <option value="exempt">Exempt</option>
-                                                <option value="zero_rated">Zero Rated</option>
-                                            </select>
-                                        </td>
-                                        <td class="text-end">{{ calcLineTax(item).toFixed(2) }}</td>
-                                        <td class="text-end">{{ calcLineTotal(item).toFixed(2) }}</td>
                                         <td class="text-center">
                                             <button
                                                 type="button"
@@ -214,9 +200,36 @@
                                         <h4>Sub total</h4>
                                         <h5>{{ summary.subtotal }}</h5>
                                     </li>
-                                    <li>
+                                    <li class="po-total-order-discount">
                                         <h4>Discount</h4>
-                                        <h5>{{ summary.discount }}</h5>
+                                        <div class="po-total-order-discount__controls">
+                                            <VDiscountAmountTypeGroup
+                                                v-model="form.order_discount_value"
+                                                v-model:discount-type="form.order_discount_type"
+                                                :error="errors.order_discount_value"
+                                                input-id="bill_order_discount_value"
+                                                input-aria-label="Order-level discount"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="po-order-disc-input-group w-100"
+                                                compact-toggle
+                                                @blur="validateField('order_discount_value')"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField('order_discount_type');
+                                                        validateField('order_discount_value');
+                                                    }
+                                                "
+                                            />
+                                        </div>
+                                        <h5>{{ summary.totalDiscount }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Non-taxable (net)</h4>
+                                        <h5>{{ summary.nonTaxableBase }}</h5>
+                                    </li>
+                                    <li>
+                                        <h4>Taxable (net)</h4>
+                                        <h5>{{ summary.taxableBase }}</h5>
                                     </li>
                                     <li>
                                         <h4>Tax</h4>
@@ -274,43 +287,56 @@
 </template>
 
 <script setup>
-import {computed, reactive, ref, watch} from 'vue';
+import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
-import {usePurchaseLineReferenceMargin} from '@/composables/purchaseLineReferenceMargin.js';
+import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
+import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
+import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePurchaseOrderStore} from "@/stores/admin/purchase/purchase-order.js";
 
 const billStore = useBillStore();
-const unitStore = useUnitStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
 const purchaseOrderStore = usePurchaseOrderStore();
 
 const {currentAdDate} = useDateHelper();
-const {formatRefGrossMargin} = usePurchaseLineReferenceMargin();
 
 const createModalOpened = defineModel('createModalOpened');
 const purchaseOrderId = defineModel('purchaseOrderId');
 const createSupplierOpened = ref(false);
 
-const {units} = storeToRefs(unitStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
 const {order} = storeToRefs(purchaseOrderStore);
+
+const lineTaxOptions = useLineItemTaxOptions(taxes);
+
+const branches = ref([]);
+
+const loadBranches = async () => {
+    try {
+        const res = await apiAdmin('branch');
+        branches.value = res.data.data ?? [];
+    } catch { /* optional */ }
+};
 
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
@@ -324,9 +350,9 @@ const debouncedSupplierSearch = debounce((query) => {
 
 watch(createModalOpened, (opened) => {
         if (opened) {
-            unitStore.getUnits();
             taxStore.getTaxes();
             warehouseStore.getWarehouses();
+            loadBranches();
             partyStore.getParties({
                 filter: {
                     type: 'supplier',
@@ -348,35 +374,69 @@ const getInitialState = () => ({
     party_id: '',
     purchase_order_id: '',
     warehouse_id: '',
-    seller_pan: '',
+    branch_id: '',
     remarks: '',
     status: 'draft',
+    order_discount_type: 'fixed',
+    order_discount_value: '0',
     items: [],
 });
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
+
 const loadFromPurchaseOrder = async () => {
-    await purchaseOrderStore.getOrder(purchaseOrderId.value)
-    form.party_id = order.value.data.party_id || '';
-    form.remarks = order.value.data.remarks || '';
+    await purchaseOrderStore.getOrder(purchaseOrderId.value);
+    const data = order.value.data;
+    form.party_id = data.party_id || '';
+    form.remarks = data.remarks || '';
     form.purchase_order_id = purchaseOrderId.value;
 
-    order.value.data.items.forEach(item => {
-        form.items.push({
-            product_variant_id: item.product_variant_id,
-            product_label: variantLabel(item.product_variant),
-            list_sale_snapshot: item.product_variant?.sales_price || 0,
-            unit_id: item.unit_id ?? '',
-            quantity: item.quantity,
-            rate: item.rate,
-            tax_id: item.tax_id,
-            tax_line_type: 'taxable',
-            discount_amount: item.discount_amount ?? '',
+    const items = data.items || [];
+    const hasPoLineTypes = items.some((it) => it.line_discount_type != null);
+
+    if (hasPoLineTypes) {
+        form.order_discount_type = data.order_discount_type || 'fixed';
+        form.order_discount_value =
+            data.order_discount_value != null && data.order_discount_value !== ''
+                ? String(data.order_discount_value)
+                : '0';
+        items.forEach((item) => {
+            form.items.push({
+                product_variant_id: item.product_variant_id,
+                product_label: variantLabel(item.product_variant),
+                list_sale_snapshot: item.product_variant?.sales_price || 0,
+                unit_id: item.unit_id ?? '',
+                quantity: String(item.quantity),
+                rate: String(item.rate),
+                tax_id: item.tax_id || '',
+                tax_line_type: 'taxable',
+                line_discount_type: item.line_discount_type || 'fixed',
+                line_discount_value: String(item.line_discount_value ?? 0),
+            });
         });
-    })
-}
+    } else {
+        const mergedDiscounts = mergePoOrderDiscountIntoLineDiscounts(items, data.order_discount_amount);
+        form.order_discount_type = 'fixed';
+        form.order_discount_value = '0';
+        items.forEach((item, i) => {
+            form.items.push({
+                product_variant_id: item.product_variant_id,
+                product_label: variantLabel(item.product_variant),
+                list_sale_snapshot: item.product_variant?.sales_price || 0,
+                unit_id: item.unit_id ?? '',
+                quantity: String(item.quantity),
+                rate: String(item.rate),
+                tax_id: item.tax_id || '',
+                tax_line_type: 'taxable',
+                line_discount_type: 'fixed',
+                line_discount_value: String(mergedDiscounts[i] ?? item.discount_amount ?? 0),
+            });
+        });
+    }
+};
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -408,7 +468,8 @@ const onVariantSelected = (variant) => {
         rate: defaultLineRateString(variant),
         tax_id: '',
         tax_line_type: 'taxable',
-        discount_amount: '0',
+        line_discount_type: 'fixed',
+        line_discount_value: '0',
     });
 };
 
@@ -421,6 +482,8 @@ const validations = object({
     due_date: string().nullable(),
     party_id: string().nullable(),
     warehouse_id: string().required('Warehouse is required.'),
+    order_discount_type: string().nullable(),
+    order_discount_value: string().nullable(),
     items: array()
         .of(
             object({
@@ -429,7 +492,8 @@ const validations = object({
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
                 tax_id: string().nullable(),
-                discount_amount: string().nullable(),
+                line_discount_type: string().nullable(),
+                line_discount_value: string().nullable(),
             })
         )
         .min(1, 'At least one item is required.'),
@@ -437,71 +501,7 @@ const validations = object({
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getTaxRate = (taxId) => {
-    if (!taxId) {
-        return 0;
-    }
-    const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find((t) => t.id === numericId);
-    return tax ? Number(tax.rate || 0) : 0;
-};
-
-const calcLineTax = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    const taxRate = getTaxRate(item.tax_id);
-    const taxable = Math.max(lineSubtotal - lineDiscount, 0);
-    return taxable * (taxRate / 100);
-};
-
-const calcLineTotal = (item) => {
-    const qty = Number(item.quantity || 0);
-    const rate = Number(item.rate || 0);
-    const lineSubtotal = qty * rate;
-    const lineDiscount = Number(item.discount_amount || 0);
-    return lineSubtotal - lineDiscount + calcLineTax(item);
-};
-
-const formatMoney = (value) => {
-    if (value === '' || value === null || value === undefined) {
-        return '—';
-    }
-    return Number(value).toFixed(2);
-};
-
-const summary = computed(() => {
-    let subtotal = 0;
-    let discount = 0;
-    let tax = 0;
-
-    form.items.forEach((item) => {
-        const qty = Number(item.quantity || 0);
-        const rate = Number(item.rate || 0);
-        const lineSubtotal = qty * rate;
-        const lineDiscount = Number(item.discount_amount || 0);
-        subtotal += lineSubtotal;
-        discount += lineDiscount;
-        tax += calcLineTax(item);
-    });
-
-    const grandTotal = subtotal - discount + tax;
-
-    return {
-        subtotal: subtotal.toFixed(2),
-        discount: discount.toFixed(2),
-        tax: tax.toFixed(2),
-        grandTotal: grandTotal.toFixed(2),
-    };
-});
-
-const syncTaxAmounts = () => {
-    form.items = form.items.map((item) => ({
-        ...item,
-        tax_amount: calcLineTax(item),
-    }));
-};
+const {summary, syncTaxAmounts} = useLineOrderDiscountTotals({form, taxes});
 
 const lineQtyInt = (q) => {
     const n = parseInt(String(q ?? '0'), 10);
@@ -518,18 +518,20 @@ const buildBillPayload = () => {
         purchase_order_id: form.purchase_order_id || null,
         remarks: form.remarks,
         status: form.status,
+        order_discount_type: form.order_discount_type || 'fixed',
+        order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
             warehouse_id: wid,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
+            line_discount_type: item.line_discount_type || 'fixed',
+            line_discount_value: item.line_discount_value ?? '0',
             tax_id: item.tax_id || null,
             tax_amount: item.tax_amount ?? 0,
-            discount_amount:
-                item.discount_amount === '' || item.discount_amount == null
-                    ? null
-                    : Number(item.discount_amount),
+            discount_amount: String(lineDiscountMoneyFromItem(item)),
+            tax_line_type: item.tax_line_type || 'taxable',
         })),
     };
 };
@@ -578,10 +580,6 @@ function resetForm() {
     max-width: 16rem;
 }
 
-.order-lines-table .po-col-unit {
-    min-width: 7rem;
-}
-
 .order-lines-table .po-col-tax {
     min-width: 7.5rem;
 }
@@ -592,5 +590,59 @@ function resetForm() {
 
 .order-lines-table .po-col-action {
     width: 3rem;
+}
+
+.order-lines-table .po-discount-cell {
+    min-width: 9rem;
+    position: relative;
+    z-index: 2;
+    overflow: visible;
+}
+
+.po-purchase-order-lines-wrap {
+    overflow: visible;
+}
+
+.total-order :deep(ul li.po-total-order-discount) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.total-order :deep(ul li.po-total-order-discount h4) {
+    width: 28%;
+    min-width: 4.5rem;
+    flex: 0 0 auto;
+    border-right: 1px solid var(--bs-border-color, #dee2e6);
+    margin: 0;
+    padding: 0.5rem 0.5rem 0.5rem 0.625rem;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+}
+
+.total-order :deep(ul li.po-total-order-discount .po-total-order-discount__controls) {
+    flex: 1 1 40%;
+    min-width: 0;
+    max-width: 12rem;
+    padding: 0.2rem 0.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.total-order :deep(ul li.po-total-order-discount h5) {
+    width: auto;
+    flex: 1 0 22%;
+    min-width: 3.5rem;
+    margin: 0;
+    text-align: right;
+    border-left: 0;
+    padding: 0.5rem 0.625rem 0.5rem 0.5rem;
+}
+
+.po-order-disc-input-group {
+    max-width: 15rem;
 }
 </style>

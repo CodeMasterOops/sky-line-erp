@@ -1,6 +1,6 @@
 <template>
 
-    <div :class="['sidebar', sidebarClass]" id="sidebar">
+    <div :class="['sidebar', 'super-admin-sidebar-shell', sidebarClass]" id="sidebar">
         <div class="sidebar-logo active">
             <router-link :to="{ name: 'super-admin.dashboard' }" class="logo logo-normal">
                 <img src="@/assets/images/logo.svg" alt="Img" />

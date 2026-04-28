@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use Carbon\Carbon;
 use App\Models\FiscalYear;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Models\AccountingPeriod;
 use App\Http\Controllers\Controller;
 use App\Enums\AccountingPeriodStatusEnum;
+use App\Services\Accounting\AccountingPeriodGenerator;
 
 class AccountingPeriodController extends Controller
 {
@@ -48,32 +48,12 @@ class AccountingPeriodController extends Controller
             return response()->json(['message' => 'Periods already generated for this fiscal year.'], 422);
         }
 
-        $startDate = Carbon::parse($fiscalYear->start_date);
-        $endDate = Carbon::parse($fiscalYear->end_date);
+        AccountingPeriodGenerator::generateForCompanyIfMissing($company->id, $fiscalYear);
 
-        $periods = [];
-        $current = $startDate->copy()->startOfMonth();
-        $periodNumber = 1;
-
-        while ($current->lte($endDate)) {
-            $periodEnd = $current->copy()->endOfMonth();
-            if ($periodEnd->gt($endDate)) {
-                $periodEnd = $endDate->copy();
-            }
-
-            $periods[] = AccountingPeriod::create([
-                'company_id' => $company->id,
-                'fiscal_year_id' => $fiscalYear->id,
-                'period_number' => $periodNumber,
-                'period_name' => $current->format('F Y'),
-                'start_date' => $current->toDateString(),
-                'end_date' => $periodEnd->toDateString(),
-                'status' => AccountingPeriodStatusEnum::OPEN->value,
-            ]);
-
-            $current->addMonth()->startOfMonth();
-            $periodNumber++;
-        }
+        $periods = AccountingPeriod::where('company_id', $company->id)
+            ->where('fiscal_year_id', $fiscalYear->id)
+            ->orderBy('period_number')
+            ->get();
 
         return response()->json([
             'data' => $periods,

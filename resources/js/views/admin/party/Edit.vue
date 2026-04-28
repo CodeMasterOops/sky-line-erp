@@ -18,6 +18,7 @@
                         id="name"
                         v-model="form.name"
                         label="Name"
+                        required
                         @validate="validateField('name')"
                         :error="errors.name"
                     />
@@ -27,6 +28,7 @@
                         id="code"
                         v-model="form.code"
                         label="Code"
+                        required
                         @validate="validateField('code')"
                         :error="errors.code"
                     />

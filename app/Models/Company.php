@@ -28,16 +28,30 @@ class Company extends Model
         'email',
         'website',
         'address',
+        'ward_id',
+        'postal_code',
         'is_active',
         'inventory_costing_method',
+        'ird_username',
+        'ird_password',
+        'ird_branch_office',
+        'ird_unit_name',
+        'ird_fiscal_device',
+        'ird_ebs_enabled',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'ird_ebs_enabled' => 'boolean',
             'inventory_costing_method' => InventoryCostingMethodEnum::class,
         ];
+    }
+
+    public function setIrdPasswordAttribute(?string $value): void
+    {
+        $this->attributes['ird_password'] = $value ? encrypt($value) : null;
     }
 
     public function getLogoUrlAttribute(): string
@@ -81,5 +95,10 @@ class Company extends Model
     public function fiscalYear(): BelongsTo
     {
         return $this->belongsTo(FiscalYear::class);
+    }
+
+    public function ward(): BelongsTo
+    {
+        return $this->belongsTo(Ward::class);
     }
 }

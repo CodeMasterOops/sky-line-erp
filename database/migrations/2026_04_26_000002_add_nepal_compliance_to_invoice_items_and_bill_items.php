@@ -17,12 +17,7 @@ return new class extends Migration
         });
 
         Schema::table('invoices', function (Blueprint $table) {
-            $table->string('buyer_pan')->nullable()->after('party_id');
             $table->string('bijak_no')->nullable()->after('invoice_no');
-        });
-
-        Schema::table('bills', function (Blueprint $table) {
-            $table->string('seller_pan')->nullable()->after('party_id');
         });
     }
 
@@ -35,10 +30,7 @@ return new class extends Migration
             $table->dropColumn('tax_line_type');
         });
         Schema::table('invoices', function (Blueprint $table) {
-            $table->dropColumn(['buyer_pan', 'bijak_no']);
-        });
-        Schema::table('bills', function (Blueprint $table) {
-            $table->dropColumn('seller_pan');
+            $table->dropColumn('bijak_no');
         });
     }
 };

@@ -24,7 +24,29 @@ class CompanyResource extends JsonResource
             'user_email' => $this->admin->email ?? '',
             'website' => $this->website ?? '',
             'address' => $this->address ?? '',
+            'ward_id' => $this->ward_id,
+            'postal_code' => $this->postal_code ?? '',
+            'province_id' => $this->ward?->palika?->district?->province_id,
+            'district_id' => $this->ward?->palika?->district_id,
+            'palika_id' => $this->ward?->palika_id,
+            'location_label' => $this->locationLabel(),
             'is_active' => $this->is_active ?? true,
         ];
+    }
+
+    private function locationLabel(): string
+    {
+        $ward = $this->ward;
+        if (! $ward) {
+            return '';
+        }
+        $parts = array_filter([
+            $ward->palika?->district?->province?->name,
+            $ward->palika?->district?->name,
+            $ward->palika?->name,
+            $ward->name,
+        ]);
+
+        return implode(', ', $parts);
     }
 }

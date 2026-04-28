@@ -1,15 +1,23 @@
+import { lineDiscountMoneyFromItem, lineGross } from '@/composables/purchaseOrderTotals.js';
+
 /**
  * List sale (ref.) vs. line net purchase per unit, excluding tax — for purchase bill / PO grids.
  */
 export function usePurchaseLineReferenceMargin() {
+    function lineDiscountForMargin(item) {
+        if (item.line_discount_type !== undefined && item.line_discount_type !== null && item.line_discount_type !== '') {
+            return lineDiscountMoneyFromItem(item);
+        }
+        return Number(item.discount_amount || 0);
+    }
+
     function lineNetUnitPurchaseExTax(item) {
         const qty = Number(item.quantity || 0);
         if (!Number.isFinite(qty) || qty <= 0) {
             return 0;
         }
-        const rate = Number(item.rate || 0);
-        const lineDiscount = Number(item.discount_amount || 0);
-        const net = qty * rate - lineDiscount;
+        const lineDiscount = lineDiscountForMargin(item);
+        const net = lineGross(item) - lineDiscount;
         return net / qty;
     }
 

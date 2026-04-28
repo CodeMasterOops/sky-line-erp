@@ -1,3 +1,12 @@
+/** Brand palette — keep in sync with resources/js/assets/scss/utils/_variables.scss */
+const BRAND = {
+  primary: '#1358f1',
+  navy: '#001440',
+  accent: '#0ad4eb',
+  sky: '#40abe6',
+  primaryLight: '#dde8ff',
+};
+
 const basicAreaChart = {
   series: [{
     name: 'Sales',
@@ -74,7 +83,7 @@ const salesAnalysis = {
         enabled: false,
       },
     },
-    colors: ["#FF9F43"],
+    colors: [BRAND.primary],
     dataLabels: {
       enabled: false,
     },
@@ -132,7 +141,7 @@ const salesDaychart = {
         show: false,
       }
     },
-    colors: ['#FE9F43', '#FFE3CB'],
+    colors: [BRAND.primary, BRAND.primaryLight],
     responsive: [{
       breakpoint: 480,
       options: {
@@ -319,7 +328,7 @@ const topCategory = {
     datasets: [{
       label: 'Semi Donut',
       data: [16, 24, 50],
-      backgroundColor: ['#092C4C', '#E04F16', '#FE9F43'],
+      backgroundColor: [BRAND.navy, BRAND.sky, BRAND.primary],
       borderWidth: 5,
       borderRadius: 10,
       borderColor: '#fff', // Border between segments
@@ -358,12 +367,12 @@ const heatChart = {
           ranges: [{
               from: 0,
               to: 99,
-              color: '#FFE3CB'
+              color: BRAND.primaryLight
             },
             {
               from: 100,
               to: 200,
-              color: '#FE9F43'
+              color: BRAND.primary
             },
           ],
         },

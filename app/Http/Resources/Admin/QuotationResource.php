@@ -22,6 +22,11 @@ class QuotationResource extends JsonResource
             'approve_user_id' => $this->approve_user_id ?? '',
             'approved_at' => $this->approved_at ?? null,
             'status' => $this->status?->value ?? '',
+            'order_discount_type' => $this->discount?->type ?? 'fixed',
+            'order_discount_value' => $this->discount?->value !== null
+                ? round((float) $this->discount->value, 2)
+                : null,
+            'order_discount_amount' => round((float) ($this->discount?->amount ?? 0), 2),
             'sales_order_count' => $this->whenCounted('salesOrders'),
             'invoice_count' => $this->whenCounted('invoices'),
             'items' => QuotationItemResource::collection($this->whenLoaded('quotationItems')),

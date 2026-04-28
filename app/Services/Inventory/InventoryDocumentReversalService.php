@@ -52,7 +52,7 @@ class InventoryDocumentReversalService
             $this->quantities->adjust(
                 $invoice->company_id,
                 $movement->product_variant_id,
-                $movement->warehouse_id,
+                (int) $movement->warehouse_id,
                 (int) $movement->quantity,
             );
 
@@ -111,7 +111,7 @@ class InventoryDocumentReversalService
             $this->quantities->adjust(
                 $bill->company_id,
                 $item->product_variant_id,
-                $item->warehouse_id,
+                (int) $item->warehouse_id,
                 -$qty,
             );
 
@@ -165,7 +165,7 @@ class InventoryDocumentReversalService
             $this->quantities->adjust(
                 $debitNote->company_id,
                 $movement->product_variant_id,
-                $movement->warehouse_id,
+                (int) $movement->warehouse_id,
                 (int) $movement->quantity,
             );
 

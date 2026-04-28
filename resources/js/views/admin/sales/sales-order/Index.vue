@@ -24,18 +24,49 @@
                         v-model="filter.search"
                         class="form-control form-control-sm"
                         placeholder="Search order"
-                        @input="debouncedFetch"
+                        @input="onSearchInput"
                     >
                 </div>
             </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <select v-model="filter.status" class="form-select form-select-sm" style="min-width: 140px;">
+                    <option value="">All Statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="approved">Approved</option>
+                </select>
+
+                <input
+                    type="date"
+                    v-model="filter.date_from"
+                    class="form-control form-control-sm"
+                    title="From date"
+                    style="width: 145px;"
+                >
+                <input
+                    type="date"
+                    v-model="filter.date_to"
+                    class="form-control form-control-sm"
+                    title="To date"
+                    style="width: 145px;"
+                >
+
+                <button
+                    v-if="isFiltered"
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="resetFilters">
+                    <i class="ti ti-x me-1"></i> Clear
+                </button>
+            </div>
         </div>
+
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
                 <a-table
                     class="table datanew table-hover table-center mb-0"
                     :columns="columns"
                     :data-source="orders.data"
-                    :pagination="pagination"
+                    :pagination="false"
                     :loading="orders.loading"
                     @change="handleTableChange"
                 >
@@ -90,6 +121,11 @@
                         </template>
                     </template>
                 </a-table>
+                <VPagination
+                    v-model:page="filter.page"
+                    v-model:limit="filter.limit"
+                    :meta="orders.meta"
+                />
             </div>
         </div>
     </div>
@@ -105,104 +141,59 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import { computed, ref } from 'vue';
 import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
+import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
-import debounce from 'lodash/debounce';
+import { storeToRefs } from 'pinia';
 import CreateSalesOrder from './Create.vue';
 import EditSalesOrder from './Edit.vue';
 import SalesOrderDetailModal from './DetailModal.vue';
 import CreateInvoiceFromReference from '@/views/admin/sales/invoice/CreateFromReference.vue';
-import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import { useSalesOrderStore } from '@/stores/admin/sales/sales-order.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useTablePagination } from '@/composables/useTablePagination.js';
 
 const salesOrderStore = useSalesOrderStore();
-const {orders} = storeToRefs(salesOrderStore);
+const { orders } = storeToRefs(salesOrderStore);
 
-const createModalOpened = ref(false);
-const edit_order_id = ref('');
-const detail_order_id = ref('');
+const createModalOpened  = ref(false);
+const edit_order_id      = ref('');
+const detail_order_id    = ref('');
 const invoiceModalOpened = ref(false);
 const invoiceReferenceId = ref('');
 const invoiceReferenceType = ref('');
 
-const filter = reactive({
-    search: '',
-    page: 1,
-    limit: 10
+const fetchOrders = () => salesOrderStore.getOrders({ filter });
+
+const { filter, onSearchInput, resetFilters } = useUrlFilter({
+    defaults: { search: '', status: '', date_from: '', date_to: '', page: 1, limit: 10 },
+    onFilter: fetchOrders,
 });
 
-const pagination = computed(() => ({
-    total: orders.value.meta.total || 0,
-    current: orders.value.meta.current_page || 1,
-    pageSize: orders.value.meta.per_page || filter.limit,
-    showSizeChanger: true,
-    showQuickJumper: true,
-}));
+const { handleTableChange } = useTablePagination({
+    meta: computed(() => orders.value.meta),
+    filter,
+});
+
+const isFiltered = computed(() =>
+    filter.search !== '' || filter.status !== '' ||
+    filter.date_from !== '' || filter.date_to !== ''
+);
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Order No',
-        dataIndex: 'order_no',
-        sorter: true,
-    },
-    {
-        title: 'Date',
-        dataIndex: 'order_date',
-        sorter: true,
-    },
-    {
-        title: 'Customer',
-        dataIndex: 'party_name',
-        sorter: true,
-    },
-    {
-        title: 'Grand Total',
-        dataIndex: 'grand_total',
-        sorter: true,
-    },
-    {
-        title: 'Status',
-        key: 'status',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-    },
+    { title: 'SN',          key: 'sn',           width: 60 },
+    { title: 'Order No',    dataIndex: 'order_no',    sorter: true },
+    { title: 'Date',        dataIndex: 'order_date',  sorter: true },
+    { title: 'Customer',    dataIndex: 'party_name',  sorter: true },
+    { title: 'Grand Total', dataIndex: 'grand_total', sorter: true },
+    { title: 'Status',      key: 'status' },
+    { title: 'Action',      key: 'action' },
 ];
 
-onMounted(() => {
-    fetchOrders();
-});
+const editOrder = (id) => { edit_order_id.value = id; };
 
-const fetchOrders = () => {
-    salesOrderStore.getOrders({filter});
-};
-
-const debouncedFetch = debounce(() => {
-    filter.page = 1;
-    fetchOrders();
-}, 300);
-
-const handleTableChange = (pagination) => {
-    filter.page = pagination.current;
-    filter.limit = pagination.pageSize;
-    fetchOrders();
-};
-
-const editOrder = (id) => {
-    edit_order_id.value = id;
-};
-
-const openDetail = (id) => {
-    detail_order_id.value = String(id);
-};
+const openDetail = (id) => { detail_order_id.value = String(id); };
 
 const deleteOrder = async (id) => {
     Swal.fire({
@@ -211,11 +202,11 @@ const deleteOrder = async (id) => {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: 'Yes'
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await salesOrderStore.deleteOrder(id);
+                const res = await salesOrderStore.deleteOrder(id);
                 toast(res.status, res.data.message);
                 fetchOrders();
             } catch (e) {
@@ -232,11 +223,11 @@ const approveOrder = async (id) => {
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: 'green',
-        confirmButtonText: 'Yes'
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await salesOrderStore.approveOrder(id);
+                const res = await salesOrderStore.approveOrder(id);
                 toast(res.status, res.data.message);
                 fetchOrders();
             } catch (e) {
@@ -247,8 +238,8 @@ const approveOrder = async (id) => {
 };
 
 const convertToInvoice = (id) => {
-    invoiceReferenceId.value = id;
+    invoiceReferenceId.value   = id;
     invoiceReferenceType.value = 'sales-order';
-    invoiceModalOpened.value = true;
+    invoiceModalOpened.value   = true;
 };
 </script>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\SuperAdmin;
 
+use App\Models\Ward;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -21,7 +22,9 @@ class CompanyRequest extends FormRequest
             'phone' => ['nullable'],
             'landline' => ['nullable'],
             'website' => ['nullable'],
-            'address' => ['nullable'],
+            'address' => ['nullable', 'string', 'max:500'],
+            'ward_id' => ['nullable', 'integer', Rule::exists(Ward::class, 'id')],
+            'postal_code' => ['nullable', 'string', 'max:20'],
             'user_name' => ['required', 'string', 'max:255'],
             'user_phone' => ['nullable'],
         ];

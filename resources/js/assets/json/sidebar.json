@@ -1,25 +1,157 @@
 [
     {
-        "title": "Main",
+        "title": "Dashboard",
         "menu": [
             {
                 "menuValue": "Dashboard",
                 "route": { "name": "admin.dashboard" },
-                "hasSubRoute": false,
                 "icon": "ti ti-layout-dashboard"
             },
             {
                 "menuValue": "POS",
                 "route": { "name": "admin.pos" },
-                "hasSubRoute": false,
                 "icon": "ti ti-device-laptop",
                 "permission": "list_product"
             },
             {
                 "menuValue": "Plans & pricing",
                 "route": { "name": "admin.billing-pricing" },
-                "hasSubRoute": false,
                 "icon": "ti ti-currency-dollar"
+            }
+        ]
+    },
+    {
+        "title": "Sales",
+        "menu": [
+            {
+                "menuValue": "Customers",
+                "route": {
+                    "name": "admin.party-list",
+                    "query": { "type": "customer" }
+                },
+                "icon": "ti ti-users",
+                "permission": "list_party"
+            },
+            {
+                "menuValue": "Sales Orders",
+                "route": { "name": "admin.sales-list" },
+                "icon": "ti ti-shopping-cart",
+                "permission": "list_sales_order"
+            },
+            {
+                "menuValue": "Invoices",
+                "route": { "name": "admin.invoice-list" },
+                "icon": "ti ti-file-invoice",
+                "permission": "list_invoice"
+            },
+            {
+                "menuValue": "Delivery Challans",
+                "route": { "name": "admin.delivery-challan-list" },
+                "icon": "ti ti-truck-delivery",
+                "permission": "list_delivery_challan"
+            },
+            {
+                "menuValue": "Receipts",
+                "route": { "name": "admin.receipt-list" },
+                "icon": "ti ti-receipt",
+                "permission": "list_receipt"
+            },
+            {
+                "menuValue": "Credit Notes",
+                "route": { "name": "admin.credit-note-list" },
+                "icon": "ti ti-receipt-refund",
+                "permission": "list_credit_note"
+            },
+            {
+                "menuValue": "Quotations",
+                "route": { "name": "admin.quotation-list" },
+                "icon": "ti ti-file-diff",
+                "permission": "list_quotation"
+            },
+            {
+                "menuValue": "Sales Reports",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Sales Report",
+                        "route": { "name": "admin.sales-report" },
+                        "permission": "list_sales_order"
+                    },
+                    {
+                        "menuValue": "Sales By Item",
+                        "route": { "name": "admin.sales-by-item" },
+                        "permission": "list_sales_order"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "title": "Purchases",
+        "menu": [
+            {
+                "menuValue": "Suppliers",
+                "route": {
+                    "name": "admin.party-list",
+                    "query": { "type": "supplier" }
+                },
+                "icon": "ti ti-user",
+                "permission": "list_party"
+            },
+            {
+                "menuValue": "Purchase Orders",
+                "route": { "name": "admin.purchase-order-list" },
+                "icon": "ti ti-shopping-cart",
+                "permission": "list_purchase_order"
+            },
+            {
+                "menuValue": "Goods Received Notes",
+                "route": { "name": "admin.grn-list" },
+                "icon": "ti ti-package-import",
+                "permission": "list_grn"
+            },
+            {
+                "menuValue": "Purchase Bills",
+                "route": { "name": "admin.bill-list" },
+                "icon": "ti ti-file-invoice",
+                "permission": "list_bill"
+            },
+            {
+                "menuValue": "Payments",
+                "route": { "name": "admin.payment-list" },
+                "icon": "ti ti-cash",
+                "permission": "list_payment"
+            },
+            {
+                "menuValue": "Debit Notes",
+                "route": { "name": "admin.debit-note-list" },
+                "icon": "ti ti-receipt-refund",
+                "permission": "list_debit_note"
+            },
+            {
+                "menuValue": "Expenses",
+                "route": { "name": "admin.expense-list" },
+                "icon": "ti ti-receipt",
+                "permission": "list_expense"
+            },
+            {
+                "menuValue": "Purchase Reports",
+                "icon": "ti ti-report-analytics",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Purchase Report",
+                        "route": { "name": "admin.purchase-report" },
+                        "permission": "list_bill"
+                    },
+                    {
+                        "menuValue": "Purchase By Item",
+                        "route": { "name": "admin.purchase-by-item" },
+                        "permission": "list_bill"
+                    }
+                ],
+                "permission": "list_bill"
             }
         ]
     },
@@ -28,80 +160,82 @@
         "menu": [
             {
                 "menuValue": "Products",
-                "icon": "ti ti-box",
                 "route": { "name": "admin.product-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-box",
                 "permission": "list_product"
             },
             {
-                "menuValue": "Category",
-                "icon": "ti ti-list-details",
+                "menuValue": "Categories",
                 "route": { "name": "admin.product-category-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-list-details",
                 "permission": "list_product_category"
             },
             {
                 "menuValue": "Brands",
-                "icon": "ti ti-triangles",
                 "route": { "name": "admin.brand-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-triangles",
                 "permission": "list_brand"
             },
             {
                 "menuValue": "Units",
-                "icon": "ti ti-brand-unity",
                 "route": { "name": "admin.unit-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-brand-unity",
                 "permission": "list_unit"
             },
             {
-                "menuValue": "Warehouse",
-                "icon": "ti ti-home",
+                "menuValue": "Warehouses",
                 "route": { "name": "admin.warehouse-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-layout-grid",
                 "permission": "list_warehouse"
             },
             {
-                "menuValue": "Stock Transfer",
-                "icon": "ti ti-truck",
-                "route": { "name": "admin.stock-transfer" },
-                "hasSubRoute": false,
-                "permission": "list_stock_transfer"
+                "menuValue": "Operations",
+                "icon": "ti ti-transfer-in",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Stock Transfer",
+                        "route": { "name": "admin.stock-transfer" },
+                        "permission": "list_stock_transfer"
+                    },
+                    {
+                        "menuValue": "Stock Adjustment",
+                        "route": { "name": "admin.stock-adjustment" },
+                        "permission": "list_stock_adjustment"
+                    },
+                    {
+                        "menuValue": "Stock Reconciliation",
+                        "route": { "name": "admin.stock-reconciliation" },
+                        "permission": "list_stock_adjustment"
+                    },
+                    {
+                        "menuValue": "Serial / Lot Numbers",
+                        "route": { "name": "admin.serial-numbers" },
+                        "permission": "list_product"
+                    }
+                ]
             },
             {
-                "menuValue": "Stock Adjustment",
-                "icon": "ti ti-adjustments",
-                "route": { "name": "admin.stock-adjustment" },
-                "hasSubRoute": false,
-                "permission": "list_stock_adjustment"
-            },
-            {
-                "menuValue": "Stock Reconciliation",
-                "icon": "ti ti-scale",
-                "route": { "name": "admin.stock-reconciliation" },
-                "hasSubRoute": false,
-                "permission": "list_stock_adjustment"
-            },
-            {
-                "menuValue": "Serial / Lot Numbers",
-                "icon": "ti ti-numbers",
-                "route": { "name": "admin.serial-numbers" },
-                "hasSubRoute": false,
-                "permission": "list_product"
-            },
-            {
-                "menuValue": "Variant Attributes",
-                "icon": "ti ti-versions",
-                "route": { "name": "admin.variant-attributes" },
-                "hasSubRoute": false,
-                "permission": "list_attribute"
-            },
-            {
-                "menuValue": "Print Barcode",
-                "icon": "ti ti-barcode",
-                "route": { "name": "admin.barcode" },
-                "hasSubRoute": false,
-                "permission": "list_product"
+                "menuValue": "Manufacturing",
+                "icon": "ti ti-tool",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Batch / Lot Tracking",
+                        "route": { "name": "admin.batch-list" },
+                        "permission": "list_batch"
+                    },
+                    {
+                        "menuValue": "Bill of Materials",
+                        "route": { "name": "admin.bom-list" },
+                        "permission": "list_bom"
+                    },
+                    {
+                        "menuValue": "Production Orders",
+                        "route": { "name": "admin.production-order-list" },
+                        "permission": "list_production_order"
+                    }
+                ]
             },
             {
                 "menuValue": "Reports",
@@ -123,150 +257,24 @@
                         "route": { "name": "admin.reorder-alerts" },
                         "permission": "list_product"
                     }
-                ],
-                "permission": "list_product"
-            }
-        ]
-    },
-    {
-        "title": "Parties",
-        "menu": [
-            {
-                "menuValue": "Parties",
-                "icon": "ti ti-user",
-                "route": { "name": "admin.party-list" },
-                "hasSubRoute": false,
-                "permission": "list_party"
-            }
-        ]
-    },
-    {
-        "title": "Sales",
-        "menu": [
-            {
-                "menuValue": "Sales Order",
-                "icon": "ti ti-shopping-cart",
-                "route": { "name": "admin.sales-list" },
-                "hasSubRoute": false,
-                "permission": "list_sales_order"
+                ]
             },
             {
-                "menuValue": "Invoices",
-                "icon": "ti ti-file-invoice",
-                "route": { "name": "admin.invoice-list" },
-                "hasSubRoute": false,
-                "permission": "list_invoice"
-            },
-            {
-                "menuValue": "Delivery Challans",
-                "icon": "ti ti-truck-delivery",
-                "route": { "name": "admin.delivery-challan-list" },
-                "hasSubRoute": false,
-                "permission": "list_delivery_challan"
-            },
-            {
-                "menuValue": "Credit Notes",
-                "icon": "ti ti-receipt-refund",
-                "route": { "name": "admin.credit-note-list" },
-                "hasSubRoute": false,
-                "permission": "list_credit_note"
-            },
-            {
-                "menuValue": "Receipts",
-                "icon": "ti ti-receipt",
-                "route": { "name": "admin.receipt-list" },
-                "hasSubRoute": false,
-                "permission": "list_receipt"
-            },
-            {
-                "menuValue": "Quotations",
-                "icon": "ti ti-file-diff",
-                "route": { "name": "admin.quotation-list" },
-                "hasSubRoute": false,
-                "permission": "list_quotation"
-            },
-            {
-                "menuValue": "Reports",
-                "icon": "ti ti-report-analytics",
+                "menuValue": "Setup",
+                "icon": "ti ti-tool",
                 "hasSubRoute": true,
                 "subMenus": [
                     {
-                        "menuValue": "Sales Report",
-                        "route": { "name": "admin.sales-report" },
-                        "permission": "list_sales_order"
+                        "menuValue": "Attributes",
+                        "route": { "name": "admin.variant-attributes" },
+                        "permission": "list_attribute"
                     },
                     {
-                        "menuValue": "Sales By Item",
-                        "route": { "name": "admin.sales-by-item" },
-                        "permission": "list_sales_order"
+                        "menuValue": "Barcodes",
+                        "route": { "name": "admin.barcode" },
+                        "permission": "list_product"
                     }
-                ],
-                "permission": "list_sales_order"
-            }
-        ]
-    },
-    {
-        "title": "Purchase",
-        "menu": [
-            {
-                "menuValue": "Purchase Orders",
-                "icon": "ti ti-shopping-cart",
-                "route": { "name": "admin.purchase-order-list" },
-                "hasSubRoute": false,
-                "permission": "list_purchase_order"
-            },
-            {
-                "menuValue": "Goods Received Notes",
-                "icon": "ti ti-package-import",
-                "route": { "name": "admin.grn-list" },
-                "hasSubRoute": false,
-                "permission": "list_grn"
-            },
-            {
-                "menuValue": "Bills",
-                "icon": "ti ti-file-invoice",
-                "route": { "name": "admin.bill-list" },
-                "hasSubRoute": false,
-                "permission": "list_bill"
-            },
-            {
-                "menuValue": "Expenses",
-                "icon": "ti ti-receipt",
-                "route": { "name": "admin.expense-list" },
-                "hasSubRoute": false,
-                "permission": "list_expense"
-            },
-            {
-                "menuValue": "Payments",
-                "icon": "ti ti-receipt",
-                "route": { "name": "admin.payment-list" },
-                "hasSubRoute": false,
-                "permission": "list_payment"
-            },
-            {
-                "menuValue": "Debit Notes",
-                "icon": "ti ti-receipt-refund",
-                "route": { "name": "admin.debit-note-list" },
-                "hasSubRoute": false,
-                "permission": "list_debit_note"
-            },
-            {
-                "menuValue": "Reports",
-                "icon": "ti ti-report-analytics",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "Purchase Report",
-                        "route": { "name": "admin.purchase-report" },
-                        "permission": "list_bill"
-                    },
-                    {
-                        "menuValue": "Purchase By Item",
-                        "route": { "name": "admin.purchase-by-item" },
-                        "permission": "list_bill"
-                    }
-                ],
-                "permission": "list_bill"
+                ]
             }
         ]
     },
@@ -274,77 +282,85 @@
         "title": "Accounting",
         "menu": [
             {
-                "menuValue": "Chart Of Accounts",
-                "icon": "ti ti-list",
+                "menuValue": "Chart of Accounts",
                 "route": { "name": "admin.chart-of-accounts" },
-                "hasSubRoute": false,
+                "icon": "ti ti-list",
                 "permission": "list_account"
             },
             {
-                "menuValue": "Account Settings",
-                "icon": "ti ti-settings",
-                "route": { "name": "admin.account-settings" },
-                "hasSubRoute": false,
-                "permission": "list_account_setting"
-            },
-            {
                 "menuValue": "Journal Voucher",
-                "icon": "ti ti-receipt",
                 "route": { "name": "admin.journal-voucher" },
-                "hasSubRoute": false,
+                "icon": "ti ti-receipt",
                 "permission": "list_journal_voucher"
             },
             {
                 "menuValue": "Payment Voucher",
-                "icon": "ti ti-cash",
                 "route": { "name": "admin.payment-voucher" },
-                "hasSubRoute": false,
+                "icon": "ti ti-cash",
                 "permission": "list_payment_voucher"
             },
             {
                 "menuValue": "Receipt Voucher",
-                "icon": "ti ti-receipt",
                 "route": { "name": "admin.receipt-voucher" },
-                "hasSubRoute": false,
+                "icon": "ti ti-receipt",
                 "permission": "list_receipt_voucher"
             },
             {
                 "menuValue": "Opening Balances",
-                "icon": "ti ti-scale",
                 "route": { "name": "admin.opening-balances" },
-                "hasSubRoute": false,
+                "icon": "ti ti-scale",
                 "permission": "list_account"
             },
             {
                 "menuValue": "Recurring Journals",
-                "icon": "ti ti-refresh",
                 "route": { "name": "admin.recurring-journal-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-refresh",
                 "permission": "list_recurring_journal"
             },
             {
                 "menuValue": "Fixed Assets",
-                "icon": "ti ti-building",
                 "route": { "name": "admin.fixed-asset-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-building",
                 "permission": "list_fixed_asset"
             },
             {
                 "menuValue": "Bank Reconciliation",
-                "icon": "ti ti-building-bank",
                 "route": { "name": "admin.bank-reconciliation" },
-                "hasSubRoute": false,
+                "icon": "ti ti-building-bank",
                 "permission": "list_bank_account"
             },
             {
+                "menuValue": "PDC Cheques",
+                "route": { "name": "admin.cheque-list" },
+                "icon": "ti ti-credit-card",
+                "permission": "list_cheque"
+            },
+            {
+                "menuValue": "Budget Management",
+                "route": { "name": "admin.budget-list" },
+                "icon": "ti ti-chart-pie",
+                "permission": "list_budget"
+            },
+            {
+                "menuValue": "Cash Flow Forecast",
+                "route": { "name": "admin.cash-flow-forecast" },
+                "icon": "ti ti-chart-line",
+                "permission": "view_cash_flow_forecast"
+            },
+            {
+                "menuValue": "Branch P&L",
+                "route": { "name": "admin.branch-pl" },
+                "icon": "ti ti-building-community",
+                "permission": "list_branch"
+            },
+            {
                 "menuValue": "Accounting Periods",
-                "icon": "ti ti-calendar-time",
                 "route": { "name": "admin.accounting-periods" },
-                "hasSubRoute": false,
+                "icon": "ti ti-calendar-time",
                 "permission": "list_accounting_period"
             },
             {
-                "menuValue": "Nepal VAT",
+                "menuValue": "Nepal VAT / TDS",
                 "icon": "ti ti-file-certificate",
                 "hasSubRoute": true,
                 "subMenus": [
@@ -367,9 +383,18 @@
                         "menuValue": "TDS Report",
                         "route": { "name": "admin.tds-report" },
                         "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "TDS Challan & Certificate",
+                        "route": { "name": "admin.tds-challan" },
+                        "permission": "list_account"
+                    },
+                    {
+                        "menuValue": "IRD EBS Sync Status",
+                        "route": { "name": "admin.ird-sync" },
+                        "permission": "list_account"
                     }
-                ],
-                "permission": "list_account"
+                ]
             },
             {
                 "menuValue": "Financial Reports",
@@ -382,13 +407,13 @@
                         "permission": "list_account"
                     },
                     {
-                        "menuValue": "Balance Sheet",
-                        "route": { "name": "admin.balance-sheet" },
+                        "menuValue": "Profit & Loss",
+                        "route": { "name": "admin.profit-and-loss" },
                         "permission": "list_account"
                     },
                     {
-                        "menuValue": "Profit and Loss",
-                        "route": { "name": "admin.profit-and-loss" },
+                        "menuValue": "Balance Sheet",
+                        "route": { "name": "admin.balance-sheet" },
                         "permission": "list_account"
                     },
                     {
@@ -416,8 +441,7 @@
                         "route": { "name": "admin.ap-aging" },
                         "permission": "list_account"
                     }
-                ],
-                "permission": "list_account"
+                ]
             }
         ]
     },
@@ -426,52 +450,49 @@
         "menu": [
             {
                 "menuValue": "Employees",
-                "icon": "ti ti-users",
                 "route": { "name": "admin.hr-employee-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-users",
                 "permission": "list_employee"
             },
             {
                 "menuValue": "Departments",
-                "icon": "ti ti-building",
                 "route": { "name": "admin.hr-department-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-building",
                 "permission": "list_department"
             },
             {
                 "menuValue": "Designations",
-                "icon": "ti ti-id-badge",
                 "route": { "name": "admin.hr-designation-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-id-badge",
                 "permission": "list_designation"
             },
             {
                 "menuValue": "Attendance",
-                "icon": "ti ti-calendar-check",
                 "route": { "name": "admin.hr-attendance" },
-                "hasSubRoute": false,
+                "icon": "ti ti-calendar-check",
                 "permission": "list_attendance"
             },
             {
-                "menuValue": "Leave Applications",
-                "icon": "ti ti-file-time",
-                "route": { "name": "admin.hr-leave-applications" },
-                "hasSubRoute": false,
-                "permission": "list_leave_application"
-            },
-            {
-                "menuValue": "Leave Types",
-                "icon": "ti ti-list-check",
-                "route": { "name": "admin.hr-leave-types" },
-                "hasSubRoute": false,
-                "permission": "list_leave_type"
-            },
-            {
-                "menuValue": "Holidays",
-                "icon": "ti ti-calendar-event",
-                "route": { "name": "admin.hr-holidays" },
-                "hasSubRoute": false,
-                "permission": "list_holiday"
+                "menuValue": "Leaves",
+                "icon": "ti ti-calendar",
+                "hasSubRoute": true,
+                "subMenus": [
+                    {
+                        "menuValue": "Applications",
+                        "route": { "name": "admin.hr-leave-applications" },
+                        "permission": "list_leave_application"
+                    },
+                    {
+                        "menuValue": "Types",
+                        "route": { "name": "admin.hr-leave-types" },
+                        "permission": "list_leave_type"
+                    },
+                    {
+                        "menuValue": "Holidays",
+                        "route": { "name": "admin.hr-holidays" },
+                        "permission": "list_holiday"
+                    }
+                ]
             },
             {
                 "menuValue": "Payroll",
@@ -484,17 +505,16 @@
                         "permission": "list_salary_component"
                     },
                     {
-                        "menuValue": "Salary Structure",
+                        "menuValue": "Salary Structures",
                         "route": { "name": "admin.hr-salary-structure" },
                         "permission": "list_salary_structure"
                     },
                     {
-                        "menuValue": "Payroll Runs",
+                        "menuValue": "Payroll",
                         "route": { "name": "admin.hr-payroll" },
                         "permission": "list_payroll"
                     }
-                ],
-                "permission": "list_payroll"
+                ]
             },
             {
                 "menuValue": "Reports",
@@ -521,26 +541,23 @@
                         "route": { "name": "admin.hr-report-tds-salary" },
                         "permission": "list_payroll"
                     }
-                ],
-                "permission": "list_payroll"
+                ]
             }
         ]
     },
     {
-        "title": "User Management",
+        "title": "Administration",
         "menu": [
             {
-                "menuValue": "User List",
-                "icon": "ti ti-shield-up",
+                "menuValue": "Users",
                 "route": { "name": "admin.user-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-shield-up",
                 "permission": "list_user"
             },
             {
                 "menuValue": "Roles & Permissions",
-                "icon": "ti ti-jump-rope",
                 "route": { "name": "admin.role-list" },
-                "hasSubRoute": false,
+                "icon": "ti ti-jump-rope",
                 "permission": "list_role"
             }
         ]

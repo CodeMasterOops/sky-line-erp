@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin;
 
+use App\Models\Tax;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,8 +24,16 @@ class PurchaseOrderResource extends JsonResource
             'approve_user_id' => $this->approve_user_id ?? '',
             'approved_at' => $this->approved_at ?? null,
             'status' => $this->status?->value ?? '',
+            'order_discount_type' => $this->discount?->type ?? 'fixed',
+            'order_discount_value' => $this->discount?->value !== null
+                ? round((float) $this->discount->value, 2)
+                : null,
+            'order_discount_amount' => $totals['order_discount_amount'],
             'subtotal' => $totals['subtotal'],
-            'discount_total' => $totals['discount_total'],
+            'discount_total' => $totals['line_discount_total'],
+            'line_discount_total' => $totals['line_discount_total'],
+            'non_taxable_base' => $totals['non_taxable_base'],
+            'taxable_base' => $totals['taxable_base'],
             'tax_total' => $totals['tax_total'],
             'grand_total' => $totals['grand_total'],
             'bill_count' => $this->whenCounted('bills'),
@@ -35,30 +44,65 @@ class PurchaseOrderResource extends JsonResource
     private function calculateTotals(): array
     {
         if (! $this->relationLoaded('purchaseOrderItems')) {
+            $ord = (float) ($this->discount?->amount ?? 0);
+
             return [
                 'subtotal' => 0,
-                'discount_total' => 0,
+                'line_discount_total' => 0,
+                'order_discount_amount' => round($ord, 2),
+                'non_taxable_base' => 0,
+                'taxable_base' => 0,
                 'tax_total' => 0,
                 'grand_total' => 0,
             ];
         }
 
-        $subtotal = 0;
-        $discountTotal = 0;
-        $taxTotal = 0;
+        $subtotal = 0.0;
+        $lineDiscountTotal = 0.0;
+        $taxTotal = 0.0;
+        $lineNets = [];
+        $itemsList = $this->purchaseOrderItems->all();
 
-        foreach ($this->purchaseOrderItems as $item) {
-            $lineSubtotal = (float) $item->quantity * (float) $item->rate;
-            $subtotal += $lineSubtotal;
-            $discountTotal += (float) $item->discount_amount;
+        foreach ($itemsList as $i => $item) {
+            $lineGross = (float) $item->quantity * (float) $item->rate;
+            $subtotal += $lineGross;
+            $d = (float) $item->discount_amount;
+            $lineDiscountTotal += $d;
+            $lineNets[$i] = max(0, $lineGross - $d);
             $taxTotal += (float) $item->tax_amount;
         }
 
-        $grandTotal = $subtotal - $discountTotal + $taxTotal;
+        $sumNet = array_sum($lineNets);
+        $orderDiscountAmount = (float) ($this->discount?->amount ?? 0);
+
+        $taxIds = collect($this->purchaseOrderItems)->pluck('tax_id')->filter()->unique()->all();
+        $taxRates = $taxIds === []
+            ? collect()
+            : Tax::query()->whereIn('id', $taxIds)->pluck('rate', 'id');
+
+        $nonTaxableBase = 0.0;
+        $taxableBase = 0.0;
+        if ($sumNet > 0) {
+            foreach ($itemsList as $i => $item) {
+                $alloc = $orderDiscountAmount * ($lineNets[$i] / $sumNet);
+                $base = max(0, $lineNets[$i] - $alloc);
+                $rate = $item->tax_id ? (float) ($taxRates[$item->tax_id] ?? 0) : 0.0;
+                if ($rate > 0) {
+                    $taxableBase += $base;
+                } else {
+                    $nonTaxableBase += $base;
+                }
+            }
+        }
+
+        $grandTotal = $subtotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
 
         return [
             'subtotal' => round($subtotal, 2),
-            'discount_total' => round($discountTotal, 2),
+            'line_discount_total' => round($lineDiscountTotal, 2),
+            'order_discount_amount' => round($orderDiscountAmount, 2),
+            'non_taxable_base' => round($nonTaxableBase, 2),
+            'taxable_base' => round($taxableBase, 2),
             'tax_total' => round($taxTotal, 2),
             'grand_total' => round($grandTotal, 2),
         ];

@@ -22,6 +22,14 @@
     overflow: hidden;
     overflow-y: auto;
 }
+/* SimpleBar is the only scrollport; avoid nested scroll with .slimscroll (settings sidebar unchanged). */
+.admin-sidebar-shell .admin-sidebar-shell__scroll .sidebar-inner.slimscroll,
+.super-admin-sidebar-shell .sidebar-inner.slimscroll {
+    height: auto !important;
+    max-height: none;
+    overflow: visible !important;
+    overflow-y: visible !important;
+}
 .settings-wrapper .sidebars.settings-sidebar .sidebar-inner .sidebar-menu ul .submenu-open{
     margin-bottom: 0px;
 }
@@ -107,7 +115,7 @@
     margin-left: -0.1px !important;
 }
 .tabs.owl-carousel.pos-category3 .carousel ol li li.active{
-    border-color: #FE9F43 !important;
+    border-color: $primary !important;
 }
 
 .pos-category3 .carousel .carousel__viewport ol li li{
@@ -143,8 +151,8 @@
 }
 
 .ant-checkbox-checked .ant-checkbox-inner{
-    background-color: #FE9F43 !important;
-    border-color: #FE9F43 !important;
+    background-color: $primary !important;
+    border-color: $primary !important;
 }
 
 .ant-table-wrapper .ant-table-tbody >tr.ant-table-row-selected >td {
@@ -470,7 +478,7 @@
         color: #333;
         
         &:hover, &.focused {
-          background-color: #FE9F43 !important;
+          background-color: $primary !important;
         }
       }
     }
@@ -487,7 +495,7 @@
         color: #FFFFFF;
         
         &:hover, &.focused {
-          background-color: #FE9F43 !important;
+          background-color: $primary !important;
         }
       }
     }

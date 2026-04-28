@@ -24,7 +24,7 @@ class BillController extends Controller
     public function index(Request $request)
     {
         $bills = Bill::filter($request->all())
-            ->with(['party', 'billItems'])
+            ->with(['party', 'discount', 'billItems.discount'])
             ->latest('bill_date')
             ->paginate($request->limit ?? 25);
 
@@ -40,6 +40,8 @@ class BillController extends Controller
 
         $bill->load([
             'party',
+            'discount',
+            'billItems.discount',
             'billItems.productVariant.product',
             'billItems.unit',
             'billItems.tax',
@@ -59,6 +61,8 @@ class BillController extends Controller
     {
         $bill->load([
             'party',
+            'discount',
+            'billItems.discount',
             'billItems.productVariant.product',
             'billItems.unit',
             'billItems.tax',
@@ -89,6 +93,8 @@ class BillController extends Controller
 
         $bill->load([
             'party',
+            'discount',
+            'billItems.discount',
             'billItems.productVariant.product',
             'billItems.unit',
             'billItems.tax',
@@ -142,6 +148,8 @@ class BillController extends Controller
 
         $bill->load([
             'party',
+            'discount',
+            'billItems.discount',
             'billItems.productVariant.product',
             'billItems.unit',
             'billItems.tax',
@@ -176,6 +184,8 @@ class BillController extends Controller
 
         $bill->load([
             'party',
+            'discount',
+            'billItems.discount',
             'billItems.productVariant.product',
             'billItems.unit',
             'billItems.tax',
@@ -221,6 +231,10 @@ class BillController extends Controller
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('bills.id', '=', 'paid_totals.payable_id');
             })
+            ->leftJoin('discounts', function ($join) {
+                $join->on('bills.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', '=', \App\Models\Bill::class);
+            })
             ->where('bills.party_id', $partyId)
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.deleted_at')
@@ -229,6 +243,7 @@ class BillController extends Controller
                 'bills.bill_no',
                 'bills.bill_date',
                 'bills.due_date',
+                DB::raw('COALESCE(discounts.amount, 0) as order_discount_amount'),
                 DB::raw('COALESCE(item_totals.subtotal, 0) as subtotal'),
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
                 DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
@@ -236,7 +251,8 @@ class BillController extends Controller
             ])
             ->get()
             ->map(function ($row) {
-                $grandTotal = (float) $row->subtotal - (float) $row->discount_total + (float) $row->tax_total;
+                $orderDisc = (float) ($row->order_discount_amount ?? 0);
+                $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
                 $paidTotal = (float) $row->paid_total;
                 $due = max($grandTotal - $paidTotal, 0);
                 $row->grand_total = round($grandTotal, 2);

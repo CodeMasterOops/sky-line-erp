@@ -2,7 +2,7 @@
     <div class="col-12">
         <label class="form-label">
             Party type
-            <span class="text-danger ms-1">*</span>
+            <VRequiredMark />
         </label>
         <p class="text-muted small mb-3">
             Choose whether this party is a customer you sell to, a supplier you buy from, or a sales lead.
@@ -40,6 +40,8 @@
 </template>
 
 <script setup>
+import VRequiredMark from '@/components/base/VRequiredMark.vue';
+
 defineProps({
     idPrefix: {
         type: String,

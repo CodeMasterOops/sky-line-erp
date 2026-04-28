@@ -28,11 +28,32 @@
                                 Invoice No <span class="text-primary">#{{ inv.invoice_no || '—' }}</span>
                             </h5>
                             <p class="mb-1 fw-medium">
-                                Created Date : <span class="text-dark">{{ formatDate(inv.invoice_date) }}</span>
+                                Date (AD) : <span class="text-dark">{{ formatDate(inv.invoice_date) }}</span>
+                            </p>
+                            <p v-if="inv.invoice_date_bs" class="mb-1 fw-medium">
+                                Date (BS) : <span class="text-dark">{{ inv.invoice_date_bs }}</span>
                             </p>
                             <p class="fw-medium">
                                 Due Date : <span class="text-dark">{{ formatDate(inv.due_date) }}</span>
                             </p>
+                            <!-- IRD EBS Sync Badge -->
+                            <div class="mt-2">
+                                <span v-if="inv.ird_sync_status === 'synced'" class="badge bg-success">
+                                    <i class="ti ti-circle-check me-1"></i>IRD Verified
+                                </span>
+                                <span v-else-if="inv.ird_sync_status === 'failed'" class="badge bg-danger" :title="inv.ird_error">
+                                    <i class="ti ti-alert-circle me-1"></i>IRD Sync Failed
+                                </span>
+                                <span v-else-if="inv.ird_sync_status === 'pending'" class="badge bg-warning text-dark">
+                                    <i class="ti ti-clock me-1"></i>IRD Sync Pending
+                                </span>
+                                <span v-else-if="inv.ird_sync_status === 'skipped'" class="badge bg-secondary">
+                                    <i class="ti ti-minus me-1"></i>IRD Disabled
+                                </span>
+                            </div>
+                            <div v-if="inv.ird_internal_id" class="text-muted small mt-1">
+                                IRD ID: {{ inv.ird_internal_id }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -167,6 +188,27 @@
                 <i class="ti ti-printer me-2"></i>Print Invoice
             </button>
             <button
+                v-if="inv.id"
+                type="button"
+                class="btn btn-outline-danger d-flex justify-content-center align-items-center"
+                @click="downloadNepalPdf"
+                :disabled="downloadingPdf"
+            >
+                <span v-if="downloadingPdf" class="spinner-border spinner-border-sm me-2"></span>
+                <i v-else class="ti ti-file-type-pdf me-2"></i>Nepal VAT Invoice PDF
+            </button>
+            <button
+                v-can="'approve_invoice'"
+                v-if="inv.ird_sync_status === 'failed'"
+                type="button"
+                class="btn btn-outline-info d-flex justify-content-center align-items-center"
+                @click="retryIrdSync"
+                :disabled="retryingIrd"
+            >
+                <span v-if="retryingIrd" class="spinner-border spinner-border-sm me-2"></span>
+                <i v-else class="ti ti-refresh me-2"></i>Retry IRD Sync
+            </button>
+            <button
                 v-can="'approve_invoice'"
                 v-if="inv.status === 'approved' && !inv.voided_at"
                 type="button"
@@ -184,13 +226,14 @@
 </template>
 
 <script setup>
-import {computed, watch} from 'vue';
+import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import Swal from 'sweetalert2';
 import moment from 'moment';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useSettingStore} from '@/stores/admin/setting.js';
 
@@ -357,8 +400,40 @@ const loadPage = async () => {
 
 watch(() => route.params.id, loadPage, {immediate: true});
 
+const downloadingPdf = ref(false);
+const retryingIrd = ref(false);
+
 const printInvoice = () => {
     window.print();
+};
+
+const downloadNepalPdf = async () => {
+    const id = inv.value.id;
+    if (!id) return;
+    downloadingPdf.value = true;
+    try {
+        const filename = `INV-${inv.value.invoice_no}.pdf`;
+        await downloadAdminFile(`nepal/invoice/${id}/pdf`, filename);
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        downloadingPdf.value = false;
+    }
+};
+
+const retryIrdSync = async () => {
+    const id = inv.value.id;
+    if (!id) return;
+    retryingIrd.value = true;
+    try {
+        await apiAdmin(`nepal/ird/invoice/${id}/retry-sync`, 'post');
+        toast(200, 'IRD sync queued. Status will update shortly.');
+        setTimeout(() => invoiceStore.getInvoice(id), 4000);
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        retryingIrd.value = false;
+    }
 };
 
 const voidInvoice = async () => {

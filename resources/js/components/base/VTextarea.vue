@@ -1,5 +1,8 @@
 <template>
-  <label :for="id" class="form-label">{{ label }}</label>
+  <label v-if="label" :for="id" class="form-label">
+    {{ label }}
+    <VRequiredMark v-if="required" />
+  </label>
   <textarea
       :id="id"
       v-bind:class="[inputClass, { 'is-invalid': error }]"
@@ -15,6 +18,8 @@
 </template>
 
 <script setup>
+import VRequiredMark from '@/components/base/VRequiredMark.vue';
+
 const emit = defineEmits(['update:modelValue', 'validate']);
 
 defineProps({
@@ -39,6 +44,10 @@ defineProps({
   error: {
     type: String,
     default: ''
+  },
+  required: {
+    type: Boolean,
+    default: false,
   },
 
   modelValue: {

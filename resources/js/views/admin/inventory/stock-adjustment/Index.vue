@@ -7,7 +7,7 @@
                 @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
-                Add New
+                Add Adjustment
             </button>
         </template>
     </PageHeader>

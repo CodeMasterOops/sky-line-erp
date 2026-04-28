@@ -22,7 +22,7 @@ class SalesOrderController extends Controller
     public function index(Request $request)
     {
         $orders = SalesOrder::filter($request->all())
-            ->with(['party', 'salesOrderItems'])
+            ->with(['party', 'discount', 'salesOrderItems.discount'])
             ->withCount(['invoices'])
             ->latest('order_date')
             ->paginate($request->limit ?? 25);
@@ -56,8 +56,16 @@ class SalesOrderController extends Controller
                 'status' => $status,
             ]);
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
+            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                $order->saveDiscount(
+                    $formData['order_discount_type'] ?? 'fixed',
+                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                    0,
+                );
+            }
+
+            foreach ($formData['items'] ?? [] as $item) {
+                $orderItem = $order->salesOrderItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -65,16 +73,24 @@ class SalesOrderController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                ]);
 
-            $order->salesOrderItems()->createMany($items);
+                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                    $orderItem->saveDiscount(
+                        $item['line_discount_type'] ?? 'fixed',
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        $item['discount_amount'] ?? 0,
+                    );
+                }
+            }
 
             return $order;
         });
 
         $order->load([
             'party',
+            'discount',
+            'salesOrderItems.discount',
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
@@ -93,6 +109,8 @@ class SalesOrderController extends Controller
     {
         $salesOrder->load([
             'party',
+            'discount',
+            'salesOrderItems.discount',
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
@@ -124,10 +142,18 @@ class SalesOrderController extends Controller
                 'remarks' => $formData['remarks'] ?? null,
             ]);
 
+            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                $salesOrder->saveDiscount(
+                    $formData['order_discount_type'] ?? 'fixed',
+                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                    0,
+                );
+            }
+
             $salesOrder->salesOrderItems()->delete();
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
+            foreach ($formData['items'] ?? [] as $item) {
+                $orderItem = $salesOrder->salesOrderItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -135,16 +161,24 @@ class SalesOrderController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                ]);
 
-            $salesOrder->salesOrderItems()->createMany($items);
+                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                    $orderItem->saveDiscount(
+                        $item['line_discount_type'] ?? 'fixed',
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        $item['discount_amount'] ?? 0,
+                    );
+                }
+            }
 
             return $salesOrder;
         });
 
         $salesOrder->load([
             'party',
+            'discount',
+            'salesOrderItems.discount',
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
@@ -191,6 +225,8 @@ class SalesOrderController extends Controller
 
         $salesOrder->load([
             'party',
+            'discount',
+            'salesOrderItems.discount',
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
@@ -271,6 +307,8 @@ class SalesOrderController extends Controller
 
         $invoice->load([
             'party',
+            'discount',
+            'invoiceItems.discount',
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',

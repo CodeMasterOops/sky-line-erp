@@ -15,7 +15,11 @@ class WarehouseController extends Controller
      */
     public function index()
     {
-        $warehouses = Warehouse::all();
+        $warehouses = Warehouse::query()
+            ->with('parent:id,name,code')
+            ->orderByRaw('parent_id is null desc')
+            ->orderBy('name')
+            ->get();
 
         return WarehouseResource::collection($warehouses);
     }
@@ -26,6 +30,7 @@ class WarehouseController extends Controller
     public function store(WarehouseRequest $request)
     {
         $warehouse = Warehouse::create($request->validated());
+        $warehouse->load('parent:id,name,code');
 
         return response()->json([
             'data' => WarehouseResource::make($warehouse),
@@ -38,6 +43,8 @@ class WarehouseController extends Controller
      */
     public function show(Warehouse $warehouse)
     {
+        $warehouse->load('parent:id,name,code');
+
         return WarehouseResource::make($warehouse);
     }
 
@@ -47,6 +54,7 @@ class WarehouseController extends Controller
     public function update(WarehouseRequest $request, Warehouse $warehouse)
     {
         $warehouse->update($request->validated());
+        $warehouse->load('parent:id,name,code');
 
         return response()->json([
             'data' => WarehouseResource::make($warehouse),
@@ -59,6 +67,12 @@ class WarehouseController extends Controller
      */
     public function destroy(Warehouse $warehouse)
     {
+        if ($warehouse->children()->exists()) {
+            return response()->json([
+                'message' => __('Cannot delete a warehouse that has sub-warehouses. Remove or reassign them first.'),
+            ], 422);
+        }
+
         $warehouse->delete();
 
         return response()->json([

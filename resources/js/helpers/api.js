@@ -80,4 +80,29 @@ const formattedRequest = (base, method, url, body = null) => {
     }
 }
 
-export {apiFront, apiAdmin, apiSuperAdmin}
+/**
+ * Download a file (PDF, CSV, etc.) from an authenticated admin endpoint.
+ * Handles the blob response and triggers a browser download.
+ *
+ * @param {string} url  - relative URL under /api/admin/
+ * @param {string} filename - suggested download filename
+ * @param {object} params   - query params (GET request)
+ */
+const downloadAdminFile = async (url, filename, params = {}) => {
+    const token = useAdminAuthStore().authUser.access_token;
+    const response = await axios.get(`${baseUrl}/admin/${url}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params,
+        responseType: 'blob',
+    });
+    const blob = new Blob([response.data], { type: response.headers['content-type'] });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+};
+
+export {apiFront, apiAdmin, apiSuperAdmin, downloadAdminFile}

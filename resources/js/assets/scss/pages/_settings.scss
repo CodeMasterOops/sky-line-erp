@@ -210,6 +210,37 @@
 .settings-bottom-btn {
     margin-top: 40px;
 }
+
+// Company logo: compact row (aligned with typical form field scale).
+.settings-wrapper .profile-pic-upload.settings-logo-row {
+    gap: 0.875rem;
+}
+
+// Override employees-grid 120×120 for this form row.
+.settings-wrapper .profile-pic-upload .profile-pic.settings-logo-preview {
+    width: 80px;
+    min-width: 80px;
+    height: 80px;
+    min-height: 80px;
+    max-width: 80px;
+    max-height: 80px;
+    margin-right: 0;
+    cursor: pointer;
+}
+
+.settings-logo-hint {
+    font-size: variables.$font-size-12;
+    color: variables.$text-muted;
+    max-width: 20rem;
+}
+
+// Solid “Upload Image” (reference: one primary CTA, no file-name row)
+.settings-logo-upload-btn {
+    font-weight: variables.$font-weight-medium;
+    border-radius: 8px;
+    padding-inline: 1rem;
+}
+
 .logo-company {
     li {
         margin-bottom: 20px;

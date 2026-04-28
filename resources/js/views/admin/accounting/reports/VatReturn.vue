@@ -117,16 +117,28 @@
     <div v-if="data.sales_rows?.length" class="card border-0 mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">Sales Details (Bikri Khata)</h6>
-            <button class="btn btn-sm btn-outline-secondary" @click="exportCsv('sales')">
-                <i class="ti ti-file-export me-1"></i> Export CSV
-            </button>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" @click="exportCsv('sales')">
+                    <i class="ti ti-file-export me-1"></i> Export CSV
+                </button>
+                <button
+                    class="btn btn-sm btn-outline-danger"
+                    @click="exportD3Csv('sales')"
+                    :disabled="exportingD3"
+                    title="Export in IRD D3 prescribed format with BS dates"
+                >
+                    <span v-if="exportingD3 === 'sales'" class="spinner-border spinner-border-sm me-1"></span>
+                    <i v-else class="ti ti-file-certificate me-1"></i> IRD D3 Export
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-sm table-hover">
                     <thead class="table-light">
                         <tr>
-                            <th>Date</th>
+                            <th>Date (AD)</th>
+                            <th>Date (BS)</th>
                             <th>Bijak No</th>
                             <th>Buyer Name</th>
                             <th>Buyer PAN</th>
@@ -139,6 +151,7 @@
                     <tbody>
                         <tr v-for="row in data.sales_rows" :key="row.bijak_no">
                             <td>{{ row.date }}</td>
+                            <td class="text-muted small">{{ row.date_bs || '—' }}</td>
                             <td>{{ row.bijak_no }}</td>
                             <td>{{ row.buyer_name }}</td>
                             <td>{{ row.buyer_pan }}</td>
@@ -152,17 +165,79 @@
             </div>
         </div>
     </div>
+
+    <div v-if="data.purchase_rows?.length" class="card border-0 mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Purchase Details (Kharid Khata)</h6>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary" @click="exportCsv('purchase')">
+                    <i class="ti ti-file-export me-1"></i> Export CSV
+                </button>
+                <button
+                    class="btn btn-sm btn-outline-danger"
+                    @click="exportD3Csv('purchase')"
+                    :disabled="exportingD3"
+                    title="Export in IRD D3 prescribed format with BS dates"
+                >
+                    <span v-if="exportingD3 === 'purchase'" class="spinner-border spinner-border-sm me-1"></span>
+                    <i v-else class="ti ti-file-certificate me-1"></i> IRD D3 Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date (AD)</th>
+                            <th>Date (BS)</th>
+                            <th>Bill No</th>
+                            <th>Supplier Name</th>
+                            <th>Supplier PAN</th>
+                            <th class="text-end">Taxable Amount</th>
+                            <th class="text-end">Input VAT</th>
+                            <th class="text-end">Exempt</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="row in data.purchase_rows" :key="row.bill_no">
+                            <td>{{ row.date }}</td>
+                            <td class="text-muted small">{{ row.date_bs || '—' }}</td>
+                            <td>{{ row.bill_no }}</td>
+                            <td>{{ row.supplier_name }}</td>
+                            <td>{{ row.supplier_pan }}</td>
+                            <td class="text-end">{{ fmt(row.taxable_amount) }}</td>
+                            <td class="text-end text-success">{{ fmt(row.input_vat) }}</td>
+                            <td class="text-end">{{ fmt(row.exempt_amount) }}</td>
+                            <td class="text-end fw-semibold">{{ fmt(row.total_amount) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="data.period" class="d-flex justify-content-center gap-3 mb-4">
+        <button
+            class="btn btn-danger"
+            @click="exportD3Csv('combined')"
+            :disabled="exportingD3"
+        >
+            <span v-if="exportingD3 === 'combined'" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="ti ti-file-certificate me-1"></i>
+            Download Full IRD D3 CSV (Sales + Purchase)
+        </button>
+    </div>
 </template>
 
 <script setup>
 import {ref, onMounted} from 'vue';
-import {storeToRefs} from 'pinia';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
-import {apiAdmin} from '@/helpers/api.js';
+import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 
-const reportStore = useAccountingReportStore();
-const {vatReturn: vatReturnState} = storeToRefs(reportStore);
+useAccountingReportStore();
 
 const filters = ref({ fiscal_year_id: null, start_date: null, end_date: null });
 const loading = ref(false);
@@ -176,7 +251,7 @@ const loadFiscalYears = async () => {
             label: fy.year_name,
             value: fy.id,
         }));
-    } catch (e) { /* ignore */ }
+    } catch { /* ignore */ }
 };
 
 const loadReport = async () => {
@@ -196,6 +271,8 @@ const fmt = (val) => {
     return Number(val).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 };
 
+const exportingD3 = ref(null);
+
 const exportCsv = (type) => {
     const rows = type === 'sales' ? data.value.sales_rows : data.value.purchase_rows;
     if (!rows?.length) return;
@@ -207,6 +284,26 @@ const exportCsv = (type) => {
     a.href = url;
     a.download = `vat-${type}-register.csv`;
     a.click();
+};
+
+/**
+ * Export IRD D3-format CSV via backend (includes BS dates, buyer/seller PAN, IRD column order).
+ */
+const exportD3Csv = async (type) => {
+    if (!filters.value.start_date || !filters.value.end_date) return;
+    exportingD3.value = type;
+    try {
+        const filename = `VAT-D3-${type}-${filters.value.start_date}-to-${filters.value.end_date}.csv`;
+        await downloadAdminFile('nepal/vat-d3/export-csv', filename, {
+            type,
+            start_date: filters.value.start_date,
+            end_date: filters.value.end_date,
+        });
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        exportingD3.value = null;
+    }
 };
 
 onMounted(() => { loadFiscalYears(); });

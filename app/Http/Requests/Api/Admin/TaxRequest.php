@@ -22,7 +22,34 @@ class TaxRequest extends FormRequest
 
         $baseRules = [
             'name' => ['required', 'string', 'max:255'],
-            'rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'rate' => [
+                'required',
+                'numeric',
+                'min:0',
+                'max:100',
+                function ($attribute, $value, $fail) {
+                    $type = $this->input('type');
+                    $category = $this->input('tds_category');
+
+                    if ($type !== TaxTypeEnum::TDS->value || ! $category) {
+                        return;
+                    }
+
+                    $enumCase = TdsCategoryEnum::tryFrom($category);
+                    if (! $enumCase) {
+                        return;
+                    }
+
+                    $canonicalRate = $enumCase->rate();
+                    if (abs((float) $value - $canonicalRate) > 0.001) {
+                        $fail(sprintf(
+                            'The rate for TDS category "%s" must be %s%% as defined by Nepal tax regulations.',
+                            $enumCase->label(),
+                            $canonicalRate
+                        ));
+                    }
+                },
+            ],
             'type' => ['nullable', Rule::in($typeValues)],
             'tds_category' => ['nullable', Rule::in($tdsCategoryValues)],
         ];

@@ -16,20 +16,20 @@ $font-family-primary: 'Nunito', sans-serif;
 $font-family-secondary: "Poppins", sans-serif;
 $font-awesome: "Fontawesome";
 	
-// Theme Colors Variables
-$primary: #FE9F43;
+// Theme Colors Variables (brand: primary #1358f1, navy #001440, accent #0ad4eb, sky #40abe6)
+$primary: #1358f1;
 $primary-hover: color.adjust($primary, $lightness: -10%);
-$secondary: #092C4C;
+$secondary: #001440;
 $secondary-hover: color.adjust($secondary, $lightness: -10%);
 $success: #3EB780;
 $success-hover: color.adjust($success, $lightness: -10%);
-$info: #155EEF;
+$info: #40abe6;
 $info-hover: color.adjust($info, $lightness: -10%);
 $warning: #FFCA18;
 $warning-hover: color.adjust($warning, $lightness: -10%);
 $danger: #FF0000;
 $danger-hover: color.adjust($danger, $lightness: -10%);
-$dark: #1B2850;
+$dark: #001440;
 $light: #F9FAFB;
 $white: #ffffff;
 $black: #000000;
@@ -37,34 +37,34 @@ $purple: #6938EF;
 $pink: #DD2590;
 $teal: #0E9384;
 $violet: #423B93;
-$cyan: #06AED4;
+$cyan: #0ad4eb;
 $orange: #E04F16;
 $indigo: #3538CD;
 $green: #1dd871;
 $yellow: #ffff00;
-$blue: #3577f1;
+$blue: #40abe6;
 
-// Primary
-$primary-100: #FFF6EE;
-$primary-200: #FFEDDD;
-$primary-300: #FFE3CB;
-$primary-400: #FFDABA;
-$primary-500: #FFD0A8;
-$primary-600: #FFC796;
-$primary-700: #FFBD84;
-$primary-800: #FFB370;
-$primary-900: #FFA95B;
+// Primary (tints from royal blue)
+$primary-100: #eef4ff;
+$primary-200: #dde8ff;
+$primary-300: #ccdcff;
+$primary-400: #bbd0ff;
+$primary-500: #aac4ff;
+$primary-600: #99b8ff;
+$primary-700: #88acff;
+$primary-800: #77a0fa;
+$primary-900: #6694f0;
 
-// Secondary
-$secondary-100: #E4E8EC;
-$secondary-200: #C9D1D9;
-$secondary-300: #B0BBC7;
-$secondary-400: #96A5B4;
-$secondary-500: #7E8FA2;
-$secondary-600: #667A91;
-$secondary-700: #4E667F;
-$secondary-800: #38526E;
-$secondary-900: #213F5D;
+// Secondary (tints from navy)
+$secondary-100: #e8eaed;
+$secondary-200: #d1d5db;
+$secondary-300: #bac0c9;
+$secondary-400: #a3abb7;
+$secondary-500: #8c96a5;
+$secondary-600: #758193;
+$secondary-700: #5e6c81;
+$secondary-800: #47576f;
+$secondary-900: #30425d;
 
 // Success
 $success-100: #EEFAF1;
@@ -99,16 +99,16 @@ $danger-700: #FF7765;
 $danger-800: #FF5E4D;
 $danger-900: #FF4031;
 
-// Info
-$info-100: #E7F0FF;
-$info-200: #D0E1FF;
-$info-300: #B9D2FF;
-$info-400: #A2C3FE;
-$info-500: #8CB4FD;
-$info-600: #75A4FB;
-$info-700: #5F94F9;
-$info-800: #4883F6;
-$info-900: #3171F3;
+// Info (sky blue)
+$info-100: #ecf7fc;
+$info-200: #d9eff9;
+$info-300: #c6e7f5;
+$info-400: #b3dff1;
+$info-500: #a0d7ed;
+$info-600: #8dcfe9;
+$info-700: #7ac7e5;
+$info-800: #67bfe1;
+$info-900: #54b7dd;
 
 // Purple
 $purple-100: #EDEDFF;
@@ -165,16 +165,16 @@ $orange-700: #EF8968;
 $orange-800: #EB7752;
 $orange-900: #E66438;
 
-// Cyan
-$cyan-100: #ECF7FB;
-$cyan-200: #D9EFF7;
-$cyan-300: #C6E7F3;
-$cyan-400: #B3DFEF;
-$cyan-500: #9FD7EA;
-$cyan-600: #8BCFE6;
-$cyan-700: #75C7E2;
-$cyan-800: #5DBFDD;
-$cyan-900: #3FB6D9;
+// Cyan (accent)
+$cyan-100: #e8fbfd;
+$cyan-200: #d1f7fb;
+$cyan-300: #baf3f9;
+$cyan-400: #a3eff7;
+$cyan-500: #8cebf5;
+$cyan-600: #75e7f3;
+$cyan-700: #5ee3f1;
+$cyan-800: #47dfef;
+$cyan-900: #30dbed;
 
 // Indigo
 $indigo-100: #E7ECFC;
@@ -244,7 +244,7 @@ $theme-colors: (
 );
 
 $text-color: #646B72;
-$title-color: #212B36;
+$title-color: #001440;
 $sub-title: #B8BCC9;
 $body-bg: #FAFBFE;
 $wrapper-bg: #f1f5f6;
@@ -252,7 +252,7 @@ $text-muted: #9595b5;
 $default-background: #f7f8f9;
 $black-bg: #141432;
 $card-dark-bg: #1d1d42;
-$navy: #353570;
+$navy: #001440;
 $theme-title: #97A2D2;
 $input-bg: #2c2c50;
 $form-control-bg: #ffffff;
@@ -284,26 +284,26 @@ $gplus: #DD4B39;
 $appstore: #000;
 
 // Gradient Variables
-$primary-transparent: #FFF6EE;
-$secondary-transparent: #E6EAED;
+$primary-transparent: #eef4ff;
+$secondary-transparent: #e6e9ed;
 $success-transparent: #ECFAF2;
 $warning-transparent: #FFFAEA;
 $danger-transparent: #FFE8E8;
-$info-transparent: #EAF1FE;
+$info-transparent: #e8f6fc;
 $pink-transparent: #FCEBF5;
 $gray-transparent: #FEFEFE;
 $teal-transparent: #E9F5F4;
 $purple-transparent: #F2EDFE;
 $pink-transparent: #FCEBF5;
-$cyan-transparent: #E9F8FB;
+$cyan-transparent: #e5fafd;
 $indigo-transparent: #EDEDFB;
 $orange-transparent: #FCEFEA;
-$primary-gradient: linear-gradient(to right, $primary 0%, #8e77fa 100%);
-$secondary-gradient: linear-gradient(to right, $secondary 0%, #28b7f9 100%);
+$primary-gradient: linear-gradient(to right, $primary 0%, #40abe6 100%);
+$secondary-gradient: linear-gradient(to right, $secondary 0%, #1358f1 100%);
 $success-gradient: linear-gradient(to right,$success 0%, #5cf9e2 100%);
 $warning-gradient: linear-gradient(to right, $warning 0%, #fbc434 100%);
 $danger-gradient: linear-gradient(to right,$danger 0%, #fd4a68  100%);
-$info-gradient: linear-gradient(to right, $info 0%, #00f2fe  100%);
+$info-gradient: linear-gradient(to right, $info 0%, $cyan 100%);
 $pink-gradient: linear-gradient(to right, $pink 0%, #FFA795 100%);
 $teal-gradient: linear-gradient(to right, $teal 0%, #0695DD 100%);
 $orange-gradient: linear-gradient(to right,$orange 0%,#FBB034 100%);
@@ -339,7 +339,7 @@ $rounded-pill: 1.5rem;
 $box-shadow: 0px 4px 60px 0px rgba(231, 231, 231, 0.47);
 $box-shadow-sm: 0px 4px 60px 0px rgba(190, 190, 190, 0.27);
 $box-shadow-lg: 0 5px 10px rgba(30, 32, 37, 0.12);
-$box-shadow-primary: 0px 4px 10px 0px rgba(254, 159, 67, 0.3);
+$box-shadow-primary: 0px 4px 10px 0px rgba(19, 88, 241, 0.3);
 
 // Font Size
 $font-size-8: 8px;

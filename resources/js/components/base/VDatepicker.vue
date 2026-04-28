@@ -1,5 +1,8 @@
 <template>
-    <label v-if="label" :for="id" class="form-label">{{ label }}</label>
+    <label v-if="label" :for="id" class="form-label">
+        {{ label }}
+        <VRequiredMark v-if="required" />
+    </label>
     <div class="input-group">
         <flat-pickr
             v-if="dateType==='en'"
@@ -35,6 +38,7 @@
 import {onMounted, ref, watch} from "vue";
 import {useDateHelper} from "@/composables/dateHelper";
 import flatPickr from 'vue-flatpickr-component';
+import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
 const emit = defineEmits(['validate'])
 
@@ -45,6 +49,10 @@ const props = defineProps({
     inputClass: {
         type: String,
         default: "form-control",
+    },
+    inputType: {
+        type: String,
+        default: "date",
     },
     label: {
         type: String,
@@ -75,7 +83,11 @@ const props = defineProps({
     },
     disableDates: {
         type: Array
-    }
+    },
+    required: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 const {adToBs, bsToAd} = useDateHelper();

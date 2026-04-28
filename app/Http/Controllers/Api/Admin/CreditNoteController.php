@@ -30,7 +30,7 @@ class CreditNoteController extends Controller
     public function index(Request $request)
     {
         $creditNotes = CreditNote::filter($request->all())
-            ->with(['party', 'invoice', 'creditNoteItems'])
+            ->with(['party', 'invoice', 'discount', 'creditNoteItems.discount'])
             ->latest('credit_note_date')
             ->paginate($request->limit ?? 25);
 
@@ -64,8 +64,16 @@ class CreditNoteController extends Controller
                     'status' => $status,
                 ]);
 
-                $items = collect($formData['items'] ?? [])->map(function ($item) {
-                    return [
+                if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                    $creditNote->saveDiscount(
+                        $formData['order_discount_type'] ?? 'fixed',
+                        isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                        0,
+                    );
+                }
+
+                foreach ($formData['items'] ?? [] as $item) {
+                    $creditNoteItem = $creditNote->creditNoteItems()->create([
                         'invoice_item_id' => $item['invoice_item_id'] ?? null,
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
@@ -75,10 +83,16 @@ class CreditNoteController extends Controller
                         'tax_id' => $item['tax_id'] ?? null,
                         'tax_amount' => $item['tax_amount'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
-                    ];
-                })->all();
+                    ]);
 
-                $creditNote->creditNoteItems()->createMany($items);
+                    if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                        $creditNoteItem->saveDiscount(
+                            $item['line_discount_type'] ?? 'fixed',
+                            isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                            $item['discount_amount'] ?? 0,
+                        );
+                    }
+                }
 
                 if ($status === StatusEnum::APPROVED->value) {
                     $creditNote->refresh();
@@ -97,7 +111,7 @@ class CreditNoteController extends Controller
         $creditNote->load([
             'party',
             'invoice',
-            'creditNoteItems.productVariant.product',
+            'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
@@ -117,7 +131,7 @@ class CreditNoteController extends Controller
         $creditNote->load([
             'party',
             'invoice',
-            'creditNoteItems.productVariant.product',
+            'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
@@ -157,8 +171,16 @@ class CreditNoteController extends Controller
 
             $creditNote->creditNoteItems()->delete();
 
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
+            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
+                $creditNote->saveDiscount(
+                    $formData['order_discount_type'] ?? 'fixed',
+                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                    0,
+                );
+            }
+
+            foreach ($formData['items'] ?? [] as $item) {
+                $creditNoteItem = $creditNote->creditNoteItems()->create([
                     'invoice_item_id' => $item['invoice_item_id'] ?? null,
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
@@ -168,10 +190,16 @@ class CreditNoteController extends Controller
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
+                ]);
 
-            $creditNote->creditNoteItems()->createMany($items);
+                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
+                    $creditNoteItem->saveDiscount(
+                        $item['line_discount_type'] ?? 'fixed',
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        $item['discount_amount'] ?? 0,
+                    );
+                }
+            }
 
             return $creditNote;
         });
@@ -179,7 +207,7 @@ class CreditNoteController extends Controller
         $creditNote->load([
             'party',
             'invoice',
-            'creditNoteItems.productVariant.product',
+            'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
@@ -250,7 +278,7 @@ class CreditNoteController extends Controller
         $creditNote->load([
             'party',
             'invoice',
-            'creditNoteItems.productVariant.product',
+            'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
@@ -302,7 +330,7 @@ class CreditNoteController extends Controller
         $creditNote->load([
             'party',
             'invoice',
-            'creditNoteItems.productVariant.product',
+            'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',

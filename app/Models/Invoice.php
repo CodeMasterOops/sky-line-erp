@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusEnum;
+use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Invoice extends Model
 {
+    use HasDiscount;
     use MultiTenant;
     use SoftDeletes;
 
@@ -24,8 +26,8 @@ class Invoice extends Model
         'reference_id',
         'invoice_no',
         'bijak_no',
-        'buyer_pan',
         'invoice_date',
+        'invoice_date_bs',
         'due_date',
         'remarks',
         'create_user_id',
@@ -33,6 +35,11 @@ class Invoice extends Model
         'approved_at',
         'voided_at',
         'status',
+        'ird_sync_status',
+        'ird_internal_id',
+        'ird_qr_data',
+        'ird_synced_at',
+        'ird_error',
     ];
 
     protected $casts = [
@@ -41,6 +48,7 @@ class Invoice extends Model
         'reference_id' => 'integer',
         'approved_at' => 'datetime',
         'voided_at' => 'datetime',
+        'ird_synced_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
 

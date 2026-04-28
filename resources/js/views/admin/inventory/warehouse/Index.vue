@@ -25,6 +25,9 @@
                             <template v-if="column.key === 'sn'">
                                 {{ index + 1 }}
                             </template>
+                            <template v-else-if="column.key === 'parent'">
+                                {{ record.parent?.name || '—' }}
+                            </template>
                             <template v-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
                                     <a class="me-2" href="javascript:void(0);"
@@ -77,6 +80,10 @@ const columns = [
         title: 'SN',
         key: 'sn',
         width: 60,
+    },
+    {
+        title: 'Parent',
+        key: 'parent',
     },
     {
         title: 'Name',
