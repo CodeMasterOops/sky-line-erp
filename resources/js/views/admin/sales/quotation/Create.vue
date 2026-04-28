@@ -3,260 +3,331 @@
         :show-modal="!!createModalOpened"
         @close-click="createModalOpened = false"
         size="xl"
+        modal-class="add-centered"
         title="Add Quotation">
         <template #modal-body>
-            <form @submit.prevent="storeQuotationWithStatus('draft')" class="row g-3">
-                <div class="col-md-6">
-                    <VDatepicker
-                        id="quotation_date"
-                        v-model="form.quotation_date"
-                        label="Quotation Date"
-                        @validate="validateField('quotation_date')"
-                        :error="errors.quotation_date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VDatepicker
-                        id="expiry_date"
-                        v-model="form.expiry_date"
-                        label="Expiry Date"
-                        @validate="validateField('expiry_date')"
-                        :error="errors.expiry_date"
-                    />
-                </div>
-                <div class="col-md-6">
-                    <VMultiselect
-                        id="party_id"
-                        v-model="form.party_id"
-                        :options="parties.data"
-                        label="Customer"
-                        @validate="validateField('party_id')"
-                        :error="errors.party_id"
-                    />
-                </div>
-                <div class="col-12">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
-                            <tr>
-                                <th style="width: 50px;">SN</th>
-                                <th>Product/Service</th>
-                                <th style="width: 120px;">Quantity</th>
-                                <th style="width: 140px;" title="Unit selling rate">Rate</th>
-                                <th style="width: 160px;">Tax</th>
-                                <th style="width: 200px;" title="Line discount (fixed or %)">Discount</th>
-                                <th style="width: 60px;">Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr
-                                v-for="(item, index) in form.items"
-                                :key="`n-${index}-${item.product_variant_id}`"
-                                v-memo="[
-                                    item.product_variant_id,
-                                    item.quantity,
-                                    item.rate,
-                                    item.line_discount_type,
-                                    item.line_discount_value,
-                                    item.tax_id,
-                                ]">
-                                <td>{{ index + 1 }}</td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].product_variant_id"
-                                        :options="productVariants.data"
-                                        @onInput="setRate(index, $event)"
-                                        @validate="validateField(`items[${index}].product_variant_id`)"
-                                        :error="errors[`items[${index}].product_variant_id`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].quantity"
-                                        @validate="validateField(`items[${index}].quantity`)"
-                                        :error="errors[`items[${index}].quantity`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VInput
-                                        input-type="number"
-                                        v-model="form.items[index].rate"
-                                        @validate="validateField(`items[${index}].rate`)"
-                                        :error="errors[`items[${index}].rate`]"
-                                    />
-                                </td>
-                                <td>
-                                    <VSelect
-                                        v-model="form.items[index].tax_id"
-                                        select-class="form-select form-select-sm line-item-tax-select"
-                                        :options="lineTaxOptions"
-                                        @validate="validateField(`items[${index}].tax_id`)"
-                                        :error="errors[`items[${index}].tax_id`]"
-                                    />
-                                </td>
-                                <td class="qt-discount-cell">
-                                    <VDiscountAmountTypeGroup
-                                        :input-id="`qt_create_line_disc_${index}`"
-                                        :input-aria-label="`Line ${index + 1} discount`"
-                                        v-model="form.items[index].line_discount_value"
-                                        v-model:discount-type="form.items[index].line_discount_type"
-                                        :error="errors[`items[${index}].line_discount_value`]"
-                                        :disabled="isSubmitting"
-                                        extra-group-class="qt-discount-input-group"
-                                        compact-toggle
-                                        @blur="validateField(`items[${index}].line_discount_value`)"
-                                        @update:discount-type="
-                                            () => {
-                                                validateField(`items[${index}].line_discount_type`);
-                                                validateField(`items[${index}].line_discount_value`);
-                                            }
-                                        "
-                                    />
-                                </td>
-                                <td class="text-center">
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-danger"
-                                        @click="removeItem(index)"
-                                        :disabled="form.items.length === 1">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
-                        Add Item
-                    </button>
-                </div>
+            <div class="card border-0 shadow-none mb-0">
+                <div class="card-body p-0 border-0">
+                    <form @submit.prevent="storeQuotationWithStatus('draft')" class="row g-2">
+                        <div class="col-12">
+                            <p class="text-muted small mb-0">
+                                Choose customer, add products by search, set quantities and rates. Order discount applies below the lines.
+                            </p>
+                        </div>
 
-                <div class="col-12">
-                    <div class="card bg-light">
-                        <div class="card-body py-2">
-                            <div class="d-flex justify-content-between">
-                                <span>Sub total</span>
-                                <strong>{{ summary.subtotal }}</strong>
-                            </div>
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
-                                <span>Order discount</span>
-                                <div class="qt-order-disc">
-                                    <VDiscountAmountTypeGroup
-                                        v-model="form.order_discount_value"
-                                        v-model:discount-type="form.order_discount_type"
-                                        :error="errors.order_discount_value"
-                                        input-id="qt_create_order_discount_value"
-                                        input-aria-label="Order-level discount"
-                                        :disabled="isSubmitting"
-                                        extra-group-class="qt-order-disc-input-group"
-                                        compact-toggle
-                                        @blur="validateField('order_discount_value')"
-                                        @update:discount-type="
-                                            () => {
-                                                validateField('order_discount_type');
-                                                validateField('order_discount_value');
-                                            }
-                                        "
-                                    />
-                                </div>
-                                <strong class="ms-auto">{{ summary.totalDiscount }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Tax</span>
-                                <strong>{{ summary.tax }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between border-top pt-2 mt-2">
-                                <span>Grand total</span>
-                                <strong>{{ summary.grandTotal }}</strong>
+                        <div class="col-12 col-md-4">
+                            <div class="input-blocks">
+                                <VDatepicker
+                                    id="quotation_date"
+                                    input-type="date"
+                                    v-model="form.quotation_date"
+                                    label="Quotation Date"
+                                    @validate="validateField('quotation_date')"
+                                    :error="errors.quotation_date"
+                                />
                             </div>
                         </div>
-                    </div>
-                </div>
+                        <div class="col-12 col-md-4">
+                            <div class="input-blocks">
+                                <VDatepicker
+                                    id="expiry_date"
+                                    input-type="date"
+                                    v-model="form.expiry_date"
+                                    label="Expiry Date"
+                                    @validate="validateField('expiry_date')"
+                                    :error="errors.expiry_date"
+                                />
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <div class="input-blocks">
+                                <div class="d-flex gap-2 align-items-end">
+                                    <div class="flex-grow-1 min-w-0">
+                                        <VMultiselect
+                                            id="party_id"
+                                            v-model="form.party_id"
+                                            :options="parties.data"
+                                            label="Customer"
+                                            :filter-results="false"
+                                            @validate="validateField('party_id')"
+                                            @search-change="debouncedPartySearch"
+                                            :error="errors.party_id"
+                                        />
+                                    </div>
+                                    <div class="ps-0 flex-shrink-0">
+                                        <div class="add-icon">
+                                            <a
+                                                href="#"
+                                                class="bg-dark text-white p-2 rounded d-inline-flex align-items-center justify-content-center"
+                                                title="Add customer"
+                                                @click.prevent="createCustomerOpened = true">
+                                                <vue-feather type="plus-circle" class="plus"></vue-feather>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="resolvedParty" class="col-12">
+                            <PartyMetaPanel
+                                :party="resolvedParty"
+                                pan-heading="Customer PAN"
+                            />
+                        </div>
 
-                <div class="col-md-12">
-                    <VTextarea
-                        id="remarks"
-                        v-model="form.remarks"
-                        label="Remarks"
-                        @validate="validateField('remarks')"
-                        :error="errors.remarks"
-                    />
-                </div>
+                        <div class="col-12">
+                            <ProductVariantSearchInput
+                                label="Product"
+                                required
+                                @select="onVariantSelected"
+                            />
+                            <span class="form-text text-muted small">Search by name, code, or SKU to add a line.</span>
+                        </div>
 
-                <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
-                        Close
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary me-1"
-                        :disabled="isSubmitting"
-                        @click="storeQuotationWithStatus('draft')">
-                        Create
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-primary"
-                        :disabled="isSubmitting"
-                        @click="storeQuotationWithStatus('approved')">
-                        Create & Approve
-                    </button>
+                        <div class="col-12">
+                            <div class="table-responsive no-pagination">
+                                <table class="table datanew table-bordered mb-0 quotation-lines-table">
+                                    <thead>
+                                    <tr>
+                                        <th class="qt-col-sn">SN</th>
+                                        <th class="qt-col-product">Product</th>
+                                        <th class="qt-col-qty">Qty</th>
+                                        <th class="qt-col-rate">Rate</th>
+                                        <th class="qt-col-disc">Discount</th>
+                                        <th class="qt-col-tax">Tax</th>
+                                        <th class="text-center qt-col-action">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-if="!form.items.length">
+                                        <td colspan="7" class="text-center text-muted py-4">
+                                            Search and select a product to add lines.
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        v-for="(item, index) in form.items"
+                                        :key="`n-${index}-${item.product_variant_id}`"
+                                        v-memo="[
+                                            item.quantity,
+                                            item.rate,
+                                            item.line_discount_type,
+                                            item.line_discount_value,
+                                            item.tax_id,
+                                        ]">
+                                        <td>{{ index + 1 }}</td>
+                                        <td class="text-start text-truncate qt-col-product" :title="item.product_label">
+                                            {{ item.product_label }}
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].quantity"
+                                                min="1"
+                                                step="1"
+                                                @validate="validateField(`items[${index}].quantity`)"
+                                                :error="errors[`items[${index}].quantity`]"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.items[index].rate"
+                                                @validate="validateField(`items[${index}].rate`)"
+                                                :error="errors[`items[${index}].rate`]"
+                                            />
+                                        </td>
+                                        <td class="qt-discount-cell">
+                                            <VDiscountAmountTypeGroup
+                                                :input-id="`qt_create_line_disc_${index}`"
+                                                :input-aria-label="`Line ${index + 1} discount`"
+                                                v-model="form.items[index].line_discount_value"
+                                                v-model:discount-type="form.items[index].line_discount_type"
+                                                :error="errors[`items[${index}].line_discount_value`]"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="qt-discount-input-group"
+                                                compact-toggle
+                                                @blur="validateField(`items[${index}].line_discount_value`)"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField(`items[${index}].line_discount_type`);
+                                                        validateField(`items[${index}].line_discount_value`);
+                                                    }
+                                                "
+                                            />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-model="form.items[index].tax_id"
+                                                select-class="form-select form-select-sm line-item-tax-select"
+                                                :options="lineTaxOptions"
+                                                @validate="validateField(`items[${index}].tax_id`)"
+                                                :error="errors[`items[${index}].tax_id`]"
+                                            />
+                                        </td>
+                                        <td class="text-center">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                @click="removeItem(index)">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6 ms-auto">
+                            <div class="card bg-light mb-0">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span>Sub total</span>
+                                        <strong>{{ summary.subtotal }}</strong>
+                                    </div>
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
+                                        <span>Order discount</span>
+                                        <div class="qt-order-disc flex-grow-1">
+                                            <VDiscountAmountTypeGroup
+                                                v-model="form.order_discount_value"
+                                                v-model:discount-type="form.order_discount_type"
+                                                :error="errors.order_discount_value"
+                                                input-id="qt_create_order_discount_value"
+                                                input-aria-label="Order-level discount"
+                                                :disabled="isSubmitting"
+                                                extra-group-class="qt-order-disc-input-group"
+                                                compact-toggle
+                                                @blur="validateField('order_discount_value')"
+                                                @update:discount-type="
+                                                    () => {
+                                                        validateField('order_discount_type');
+                                                        validateField('order_discount_value');
+                                                    }
+                                                "
+                                            />
+                                        </div>
+                                        <strong class="ms-auto">{{ summary.totalDiscount }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Tax</span>
+                                        <strong>{{ summary.tax }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                                        <span>Grand total</span>
+                                        <strong>{{ summary.grandTotal }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="input-blocks">
+                                <VTextarea
+                                    id="remarks"
+                                    v-model="form.remarks"
+                                    label="Remarks"
+                                    @validate="validateField('remarks')"
+                                    :error="errors.remarks"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="col-12 text-end border-top pt-3 mt-1">
+                            <button @click="closeCreateModal" class="btn btn-cancel me-2" type="button">
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-outline-primary me-2"
+                                :disabled="isSubmitting"
+                                @click="storeQuotationWithStatus('draft')">
+                                Create
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-primary"
+                                :disabled="isSubmitting"
+                                @click="storeQuotationWithStatus('approved')">
+                                Create &amp; Approve
+                            </button>
+                        </div>
+                    </form>
                 </div>
-            </form>
+            </div>
         </template>
     </VModal>
+    <CreateCustomer
+        v-if="createCustomerOpened"
+        v-model:createModalOpened="createCustomerOpened"
+        type="customer"
+    />
 </template>
 
 <script setup>
-import {onMounted, reactive, ref} from 'vue';
+import {reactive, ref, toRef, watch} from 'vue';
+import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/setting/tax.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
+import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import CreateCustomer from '@/views/admin/party/Create.vue';
 
 const quotationStore = useQuotationStore();
-const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 
 const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
+const createCustomerOpened = ref(false);
 
-const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
 
-onMounted(() => {
-    productStore.getProductVariants();
-    partyStore.getParties({filter: {type: 'customer'}});
-    taxStore.getTaxes();
-});
+const debouncedPartySearch = debounce((query) => {
+    partyStore.getParties({
+        filter: {
+            type: 'customer',
+            limit: 50,
+            search: query || '',
+        },
+    });
+}, 300);
 
-const emptyLine = () => ({
-    product_variant_id: '',
-    unit_id: '',
-    quantity: '',
-    rate: '',
-    tax_id: '',
-    line_discount_type: 'fixed',
-    line_discount_value: '0',
-});
+watch(
+    createModalOpened,
+    (opened) => {
+        if (opened) {
+            taxStore.getTaxes();
+            partyStore.getParties({
+                filter: {
+                    type: 'customer',
+                    limit: 50,
+                    search: '',
+                },
+            });
+        }
+    },
+    {flush: 'post'}
+);
 
-const initialState = {
+const getInitialState = () => ({
     quotation_date: currentAdDate,
     expiry_date: '',
     party_id: '',
@@ -264,18 +335,48 @@ const initialState = {
     status: 'draft',
     order_discount_type: 'fixed',
     order_discount_value: '0',
-    items: [emptyLine()],
-};
+    items: [],
+});
 
-const form = reactive({...initialState});
+const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
-const addItem = () => {
-    form.items.push(emptyLine());
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
+
+function variantLabel(variant) {
+    let label = variant.name || '';
+    if (variant.sku) {
+        label += ` (${variant.sku})`;
+    }
+    return label;
+}
+
+function defaultLineRateString(variant) {
+    const n = Number(variant.sales_price ?? variant.purchase_price ?? 0);
+    return String(Number.isFinite(n) ? n : 0);
+}
+
+const onVariantSelected = (variant) => {
+    const vid = variant.id;
+    const existing = form.items.findIndex((i) => String(i.product_variant_id) === String(vid));
+    if (existing !== -1) {
+        const nextQty = Number(form.items[existing].quantity || 0) + 1;
+        form.items[existing].quantity = String(nextQty);
+        return;
+    }
+    form.items.push({
+        product_variant_id: vid,
+        product_label: variantLabel(variant),
+        unit_id: variant.unit_id ?? '',
+        quantity: '1',
+        rate: defaultLineRateString(variant),
+        tax_id: '',
+        line_discount_type: 'fixed',
+        line_discount_value: '0',
+    });
 };
 
 const removeItem = (index) => {
-    if (form.items.length === 1) return;
     form.items.splice(index, 1);
 };
 
@@ -307,17 +408,9 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     taxes,
 });
 
-const getVariantById = (id) => {
-    const numericId = parseInt(id, 10);
-    return productVariants.value.data.find((v) => v.id === numericId);
-};
-
-const setRate = (index, value) => {
-    const variant = getVariantById(value);
-    if (variant) {
-        form.items[index].rate = variant.sales_price ?? '';
-        form.items[index].unit_id = variant.unit_id ?? '';
-    }
+const lineQtyInt = (q) => {
+    const n = parseInt(String(q ?? '0'), 10);
+    return Number.isFinite(n) && n > 0 ? n : 1;
 };
 
 const buildQuotationPayload = () => {
@@ -333,8 +426,8 @@ const buildQuotationPayload = () => {
         items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
             unit_id: item.unit_id || null,
-            quantity: item.quantity,
-            rate: item.rate,
+            quantity: lineQtyInt(item.quantity),
+            rate: Number(item.rate || 0),
             tax_id: item.tax_id || null,
             tax_amount: calcLineTax(item, index),
             line_discount_type: item.line_discount_type || 'fixed',
@@ -367,22 +460,39 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
-    Object.assign(form, {...initialState, items: [emptyLine()]});
+    Object.assign(form, getInitialState());
+    createCustomerOpened.value = false;
     errors.value = {};
 }
 </script>
 
 <style scoped>
-.qt-discount-cell {
+.quotation-lines-table :deep(.form-control),
+.quotation-lines-table :deep(.form-select) {
+    min-width: 4.25rem;
+}
+.quotation-lines-table th,
+.quotation-lines-table td {
+    vertical-align: middle;
+}
+.quotation-lines-table .qt-col-product {
+    min-width: 11rem;
+    max-width: 18rem;
+}
+.quotation-lines-table .qt-col-sn {
+    width: 2.5rem;
+}
+.quotation-lines-table .qt-col-action {
+    width: 3rem;
+}
+.quotation-lines-table .qt-discount-cell {
     min-width: 9rem;
     position: relative;
     z-index: 2;
     overflow: visible;
-    vertical-align: middle;
 }
 .qt-order-disc {
     min-width: 0;
-    max-width: 12rem;
-    flex: 1 1 auto;
+    max-width: 14rem;
 }
 </style>

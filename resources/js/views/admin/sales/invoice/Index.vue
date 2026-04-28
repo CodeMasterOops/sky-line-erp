@@ -1,10 +1,7 @@
 <template>
     <PageHeader title="Invoices" subtitle="Manage your invoices" @refresh="fetchInvoices">
         <template #actions>
-            <button
-                v-can="'create_invoice'"
-                type="button"
-                @click.prevent="createModalOpened = true"
+            <button v-can="'create_invoice'" type="button" @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
                 Add Invoice
@@ -13,72 +10,49 @@
     </PageHeader>
 
     <div class="card table-list-card">
-        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-            <div class="search-set">
-                <div class="search-input">
-                    <a href="javascript:void(0);" class="btn-searchset">
-                        <i class="ti ti-search fs-14 feather-search"></i>
+        <VTableToolbar v-model="filter.search" placeholder="Search invoice" :is-filtered="isFiltered"
+            @search="onSearchInput" @reset="resetFilters">
+            <template #filters>
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ selectedStatus || 'Status' }}
                     </a>
-                    <input
-                        type="search"
-                        v-model="filter.search"
-                        class="form-control form-control-sm"
-                        placeholder="Search invoice"
-                        @input="onSearchInput"
-                    >
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', '')">All Statuses</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'draft')">Draft</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'approved')">Approved</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'voided')">Voided</a>
+                        </li>
+                    </ul>
                 </div>
-            </div>
-
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <select v-model="filter.status" class="form-select form-select-sm" style="min-width: 150px;">
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="approved">Approved</option>
-                    <option value="voided">Voided</option>
-                </select>
-
-                <input
-                    type="date"
-                    v-model="filter.date_from"
-                    class="form-control form-control-sm"
-                    title="From date"
-                    style="width: 145px;"
-                >
-                <input
-                    type="date"
-                    v-model="filter.date_to"
-                    class="form-control form-control-sm"
-                    title="To date"
-                    style="width: 145px;"
-                >
-
-                <button
-                    v-if="isFiltered"
-                    class="btn btn-sm btn-outline-secondary"
-                    @click="resetFilters">
-                    <i class="ti ti-x me-1"></i> Clear
-                </button>
-            </div>
-        </div>
+            </template>
+        </VTableToolbar>
 
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
-                <a-table
-                    class="table datanew table-hover table-center mb-0"
-                    :columns="columns"
-                    :data-source="invoices.data"
-                    :pagination="false"
-                    :loading="invoices.loading"
-                    @change="handleTableChange"
-                >
+                <a-table class="table datanew table-hover table-center mb-0" :columns="invoiceColumns"
+                    :data-source="invoices.data" :pagination="false" :loading="invoices.loading"
+                    @change="handleTableChange">
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
-                            {{ index + 1 }}
+                            {{ (invoices.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'status'">
                             <div class="d-flex flex-wrap gap-1 align-items-center">
-                                <span
-                                    class="badge"
+                                <span class="badge"
                                     :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
                                     {{ record.status }}
                                 </span>
@@ -86,183 +60,120 @@
                             </div>
                         </template>
                         <template v-else-if="column.key === 'action'">
-                            <div class="action-table-data">
-                                <div class="edit-delete-action">
-                                    <router-link
-                                        v-can="'show_invoice'"
-                                        class="me-2 p-2 text-dark"
-                                        :to="{ name: 'admin.invoice-view', params: { id: record.id } }">
-                                        <i class="ti ti-eye"></i>
-                                    </router-link>
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 edit-icon p-2"
-                                        href="javascript:void(0);"
-                                        @click="editInvoice(record.id)">
-                                        <i class="ti ti-edit"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'approved' && !record.voided_at"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="recordPayment(record.id)">
-                                        <i class="ti ti-receipt"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="approveInvoice(record.id)">
-                                        <i class="ti ti-check"></i>
-                                    </a>
-                                    <a
-                                        v-can="'approve_invoice'"
-                                        v-if="record.status === 'approved' && !record.voided_at"
-                                        class="me-2 p-2 text-warning"
-                                        href="javascript:void(0);"
-                                        title="Void"
-                                        @click="voidInvoice(record.id)">
-                                        <i class="ti ti-ban"></i>
-                                    </a>
-                                    <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
-                                       @click="deleteInvoice(record.id)">
-                                        <i class="ti ti-trash"></i>
-                                    </a>
-                                </div>
-                            </div>
+                            <VTableActions :actions="rowActions" :record="record" />
                         </template>
                     </template>
                 </a-table>
-                <VPagination
-                    v-model:page="filter.page"
-                    v-model:limit="filter.limit"
-                    :meta="invoices.meta"
-                />
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="invoices.meta" />
             </div>
         </div>
     </div>
 
-    <CreateInvoice v-model:create-modal-opened="createModalOpened"/>
-    <EditInvoice v-model:invoice_id="edit_invoice_id"/>
-    <ReceiptModal v-model:open="receiptModalOpened" v-model:invoice-id="receiptInvoiceId" @saved="fetchInvoices"/>
+    <CreateInvoice v-model:create-modal-opened="createModalOpened" />
+    <EditInvoice v-model:invoice_id="edit_invoice_id" />
+    <ReceiptModal v-model:open="receiptModalOpened" v-model:invoice-id="receiptInvoiceId" @saved="fetchInvoices" />
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
-import Swal from 'sweetalert2';
-import { toast } from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
+import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
 import CreateInvoice from './Create.vue';
 import EditInvoice from './Edit.vue';
 import ReceiptModal from '@/views/admin/sales/receipt/ReceiptModal.vue';
 import { useInvoiceStore } from '@/stores/admin/sales/invoice.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { hasPermission } from '@/helpers/checkPermission.js';
+import { invoiceColumns, createRowActions } from './tableConfig.js';
 
+const router = useRouter();
 const invoiceStore = useInvoiceStore();
 const { invoices } = storeToRefs(invoiceStore);
 
-const createModalOpened  = ref(false);
-const edit_invoice_id    = ref('');
+const createModalOpened = ref(false);
+const edit_invoice_id = ref('');
 const receiptModalOpened = ref(false);
-const receiptInvoiceId   = ref('');
+const receiptInvoiceId = ref('');
 
 const fetchInvoices = () => invoiceStore.getInvoices({ filter });
 
-const { filter, onSearchInput, resetFilters } = useUrlFilter({
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
     defaults: { search: '', status: '', date_from: '', date_to: '', page: 1, limit: 10 },
     onFilter: fetchInvoices,
 });
+
+const selectedStatus = computed(() => {
+    const s = filter.status;
+    if (!s) return '';
+    const labels = { draft: 'Draft', approved: 'Approved', voided: 'Voided' };
+    return labels[s] ?? s;
+});
+
+function setFilter(key, value) {
+    filter[key] = value;
+}
 
 const { handleTableChange } = useTablePagination({
     meta: computed(() => invoices.value.meta),
     filter,
 });
 
-const isFiltered = computed(() =>
-    filter.search !== '' || filter.status !== '' ||
-    filter.date_from !== '' || filter.date_to !== ''
-);
-
-const columns = [
-    { title: 'SN',           key: 'sn',              width: 60 },
-    { title: 'Invoice No',   dataIndex: 'invoice_no',   sorter: true },
-    { title: 'Invoice Date', dataIndex: 'invoice_date', sorter: true },
-    { title: 'Due Date',     dataIndex: 'due_date',     sorter: true },
-    { title: 'Customer',     dataIndex: 'party_name',   sorter: true },
-    { title: 'Grand Total',  dataIndex: 'grand_total',  sorter: true },
-    { title: 'Status',       key: 'status' },
-    { title: 'Action',       key: 'action' },
-];
+const { confirmDelete, confirmAction } = useConfirmAction();
 
 const editInvoice = (id) => { edit_invoice_id.value = id; };
 
-const deleteInvoice = async (id) => {
-    Swal.fire({
-        title: 'Are You Sure to Delete ? ',
-        text: 'If you delete this, it will be gone forever.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'red',
-        confirmButtonText: 'Yes',
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const res = await invoiceStore.deleteInvoice(id);
-                toast(res.status, res.data?.message ?? 'Invoice deleted successfully.');
-                fetchInvoices();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
-};
-
-const approveInvoice = async (id) => {
-    Swal.fire({
-        title: 'Approve Invoice?',
-        text: 'This will mark the invoice as approved.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: 'green',
-        confirmButtonText: 'Yes',
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const res = await invoiceStore.approveInvoice(id);
-                toast(res.status, res.data?.message ?? 'Invoice approved successfully.');
-                fetchInvoices();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
+const goToInvoiceView = (id) => {
+    router.push({ name: 'admin.invoice-view', params: { id } });
 };
 
 const recordPayment = (id) => {
-    receiptInvoiceId.value   = id;
+    receiptInvoiceId.value = id;
     receiptModalOpened.value = true;
 };
 
-const voidInvoice = async (id) => {
-    Swal.fire({
+const handleDelete = (id) => {
+    confirmDelete(
+        () => invoiceStore.deleteInvoice(id),
+        fetchInvoices,
+    );
+};
+
+const approveInvoice = (id) => {
+    confirmAction({
+        title: 'Approve Invoice?',
+        text: 'This will mark the invoice as approved.',
+        icon: 'question',
+        confirmButtonColor: 'green',
+        confirmButtonText: 'Yes',
+        action: () => invoiceStore.approveInvoice(id),
+        onSuccess: fetchInvoices,
+    });
+};
+
+const voidInvoice = (id) => {
+    confirmAction({
         title: 'Void invoice?',
         text: 'This reverses inventory and marks the invoice void. It cannot be undone from the UI.',
         icon: 'warning',
-        showCancelButton: true,
         confirmButtonColor: '#d97706',
         confirmButtonText: 'Void',
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const res = await invoiceStore.voidInvoice(id);
-                toast(res.status, res.data?.message ?? 'Invoice voided.');
-                fetchInvoices();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
+        action: () => invoiceStore.voidInvoice(id),
+        onSuccess: fetchInvoices,
     });
 };
+
+const rowActions = createRowActions({
+    onView: goToInvoiceView,
+    onEdit: editInvoice,
+    onRecordPayment: recordPayment,
+    onApprove: approveInvoice,
+    onVoid: voidInvoice,
+    onDelete: handleDelete,
+    canViewInvoice: () => hasPermission('show_invoice'),
+    canVoidInvoice: () => hasPermission('approve_invoice'),
+});
 </script>

@@ -13,11 +13,27 @@
         <VTableToolbar v-model="filter.search" placeholder="Search order" :is-filtered="isFiltered"
             @search="onSearchInput" @reset="resetFilters">
             <template #filters>
-                <select v-model="filter.status" class="form-select form-select-sm" style="min-width: 140px;">
-                    <option value="">All Statuses</option>
-                    <option value="draft">Draft</option>
-                    <option value="approved">Approved</option>
-                </select>
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ selectedStatus || 'Status' }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', '')">All Statuses</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'draft')">Draft</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'approved')">Approved</a>
+                        </li>
+                    </ul>
+                </div>
             </template>
         </VTableToolbar>
 
@@ -83,6 +99,17 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
     defaults: { search: '', status: '', page: 1, limit: 10 },
     onFilter: fetchOrders,
 });
+
+const selectedStatus = computed(() => {
+    const s = filter.status;
+    if (!s) return '';
+    const labels = { draft: 'Draft', approved: 'Approved' };
+    return labels[s] ?? s;
+});
+
+function setFilter(key, value) {
+    filter[key] = value;
+}
 
 const { handleTableChange } = useTablePagination({
     meta: computed(() => orders.value.meta),

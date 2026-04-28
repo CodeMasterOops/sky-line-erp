@@ -67,16 +67,7 @@
                                     </tr>
                                     <tr
                                         v-for="(item, index) in form.items"
-                                        :key="item.id != null && item.id !== '' ? `line-${item.id}` : `n-${index}-${item.product_variant_id}`"
-                                        v-memo="[
-                                            item.id,
-                                            item.quantity,
-                                            item.rate,
-                                            item.line_discount_type,
-                                            item.line_discount_value,
-                                            item.tax_id,
-                                            isDraft,
-                                        ]">
+                                        :key="item.id != null && item.id !== '' ? `line-${item.id}` : `n-${index}-${item.product_variant_id}`">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate so-col-product"

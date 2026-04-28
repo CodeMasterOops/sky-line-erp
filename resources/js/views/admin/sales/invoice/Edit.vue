@@ -79,17 +79,7 @@
                             <tbody>
                             <tr
                                 v-for="(item, index) in form.items"
-                                :key="item.id != null && item.id !== '' ? `line-${item.id}` : `new-${index}`"
-                                v-memo="[
-                                    item.id,
-                                    item.quantity,
-                                    item.rate,
-                                    item.line_discount_type,
-                                    item.line_discount_value,
-                                    item.tax_id,
-                                    item.tax_line_type,
-                                    isDraft,
-                                ]">
+                                :key="item.id != null && item.id !== '' ? `line-${item.id}` : `new-${index}`">
                                 <td>{{ index + 1 }}</td>
                                 <td>
                                     <VSelect

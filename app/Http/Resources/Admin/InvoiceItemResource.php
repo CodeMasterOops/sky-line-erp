@@ -38,6 +38,7 @@ class InvoiceItemResource extends JsonResource
             'tax' => TaxResource::make($this->whenLoaded('tax')),
             'tax_amount' => $this->tax_amount ?? 0,
             'discount_amount' => $this->discount_amount ?? 0,
+            'tax_line_type' => $this->tax_line_type?->value ?? 'taxable',
         ];
     }
 }

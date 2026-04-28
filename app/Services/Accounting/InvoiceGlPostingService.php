@@ -93,7 +93,7 @@ class InvoiceGlPostingService
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $invoice->company_id,
                 'fiscal_year_id' => $company->fiscal_year_id,
-                'type' => JournalTypeEnum::SALE,
+                'type' => JournalTypeEnum::INVOICE,
                 'reference_type' => $invoice->getMorphClass(),
                 'reference_id' => $invoice->id,
                 'voucher_no' => $voucherNo,
@@ -151,7 +151,7 @@ class InvoiceGlPostingService
             ->where('company_id', $invoice->company_id)
             ->where('reference_type', $invoice->getMorphClass())
             ->where('reference_id', $invoice->id)
-            ->where('type', JournalTypeEnum::SALE->value)
+            ->where('type', JournalTypeEnum::INVOICE->value)
             ->exists();
     }
 }
