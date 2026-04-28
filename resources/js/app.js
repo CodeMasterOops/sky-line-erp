@@ -31,6 +31,7 @@ import VDatepicker from "@/components/base/VDatepicker.vue";
 import VButton from "@/components/base/VButton.vue";
 import VLoader from "@/components/base/VLoader.vue";
 import VDataTable from "@/components/base/VDataTable.vue";
+import VPagination from "@/components/base/VPagination.vue";
 import VModal from "@/components/base/VModal.vue";
 import VPrint from "@/components/base/VPrint.vue";
 import VExport from "@/components/base/VExport.vue";
@@ -83,6 +84,7 @@ createApp(App)
     .component("VButton", VButton)
     .component("VLoader", VLoader)
     .component("VDataTable", VDataTable)
+    .component("VPagination", VPagination)
     .component("VModal", VModal)
     .component("VPrint", VPrint)
     .component("VExport", VExport)

@@ -24,18 +24,50 @@
                         v-model="filter.search"
                         class="form-control form-control-sm"
                         placeholder="Search invoice"
-                        @input="debouncedFetch"
+                        @input="onSearchInput"
                     >
                 </div>
             </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <select v-model="filter.status" class="form-select form-select-sm" style="min-width: 150px;">
+                    <option value="">All Statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="approved">Approved</option>
+                    <option value="voided">Voided</option>
+                </select>
+
+                <input
+                    type="date"
+                    v-model="filter.date_from"
+                    class="form-control form-control-sm"
+                    title="From date"
+                    style="width: 145px;"
+                >
+                <input
+                    type="date"
+                    v-model="filter.date_to"
+                    class="form-control form-control-sm"
+                    title="To date"
+                    style="width: 145px;"
+                >
+
+                <button
+                    v-if="isFiltered"
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="resetFilters">
+                    <i class="ti ti-x me-1"></i> Clear
+                </button>
+            </div>
         </div>
+
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
                 <a-table
                     class="table datanew table-hover table-center mb-0"
                     :columns="columns"
                     :data-source="invoices.data"
-                    :pagination="pagination"
+                    :pagination="false"
                     :loading="invoices.loading"
                     @change="handleTableChange"
                 >
@@ -101,6 +133,11 @@
                         </template>
                     </template>
                 </a-table>
+                <VPagination
+                    v-model:page="filter.page"
+                    v-model:limit="filter.limit"
+                    :meta="invoices.meta"
+                />
             </div>
         </div>
     </div>
@@ -111,103 +148,55 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import { computed, ref } from 'vue';
 import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
+import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
-import debounce from 'lodash/debounce';
+import { storeToRefs } from 'pinia';
 import CreateInvoice from './Create.vue';
 import EditInvoice from './Edit.vue';
 import ReceiptModal from '@/views/admin/sales/receipt/ReceiptModal.vue';
-import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
+import { useInvoiceStore } from '@/stores/admin/sales/invoice.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useTablePagination } from '@/composables/useTablePagination.js';
 
 const invoiceStore = useInvoiceStore();
+const { invoices } = storeToRefs(invoiceStore);
 
-const {invoices} = storeToRefs(invoiceStore);
-
-const createModalOpened = ref(false);
-const edit_invoice_id = ref('');
+const createModalOpened  = ref(false);
+const edit_invoice_id    = ref('');
 const receiptModalOpened = ref(false);
-const receiptInvoiceId = ref('');
+const receiptInvoiceId   = ref('');
 
-const filter = reactive({
-    search: '',
-    page: 1,
-    limit: 10
+const fetchInvoices = () => invoiceStore.getInvoices({ filter });
+
+const { filter, onSearchInput, resetFilters } = useUrlFilter({
+    defaults: { search: '', status: '', date_from: '', date_to: '', page: 1, limit: 10 },
+    onFilter: fetchInvoices,
 });
 
-const pagination = computed(() => ({
-    total: invoices.value.meta.total || 0,
-    current: invoices.value.meta.current_page || 1,
-    pageSize: invoices.value.meta.per_page || filter.limit,
-    showSizeChanger: true,
-    showQuickJumper: true,
-}));
+const { handleTableChange } = useTablePagination({
+    meta: computed(() => invoices.value.meta),
+    filter,
+});
+
+const isFiltered = computed(() =>
+    filter.search !== '' || filter.status !== '' ||
+    filter.date_from !== '' || filter.date_to !== ''
+);
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Invoice No',
-        dataIndex: 'invoice_no',
-        sorter: true,
-    },
-    {
-        title: 'Invoice Date',
-        dataIndex: 'invoice_date',
-        sorter: true,
-    },
-    {
-        title: 'Due Date',
-        dataIndex: 'due_date',
-        sorter: true,
-    },
-    {
-        title: 'Customer',
-        dataIndex: 'party_name',
-        sorter: true,
-    },
-    {
-        title: 'Grand Total',
-        dataIndex: 'grand_total',
-        sorter: true,
-    },
-    {
-        title: 'Status',
-        key: 'status',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-    },
+    { title: 'SN',           key: 'sn',              width: 60 },
+    { title: 'Invoice No',   dataIndex: 'invoice_no',   sorter: true },
+    { title: 'Invoice Date', dataIndex: 'invoice_date', sorter: true },
+    { title: 'Due Date',     dataIndex: 'due_date',     sorter: true },
+    { title: 'Customer',     dataIndex: 'party_name',   sorter: true },
+    { title: 'Grand Total',  dataIndex: 'grand_total',  sorter: true },
+    { title: 'Status',       key: 'status' },
+    { title: 'Action',       key: 'action' },
 ];
 
-onMounted(() => {
-    fetchInvoices();
-});
-
-const fetchInvoices = () => {
-    invoiceStore.getInvoices({filter});
-};
-
-const debouncedFetch = debounce(() => {
-    filter.page = 1;
-    fetchInvoices();
-}, 300);
-
-const handleTableChange = (pagination) => {
-    filter.page = pagination.current;
-    filter.limit = pagination.pageSize;
-    fetchInvoices();
-};
-
-const editInvoice = (id) => {
-    edit_invoice_id.value = id;
-};
+const editInvoice = (id) => { edit_invoice_id.value = id; };
 
 const deleteInvoice = async (id) => {
     Swal.fire({
@@ -216,11 +205,11 @@ const deleteInvoice = async (id) => {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: 'Yes'
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                let res = await invoiceStore.deleteInvoice(id);
+                const res = await invoiceStore.deleteInvoice(id);
                 toast(res.status, res.data?.message ?? 'Invoice deleted successfully.');
                 fetchInvoices();
             } catch (e) {
@@ -237,11 +226,11 @@ const approveInvoice = async (id) => {
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: 'green',
-        confirmButtonText: 'Yes'
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.isConfirmed) {
             try {
-                let res = await invoiceStore.approveInvoice(id);
+                const res = await invoiceStore.approveInvoice(id);
                 toast(res.status, res.data?.message ?? 'Invoice approved successfully.');
                 fetchInvoices();
             } catch (e) {
@@ -252,7 +241,7 @@ const approveInvoice = async (id) => {
 };
 
 const recordPayment = (id) => {
-    receiptInvoiceId.value = id;
+    receiptInvoiceId.value   = id;
     receiptModalOpened.value = true;
 };
 
