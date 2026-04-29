@@ -7,6 +7,7 @@ use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
@@ -100,5 +101,10 @@ class Payment extends Model
     public function approveUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approve_user_id');
+    }
+
+    public function journal(): MorphOne
+    {
+        return $this->morphOne(Journal::class, 'reference');
     }
 }
