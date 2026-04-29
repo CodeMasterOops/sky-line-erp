@@ -8,11 +8,16 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Accounting\ExpenseService;
 use App\Http\Resources\Admin\ExpenseResource;
 use App\Http\Requests\Api\Admin\ExpenseRequest;
 
 class ExpenseController extends Controller
 {
+    public function __construct(
+        private readonly ExpenseService $expenseService,
+    ) {}
+
     /**
      * @Permissions("list_expense", group="expense", desc="List Expense")
      */
@@ -31,44 +36,7 @@ class ExpenseController extends Controller
      */
     public function store(ExpenseRequest $request)
     {
-        $formData = $request->validated();
-        $user = auth('admin')->user();
-        $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-        $expenseNo = ! empty($formData['expense_no'])
-            ? $formData['expense_no']
-            : $this->generateExpenseNo($fiscalYearId, $setting->fiscalYear?->year_code);
-
-        $expense = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $expenseNo) {
-            $expense = Expense::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $formData['party_id'] ?? null,
-                'expense_no' => $expenseNo,
-                'date' => $formData['date'],
-                'due_date' => $formData['due_date'] ?? null,
-                'reference_no' => $formData['reference_no'] ?? null,
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
-
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'account_id' => $item['account_id'],
-                    'amount' => $item['amount'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
-
-            $expense->expenseItems()->createMany($items);
-
-            return $expense;
-        });
+        $expense = $this->expenseService->createExpense($request->validated());
 
         $expense->load([
             'party',
@@ -107,33 +75,7 @@ class ExpenseController extends Controller
             ], 422);
         }
 
-        $formData = $request->validated();
-
-        $expense = DB::transaction(function () use ($expense, $formData) {
-            $expense->update([
-                'party_id' => $formData['party_id'] ?? null,
-                'date' => $formData['date'],
-                'due_date' => $formData['due_date'] ?? null,
-                'reference_no' => $formData['reference_no'] ?? null,
-                'remarks' => $formData['remarks'] ?? null,
-            ]);
-
-            $expense->expenseItems()->delete();
-
-            $items = collect($formData['items'] ?? [])->map(function ($item) {
-                return [
-                    'account_id' => $item['account_id'],
-                    'amount' => $item['amount'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ];
-            })->all();
-
-            $expense->expenseItems()->createMany($items);
-
-            return $expense;
-        });
+        $this->expenseService->updateExpense($request->validated(), $expense);
 
         $expense->load([
             'party',
@@ -172,13 +114,7 @@ class ExpenseController extends Controller
             ]);
         }
 
-        $user = auth('admin')->user();
-
-        $expense->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        $this->expenseService->approveExpense($expense);
 
         $expense->load([
             'party',
@@ -254,16 +190,5 @@ class ExpenseController extends Controller
         return response()->json([
             'data' => $rows,
         ]);
-    }
-
-    private function generateExpenseNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Expense::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'EX-'.($count + 1).$suffix;
     }
 }

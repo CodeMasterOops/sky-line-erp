@@ -5,6 +5,7 @@ namespace App\Enums;
 enum JournalTypeEnum: string
 {
     case PURCHASE_BILL = 'purchase-bill';
+    case EXPENSE = 'expense';
     case INVOICE = 'invoice';
     case PAYMENT = 'payment';
     case JOURNAL_VOUCHER = 'journal-voucher';
@@ -24,6 +25,7 @@ enum JournalTypeEnum: string
     {
         return match ($value) {
             self::PURCHASE_BILL => 'Purchase Bill',
+            self::EXPENSE => 'Expense',
             self::INVOICE => 'Invoice',
             self::PAYMENT => 'Customer Payment',
             self::JOURNAL_VOUCHER => 'Journal Voucher',
