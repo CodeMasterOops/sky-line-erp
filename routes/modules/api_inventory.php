@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\Inventory\BrandController;
 use App\Http\Controllers\Api\Admin\Inventory\BarcodeController;
 use App\Http\Controllers\Api\Admin\Inventory\ProductController;
 use App\Http\Controllers\Api\Admin\Inventory\AttributeController;
+use App\Http\Controllers\Api\Admin\Inventory\SerialNumberController;
 use App\Http\Controllers\Api\Admin\Inventory\WarehouseController;
 use App\Http\Controllers\Api\Admin\Inventory\StockTransferController;
 use App\Http\Controllers\Api\Admin\Inventory\DeliveryChallanController;
@@ -43,6 +44,9 @@ Route::prefix('barcode')->as('barcode.')->controller(BarcodeController::class)->
 
 // product attribute
 Route::apiResource('attribute', AttributeController::class);
+
+// serial numbers
+Route::apiResource('serial-number', SerialNumberController::class)->only(['index', 'show']);
 
 // stock transfer
 Route::post('stock-transfer/{stockTransfer}/approve', [StockTransferController::class, 'approve'])->name('stock-transfer.approve');

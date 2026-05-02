@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Admin;
+namespace App\Http\Controllers\Api\Admin\UserManagement;
 
 use App\Models\Role;
 use App\Annotation\Permissions;

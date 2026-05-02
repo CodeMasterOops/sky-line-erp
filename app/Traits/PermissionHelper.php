@@ -18,7 +18,7 @@ trait PermissionHelper
     protected function getPermissions($group = []): array
     {
         $permissions = [];
-        $modules = ['Settings', 'Accounting', 'Inventory', 'Purchase', 'Sales', 'HR'];
+        $modules = ['Settings', 'UserManagement', 'Accounting', 'Inventory', 'Purchase', 'Sales', 'HR'];
         $path = app_path().'/Http/Controllers/Api/Admin';
         $classPath = 'App\\Http\\Controllers\\Api\\Admin\\';
         foreach ($modules as $module) {
@@ -61,7 +61,6 @@ trait PermissionHelper
                                 $permissions[$group][] = [
                                     'permission' => $permission,
                                     'description' => $description,
-                                    'checked' => in_array($permission, $groupPermissions, true),
                                 ];
                             }
                         }

@@ -4,14 +4,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\PosController;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\EnumController;
-use App\Http\Controllers\Api\Admin\RoleController;
-use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\DashboardController;
-use App\Http\Controllers\Api\Admin\PermissionController;
 use App\Http\Controllers\Api\Admin\Nepal\VatD3Controller;
-use App\Http\Controllers\Api\Admin\SerialNumberController;
 use App\Http\Controllers\Api\Admin\AddressReferenceController;
 use App\Http\Controllers\Api\Admin\Nepal\InvoicePdfController;
 use App\Http\Controllers\Api\Admin\Nepal\IrdSettingController;
@@ -48,11 +44,8 @@ Route::middleware('auth:admin')->group(function () {
             Route::get('ward', 'wards')->name('ward.index');
         });
 
-        // user management
-        Route::get('permission', PermissionController::class)->name('permissions');
-        Route::apiResource('role', RoleController::class);
-        Route::put('user/{user}/update-status', [UserController::class, 'updateStatus'])->name('user.update-status');
-        Route::apiResource('user', UserController::class);
+        // user management module
+        require __DIR__.'/modules/api_user_management.php';
 
         // notifications
         Route::prefix('notification')->as('notification.')->controller(AdminNotificationController::class)->group(function () {
@@ -81,9 +74,6 @@ Route::middleware('auth:admin')->group(function () {
 
         // parties
         Route::apiResource('party', PartyController::class);
-
-        // serial numbers
-        Route::apiResource('serial-number', SerialNumberController::class)->only(['index', 'show']);
 
         // Nepal compliance — Phase 1
         Route::prefix('nepal')->as('nepal.')->group(function () {

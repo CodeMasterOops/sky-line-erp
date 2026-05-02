@@ -11,7 +11,7 @@ use App\Http\Resources\Admin\HR\PayslipResource;
 class PayslipController extends Controller
 {
     /**
-     * @Permissions("list_payroll", group="hr", desc="List Payslips")
+     * @Permissions("list_payroll", group="payslip", desc="List Payslips")
      */
     public function index(Request $request)
     {
@@ -25,7 +25,7 @@ class PayslipController extends Controller
     }
 
     /**
-     * @Permissions("show_payroll", group="hr", desc="Show Payslip")
+     * @Permissions("show_payroll", group="payslip", desc="Show Payslip")
      */
     public function show(Payslip $payslip)
     {
