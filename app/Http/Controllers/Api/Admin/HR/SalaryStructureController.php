@@ -7,13 +7,13 @@ use App\Annotation\Permissions;
 use App\Models\SalaryStructure;
 use App\Models\SalaryStructureItem;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\SalaryStructureResource;
-use App\Http\Requests\Api\Admin\SalaryStructureRequest;
+use App\Http\Resources\Admin\HR\SalaryStructureResource;
+use App\Http\Requests\Api\Admin\HR\SalaryStructureRequest;
 
 class SalaryStructureController extends Controller
 {
     /**
-     * @Permissions("list_salary_structure", group="hr", desc="List Salary Structures")
+     * @Permissions("list_salary_structure", group="salary_structure", desc="List Salary Structures")
      */
     public function index(Request $request)
     {
@@ -26,7 +26,7 @@ class SalaryStructureController extends Controller
     }
 
     /**
-     * @Permissions("create_salary_structure", group="hr", desc="Create Salary Structure")
+     * @Permissions("create_salary_structure", group="salary_structure", desc="Create Salary Structure")
      */
     public function store(SalaryStructureRequest $request)
     {
@@ -46,7 +46,7 @@ class SalaryStructureController extends Controller
     }
 
     /**
-     * @Permissions("show_salary_structure", group="hr", desc="Show Salary Structure")
+     * @Permissions("show_salary_structure", group="salary_structure", desc="Show Salary Structure")
      */
     public function show(SalaryStructure $salaryStructure)
     {
@@ -54,7 +54,7 @@ class SalaryStructureController extends Controller
     }
 
     /**
-     * @Permissions("edit_salary_structure", group="hr", desc="Edit Salary Structure")
+     * @Permissions("edit_salary_structure", group="salary_structure", desc="Edit Salary Structure")
      */
     public function update(SalaryStructureRequest $request, SalaryStructure $salaryStructure)
     {
@@ -72,7 +72,7 @@ class SalaryStructureController extends Controller
     }
 
     /**
-     * @Permissions("delete_salary_structure", group="hr", desc="Delete Salary Structure")
+     * @Permissions("delete_salary_structure", group="salary_structure", desc="Delete Salary Structure")
      */
     public function destroy(SalaryStructure $salaryStructure)
     {

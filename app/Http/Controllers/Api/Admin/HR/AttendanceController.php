@@ -7,13 +7,13 @@ use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\AttendanceResource;
-use App\Http\Requests\Api\Admin\AttendanceRequest;
+use App\Http\Resources\Admin\HR\AttendanceResource;
+use App\Http\Requests\Api\Admin\HR\AttendanceRequest;
 
 class AttendanceController extends Controller
 {
     /**
-     * @Permissions("list_attendance", group="hr", desc="List Attendance")
+     * @Permissions("list_attendance", group="attendance", desc="List Attendance")
      */
     public function index(Request $request)
     {
@@ -26,7 +26,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * @Permissions("create_attendance", group="hr", desc="Create Attendance")
+     * @Permissions("create_attendance", group="attendance", desc="Create Attendance")
      */
     public function store(AttendanceRequest $request)
     {
@@ -42,7 +42,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * @Permissions("show_attendance", group="hr", desc="Show Attendance")
+     * @Permissions("show_attendance", group="attendance", desc="Show Attendance")
      */
     public function show(Attendance $attendance)
     {
@@ -50,7 +50,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * @Permissions("edit_attendance", group="hr", desc="Edit Attendance")
+     * @Permissions("edit_attendance", group="attendance", desc="Edit Attendance")
      */
     public function update(AttendanceRequest $request, Attendance $attendance)
     {
@@ -63,7 +63,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * @Permissions("delete_attendance", group="hr", desc="Delete Attendance")
+     * @Permissions("delete_attendance", group="attendance", desc="Delete Attendance")
      */
     public function destroy(Attendance $attendance)
     {
@@ -75,7 +75,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * @Permissions("list_attendance", group="hr", desc="Monthly Attendance Sheet")
+     * @Permissions("list_attendance", group="attendance", desc="Monthly Attendance Sheet")
      */
     public function monthly(Request $request)
     {
@@ -101,7 +101,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * @Permissions("create_attendance", group="hr", desc="Bulk Attendance")
+     * @Permissions("create_attendance", group="attendance", desc="Bulk Attendance")
      */
     public function bulkStore(Request $request)
     {

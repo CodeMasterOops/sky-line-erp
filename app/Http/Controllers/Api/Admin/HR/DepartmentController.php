@@ -6,13 +6,13 @@ use App\Models\Department;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\DepartmentResource;
-use App\Http\Requests\Api\Admin\DepartmentRequest;
+use App\Http\Resources\Admin\HR\DepartmentResource;
+use App\Http\Requests\Api\Admin\HR\DepartmentRequest;
 
 class DepartmentController extends Controller
 {
     /**
-     * @Permissions("list_department", group="hr", desc="List Department")
+     * @Permissions("list_department", group="department", desc="List Department")
      */
     public function index(Request $request)
     {
@@ -23,7 +23,7 @@ class DepartmentController extends Controller
     }
 
     /**
-     * @Permissions("create_department", group="hr", desc="Create Department")
+     * @Permissions("create_department", group="department", desc="Create Department")
      */
     public function store(DepartmentRequest $request)
     {
@@ -36,7 +36,7 @@ class DepartmentController extends Controller
     }
 
     /**
-     * @Permissions("show_department", group="hr", desc="Show Department")
+     * @Permissions("show_department", group="department", desc="Show Department")
      */
     public function show(Department $department)
     {
@@ -44,7 +44,7 @@ class DepartmentController extends Controller
     }
 
     /**
-     * @Permissions("edit_department", group="hr", desc="Edit Department")
+     * @Permissions("edit_department", group="department", desc="Edit Department")
      */
     public function update(DepartmentRequest $request, Department $department)
     {
@@ -57,7 +57,7 @@ class DepartmentController extends Controller
     }
 
     /**
-     * @Permissions("delete_department", group="hr", desc="Delete Department")
+     * @Permissions("delete_department", group="department", desc="Delete Department")
      */
     public function destroy(Department $department)
     {

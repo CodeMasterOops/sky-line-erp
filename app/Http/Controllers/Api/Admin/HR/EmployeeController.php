@@ -6,13 +6,13 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\EmployeeResource;
-use App\Http\Requests\Api\Admin\EmployeeRequest;
+use App\Http\Resources\Admin\HR\EmployeeResource;
+use App\Http\Requests\Api\Admin\HR\EmployeeRequest;
 
 class EmployeeController extends Controller
 {
     /**
-     * @Permissions("list_employee", group="hr", desc="List Employee")
+     * @Permissions("list_employee", group="employee", desc="List Employee")
      */
     public function index(Request $request)
     {
@@ -24,7 +24,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @Permissions("create_employee", group="hr", desc="Create Employee")
+     * @Permissions("create_employee", group="employee", desc="Create Employee")
      */
     public function store(EmployeeRequest $request)
     {
@@ -37,7 +37,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @Permissions("show_employee", group="hr", desc="Show Employee")
+     * @Permissions("show_employee", group="employee", desc="Show Employee")
      */
     public function show(Employee $employee)
     {
@@ -45,7 +45,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @Permissions("edit_employee", group="hr", desc="Edit Employee")
+     * @Permissions("edit_employee", group="employee", desc="Edit Employee")
      */
     public function update(EmployeeRequest $request, Employee $employee)
     {
@@ -58,7 +58,7 @@ class EmployeeController extends Controller
     }
 
     /**
-     * @Permissions("delete_employee", group="hr", desc="Delete Employee")
+     * @Permissions("delete_employee", group="employee", desc="Delete Employee")
      */
     public function destroy(Employee $employee)
     {

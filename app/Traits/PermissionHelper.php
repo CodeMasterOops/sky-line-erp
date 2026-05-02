@@ -2,34 +2,39 @@
 
 namespace App\Traits;
 
-use ReflectionClass;
 use Illuminate\Support\Str;
 use App\Annotation\Permissions;
 use Doctrine\Common\Annotations\AnnotationReader;
 
 trait PermissionHelper
 {
-    public function getAllPermissions(): array
+    public function getAllPermissions($group = null): array
     {
-        $adminPermissions = $this->getPermissions();
+        $adminPermissions = $this->getPermissions($group);
 
         return array_merge_recursive($adminPermissions, []);
     }
 
-    protected function getPermissions(): array
+    protected function getPermissions($group = []): array
     {
+        $permissions = [];
+        $modules = ['Settings', 'Accounting', 'Inventory', 'Purchase', 'Sales', 'HR'];
         $path = app_path().'/Http/Controllers/Api/Admin';
         $classPath = 'App\\Http\\Controllers\\Api\\Admin\\';
+        foreach ($modules as $module) {
+            $permissions[$module] = $this->listFiles($group, $path.'/'.$module, $classPath.$module.'\\');
+        }
 
-        return $this->listFiles($path, $classPath);
+        return $permissions;
     }
 
-    protected function listFiles($path, $classPath): array
+    protected function listFiles($group, $path, $classPath): array
     {
         $permissions = [];
         $reader = new AnnotationReader;
 
         $controllerDir = $path;
+        $groupPermissions = ($group and $group->permissions) ? $group->permissions : [];
         if (file_exists($controllerDir)) {
             $files = scandir($controllerDir);
             foreach ($files as $file) {
@@ -42,7 +47,7 @@ trait PermissionHelper
 
                     $class = $classPath.$filename;
 
-                    $reflectedClass = new ReflectionClass($class);
+                    $reflectedClass = new \ReflectionClass($class);
 
                     foreach ($reflectedClass->getMethods() as $reflectionMethod) {
                         $annotations = $reader->getMethodAnnotations($reflectionMethod);
@@ -56,6 +61,7 @@ trait PermissionHelper
                                 $permissions[$group][] = [
                                     'permission' => $permission,
                                     'description' => $description,
+                                    'checked' => in_array($permission, $groupPermissions, true),
                                 ];
                             }
                         }

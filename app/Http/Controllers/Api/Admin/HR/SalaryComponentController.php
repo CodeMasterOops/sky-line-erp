@@ -6,13 +6,13 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Models\SalaryComponent;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\SalaryComponentResource;
-use App\Http\Requests\Api\Admin\SalaryComponentRequest;
+use App\Http\Resources\Admin\HR\SalaryComponentResource;
+use App\Http\Requests\Api\Admin\HR\SalaryComponentRequest;
 
 class SalaryComponentController extends Controller
 {
     /**
-     * @Permissions("list_salary_component", group="hr", desc="List Salary Component")
+     * @Permissions("list_salary_component", group="salary_component", desc="List Salary Component")
      */
     public function index(Request $request)
     {
@@ -22,7 +22,7 @@ class SalaryComponentController extends Controller
     }
 
     /**
-     * @Permissions("create_salary_component", group="hr", desc="Create Salary Component")
+     * @Permissions("create_salary_component", group="salary_component", desc="Create Salary Component")
      */
     public function store(SalaryComponentRequest $request)
     {
@@ -35,7 +35,7 @@ class SalaryComponentController extends Controller
     }
 
     /**
-     * @Permissions("show_salary_component", group="hr", desc="Show Salary Component")
+     * @Permissions("show_salary_component", group="salary_component", desc="Show Salary Component")
      */
     public function show(SalaryComponent $salaryComponent)
     {
@@ -43,7 +43,7 @@ class SalaryComponentController extends Controller
     }
 
     /**
-     * @Permissions("edit_salary_component", group="hr", desc="Edit Salary Component")
+     * @Permissions("edit_salary_component", group="salary_component", desc="Edit Salary Component")
      */
     public function update(SalaryComponentRequest $request, SalaryComponent $salaryComponent)
     {
@@ -56,7 +56,7 @@ class SalaryComponentController extends Controller
     }
 
     /**
-     * @Permissions("delete_salary_component", group="hr", desc="Delete Salary Component")
+     * @Permissions("delete_salary_component", group="salary_component", desc="Delete Salary Component")
      */
     public function destroy(SalaryComponent $salaryComponent)
     {

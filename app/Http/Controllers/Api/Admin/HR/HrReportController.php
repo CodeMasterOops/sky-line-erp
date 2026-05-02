@@ -15,7 +15,7 @@ use App\Http\Controllers\Controller;
 class HrReportController extends Controller
 {
     /**
-     * @Permissions("list_payroll", group="hr", desc="Payroll Summary Report")
+     * @Permissions("list_payroll", group="hr_report", desc="Payroll Summary Report")
      */
     public function payrollSummary(Request $request)
     {
@@ -49,7 +49,7 @@ class HrReportController extends Controller
     }
 
     /**
-     * @Permissions("list_attendance", group="hr", desc="Attendance Summary Report")
+     * @Permissions("list_attendance", group="hr_report", desc="Attendance Summary Report")
      */
     public function attendanceSummary(Request $request)
     {
@@ -80,7 +80,7 @@ class HrReportController extends Controller
     }
 
     /**
-     * @Permissions("list_leave_application", group="hr", desc="Leave Balance Report")
+     * @Permissions("list_leave_application", group="hr_report", desc="Leave Balance Report")
      */
     public function leaveBalance(Request $request)
     {
@@ -114,7 +114,7 @@ class HrReportController extends Controller
     }
 
     /**
-     * @Permissions("list_payroll", group="hr", desc="TDS Salary Report")
+     * @Permissions("list_payroll", group="hr_report", desc="TDS Salary Report")
      */
     public function tdsSalary(Request $request)
     {

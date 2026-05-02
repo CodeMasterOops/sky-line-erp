@@ -6,13 +6,13 @@ use App\Models\Designation;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\DesignationResource;
-use App\Http\Requests\Api\Admin\DesignationRequest;
+use App\Http\Resources\Admin\HR\DesignationResource;
+use App\Http\Requests\Api\Admin\HR\DesignationRequest;
 
 class DesignationController extends Controller
 {
     /**
-     * @Permissions("list_designation", group="hr", desc="List Designation")
+     * @Permissions("list_designation", group="designation", desc="List Designation")
      */
     public function index(Request $request)
     {
@@ -23,7 +23,7 @@ class DesignationController extends Controller
     }
 
     /**
-     * @Permissions("create_designation", group="hr", desc="Create Designation")
+     * @Permissions("create_designation", group="designation", desc="Create Designation")
      */
     public function store(DesignationRequest $request)
     {
@@ -36,7 +36,7 @@ class DesignationController extends Controller
     }
 
     /**
-     * @Permissions("show_designation", group="hr", desc="Show Designation")
+     * @Permissions("show_designation", group="designation", desc="Show Designation")
      */
     public function show(Designation $designation)
     {
@@ -44,7 +44,7 @@ class DesignationController extends Controller
     }
 
     /**
-     * @Permissions("edit_designation", group="hr", desc="Edit Designation")
+     * @Permissions("edit_designation", group="designation", desc="Edit Designation")
      */
     public function update(DesignationRequest $request, Designation $designation)
     {
@@ -57,7 +57,7 @@ class DesignationController extends Controller
     }
 
     /**
-     * @Permissions("delete_designation", group="hr", desc="Delete Designation")
+     * @Permissions("delete_designation", group="designation", desc="Delete Designation")
      */
     public function destroy(Designation $designation)
     {

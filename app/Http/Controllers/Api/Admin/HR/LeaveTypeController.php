@@ -6,13 +6,13 @@ use App\Models\LeaveType;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\LeaveTypeResource;
-use App\Http\Requests\Api\Admin\LeaveTypeRequest;
+use App\Http\Resources\Admin\HR\LeaveTypeResource;
+use App\Http\Requests\Api\Admin\HR\LeaveTypeRequest;
 
 class LeaveTypeController extends Controller
 {
     /**
-     * @Permissions("list_leave_type", group="hr", desc="List Leave Type")
+     * @Permissions("list_leave_type", group="leave_type", desc="List Leave Type")
      */
     public function index(Request $request)
     {
@@ -22,7 +22,7 @@ class LeaveTypeController extends Controller
     }
 
     /**
-     * @Permissions("create_leave_type", group="hr", desc="Create Leave Type")
+     * @Permissions("create_leave_type", group="leave_type", desc="Create Leave Type")
      */
     public function store(LeaveTypeRequest $request)
     {
@@ -35,7 +35,7 @@ class LeaveTypeController extends Controller
     }
 
     /**
-     * @Permissions("show_leave_type", group="hr", desc="Show Leave Type")
+     * @Permissions("show_leave_type", group="leave_type", desc="Show Leave Type")
      */
     public function show(LeaveType $leaveType)
     {
@@ -43,7 +43,7 @@ class LeaveTypeController extends Controller
     }
 
     /**
-     * @Permissions("edit_leave_type", group="hr", desc="Edit Leave Type")
+     * @Permissions("edit_leave_type", group="leave_type", desc="Edit Leave Type")
      */
     public function update(LeaveTypeRequest $request, LeaveType $leaveType)
     {
@@ -56,7 +56,7 @@ class LeaveTypeController extends Controller
     }
 
     /**
-     * @Permissions("delete_leave_type", group="hr", desc="Delete Leave Type")
+     * @Permissions("delete_leave_type", group="leave_type", desc="Delete Leave Type")
      */
     public function destroy(LeaveType $leaveType)
     {

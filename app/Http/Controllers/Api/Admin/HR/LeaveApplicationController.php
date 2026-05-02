@@ -7,13 +7,13 @@ use App\Enums\LeaveStatusEnum;
 use App\Annotation\Permissions;
 use App\Models\LeaveApplication;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\LeaveApplicationResource;
-use App\Http\Requests\Api\Admin\LeaveApplicationRequest;
+use App\Http\Resources\Admin\HR\LeaveApplicationResource;
+use App\Http\Requests\Api\Admin\HR\LeaveApplicationRequest;
 
 class LeaveApplicationController extends Controller
 {
     /**
-     * @Permissions("list_leave_application", group="hr", desc="List Leave Applications")
+     * @Permissions("list_leave_application", group="leave_application", desc="List Leave Applications")
      */
     public function index(Request $request)
     {
@@ -26,7 +26,7 @@ class LeaveApplicationController extends Controller
     }
 
     /**
-     * @Permissions("create_leave_application", group="hr", desc="Create Leave Application")
+     * @Permissions("create_leave_application", group="leave_application", desc="Create Leave Application")
      */
     public function store(LeaveApplicationRequest $request)
     {
@@ -39,7 +39,7 @@ class LeaveApplicationController extends Controller
     }
 
     /**
-     * @Permissions("show_leave_application", group="hr", desc="Show Leave Application")
+     * @Permissions("show_leave_application", group="leave_application", desc="Show Leave Application")
      */
     public function show(LeaveApplication $leaveApplication)
     {
@@ -47,7 +47,7 @@ class LeaveApplicationController extends Controller
     }
 
     /**
-     * @Permissions("edit_leave_application", group="hr", desc="Edit Leave Application")
+     * @Permissions("edit_leave_application", group="leave_application", desc="Edit Leave Application")
      */
     public function update(LeaveApplicationRequest $request, LeaveApplication $leaveApplication)
     {
@@ -62,7 +62,7 @@ class LeaveApplicationController extends Controller
     }
 
     /**
-     * @Permissions("delete_leave_application", group="hr", desc="Delete Leave Application")
+     * @Permissions("delete_leave_application", group="leave_application", desc="Delete Leave Application")
      */
     public function destroy(LeaveApplication $leaveApplication)
     {
@@ -74,7 +74,7 @@ class LeaveApplicationController extends Controller
     }
 
     /**
-     * @Permissions("edit_leave_application", group="hr", desc="Approve Leave Application")
+     * @Permissions("edit_leave_application", group="leave_application", desc="Approve Leave Application")
      */
     public function approve(Request $request, LeaveApplication $leaveApplication)
     {
@@ -93,7 +93,7 @@ class LeaveApplicationController extends Controller
     }
 
     /**
-     * @Permissions("edit_leave_application", group="hr", desc="Reject Leave Application")
+     * @Permissions("edit_leave_application", group="leave_application", desc="Reject Leave Application")
      */
     public function reject(Request $request, LeaveApplication $leaveApplication)
     {

@@ -6,13 +6,13 @@ use App\Models\Holiday;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\HolidayResource;
-use App\Http\Requests\Api\Admin\HolidayRequest;
+use App\Http\Resources\Admin\HR\HolidayResource;
+use App\Http\Requests\Api\Admin\HR\HolidayRequest;
 
 class HolidayController extends Controller
 {
     /**
-     * @Permissions("list_holiday", group="hr", desc="List Holiday")
+     * @Permissions("list_holiday", group="holiday", desc="List Holiday")
      */
     public function index(Request $request)
     {
@@ -24,7 +24,7 @@ class HolidayController extends Controller
     }
 
     /**
-     * @Permissions("create_holiday", group="hr", desc="Create Holiday")
+     * @Permissions("create_holiday", group="holiday", desc="Create Holiday")
      */
     public function store(HolidayRequest $request)
     {
@@ -37,7 +37,7 @@ class HolidayController extends Controller
     }
 
     /**
-     * @Permissions("show_holiday", group="hr", desc="Show Holiday")
+     * @Permissions("show_holiday", group="holiday", desc="Show Holiday")
      */
     public function show(Holiday $holiday)
     {
@@ -45,7 +45,7 @@ class HolidayController extends Controller
     }
 
     /**
-     * @Permissions("edit_holiday", group="hr", desc="Edit Holiday")
+     * @Permissions("edit_holiday", group="holiday", desc="Edit Holiday")
      */
     public function update(HolidayRequest $request, Holiday $holiday)
     {
@@ -58,7 +58,7 @@ class HolidayController extends Controller
     }
 
     /**
-     * @Permissions("delete_holiday", group="hr", desc="Delete Holiday")
+     * @Permissions("delete_holiday", group="holiday", desc="Delete Holiday")
      */
     public function destroy(Holiday $holiday)
     {

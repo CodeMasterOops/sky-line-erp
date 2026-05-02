@@ -6,7 +6,7 @@ use App\Models\Payslip;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\PayslipResource;
+use App\Http\Resources\Admin\HR\PayslipResource;
 
 class PayslipController extends Controller
 {

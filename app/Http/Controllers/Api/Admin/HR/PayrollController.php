@@ -9,15 +9,15 @@ use App\Annotation\Permissions;
 use App\Enums\PayrollStatusEnum;
 use App\Services\PayrollService;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\PayrollRunResource;
-use App\Http\Requests\Api\Admin\PayrollRunRequest;
+use App\Http\Resources\Admin\HR\PayrollRunResource;
+use App\Http\Requests\Api\Admin\HR\PayrollRunRequest;
 
 class PayrollController extends Controller
 {
     public function __construct(protected PayrollService $payrollService) {}
 
     /**
-     * @Permissions("list_payroll", group="hr", desc="List Payroll Runs")
+     * @Permissions("list_payroll", group="payroll", desc="List Payroll Runs")
      */
     public function index(Request $request)
     {
@@ -30,7 +30,7 @@ class PayrollController extends Controller
     }
 
     /**
-     * @Permissions("create_payroll", group="hr", desc="Create Payroll Run")
+     * @Permissions("create_payroll", group="payroll", desc="Create Payroll Run")
      */
     public function store(PayrollRunRequest $request)
     {
@@ -59,7 +59,7 @@ class PayrollController extends Controller
     }
 
     /**
-     * @Permissions("show_payroll", group="hr", desc="Show Payroll Run")
+     * @Permissions("show_payroll", group="payroll", desc="Show Payroll Run")
      */
     public function show(PayrollRun $payrollRun)
     {
@@ -67,7 +67,7 @@ class PayrollController extends Controller
     }
 
     /**
-     * @Permissions("edit_payroll", group="hr", desc="Process Payroll Run")
+     * @Permissions("edit_payroll", group="payroll", desc="Process Payroll Run")
      */
     public function process(PayrollRun $payrollRun)
     {
@@ -82,7 +82,7 @@ class PayrollController extends Controller
     }
 
     /**
-     * @Permissions("edit_payroll", group="hr", desc="Confirm Payroll Run as Paid")
+     * @Permissions("edit_payroll", group="payroll", desc="Confirm Payroll Run as Paid")
      */
     public function confirm(Request $request, PayrollRun $payrollRun)
     {
@@ -103,7 +103,7 @@ class PayrollController extends Controller
     }
 
     /**
-     * @Permissions("delete_payroll", group="hr", desc="Delete Payroll Run")
+     * @Permissions("delete_payroll", group="payroll", desc="Delete Payroll Run")
      */
     public function destroy(PayrollRun $payrollRun)
     {

@@ -1,96 +1,103 @@
 <template>
-    <div class="page-title">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <router-link :to="{name:'admin.dashboard'}">
-                    <i class="fa fa-home"> Home</i>
-                </router-link>
-            </li>
-            <li class="breadcrumb-item active">Add Role</li>
-        </ol>
-    </div>
+    <PageHeader title="Create Role" subtitle="Define role details and assign permissions">
+        <template #actions>
+            <router-link :to="{name:'admin.role-list'}" class="btn btn-outline-primary d-flex align-items-center">
+                <i class="ti ti-arrow-left me-2"></i> Back To Roles
+            </router-link>
+        </template>
+    </PageHeader>
 
     <section class="section">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                <h5 class="card-title">Add New Role</h5>
-                <router-link :to="{name:'admin.role-list'}" class="btn btn-sm btn-outline-primary">
-                    <i class="fa fa-list"> Role List</i>
-                </router-link>
-            </div>
-            <div class="card-body">
-                <form @submit.prevent="storeRole" class="row g-3">
-                    <div class="col-md-12">
+        <div class="card border-0 shadow-sm">
+            <VLoader v-if="groups.loading" loader-type="progress"/>
+
+            <div class="card-body p-4">
+                <form @submit.prevent="storeRole" class="row g-4">
+                    <div class="col-12">
                         <VInput
                             id="name"
                             v-model="form.name"
-                            label="Role"
+                            label="Role Name"
                             @validate="validateField('name')"
                             :error="errors.name"
                         />
                     </div>
-                    <div class="col-md-12">
-                        <label for="permissions" class="form-label">
-                            Permissions : &nbsp;
-                        </label>
-                        <input
-                            type="checkbox"
-                            v-model="allPermissionsChecked"
-                            :value="true"
-                            class="form-check-input"
-                            style="height: 1.8em;width: 1.8em;">
-                    </div>
-                    <div class="col-md-12">
-                        <div class="row">
-                            <div v-for="(permissions,group,groupKey) in groups.data" :key="groupKey" class="col-sm-4">
-                                <ul class="list-group mb-3 accordion">
-                                    <li class="list-group-item active" aria-current="true">{{ groupKey + 1 }}
-                                        {{ group }}
-                                    </li>
-                                    <li v-for="(permission,pKey) in permissions.slice(0,5)" :key="pKey"
-                                        class="list-group-item list-group-item-light d-flex justify-content-between">
-                                        <label :for="permission.permission">
-                                            <input
-                                                class="form-check-input me-1"
-                                                type="checkbox"
-                                                :id="permission.permission"
-                                                :value="permission.permission"
-                                                @change="validateField('permissions')"
-                                                v-model="form.permissions"
-                                                aria-label="...">
-                                            {{ permission.description }}
-                                        </label>
-                                        <span v-if="permissions.length>5 && pKey===4" class="collapsed"
-                                              data-bs-toggle="collapse"
-                                              :data-bs-target="'#p-'+groupKey">
-                                            <i class="fa fa-expand text-success"></i>
-                                        </span>
-                                    </li>
-                                    <template v-if="permissions.length>5">
-                                        <div :id="'p-'+groupKey" class="accordion-collapse collapse">
-                                            <template v-for="(permission,pKey) in permissions.slice(5)" :key="pKey">
-                                                <li class="list-group-item list-group-item-light">
-                                                    <label :for="permission.permission">
-                                                        <input
-                                                            class="form-check-input me-1"
-                                                            type="checkbox"
-                                                            :id="permission.permission"
-                                                            :value="permission.permission"
-                                                            @change="validateField('permissions')"
-                                                            v-model="form.permissions">
-                                                        {{ permission.description }}
-                                                    </label>
-                                                </li>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </ul>
+
+                    <div class="col-12">
+                        <div class="border rounded-3 p-3 bg-light-subtle">
+                            <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Permissions</h6>
+                                    <p class="text-muted mb-0">
+                                        {{ form.permissions.length }} of {{ allPermissionValues.length }} selected
+                                    </p>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input
+                                        id="select-all-permissions"
+                                        v-model="allPermissionsChecked"
+                                        class="form-check-input"
+                                        type="checkbox"
+                                    >
+                                    <label class="form-check-label" for="select-all-permissions">
+                                        Select all permissions
+                                    </label>
+                                </div>
                             </div>
                         </div>
-                        <p v-if="errors.permissions" class="text-danger">
+                        <p v-if="errors.permissions" class="text-danger mt-2 mb-0">
                             {{ errors.permissions }}
                         </p>
                     </div>
+
+                    <div class="col-12" v-if="moduleEntries.length">
+                        <div
+                            v-for="([module, permissionGroups], moduleIndex) in moduleEntries"
+                            :key="module"
+                            class="card border mb-4"
+                        >
+                            <div class="card-header bg-body-tertiary">
+                                <h6 class="card-title mb-0 fw-bold">
+                                    {{ moduleIndex + 1 }}. {{ module }}
+                                </h6>
+                            </div>
+                            <div class="card-body p-3">
+                                <div class="row g-3">
+                                    <div
+                                        v-for="([group, permissions], groupIndex) in Object.entries(permissionGroups)"
+                                        :key="`${module}-${group}`"
+                                        class="col-lg-4 col-md-6"
+                                    >
+                                        <div class="border rounded-3 h-100">
+                                            <div class="px-3 py-2 border-bottom bg-light fw-semibold">
+                                                {{ moduleIndex + 1 }}.{{ groupIndex + 1 }} {{ group }}
+                                            </div>
+                                            <div class="p-3">
+                                                <div
+                                                    v-for="permission in permissions"
+                                                    :key="permission.permission"
+                                                    class="form-check mb-2"
+                                                >
+                                                    <input
+                                                        :id="permission.permission"
+                                                        v-model="form.permissions"
+                                                        :value="permission.permission"
+                                                        class="form-check-input"
+                                                        type="checkbox"
+                                                        @change="validateField('permissions')"
+                                                    >
+                                                    <label class="form-check-label" :for="permission.permission">
+                                                        {{ permission.description }}
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-12 text-end">
                         <VButton :loading="isSubmitting"/>
                     </div>
@@ -99,8 +106,9 @@
         </div>
     </section>
 </template>
+
 <script setup>
-import {onMounted, reactive, ref, watch} from "vue";
+import {computed, onMounted, reactive, ref} from "vue";
 import {toast} from "@/helpers/toast";
 import showErrors from "@/helpers/showErrors";
 import {array, object, string} from "yup";
@@ -114,9 +122,9 @@ const router = useRouter();
 
 onMounted(() => {
     roleStore.getPermissions();
-})
+});
 
-const {permissions:groups} = storeToRefs(roleStore);
+const {permissions: groups} = storeToRefs(roleStore);
 
 const initialState = {
     name: '',
@@ -128,48 +136,56 @@ const isSubmitting = ref(false);
 
 const validations = object({
     name: string().required('Role is required.'),
-    permissions: array().min(1,'Permissions is required.'),
+    permissions: array().min(1, 'Permissions is required.'),
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const storeRole = async () => {
-    let validated = await validateForm(validations, form)
-    if (validated) {
-        isSubmitting.value = true;
-        try {
-            let res = await roleStore.storeRole(form);
-            toast(res.status, res.data.message);
-            resetForm();
-            await router.push({name: 'admin.role-list'})
-        } catch (e) {
-            showErrors(e);
-        } finally {
-            isSubmitting.value = false;
+const moduleEntries = computed(() => Object.entries(groups.value.data ?? {}));
+
+const allPermissionValues = computed(() => {
+    const values = [];
+
+    for (const [, permissionGroups] of moduleEntries.value) {
+        for (const permissions of Object.values(permissionGroups)) {
+            values.push(...permissions.map(permission => permission.permission));
         }
     }
-}
+
+    return [...new Set(values)];
+});
+
+const allPermissionsChecked = computed({
+    get: () => allPermissionValues.value.length > 0 && form.permissions.length === allPermissionValues.value.length,
+    set: (checked) => {
+        form.permissions = checked ? [...allPermissionValues.value] : [];
+        validateField('permissions');
+    }
+});
+
+const storeRole = async () => {
+    const validated = await validateForm(validations, form);
+
+    if (!validated) {
+        return;
+    }
+
+    isSubmitting.value = true;
+
+    try {
+        const res = await roleStore.storeRole(form);
+        toast(res.status, res.data.message);
+        resetForm();
+        await router.push({name: 'admin.role-list'});
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        isSubmitting.value = false;
+    }
+};
 
 const resetForm = () => {
     Object.assign(form, {...initialState});
     errors.value = {};
-    form.permissions = [];
-}
-
-const allPermissionsChecked = ref(false);
-
-watch(() => allPermissionsChecked.value, () => {
-    if (allPermissionsChecked.value) {
-        Object.keys(groups.value.data).forEach(d => {
-            const data = (groups.value.data[d]).map(p => p.permission);
-            data.forEach(p => {
-                form.permissions.push(p);
-            })
-        })
-    } else {
-        form.permissions = [];
-    }
-})
-
+};
 </script>
-
