@@ -297,7 +297,7 @@ import {array, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {usePartyStore} from '@/stores/admin/party.js';
-import {useTaxStore} from '@/stores/admin/setting/tax.js';
+import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';

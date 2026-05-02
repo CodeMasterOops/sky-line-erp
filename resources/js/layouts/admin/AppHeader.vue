@@ -209,7 +209,7 @@ import showErrors from "@/helpers/showErrors";
 import {toast} from "@/helpers/toast";
 import {useRouter} from "vue-router";
 import {useAdminNotificationStore} from "@/stores/admin/notification";
-import {useAdminSettingStore} from "@/stores/admin/admin-setting.js";
+import {useAdminSettingStore} from "@/stores/admin/settings/admin-setting.js";
 import {adToBsDate} from "@/helpers/helper.js";
 
 const notificationStore = useAdminNotificationStore();

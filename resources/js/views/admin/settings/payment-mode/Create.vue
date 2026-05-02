@@ -39,7 +39,7 @@ import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
-import {usePaymentModeStore} from '@/stores/admin/setting/payment-mode.js';
+import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
 
 const paymentModeStore = usePaymentModeStore();
 

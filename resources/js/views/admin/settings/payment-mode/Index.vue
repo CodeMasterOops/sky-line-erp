@@ -67,7 +67,7 @@ import showErrors from "@/helpers/showErrors";
 import {storeToRefs} from "pinia";
 import CreatePaymentMode from './Create.vue';
 import EditPaymentMode from './Edit.vue';
-import {usePaymentModeStore} from '@/stores/admin/setting/payment-mode.js';
+import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
 
 const paymentModeStore = usePaymentModeStore();
 

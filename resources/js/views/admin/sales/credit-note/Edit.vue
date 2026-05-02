@@ -322,7 +322,7 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
-import {useTaxStore} from '@/stores/admin/setting/tax.js';
+import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';

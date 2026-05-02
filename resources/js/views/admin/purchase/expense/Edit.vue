@@ -204,7 +204,7 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePartyStore} from '@/stores/admin/party.js';
-import {useTaxStore} from '@/stores/admin/setting/tax.js';
+import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useExpenseStore} from '@/stores/admin/purchase/expense.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 

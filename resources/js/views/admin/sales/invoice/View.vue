@@ -235,7 +235,7 @@ import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
-import {useSettingStore} from '@/stores/admin/setting.js';
+import {useSettingStore} from '@/stores/admin/settings/setting.js';
 
 const route = useRoute();
 const router = useRouter();

@@ -66,7 +66,7 @@ import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
-import {useTaxStore} from '@/stores/admin/setting/tax.js';
+import {useTaxStore} from '@/stores/admin/settings/tax.js';
 
 const taxStore = useTaxStore();
 

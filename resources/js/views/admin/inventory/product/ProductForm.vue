@@ -454,8 +454,8 @@ import { useProductCategoryStore } from '@/stores/admin/inventory/product-catego
 import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 import { storeToRefs } from 'pinia';
 import { useAttributeStore } from '@/stores/admin/inventory/attribute.js';
-import { useSettingStore } from '@/stores/admin/setting.js';
-import { useTaxStore } from '@/stores/admin/setting/tax.js';
+import { useSettingStore } from '@/stores/admin/settings/setting.js';
+import { useTaxStore } from '@/stores/admin/settings/tax.js';
 
 const props = defineProps({
     mode: {

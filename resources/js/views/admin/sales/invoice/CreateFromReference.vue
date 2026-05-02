@@ -247,7 +247,7 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
-import {useTaxStore} from '@/stores/admin/setting/tax.js';
+import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useDateHelper} from '@/composables/dateHelper.js';

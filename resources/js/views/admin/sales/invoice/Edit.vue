@@ -243,7 +243,7 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
-import {useTaxStore} from '@/stores/admin/setting/tax.js';
+import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';

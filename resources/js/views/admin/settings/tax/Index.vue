@@ -65,7 +65,7 @@ import showErrors from "@/helpers/showErrors";
 import {storeToRefs} from "pinia";
 import CreateTax from './Create.vue';
 import EditTax from './Edit.vue';
-import {useTaxStore} from '@/stores/admin/setting/tax.js';
+import {useTaxStore} from '@/stores/admin/settings/tax.js';
 
 const taxStore = useTaxStore();
 

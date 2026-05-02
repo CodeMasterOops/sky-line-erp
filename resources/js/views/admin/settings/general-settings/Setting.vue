@@ -254,8 +254,8 @@ import showErrors from '@/helpers/showErrors.js';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup.js';
 import {storeToRefs} from 'pinia';
-import {useSettingStore} from '@/stores/admin/setting.js';
-import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
+import {useSettingStore} from '@/stores/admin/settings/setting.js';
+import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useAdminLocationStore} from '@/stores/admin/location.js';
 
 const settingStore = useSettingStore();

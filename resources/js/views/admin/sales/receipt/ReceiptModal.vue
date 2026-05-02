@@ -203,7 +203,7 @@ import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useAccountStore} from '@/stores/admin/accounting/account.js';
-import {usePaymentModeStore} from '@/stores/admin/setting/payment-mode.js';
+import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
 import {useReceiptStore} from '@/stores/admin/sales/receipt.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';

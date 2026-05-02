@@ -292,7 +292,7 @@ import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePaymentStore} from '@/stores/admin/purchase/payment.js';
-import {usePaymentModeStore} from '@/stores/admin/setting/payment-mode.js';
+import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';

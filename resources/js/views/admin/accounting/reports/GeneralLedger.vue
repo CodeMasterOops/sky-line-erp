@@ -106,7 +106,7 @@ import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
-import {useAdminSettingStore} from '@/stores/admin/admin-setting.js';
+import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
 import {formatAmount} from "@/helpers/helper.js";
 import {useAccountStore} from "@/stores/admin/accounting/account.js";

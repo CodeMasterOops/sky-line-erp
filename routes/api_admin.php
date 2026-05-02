@@ -11,17 +11,13 @@ use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\PermissionController;
 use App\Http\Controllers\Api\Admin\Nepal\VatD3Controller;
-use App\Http\Controllers\Api\Admin\AdminSettingController;
 use App\Http\Controllers\Api\Admin\SerialNumberController;
-use App\Http\Controllers\Api\Admin\Settings\TaxController;
-use App\Http\Controllers\Api\Admin\Settings\BranchController;
 use App\Http\Controllers\Api\Admin\AddressReferenceController;
 use App\Http\Controllers\Api\Admin\Nepal\InvoicePdfController;
 use App\Http\Controllers\Api\Admin\Nepal\IrdSettingController;
 use App\Http\Controllers\Api\Admin\Nepal\TdsChallanController;
-use App\Http\Controllers\Api\Admin\Settings\SettingController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
-use App\Http\Controllers\Api\Admin\Settings\PaymentModeController;
+use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
 
 // Phase 3 — Inventory Enhancements
 // Phase 5 — Finance & Banking
@@ -44,8 +40,6 @@ Route::middleware('auth:admin')->group(function () {
         // dashboard
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
-        Route::apiResource('setting', SettingController::class)->only('index', 'store');
-
         // address reference (read-only, for company settings & forms)
         Route::prefix('location-reference')->as('location-reference.')->controller(AddressReferenceController::class)->group(function () {
             Route::get('province', 'provinces')->name('province.index');
@@ -67,11 +61,8 @@ Route::middleware('auth:admin')->group(function () {
             Route::post('mark-as-read/{id?}', 'markAsRead')->name('mark-as-read');
         });
 
-        // tax
-        Route::apiResource('tax', TaxController::class);
-
-        // payment mode
-        Route::apiResource('payment-mode', PaymentModeController::class);
+        // settings module
+        require __DIR__.'/modules/api_settings.php';
 
         // inventory module
         require __DIR__.'/modules/api_inventory.php';
@@ -121,13 +112,6 @@ Route::middleware('auth:admin')->group(function () {
             });
         });
 
-    });
-
-    Route::middleware('checkRole')->group(function () {
-        // ==================== Phase 6 — Multi-branch ====================
-        Route::get('branch/{branch}/pl-report', [BranchController::class, 'plReport'])->name('branch.pl-report');
-        Route::get('branch/consolidated-report', [BranchController::class, 'consolidatedReport'])->name('branch.consolidated-report');
-        Route::apiResource('branch', BranchController::class);
     });
 
     // POS
