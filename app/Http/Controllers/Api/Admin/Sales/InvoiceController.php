@@ -4,29 +4,18 @@ namespace App\Http\Controllers\Api\Admin\Sales;
 
 use App\Models\Invoice;
 use App\Enums\StatusEnum;
-use App\Models\Quotation;
-use App\Models\SalesOrder;
 use Illuminate\Http\Request;
-use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
-use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Services\Nepal\NepaliDateService;
-use Illuminate\Validation\ValidationException;
+use App\Services\Sales\InvoiceService;
 use App\Http\Resources\Admin\Sales\InvoiceResource;
-use App\Services\Accounting\InvoiceGlPostingService;
 use App\Http\Requests\Api\Admin\Sales\InvoiceRequest;
-use App\Services\Inventory\InventoryLayerIssueService;
-use App\Services\Inventory\InventoryDocumentReversalService;
 
 class InvoiceController extends Controller
 {
     public function __construct(
-        private InventoryLayerIssueService $inventoryIssue,
-        private InventoryDocumentReversalService $documentReversal,
-        private InvoiceGlPostingService $invoiceGl,
-        private NepaliDateService $nepaliDate,
+        private readonly InvoiceService $invoiceService,
     ) {}
 
     /**
@@ -47,87 +36,7 @@ class InvoiceController extends Controller
      */
     public function store(InvoiceRequest $request)
     {
-        $formData = $request->validated();
-        $reference = $this->resolveReferencePayload($formData);
-        $user = auth('admin')->user();
-        $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-        $invoiceNo = $formData['invoice_no'] ?? $this->generateInvoiceNo($fiscalYearId, $setting->fiscalYear?->year_code);
-
-        try {
-            $invoice = DB::transaction(function () use ($formData, $reference, $user, $status, $fiscalYearId, $invoiceNo) {
-                $invoiceDateBs = null;
-                try {
-                    $bs = $this->nepaliDate->adToBs($formData['invoice_date']);
-                    $invoiceDateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
-                } catch (\Throwable) {
-                }
-
-                $invoice = Invoice::create([
-                    'fiscal_year_id' => $fiscalYearId,
-                    'party_id' => $formData['party_id'] ?? null,
-                    'reference_type' => $reference['reference_type'],
-                    'reference_id' => $reference['reference_id'],
-                    'invoice_no' => $invoiceNo,
-                    'invoice_date' => $formData['invoice_date'],
-                    'invoice_date_bs' => $invoiceDateBs,
-                    'due_date' => $formData['due_date'] ?? null,
-                    'remarks' => $formData['remarks'] ?? null,
-                    'create_user_id' => $user->id,
-                    'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                    'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                    'status' => $status,
-                ]);
-
-                if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                    $invoice->saveDiscount(
-                        $formData['order_discount_type'] ?? 'fixed',
-                        isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                        0,
-                    );
-                }
-
-                foreach ($formData['items'] ?? [] as $item) {
-                    $invoiceItem = $invoice->invoiceItems()->create([
-                        'product_variant_id' => $item['product_variant_id'],
-                        'warehouse_id' => $item['warehouse_id'],
-                        'unit_id' => $item['unit_id'] ?? null,
-                        'quantity' => $item['quantity'],
-                        'rate' => $item['rate'],
-                        'tax_id' => $item['tax_id'] ?? null,
-                        'tax_amount' => $item['tax_amount'] ?? 0,
-                        'discount_amount' => $item['discount_amount'] ?? 0,
-                        'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
-                    ]);
-
-                    if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                        $invoiceItem->saveDiscount(
-                            $item['line_discount_type'] ?? 'fixed',
-                            isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                            $item['discount_amount'] ?? 0,
-                        );
-                    }
-                }
-
-                if ($status === StatusEnum::APPROVED->value) {
-                    $invoice->refresh();
-                    $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
-                }
-
-                return $invoice;
-            });
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
-        }
-
-        if ($status === StatusEnum::APPROVED->value) {
-            $this->invoiceGl->postFromInvoice($invoice->refresh());
-            SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');
-        }
+        $invoice = $this->invoiceService->createInvoice($request->validated());
 
         $invoice->load([
             'party',
@@ -181,55 +90,7 @@ class InvoiceController extends Controller
             ], 422);
         }
 
-        $formData = $request->validated();
-        $reference = $this->resolveReferencePayload($formData, $invoice);
-        $invoiceNo = $formData['invoice_no'] ?? $invoice->invoice_no;
-
-        $invoice = DB::transaction(function () use ($invoice, $formData, $invoiceNo, $reference) {
-            $invoice->update([
-                'party_id' => $formData['party_id'] ?? null,
-                'reference_type' => $reference['reference_type'],
-                'reference_id' => $reference['reference_id'],
-                'invoice_no' => $invoiceNo,
-                'invoice_date' => $formData['invoice_date'],
-                'due_date' => $formData['due_date'] ?? null,
-                'remarks' => $formData['remarks'] ?? null,
-            ]);
-
-            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                $invoice->saveDiscount(
-                    $formData['order_discount_type'] ?? 'fixed',
-                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
-                );
-            }
-
-            $invoice->invoiceItems()->delete();
-
-            foreach ($formData['items'] ?? [] as $item) {
-                $invoiceItem = $invoice->invoiceItems()->create([
-                    'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                    'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $invoiceItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
-
-            return $invoice;
-        });
+        $this->invoiceService->updateInvoice($request->validated(), $invoice);
 
         $invoice->load([
             'party',
@@ -284,23 +145,7 @@ class InvoiceController extends Controller
             ], 422);
         }
 
-        $user = auth('admin')->user();
-
-        try {
-            DB::transaction(function () use ($invoice, $user) {
-                $this->documentReversal->reverseApprovedInvoice(
-                    $invoice,
-                    $user->id,
-                    $invoice->remarks,
-                );
-                $invoice->update(['voided_at' => now()]);
-            });
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
-        }
+        $this->invoiceService->voidInvoice($invoice);
 
         $invoice->load([
             'party',
@@ -336,27 +181,7 @@ class InvoiceController extends Controller
             ]);
         }
 
-        $user = auth('admin')->user();
-
-        try {
-            DB::transaction(function () use ($invoice, $user) {
-                $invoice->update([
-                    'approve_user_id' => $user->id,
-                    'approved_at' => now(),
-                    'status' => StatusEnum::APPROVED->value,
-                ]);
-
-                $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
-            });
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
-                'errors' => $e->errors(),
-            ], 422);
-        }
-
-        $this->invoiceGl->postFromInvoice($invoice->refresh());
-        SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');
+        $this->invoiceService->approveInvoice($invoice);
 
         $invoice->load([
             'party',
@@ -429,6 +254,10 @@ class InvoiceController extends Controller
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('invoices.id', '=', 'paid_totals.invoice_id');
             })
+            ->leftJoin('discounts', function ($join) {
+                $join->on('invoices.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', '=', \App\Models\Invoice::class);
+            })
             ->where('invoices.party_id', $partyId)
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.deleted_at')
@@ -437,6 +266,7 @@ class InvoiceController extends Controller
                 'invoices.invoice_no',
                 'invoices.invoice_date',
                 'invoices.due_date',
+                DB::raw('COALESCE(discounts.amount, 0) as order_discount_amount'),
                 DB::raw('COALESCE(item_totals.subtotal, 0) as subtotal'),
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
                 DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
@@ -444,7 +274,8 @@ class InvoiceController extends Controller
             ])
             ->get()
             ->map(function ($row) {
-                $grandTotal = (float) $row->subtotal - (float) $row->discount_total + (float) $row->tax_total;
+                $orderDisc = (float) ($row->order_discount_amount ?? 0);
+                $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
                 $paidTotal = (float) $row->paid_total;
                 $due = max($grandTotal - $paidTotal, 0);
                 $row->grand_total = round($grandTotal, 2);
@@ -459,44 +290,5 @@ class InvoiceController extends Controller
         return response()->json([
             'data' => $rows,
         ]);
-    }
-
-    private function generateInvoiceNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Invoice::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'INV-'.($count + 1).$suffix;
-    }
-
-    /**
-     * @param  array<string, mixed>  $formData
-     * @return array{reference_type: ?string, reference_id: ?int}
-     */
-    private function resolveReferencePayload(array $formData, ?Invoice $invoice = null): array
-    {
-        if (! empty($formData['sales_order_id'])) {
-            return [
-                'reference_type' => SalesOrder::class,
-                'reference_id' => (int) $formData['sales_order_id'],
-            ];
-        }
-
-        if (! empty($formData['quotation_id'])) {
-            return [
-                'reference_type' => Quotation::class,
-                'reference_id' => (int) $formData['quotation_id'],
-            ];
-        }
-
-        return [
-            'reference_type' => $formData['reference_type'] ?? $invoice?->reference_type,
-            'reference_id' => isset($formData['reference_id'])
-                ? (int) $formData['reference_id']
-                : $invoice?->reference_id,
-        ];
     }
 }
