@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api\Admin\Sales;
 
 use App\Enums\StatusEnum;
 use App\Models\Quotation;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Services\Sales\QuotationService;
 use App\Http\Resources\Admin\Sales\QuotationResource;
-use Illuminate\Http\Request;
 use App\Http\Requests\Api\Admin\Sales\QuotationRequest;
 
 class QuotationController extends Controller

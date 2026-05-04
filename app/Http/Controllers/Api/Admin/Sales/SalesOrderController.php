@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers\Api\Admin\Sales;
 
-use App\Tenancy\TRule;
-use App\Models\Invoice;
 use App\Enums\StatusEnum;
 use App\Models\SalesOrder;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\Admin\Sales\InvoiceResource;
+use App\Services\Sales\SalesOrderService;
 use App\Http\Resources\Admin\Sales\SalesOrderResource;
 use App\Http\Requests\Api\Admin\Sales\SalesOrderRequest;
 
 class SalesOrderController extends Controller
 {
+    public function __construct(
+        private readonly SalesOrderService $salesOrderService
+    ) {}
+
     /**
      * @Permissions("list_sales_order", group="sales_order", desc="List Sales Order")
      */
@@ -35,57 +36,7 @@ class SalesOrderController extends Controller
      */
     public function store(SalesOrderRequest $request)
     {
-        $formData = $request->validated();
-        $user = auth('admin')->user();
-        $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-        $orderNo = $formData['order_no'] ?? $this->generateOrderNo($fiscalYearId, $setting->fiscalYear?->year_code);
-
-        $order = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $orderNo) {
-            $order = SalesOrder::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $formData['party_id'] ?? null,
-                'quotation_id' => $formData['quotation_id'] ?? null,
-                'order_no' => $orderNo,
-                'order_date' => $formData['order_date'],
-                'remarks' => $formData['remarks'] ?? null,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
-                'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
-                'status' => $status,
-            ]);
-
-            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                $order->saveDiscount(
-                    $formData['order_discount_type'] ?? 'fixed',
-                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
-                );
-            }
-
-            foreach ($formData['items'] ?? [] as $item) {
-                $orderItem = $order->salesOrderItems()->create([
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $orderItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
-
-            return $order;
-        });
+        $order = $this->salesOrderService->createSalesOrder($request->validated());
 
         $order->load([
             'party',
@@ -130,50 +81,7 @@ class SalesOrderController extends Controller
             ], 422);
         }
 
-        $formData = $request->validated();
-        $orderNo = $formData['order_no'] ?? $salesOrder->order_no;
-
-        $salesOrder = DB::transaction(function () use ($salesOrder, $formData, $orderNo) {
-            $salesOrder->update([
-                'party_id' => $formData['party_id'] ?? null,
-                'quotation_id' => $formData['quotation_id'] ?? $salesOrder->quotation_id,
-                'order_no' => $orderNo,
-                'order_date' => $formData['order_date'],
-                'remarks' => $formData['remarks'] ?? null,
-            ]);
-
-            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                $salesOrder->saveDiscount(
-                    $formData['order_discount_type'] ?? 'fixed',
-                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
-                );
-            }
-
-            $salesOrder->salesOrderItems()->delete();
-
-            foreach ($formData['items'] ?? [] as $item) {
-                $orderItem = $salesOrder->salesOrderItems()->create([
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'discount_amount' => $item['discount_amount'] ?? 0,
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $orderItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
-
-            return $salesOrder;
-        });
+        $this->salesOrderService->updateSalesOrder($request->validated(), $salesOrder);
 
         $salesOrder->load([
             'party',
@@ -215,13 +123,7 @@ class SalesOrderController extends Controller
             ]);
         }
 
-        $user = auth('admin')->user();
-
-        $salesOrder->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        $this->salesOrderService->approveSalesOrder($salesOrder);
 
         $salesOrder->load([
             'party',
@@ -236,110 +138,5 @@ class SalesOrderController extends Controller
             'data' => SalesOrderResource::make($salesOrder),
             'message' => 'Sales Order Approved Successfully',
         ]);
-    }
-
-    /**
-     * @Permissions("convert_sales_order_to_invoice", group="sales_order", desc="Convert Sales Order To Invoice")
-     */
-    public function convertToInvoice(Request $request, SalesOrder $salesOrder)
-    {
-        if ($salesOrder->status !== StatusEnum::APPROVED) {
-            return response()->json([
-                'message' => 'Only approved sales orders can be converted to invoice.',
-            ], 422);
-        }
-
-        if ($salesOrder->invoices()->exists()) {
-            return response()->json([
-                'message' => 'Sales order already converted to invoice.',
-            ], 422);
-        }
-
-        $data = $request->validate([
-            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
-            'due_date' => ['nullable', 'date'],
-        ]);
-
-        $salesOrder->loadMissing([
-            'salesOrderItems',
-            'party',
-        ]);
-
-        $user = auth('admin')->user();
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-        $invoiceNo = $this->generateInvoiceNo($fiscalYearId, $setting->fiscalYear?->year_code);
-        $invoiceDate = now()->toDateString();
-
-        $invoice = DB::transaction(function () use ($salesOrder, $user, $fiscalYearId, $invoiceNo, $invoiceDate, $data) {
-            $invoice = Invoice::create([
-                'fiscal_year_id' => $fiscalYearId,
-                'party_id' => $salesOrder->party_id,
-                'reference_type' => $salesOrder::class,
-                'reference_id' => $salesOrder->id,
-                'invoice_no' => $invoiceNo,
-                'invoice_date' => $invoiceDate,
-                'due_date' => $data['due_date'] ?? null,
-                'remarks' => $salesOrder->remarks,
-                'create_user_id' => $user->id,
-                'approve_user_id' => $user->id,
-                'approved_at' => null,
-                'status' => StatusEnum::DRAFT->value,
-            ]);
-
-            $items = $salesOrder->salesOrderItems->map(function ($item) use ($data) {
-                return [
-                    'product_variant_id' => $item->product_variant_id,
-                    'warehouse_id' => $data['warehouse_id'],
-                    'unit_id' => $item->unit_id,
-                    'quantity' => $item->quantity,
-                    'rate' => $item->rate,
-                    'tax_id' => $item->tax_id,
-                    'tax_amount' => $item->tax_amount ?? 0,
-                    'discount_amount' => $item->discount_amount ?? 0,
-                ];
-            })->all();
-
-            $invoice->invoiceItems()->createMany($items);
-
-            return $invoice;
-        });
-
-        $invoice->load([
-            'party',
-            'discount',
-            'invoiceItems.discount',
-            'invoiceItems.productVariant.product',
-            'invoiceItems.unit',
-            'invoiceItems.tax',
-            'invoiceItems.warehouse',
-        ]);
-
-        return response()->json([
-            'data' => InvoiceResource::make($invoice),
-            'message' => 'Invoice created from sales order successfully.',
-        ], 201);
-    }
-
-    private function generateOrderNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = SalesOrder::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'SO-'.($count + 1).$suffix;
-    }
-
-    private function generateInvoiceNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Invoice::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'INV-'.($count + 1).$suffix;
     }
 }

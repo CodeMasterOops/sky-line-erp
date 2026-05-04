@@ -3,26 +3,26 @@
 namespace App\Services\Sales;
 
 use App\Enums\StatusEnum;
-use App\Models\Quotation;
+use App\Models\SalesOrder;
 use Illuminate\Support\Facades\DB;
 
-readonly class QuotationService
+readonly class SalesOrderService
 {
-    public function createQuotation(array $formData): Quotation
+    public function createSalesOrder(array $formData): SalesOrder
     {
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $quotationNo = $formData['quotation_no'] ?? $this->generateQuotationNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $orderNo = $formData['order_no'] ?? $this->generateOrderNo($fiscalYearId, $setting->fiscalYear?->year_code);
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $quotationNo) {
-            $quotation = Quotation::create([
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $orderNo) {
+            $order = SalesOrder::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
-                'quotation_no' => $quotationNo,
-                'quotation_date' => $formData['quotation_date'],
-                'expiry_date' => $formData['expiry_date'] ?? null,
+                'quotation_id' => $formData['quotation_id'] ?? null,
+                'order_no' => $orderNo,
+                'order_date' => $formData['order_date'],
                 'remarks' => $formData['remarks'] ?? null,
                 'create_user_id' => $user->id,
                 'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
@@ -31,7 +31,7 @@ readonly class QuotationService
             ]);
 
             if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                $quotation->saveDiscount(
+                $order->saveDiscount(
                     $formData['order_discount_type'] ?? 'fixed',
                     isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
                     0,
@@ -39,7 +39,7 @@ readonly class QuotationService
             }
 
             foreach ($formData['items'] ?? [] as $item) {
-                $quotationItem = $quotation->quotationItems()->create([
+                $orderItem = $order->salesOrderItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -50,7 +50,7 @@ readonly class QuotationService
                 ]);
 
                 if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $quotationItem->saveDiscount(
+                    $orderItem->saveDiscount(
                         $item['line_discount_type'] ?? 'fixed',
                         isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
                         $item['discount_amount'] ?? 0,
@@ -58,35 +58,35 @@ readonly class QuotationService
                 }
             }
 
-            return $quotation;
+            return $order;
         });
     }
 
-    public function updateQuotation(array $formData, Quotation $quotation): void
+    public function updateSalesOrder(array $formData, SalesOrder $salesOrder): void
     {
-        $quotationNo = $formData['quotation_no'] ?? $quotation->quotation_no;
+        $orderNo = $formData['order_no'] ?? $salesOrder->order_no;
 
-        DB::transaction(function () use ($quotation, $formData, $quotationNo) {
-            $quotation->update([
+        DB::transaction(function () use ($salesOrder, $formData, $orderNo) {
+            $salesOrder->update([
                 'party_id' => $formData['party_id'] ?? null,
-                'quotation_no' => $quotationNo,
-                'quotation_date' => $formData['quotation_date'],
-                'expiry_date' => $formData['expiry_date'] ?? null,
+                'quotation_id' => $formData['quotation_id'] ?? $salesOrder->quotation_id,
+                'order_no' => $orderNo,
+                'order_date' => $formData['order_date'],
                 'remarks' => $formData['remarks'] ?? null,
             ]);
 
-            $quotation->quotationItems()->delete();
-
             if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                $quotation->saveDiscount(
+                $salesOrder->saveDiscount(
                     $formData['order_discount_type'] ?? 'fixed',
                     isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
                     0,
                 );
             }
 
+            $salesOrder->salesOrderItems()->delete();
+
             foreach ($formData['items'] ?? [] as $item) {
-                $quotationItem = $quotation->quotationItems()->create([
+                $orderItem = $salesOrder->salesOrderItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -97,7 +97,7 @@ readonly class QuotationService
                 ]);
 
                 if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $quotationItem->saveDiscount(
+                    $orderItem->saveDiscount(
                         $item['line_discount_type'] ?? 'fixed',
                         isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
                         $item['discount_amount'] ?? 0,
@@ -107,25 +107,25 @@ readonly class QuotationService
         });
     }
 
-    public function approveQuotation(Quotation $quotation): void
+    public function approveSalesOrder(SalesOrder $salesOrder): void
     {
         $user = auth('admin')->user();
 
-        $quotation->update([
+        $salesOrder->update([
             'approve_user_id' => $user->id,
             'approved_at' => now(),
             'status' => StatusEnum::APPROVED->value,
         ]);
     }
 
-    private function generateQuotationNo(?int $fiscalYearId, ?string $yearCode): string
+    private function generateOrderNo(?int $fiscalYearId, ?string $yearCode): string
     {
-        $count = Quotation::where('fiscal_year_id', $fiscalYearId)
+        $count = SalesOrder::where('fiscal_year_id', $fiscalYearId)
             ->withTrashed()
             ->count();
 
         $suffix = $yearCode ? '/'.$yearCode : '';
 
-        return 'QT-'.($count + 1).$suffix;
+        return 'SO-'.($count + 1).$suffix;
     }
 }
