@@ -23,6 +23,8 @@ class InvoiceRequest extends FormRequest
             'invoice_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
             'party_id' => ['nullable', TRule::exists('parties', 'id')->withoutTrashed()],
+            'quotation_id' => ['nullable', TRule::exists('quotations', 'id')->withoutTrashed()],
+            'sales_order_id' => ['nullable', TRule::exists('sales_orders', 'id')->withoutTrashed()],
             'reference_type' => ['nullable', 'string', 'max:255', 'required_with:reference_id'],
             'reference_id' => ['nullable', 'integer', 'min:1', 'required_with:reference_type'],
             'remarks' => ['nullable', 'string'],

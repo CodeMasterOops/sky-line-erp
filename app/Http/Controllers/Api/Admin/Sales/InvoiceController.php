@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Admin\Sales;
 
 use App\Models\Invoice;
 use App\Enums\StatusEnum;
+use App\Models\Quotation;
+use App\Models\SalesOrder;
 use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
@@ -46,6 +48,7 @@ class InvoiceController extends Controller
     public function store(InvoiceRequest $request)
     {
         $formData = $request->validated();
+        $reference = $this->resolveReferencePayload($formData);
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
@@ -53,7 +56,7 @@ class InvoiceController extends Controller
         $invoiceNo = $formData['invoice_no'] ?? $this->generateInvoiceNo($fiscalYearId, $setting->fiscalYear?->year_code);
 
         try {
-            $invoice = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $invoiceNo) {
+            $invoice = DB::transaction(function () use ($formData, $reference, $user, $status, $fiscalYearId, $invoiceNo) {
                 $invoiceDateBs = null;
                 try {
                     $bs = $this->nepaliDate->adToBs($formData['invoice_date']);
@@ -64,8 +67,8 @@ class InvoiceController extends Controller
                 $invoice = Invoice::create([
                     'fiscal_year_id' => $fiscalYearId,
                     'party_id' => $formData['party_id'] ?? null,
-                    'reference_type' => $formData['reference_type'] ?? null,
-                    'reference_id' => $formData['reference_id'] ?? null,
+                    'reference_type' => $reference['reference_type'],
+                    'reference_id' => $reference['reference_id'],
                     'invoice_no' => $invoiceNo,
                     'invoice_date' => $formData['invoice_date'],
                     'invoice_date_bs' => $invoiceDateBs,
@@ -179,13 +182,14 @@ class InvoiceController extends Controller
         }
 
         $formData = $request->validated();
+        $reference = $this->resolveReferencePayload($formData, $invoice);
         $invoiceNo = $formData['invoice_no'] ?? $invoice->invoice_no;
 
-        $invoice = DB::transaction(function () use ($invoice, $formData, $invoiceNo) {
+        $invoice = DB::transaction(function () use ($invoice, $formData, $invoiceNo, $reference) {
             $invoice->update([
                 'party_id' => $formData['party_id'] ?? null,
-                'reference_type' => $formData['reference_type'] ?? $invoice->reference_type,
-                'reference_id' => $formData['reference_id'] ?? $invoice->reference_id,
+                'reference_type' => $reference['reference_type'],
+                'reference_id' => $reference['reference_id'],
                 'invoice_no' => $invoiceNo,
                 'invoice_date' => $formData['invoice_date'],
                 'due_date' => $formData['due_date'] ?? null,
@@ -466,5 +470,33 @@ class InvoiceController extends Controller
         $suffix = $yearCode ? '/'.$yearCode : '';
 
         return 'INV-'.($count + 1).$suffix;
+    }
+
+    /**
+     * @param  array<string, mixed>  $formData
+     * @return array{reference_type: ?string, reference_id: ?int}
+     */
+    private function resolveReferencePayload(array $formData, ?Invoice $invoice = null): array
+    {
+        if (! empty($formData['sales_order_id'])) {
+            return [
+                'reference_type' => SalesOrder::class,
+                'reference_id' => (int) $formData['sales_order_id'],
+            ];
+        }
+
+        if (! empty($formData['quotation_id'])) {
+            return [
+                'reference_type' => Quotation::class,
+                'reference_id' => (int) $formData['quotation_id'],
+            ];
+        }
+
+        return [
+            'reference_type' => $formData['reference_type'] ?? $invoice?->reference_type,
+            'reference_id' => isset($formData['reference_id'])
+                ? (int) $formData['reference_id']
+                : $invoice?->reference_id,
+        ];
     }
 }

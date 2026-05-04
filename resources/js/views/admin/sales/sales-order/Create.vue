@@ -1,7 +1,7 @@
 <template>
     <VModal
         :show-modal="!!createModalOpened"
-        @close-click="createModalOpened = false"
+        @close-click="closeCreateModal"
         size="xl"
         title="Add Sales Order">
         <template #modal-body>
@@ -227,23 +227,28 @@ import {storeToRefs} from 'pinia';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
-import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
+import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
 const salesOrderStore = useSalesOrderStore();
+const quotationStore = useQuotationStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 
 const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
+const quotationId = defineModel('quotationId');
+const emit = defineEmits(['created']);
 
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
+const {quotation} = storeToRefs(quotationStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
 
@@ -261,6 +266,7 @@ watch(
     createModalOpened,
     (opened) => {
         if (opened) {
+            resetForm();
             taxStore.getTaxes();
             partyStore.getParties({
                 filter: {
@@ -269,6 +275,9 @@ watch(
                     search: '',
                 },
             });
+            if (quotationId.value) {
+                loadFromQuotation();
+            }
         }
     },
     {flush: 'post'}
@@ -277,6 +286,7 @@ watch(
 const getInitialState = () => ({
     order_date: currentAdDate,
     party_id: '',
+    quotation_id: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',
@@ -286,6 +296,58 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+const loadFromQuotation = async () => {
+    await quotationStore.getQuotation(quotationId.value);
+    const data = quotation.value.data;
+    form.party_id = data.party_id || '';
+    form.quotation_id = quotationId.value;
+    form.remarks = data.remarks || '';
+
+    const items = data.items || [];
+    const hasLineTypes = items.some((it) => it.line_discount_type != null);
+
+    if (hasLineTypes) {
+        form.order_discount_type = data.order_discount_type || 'fixed';
+        form.order_discount_value =
+            data.order_discount_value != null && data.order_discount_value !== ''
+                ? String(data.order_discount_value)
+                : '0';
+
+        items.forEach((item) => {
+            form.items.push({
+                product_variant_id: item.product_variant_id,
+                product_label: variantLabel(item.product_variant),
+                purchase_snapshot: item.product_variant?.purchase_price || 0,
+                unit_id: item.unit_id ?? '',
+                quantity: String(item.quantity),
+                rate: String(item.rate),
+                tax_id: item.tax_id || '',
+                line_discount_type: item.line_discount_type || 'fixed',
+                line_discount_value: String(item.line_discount_value ?? 0),
+            });
+        });
+
+        return;
+    }
+
+    const mergedDiscounts = mergePoOrderDiscountIntoLineDiscounts(items, data.order_discount_amount);
+    form.order_discount_type = 'fixed';
+    form.order_discount_value = '0';
+    items.forEach((item, i) => {
+        form.items.push({
+            product_variant_id: item.product_variant_id,
+            product_label: variantLabel(item.product_variant),
+            purchase_snapshot: item.product_variant?.purchase_price || 0,
+            unit_id: item.unit_id ?? '',
+            quantity: String(item.quantity),
+            rate: String(item.rate),
+            tax_id: item.tax_id || '',
+            line_discount_type: 'fixed',
+            line_discount_value: String(mergedDiscounts[i] ?? item.discount_amount ?? 0),
+        });
+    });
+};
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -358,6 +420,7 @@ const buildOrderPayload = () => {
     return {
         order_date: form.order_date,
         party_id: form.party_id || null,
+        quotation_id: form.quotation_id || null,
         remarks: form.remarks,
         status: form.status,
         order_discount_type: form.order_discount_type || 'fixed',
@@ -384,6 +447,7 @@ const storeOrderWithStatus = async (status) => {
         try {
             const res = await salesOrderStore.storeOrder(buildOrderPayload());
             toast(res.status, res.data.message);
+            emit('created', res.data.data);
             closeCreateModal();
         } catch (e) {
             showErrors(e);
@@ -395,6 +459,7 @@ const storeOrderWithStatus = async (status) => {
 
 const closeCreateModal = () => {
     resetForm();
+    quotationId.value = '';
     createModalOpened.value = false;
 };
 

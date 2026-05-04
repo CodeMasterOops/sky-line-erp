@@ -15,6 +15,8 @@ class InvoiceResource extends JsonResource
         $payment = $this->calculatePaymentTotals($totals['grand_total']);
 
         return [
+            'quotation_id' => $this->reference_type === \App\Models\Quotation::class ? $this->reference_id : null,
+            'sales_order_id' => $this->reference_type === \App\Models\SalesOrder::class ? $this->reference_id : null,
             'id' => $this->id ?? '',
             'invoice_no' => $this->invoice_no ?? '',
             'invoice_date' => $this->invoice_date ?? '',

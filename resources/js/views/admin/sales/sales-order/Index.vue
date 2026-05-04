@@ -62,10 +62,13 @@
     </div>
 
     <CreateSalesOrder v-model:create-modal-opened="createModalOpened" />
+    <CreateInvoice
+        v-model:create-modal-opened="invoiceModalOpened"
+        v-model:sales-order-id="invoiceSalesOrderId"
+        @created="fetchOrders"
+    />
     <EditSalesOrder v-model:order_id="edit_order_id" />
     <SalesOrderDetailModal v-model:detail-order-id="detail_order_id" />
-    <CreateInvoiceFromReference v-model:open="invoiceModalOpened" v-model:reference-id="invoiceReferenceId"
-        v-model:reference-type="invoiceReferenceType" />
 </template>
 
 <script setup>
@@ -74,9 +77,9 @@ import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import CreateSalesOrder from './Create.vue';
+import CreateInvoice from '@/views/admin/sales/invoice/Create.vue';
 import EditSalesOrder from './Edit.vue';
 import SalesOrderDetailModal from './DetailModal.vue';
-import CreateInvoiceFromReference from '@/views/admin/sales/invoice/CreateFromReference.vue';
 import { useSalesOrderStore } from '@/stores/admin/sales/sales-order.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
@@ -90,8 +93,7 @@ const createModalOpened = ref(false);
 const edit_order_id = ref('');
 const detail_order_id = ref('');
 const invoiceModalOpened = ref(false);
-const invoiceReferenceId = ref('');
-const invoiceReferenceType = ref('');
+const invoiceSalesOrderId = ref('');
 
 const fetchOrders = () => salesOrderStore.getOrders({ filter });
 
@@ -142,8 +144,7 @@ const handleApprove = (id) => {
 };
 
 const convertToInvoice = (id) => {
-    invoiceReferenceId.value = id;
-    invoiceReferenceType.value = 'sales-order';
+    invoiceSalesOrderId.value = id;
     invoiceModalOpened.value = true;
 };
 

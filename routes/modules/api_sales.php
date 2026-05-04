@@ -9,14 +9,11 @@ use App\Http\Controllers\Api\Admin\Sales\SalesOrderController;
 use App\Http\Controllers\Api\Admin\Sales\SalesReportController;
 
 // quotation
-Route::post('quotation/{quotation}/convert-to-sale', [QuotationController::class, 'convertToSale'])->name('quotation.convert-to-sale');
-Route::post('quotation/{quotation}/convert-to-invoice', [QuotationController::class, 'convertToInvoice'])->name('quotation.convert-to-invoice');
 Route::post('quotation/{quotation}/approve', [QuotationController::class, 'approve'])->name('quotation.approve');
 Route::apiResource('quotation', QuotationController::class);
 
 // sales order
 Route::post('sales-order/{salesOrder}/approve', [SalesOrderController::class, 'approve'])->name('sales-order.approve');
-Route::post('sales-order/{salesOrder}/convert-to-invoice', [SalesOrderController::class, 'convertToInvoice'])->name('sales-order.convert-to-invoice');
 Route::apiResource('sales-order', SalesOrderController::class);
 
 // sales reports

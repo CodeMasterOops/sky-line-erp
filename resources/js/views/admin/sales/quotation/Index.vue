@@ -63,9 +63,17 @@
     </div>
 
     <CreateQuotation v-model:create-modal-opened="createModalOpened" />
+    <CreateSalesOrder
+        v-model:create-modal-opened="salesOrderModalOpened"
+        v-model:quotation-id="salesOrderQuotationId"
+        @created="fetchQuotations"
+    />
+    <CreateInvoice
+        v-model:create-modal-opened="invoiceModalOpened"
+        v-model:quotation-id="invoiceQuotationId"
+        @created="fetchQuotations"
+    />
     <EditQuotation v-model:quotation_id="edit_quotation_id" />
-    <CreateInvoiceFromReference v-model:open="invoiceModalOpened" v-model:reference-id="invoiceReferenceId"
-        v-model:reference-type="invoiceReferenceType" />
 </template>
 
 <script setup>
@@ -74,8 +82,9 @@ import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import CreateQuotation from './Create.vue';
+import CreateSalesOrder from '@/views/admin/sales/sales-order/Create.vue';
+import CreateInvoice from '@/views/admin/sales/invoice/Create.vue';
 import EditQuotation from './Edit.vue';
-import CreateInvoiceFromReference from '@/views/admin/sales/invoice/CreateFromReference.vue';
 import { useQuotationStore } from '@/stores/admin/sales/quotation.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
@@ -86,10 +95,11 @@ const quotationStore = useQuotationStore();
 const { quotations } = storeToRefs(quotationStore);
 
 const createModalOpened = ref(false);
+const salesOrderModalOpened = ref(false);
 const edit_quotation_id = ref('');
 const invoiceModalOpened = ref(false);
-const invoiceReferenceId = ref('');
-const invoiceReferenceType = ref('');
+const salesOrderQuotationId = ref('');
+const invoiceQuotationId = ref('');
 
 const fetchQuotations = () => quotationStore.getQuotations({ filter });
 
@@ -119,8 +129,7 @@ const { confirmDelete, confirmAction } = useConfirmAction();
 const editQuotation = (id) => { edit_quotation_id.value = id; };
 
 const convertToInvoice = (id) => {
-    invoiceReferenceId.value = id;
-    invoiceReferenceType.value = 'quotation';
+    invoiceQuotationId.value = id;
     invoiceModalOpened.value = true;
 };
 
@@ -144,15 +153,8 @@ const handleApprove = (id) => {
 };
 
 const handleConvertToSale = (id) => {
-    confirmAction({
-        title: 'Convert to Sale?',
-        text: 'This will create a sales order from the quotation.',
-        icon: 'question',
-        confirmButtonColor: 'green',
-        confirmButtonText: 'Yes',
-        action: () => quotationStore.convertToSale(id),
-        onSuccess: fetchQuotations,
-    });
+    salesOrderQuotationId.value = id;
+    salesOrderModalOpened.value = true;
 };
 
 const rowActions = createRowActions({

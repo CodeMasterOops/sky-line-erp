@@ -7,10 +7,10 @@ use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
 
-class PurchaseOrderService
+readonly class PurchaseOrderService
 {
     public function __construct(
-        private readonly PurchaseOrderTotalsCalculator $totalsCalculator
+        private PurchaseOrderTotalsCalculator $totalsCalculator
     ) {}
 
     public function createPurchaseOrder(array $formData)
@@ -43,15 +43,7 @@ class PurchaseOrderService
             $order->saveDiscount($orderDiscountType, $orderDiscountValue, $orderDiscountAmount);
 
             foreach ($items as $item) {
-                $orderItem = $order->purchaseOrderItems()->create([
-                    'product_variant_id' => $item['product_variant_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'],
-                    'discount_amount' => $item['discount_amount'],
-                ]);
+                $orderItem = $order->purchaseOrderItems()->create($item);
 
                 $orderItem->saveDiscount(
                     $item['line_discount_type'],
@@ -83,15 +75,7 @@ class PurchaseOrderService
             $purchaseOrder->purchaseOrderItems()->delete();
 
             foreach ($items as $item) {
-                $orderItem = $purchaseOrder->purchaseOrderItems()->create([
-                    'product_variant_id' => $item['product_variant_id'],
-                    'quantity' => $item['quantity'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'rate' => $item['rate'],
-                    'tax_id' => $item['tax_id'] ?? null,
-                    'tax_amount' => $item['tax_amount'],
-                    'discount_amount' => $item['discount_amount'],
-                ]);
+                $orderItem = $purchaseOrder->purchaseOrderItems()->create($item);
 
                 $orderItem->saveDiscount(
                     $item['line_discount_type'],

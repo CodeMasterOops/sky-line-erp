@@ -1,7 +1,7 @@
 <template>
     <VModal
         :show-modal="!!createModalOpened"
-        @close-click="createModalOpened = false"
+        @close-click="closeCreateModal"
         size="xl"
         title="Add Invoice">
         <template #modal-body>
@@ -295,9 +295,11 @@ import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
+import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
+import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {apiAdmin} from '@/helpers/api.js';
-import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
+import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
@@ -306,6 +308,8 @@ import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 
 const invoiceStore = useInvoiceStore();
+const quotationStore = useQuotationStore();
+const salesOrderStore = useSalesOrderStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
@@ -344,12 +348,17 @@ const onWarehouseChange = async (warehouseId) => {
 };
 
 const createModalOpened = defineModel('createModalOpened');
+const quotationId = defineModel('quotationId');
+const salesOrderId = defineModel('salesOrderId');
+const emit = defineEmits(['created']);
 
 const {currentAdDate} = useDateHelper();
 
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses} = storeToRefs(warehouseStore);
+const {quotation} = storeToRefs(quotationStore);
+const {order} = storeToRefs(salesOrderStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
 
@@ -367,6 +376,7 @@ watch(
     createModalOpened,
     (opened) => {
         if (opened) {
+            resetForm();
             taxStore.getTaxes();
             warehouseStore.getWarehouses();
             loadBranches();
@@ -377,6 +387,11 @@ watch(
                     search: '',
                 },
             });
+            if (salesOrderId.value) {
+                loadFromSalesOrder();
+            } else if (quotationId.value) {
+                loadFromQuotation();
+            }
         }
     },
     {flush: 'post'}
@@ -386,6 +401,8 @@ const getInitialState = () => ({
     invoice_date: currentAdDate,
     due_date: '',
     party_id: '',
+    quotation_id: '',
+    sales_order_id: '',
     warehouse_id: '',
     branch_id: '',
     bijak_no: '',
@@ -412,6 +429,77 @@ function variantLabel(variant) {
 function defaultLineRateString(variant) {
     const n = Number(variant.sales_price ?? variant.purchase_price ?? 0);
     return String(Number.isFinite(n) ? n : 0);
+}
+
+const loadFromQuotation = async () => {
+    await quotationStore.getQuotation(quotationId.value);
+    hydrateFromReference(quotation.value.data, {
+        quotation_id: quotationId.value,
+        sales_order_id: '',
+    });
+};
+
+const loadFromSalesOrder = async () => {
+    await salesOrderStore.getOrder(salesOrderId.value);
+    hydrateFromReference(order.value.data, {
+        quotation_id: order.value.data?.quotation_id || '',
+        sales_order_id: salesOrderId.value,
+    });
+};
+
+function hydrateFromReference(data, sourceIds) {
+    form.party_id = data.party_id || '';
+    form.quotation_id = sourceIds.quotation_id || '';
+    form.sales_order_id = sourceIds.sales_order_id || '';
+    form.remarks = data.remarks || '';
+
+    const items = data.items || [];
+    const hasLineTypes = items.some((it) => it.line_discount_type != null);
+
+    if (hasLineTypes) {
+        form.order_discount_type = data.order_discount_type || 'fixed';
+        form.order_discount_value =
+            data.order_discount_value != null && data.order_discount_value !== ''
+                ? String(data.order_discount_value)
+                : '0';
+
+        items.forEach((item) => {
+            form.items.push({
+                product_variant_id: item.product_variant_id,
+                product_label: variantLabel(item.product_variant),
+                purchase_snapshot: item.product_variant?.purchase_price || 0,
+                unit_id: item.unit_id ?? '',
+                quantity: String(item.quantity),
+                rate: String(item.rate),
+                tax_id: item.tax_id || '',
+                tax_line_type: item.tax_line_type || 'taxable',
+                line_discount_type: item.line_discount_type || 'fixed',
+                line_discount_value: String(item.line_discount_value ?? 0),
+                batch_id: '',
+            });
+        });
+
+        return;
+    }
+
+    const mergedDiscounts = mergePoOrderDiscountIntoLineDiscounts(items, data.order_discount_amount);
+    form.order_discount_type = 'fixed';
+    form.order_discount_value = '0';
+    items.forEach((item, i) => {
+        form.items.push({
+            product_variant_id: item.product_variant_id,
+            product_label: variantLabel(item.product_variant),
+            purchase_snapshot: item.product_variant?.purchase_price || 0,
+            unit_id: item.unit_id ?? '',
+            quantity: String(item.quantity),
+            rate: String(item.rate),
+            tax_id: item.tax_id || '',
+            tax_line_type: item.tax_line_type || 'taxable',
+            line_discount_type: 'fixed',
+            line_discount_value: String(mergedDiscounts[i] ?? item.discount_amount ?? 0),
+            batch_id: '',
+        });
+    });
 }
 
 const onVariantSelected = (variant) => {
@@ -481,6 +569,8 @@ const buildInvoicePayload = () => {
         invoice_date: form.invoice_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
+        quotation_id: form.quotation_id || null,
+        sales_order_id: form.sales_order_id || null,
         branch_id: form.branch_id || null,
         bijak_no: form.bijak_no || null,
         remarks: form.remarks,
@@ -512,6 +602,7 @@ const storeInvoiceWithStatus = async (status) => {
         try {
             const res = await invoiceStore.storeInvoice(buildInvoicePayload());
             toast(res.status, res.data.message);
+            emit('created', res.data.data);
             closeCreateModal();
         } catch (e) {
             showErrors(e);
@@ -523,6 +614,8 @@ const storeInvoiceWithStatus = async (status) => {
 
 const closeCreateModal = () => {
     resetForm();
+    quotationId.value = '';
+    salesOrderId.value = '';
     createModalOpened.value = false;
 };
 

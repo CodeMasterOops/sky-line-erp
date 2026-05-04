@@ -74,36 +74,6 @@ export const useQuotationStore = defineStore('quotation', {
                     throw err;
                 });
         },
-        convertToInvoice(id, payload) {
-            return apiAdmin(`${apiUrl}/${id}/convert-to-invoice`, 'post', payload)
-                .then((res) => {
-                    const index = this.quotations.data.findIndex(d => d.id === id);
-                    if (index !== -1) {
-                        this.quotations.data[index] = {
-                            ...this.quotations.data[index],
-                            invoice_count: (this.quotations.data[index].invoice_count || 0) + 1,
-                        };
-                    }
-                    return res;
-                }).catch((err) => {
-                    throw err;
-                });
-        },
-        convertToSale(id) {
-            return apiAdmin(`${apiUrl}/${id}/convert-to-sale`, 'post')
-                .then((res) => {
-                    const index = this.quotations.data.findIndex(d => d.id === id);
-                    if (index !== -1) {
-                        this.quotations.data[index] = {
-                            ...this.quotations.data[index],
-                            sales_order_count: (this.quotations.data[index].sales_order_count || 0) + 1,
-                        };
-                    }
-                    return res;
-                }).catch((err) => {
-                    throw err;
-                });
-        },
         deleteQuotation(id) {
             return apiAdmin(`${apiUrl}/${id}`, 'delete')
                 .then((res) => {
