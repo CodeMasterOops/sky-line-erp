@@ -8,6 +8,8 @@ enum JournalTypeEnum: string
     case EXPENSE = 'expense';
     case INVOICE = 'invoice';
     case PAYMENT = 'payment';
+
+    case RECEIPT = 'receipt';
     case JOURNAL_VOUCHER = 'journal-voucher';
     case PAYMENT_VOUCHER = 'payment-voucher';
     case RECEIPT_VOUCHER = 'receipt-voucher';
@@ -27,7 +29,8 @@ enum JournalTypeEnum: string
             self::PURCHASE_BILL => 'Purchase Bill',
             self::EXPENSE => 'Expense',
             self::INVOICE => 'Invoice',
-            self::PAYMENT => 'Customer Payment',
+            self::PAYMENT => 'Supplier Payment',
+            self::RECEIPT => 'Customer Payment',
             self::JOURNAL_VOUCHER => 'Journal Voucher',
             self::PAYMENT_VOUCHER => 'Payment Voucher',
             self::RECEIPT_VOUCHER => 'Receipt Voucher',

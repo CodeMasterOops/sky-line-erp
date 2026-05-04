@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Accounting;
+namespace App\Services\Purchase;
 
 use App\Models\Payment;
 use App\Enums\StatusEnum;

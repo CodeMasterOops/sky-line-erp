@@ -7,7 +7,7 @@ use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Services\Accounting\PaymentService;
+use App\Services\Purchase\PaymentService;
 use App\Http\Resources\Admin\Purchase\PaymentResource;
 use App\Http\Requests\Api\Admin\Purchase\PaymentRequest;
 
