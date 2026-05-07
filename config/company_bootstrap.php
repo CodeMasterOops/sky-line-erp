@@ -46,5 +46,9 @@ return [
         'inventory_account_id' => 'INV',
         'cogs_account_id' => 'COGS',
     ],
+    'default_branch' => [
+        'name' => 'Main',
+        'code' => 'MAIN',
+    ],
 
 ];

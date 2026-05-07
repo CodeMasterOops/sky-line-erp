@@ -2,6 +2,8 @@ import axios from "axios";
 import {useAdminAuthStore} from "@/stores/admin/auth";
 import {useRouter} from "vue-router";
 import {useSuperAdminAuthStore} from "@/stores/super-admin/auth.js";
+import {storeToRefs} from "pinia";
+import {useBranchStore} from "@/stores/admin/settings/branch.js";
 
 const router = useRouter();
 
@@ -22,8 +24,13 @@ const apiAdmin = (url, method = 'get', body = {}, options = {}) => {
         ...options
     });
 
+    const branchId = useBranchStore().selectedBranchId;
+
     axiosBase.interceptors.request.use(config => {
-        config.headers.Authorization = `Bearer ${useAdminAuthStore().authUser.access_token}`
+        config.headers.Authorization = `Bearer ${useAdminAuthStore().authUser.access_token}`;
+        if (branchId) {
+            config.headers['X-Branch-Id'] = branchId;
+        }
         return config;
     })
 
@@ -91,11 +98,11 @@ const formattedRequest = (base, method, url, body = null) => {
 const downloadAdminFile = async (url, filename, params = {}) => {
     const token = useAdminAuthStore().authUser.access_token;
     const response = await axios.get(`${baseUrl}/admin/${url}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {Authorization: `Bearer ${token}`},
         params,
         responseType: 'blob',
     });
-    const blob = new Blob([response.data], { type: response.headers['content-type'] });
+    const blob = new Blob([response.data], {type: response.headers['content-type']});
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename;

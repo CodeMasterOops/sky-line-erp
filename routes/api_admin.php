@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\SetTenantContext;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\PosController;
 use App\Http\Controllers\Api\Admin\AuthController;
@@ -24,7 +25,7 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('logout', 'logout')->middleware('auth:admin');
 });
 
-Route::middleware('auth:admin')->group(function () {
+Route::middleware('auth:admin')->middleware(SetTenantContext::class)->group(function () {
     Route::middleware('checkRole')->group(function () {
         // profile
         Route::prefix('profile')->as('profile')->controller(ProfileController::class)->group(function () {

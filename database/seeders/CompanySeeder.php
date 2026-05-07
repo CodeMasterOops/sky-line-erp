@@ -6,8 +6,7 @@ use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
 use Illuminate\Database\Seeder;
-use App\Services\CompanyBootstrapService;
-use App\Services\Accounting\CoaInsertService;
+use App\Services\SetCompanyDefaultDataService;
 
 class CompanySeeder extends Seeder
 {
@@ -29,15 +28,7 @@ class CompanySeeder extends Seeder
                 'user_type' => UserTypeEnum::ADMIN->value,
             ]);
 
-            (new CoaInsertService($company))->saveCoaData();
-            CompanyBootstrapService::runForCompany($company->id);
-            $this->seedDefaultTaxes($company->id);
-            CompanyCatalogSeeder::seedForCompany($company->id);
+            SetCompanyDefaultDataService::setData($company);
         }
-    }
-
-    private function seedDefaultTaxes(int $companyId): void
-    {
-        TaxSeeder::seedForCompany($companyId);
     }
 }

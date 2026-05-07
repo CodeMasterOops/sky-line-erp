@@ -22,21 +22,28 @@
 
         <ul class="nav user-menu">
 
-            <!-- Fiscal year: static label until wired to API — see constants / TODO below -->
             <li class="nav-item fiscal-year-nav">
                 <router-link
                     class="fiscal-year-link"
-                    :to="{ name: 'admin.setting' }"
-                    :title="fiscalYearTooltip"
+                    :to="{ name: 'admin.branch-select', query: { redirect: currentPath } }"
+                    :title="contextTooltip"
                 >
                     <span class="fiscal-year-icon-wrap" aria-hidden="true">
-                        <i class="fa fa-calendar"></i>
+                        <i class="fa fa-building"></i>
                     </span>
                     <span class="fiscal-year-label d-none d-md-flex flex-column">
-                        <span class="fiscal-year-title">{{ currentFiscalYear.data.year_name }}</span>
+                        <span class="fiscal-year-title">{{ selectedBranchLabel }}</span>
                         <span class="fiscal-year-sub">
-                            {{ adToBsDate(currentFiscalYear.data.start_date) }} -
-                            {{ adToBsDate(currentFiscalYear.data.end_date) }}
+                            <template v-if="currentFiscalYear.data.year_name">
+                                {{ currentFiscalYear.data.year_name }}
+                                <span v-if="currentFiscalYear.data.start_date && currentFiscalYear.data.end_date">
+                                    · {{ adToBsDate(currentFiscalYear.data.start_date) }} -
+                                    {{ adToBsDate(currentFiscalYear.data.end_date) }}
+                                </span>
+                            </template>
+                            <template v-else>
+                                Change branch context
+                            </template>
                         </span>
                     </span>
                 </router-link>
@@ -211,12 +218,16 @@ import {useRouter} from "vue-router";
 import {useAdminNotificationStore} from "@/stores/admin/notification";
 import {useAdminSettingStore} from "@/stores/admin/settings/admin-setting.js";
 import {adToBsDate} from "@/helpers/helper.js";
+import {useBranchStore} from "@/stores/admin/settings/branch.js";
+import {useRoute} from "vue-router";
 
 const notificationStore = useAdminNotificationStore();
 const profileStore = useProfileStore();
 const authStore = useAdminAuthStore();
 const adminSettingStore = useAdminSettingStore();
+const branchStore = useBranchStore();
 const router = useRouter();
+const route = useRoute();
 
 /** Name must match a route in `admin.js`; access follows `adminRoutePermissions.js`. */
 const QUICK_SHORTCUTS = [
@@ -274,14 +285,24 @@ onMounted(() => {
     profileStore.getProfile();
     notificationStore.getUnreadNotifications();
     adminSettingStore.getCurrentFiscalYear();
-})
+    branchStore.ensureSelectedBranchLoaded();
+});
 
 const {profile} = storeToRefs(profileStore);
 const {unreadNotifications: notifications} = storeToRefs(notificationStore);
 const {currentFiscalYear} = storeToRefs(adminSettingStore);
+const {selectedBranch} = storeToRefs(branchStore);
 
-const fiscalYearTooltip = computed(() => {
-    return `Fiscal year · ${currentFiscalYear.value.data.year_name}`;
+const currentPath = computed(() => route.fullPath);
+
+const selectedBranchLabel = computed(() => {
+    return selectedBranch.value?.name || 'Select Branch';
+});
+
+const contextTooltip = computed(() => {
+    const branchName = selectedBranch.value?.name || 'No branch selected';
+    const fiscalYearName = currentFiscalYear.value.data.year_name || 'No fiscal year';
+    return `${branchName} · ${fiscalYearName}`;
 });
 
 const logout = async () => {

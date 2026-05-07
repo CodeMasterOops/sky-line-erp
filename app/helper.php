@@ -41,7 +41,7 @@ if (! function_exists('columnExists')) {
 if (! function_exists('hasPermission')) {
     function hasPermission($permissions): bool
     {
-        $user = auth()->user();
+        $user = auth('admin')->user();
 
         if ($user->user_type == \App\Enums\UserTypeEnum::ADMIN) {
             return true;

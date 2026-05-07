@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\StatusEnum;
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,11 +13,13 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class StockAdjustment extends Model
 {
+    use BranchTenant;
     use MultiTenant;
     use SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'reference_no',
         'date',
         'warehouse_id',

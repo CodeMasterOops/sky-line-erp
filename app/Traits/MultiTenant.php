@@ -2,24 +2,24 @@
 
 namespace App\Traits;
 
+use App\Services\TenantService;
 use Illuminate\Database\Eloquent\Builder;
 
 trait MultiTenant
 {
     public static function bootMultiTenant(): void
     {
-        if (request()->routeIs('api.admin.*') && auth('admin')->check()) {
-            if (columnExists((new self)->getTable(), 'company_id')) {
-                $user = auth('admin')->user();
-                static::creating(function ($model) use ($user) {
-                    $model->company_id = is_null($model->company_id) ? $user->company_id : $model->company_id;
-                });
+        $companyId = TenantService::companyId();
 
-                // global scope
-                static::addGlobalScope('company_scope', function (Builder $builder) use ($user) {
-                    return $builder->where('company_id', $user->company_id);
-                });
-            }
+        if ($companyId && columnExists((new self)->getTable(), 'company_id')) {
+            static::creating(function ($model) use ($companyId) {
+                $model->company_id = is_null($model->company_id) ? $companyId : $model->company_id;
+            });
+
+            // global scope
+            static::addGlobalScope('company_scope', function (Builder $builder) use ($companyId) {
+                return $builder->where('company_id', $companyId);
+            });
         }
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\StatusEnum;
 use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -14,12 +15,14 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Expense extends Model
 {
+    use BranchTenant;
     use HasDiscount;
     use MultiTenant;
     use SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'fiscal_year_id',
         'party_id',
         'expense_no',

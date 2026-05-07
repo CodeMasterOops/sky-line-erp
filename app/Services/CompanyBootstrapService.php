@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Branch;
 use App\Models\Account;
 use App\Models\Company;
 use App\Models\Warehouse;
@@ -32,6 +33,19 @@ class CompanyBootstrapService
             ],
             [
                 'name' => $warehouse['name'],
+            ]
+        );
+
+        $branch = config('company_bootstrap.default_branch');
+
+        Branch::firstOrCreate(
+            [
+                'company_id' => $company->id,
+                'code' => $branch['code'],
+            ],
+            [
+                'name' => $branch['name'],
+                'is_head_office' => true,
             ]
         );
 

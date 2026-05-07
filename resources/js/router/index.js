@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import adminRoutes from '@/router/admin';
 import superAdminRoutes from '@/router/super-admin.js';
 import { useAdminAuthStore } from '@/stores/admin/auth';
+import { useBranchStore } from '@/stores/admin/settings/branch.js';
 import { useSuperAdminAuthStore } from '@/stores/super-admin/auth.js';
 import { satisfiesAdminRoutePermission } from '@/helpers/checkPermission';
 import { getAdminRoutePermission } from '@/router/adminRoutePermissions';
@@ -21,11 +22,12 @@ const router = createRouter({
     linkActiveClass: 'active'
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
     document.title = `${to.meta.pageTitle ?? ''}`;
 
     if (to.meta.isAdmin) {
         const adminAuth = useAdminAuthStore();
+        const branchStore = useBranchStore();
         if (to.meta.requiresAuth && !adminAuth.authUser.access_token) {
             next({ name: 'admin.login' });
             return;
@@ -44,6 +46,22 @@ router.beforeEach((to, from, next) => {
                 return;
             }
         }
+
+        if (
+            adminAuth.authUser.access_token &&
+            !to.meta.isGuest &&
+            !to.meta.allowWithoutBranch
+        ) {
+            const selectedBranch = await branchStore.ensureSelectedBranchLoaded();
+            if (!branchStore.selectedBranchId || !selectedBranch) {
+                next({
+                    name: 'admin.branch-select',
+                    query: { redirect: to.fullPath },
+                });
+                return;
+            }
+        }
+
         next();
     } else if (to.meta.isSuperAdmin) {
         if (to.meta.requiresAuth && !useSuperAdminAuthStore().authUser.access_token) {

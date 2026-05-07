@@ -1,6 +1,6 @@
 <template>
     <div>
-        <PageHeader title="Branch Management" subtitle="Manage company branches / offices" @refresh="fetchBranches">
+        <PageHeader title="Branch Management" subtitle="Manage company branches / offices" @refresh="fetchBranches(true)">
             <template #actions>
                 <button v-can="'create_branch'" type="button" class="btn btn-primary" @click="openCreate">
                     <i class="ti ti-circle-plus me-2"></i> Add Branch
@@ -16,7 +16,7 @@
                 <div class="card flex-fill mb-0">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <a-table :columns="columns" :data-source="branches" :loading="loading" row-key="id">
+                            <a-table :columns="columns" :data-source="branches.data" :loading="branches.loading" row-key="id">
                                 <template #bodyCell="{ column, record }">
                                     <template v-if="column.key === 'is_head_office'">
                                         <span v-if="record.is_head_office" class="badge bg-primary">Head Office</span>
@@ -98,15 +98,17 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import Swal from 'sweetalert2';
-import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+import { storeToRefs } from 'pinia';
+import { useBranchStore } from '@/stores/admin/settings/branch.js';
 
-const loading = ref(false);
+const branchStore = useBranchStore();
+
 const saving = ref(false);
-const branches = ref([]);
 const formModal = ref(false);
 const editId = ref(null);
+const { branches } = storeToRefs(branchStore);
 
 const form = ref({ name: '', code: '', address: '', phone: '', email: '', pan: '', is_head_office: false, is_active: true });
 
@@ -123,12 +125,8 @@ const columns = [
 
 onMounted(fetchBranches);
 
-async function fetchBranches() {
-    loading.value = true;
-    try {
-        const { data } = await apiAdmin('branch');
-        branches.value = data.data;
-    } finally { loading.value = false; }
+async function fetchBranches(refetch = false) {
+    await branchStore.getBranches(refetch);
 }
 
 function openCreate() {
@@ -151,13 +149,12 @@ async function saveBranch() {
     saving.value = true;
     try {
         if (editId.value) {
-            await apiAdmin(`branch/${editId.value}`, 'put', form.value);
+            await branchStore.updateBranch(editId.value, form.value);
         } else {
-            await apiAdmin('branch', 'post', form.value);
+            await branchStore.storeBranch(form.value);
         }
         toast('Branch saved successfully');
         closeFormModal();
-        fetchBranches();
     } catch (e) { showErrors(e); }
     finally { saving.value = false; }
 }
@@ -165,8 +162,7 @@ async function saveBranch() {
 async function deleteBranch(id) {
     const result = await Swal.fire({ title: 'Delete branch?', text: 'All branch data will be unlinked.', icon: 'warning', showCancelButton: true, confirmButtonText: 'Delete' });
     if (!result.isConfirmed) return;
-    await apiAdmin(`branch/${id}`, 'delete');
+    await branchStore.deleteBranch(id);
     toast('Branch deleted');
-    fetchBranches();
 }
 </script>

@@ -58,7 +58,7 @@ export default [
     {
         path: "branches",
         name: "admin.branch-list",
-        meta: {pageTitle: "Branch Management"},
+        meta: {pageTitle: "Branch Management", allowWithoutBranch: true},
         component: () => import("@/views/admin/settings/branches/Index.vue"),
     },
     {

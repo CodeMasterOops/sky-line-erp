@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\StatusEnum;
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Enums\JournalTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,11 +14,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Journal extends Model
 {
+    use BranchTenant;
     use MultiTenant;
     use SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'fiscal_year_id',
         'type',
         'reference_type',

@@ -57,6 +57,15 @@ const routes = [
                 component: () => import("@/views/admin/Dashboard.vue"),
             },
             {
+                path: "select-branch",
+                name: "admin.branch-select",
+                meta: {
+                    pageTitle: "Select Branch",
+                    allowWithoutBranch: true,
+                },
+                component: () => import("@/views/admin/branch-selection/Index.vue"),
+            },
+            {
                 path: "profile",
                 redirect: "/admin/settings/profile",
             },

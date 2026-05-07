@@ -11,7 +11,7 @@ class CoaInsertService
 {
     public function __construct(public Company $company) {}
 
-    public function saveCoaData()
+    public function saveCoaData(): void
     {
         $companyId = $this->company->id;
         if (AccountGroup::where('company_id', $this->company->id)->count() == 0) {

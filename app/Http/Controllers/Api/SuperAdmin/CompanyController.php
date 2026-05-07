@@ -8,6 +8,7 @@ use App\Enums\UserTypeEnum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\SetCompanyDefaultDataService;
 use App\Http\Resources\SuperAdmin\CompanyResource;
 use App\Http\Requests\Api\SuperAdmin\CompanyRequest;
 
@@ -35,6 +36,8 @@ class CompanyController extends Controller
                 'password' => $request->validated('password'),
                 'user_type' => UserTypeEnum::ADMIN->value,
             ]);
+
+            SetCompanyDefaultDataService::setData($company);
 
             return $company;
         });
