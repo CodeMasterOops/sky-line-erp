@@ -75,16 +75,6 @@
                                 />
                             </div>
                         </div>
-                        <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <label class="form-label">Branch</label>
-                                <select class="form-select" v-model="form.branch_id">
-                                    <option value="">— No Branch —</option>
-                                    <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }} ({{ b.code }})</option>
-                                </select>
-                            </div>
-                        </div>
-
                         <div class="col-12">
                             <ProductVariantSearchInput
                                 label="Product"
@@ -303,7 +293,6 @@ import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
-import {apiAdmin} from '@/helpers/api.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
@@ -329,15 +318,6 @@ const {order} = storeToRefs(purchaseOrderStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
 
-const branches = ref([]);
-
-const loadBranches = async () => {
-    try {
-        const res = await apiAdmin('branch');
-        branches.value = res.data.data ?? [];
-    } catch { /* optional */ }
-};
-
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
         filter: {
@@ -352,7 +332,6 @@ watch(createModalOpened, (opened) => {
         if (opened) {
             taxStore.getTaxes();
             warehouseStore.getWarehouses();
-            loadBranches();
             partyStore.getParties({
                 filter: {
                     type: 'supplier',
@@ -374,7 +353,6 @@ const getInitialState = () => ({
     party_id: '',
     purchase_order_id: '',
     warehouse_id: '',
-    branch_id: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',

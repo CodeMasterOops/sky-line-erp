@@ -3,6 +3,7 @@
 namespace App\Tenancy;
 
 use Closure;
+use App\Services\TenantService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Support\Arrayable;
 
@@ -115,9 +116,11 @@ trait TenantDatabaseRule
         $column = null;
         $value = null;
 
-        if (request()->routeIs('api.admin.*') && auth('admin')->check()) {
+        $companyId = TenantService::companyId();
+
+        if ($companyId) {
             $column = 'company_id';
-            $value = auth('admin')->user()->company_id;
+            $value = $companyId;
         }
 
         if ($column && $value) {

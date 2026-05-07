@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Branch extends Model
 {
-    use MultiTenant, SoftDeletes;
+    use MultiTenant;
+    use SoftDeletes;
 
     protected $fillable = [
         'company_id',

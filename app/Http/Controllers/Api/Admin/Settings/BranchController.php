@@ -6,6 +6,8 @@ use App\Models\Branch;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\Settings\BranchResource;
+use App\Http\Requests\Api\Admin\Settings\BranchRequest;
 
 class BranchController extends Controller
 {
@@ -16,28 +18,20 @@ class BranchController extends Controller
     {
         $branches = Branch::orderBy('name')->get();
 
-        return response()->json(['data' => $branches]);
+        return BranchResource::collection($branches);
     }
 
     /**
      * @Permissions("create_branch", group="branch", desc="Create Branch")
      */
-    public function store(Request $request)
+    public function store(BranchRequest $request)
     {
-        $data = $request->validate([
-            'name' => 'required|string|max:150',
-            'code' => 'required|string|max:20',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:30',
-            'email' => 'nullable|email|max:100',
-            'pan' => 'nullable|string|max:20',
-            'is_head_office' => 'boolean',
-            'is_active' => 'boolean',
-        ]);
+        $branch = Branch::create($request->validated());
 
-        $branch = Branch::create($data);
-
-        return response()->json(['data' => $branch, 'message' => 'Branch created successfully'], 201);
+        return response()->json([
+            'data' => BranchResource::make($branch),
+            'message' => 'Branch created successfully',
+        ], 201);
     }
 
     /**
@@ -45,28 +39,20 @@ class BranchController extends Controller
      */
     public function show(Branch $branch)
     {
-        return response()->json(['data' => $branch]);
+        return BranchResource::make($branch);
     }
 
     /**
      * @Permissions("edit_branch", group="branch", desc="Edit Branch")
      */
-    public function update(Request $request, Branch $branch)
+    public function update(BranchRequest $request, Branch $branch)
     {
-        $data = $request->validate([
-            'name' => 'sometimes|required|string|max:150',
-            'code' => 'sometimes|required|string|max:20',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:30',
-            'email' => 'nullable|email|max:100',
-            'pan' => 'nullable|string|max:20',
-            'is_head_office' => 'boolean',
-            'is_active' => 'boolean',
+        $branch->update($request->validated());
+
+        return response()->json([
+            'data' => BranchResource::make($branch),
+            'message' => 'Branch updated successfully',
         ]);
-
-        $branch->update($data);
-
-        return response()->json(['data' => $branch, 'message' => 'Branch updated successfully']);
     }
 
     /**
