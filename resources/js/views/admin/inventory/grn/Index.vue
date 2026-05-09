@@ -1,9 +1,9 @@
 <template>
     <PageHeader title="Goods Received Notes" subtitle="Manage stock receipts from suppliers">
         <template #actions>
-            <router-link :to="{ name: 'admin.grn-create' }" class="btn btn-primary d-flex align-items-center">
+            <button type="button" class="btn btn-primary d-flex align-items-center" @click="createModalOpened = true">
                 <i class="ti ti-circle-plus me-2"></i> Create GRN
-            </router-link>
+            </button>
         </template>
     </PageHeader>
 
@@ -84,6 +84,8 @@
             </div>
         </div>
     </div>
+
+    <CreateGrn v-model:create-modal-opened="createModalOpened" @saved="loadGrns" />
 </template>
 
 <script setup>
@@ -93,6 +95,7 @@ import showErrors from '@/helpers/showErrors.js';
 import {toast} from '@/helpers/toast.js';
 import {formatDate} from '@/helpers/helper.js';
 import Swal from 'sweetalert2';
+import CreateGrn from './Create.vue';
 
 const grns = ref([]);
 const loading = ref(false);
@@ -100,6 +103,7 @@ const search = ref('');
 const statusFilter = ref('');
 const page = ref(1);
 const pagination = ref(null);
+const createModalOpened = ref(false);
 
 const loadGrns = async () => {
     loading.value = true;
@@ -117,7 +121,7 @@ const loadGrns = async () => {
 const approve = async (id) => {
     try {
         const res = await apiAdmin(`grn/${id}/approve`, 'post');
-        toast('success', res.data.message);
+        toast(res.status, res.data.message);
         await loadGrns();
     } catch (e) { showErrors(e); }
 };
@@ -132,8 +136,8 @@ const deleteGrn = async (id) => {
     });
     if (!result.value) return;
     try {
-        await apiAdmin(`grn/${id}`, 'delete');
-        toast('success', 'GRN deleted.');
+        const res = await apiAdmin(`grn/${id}`, 'delete');
+        toast(res.status, 'GRN deleted.');
         await loadGrns();
     } catch (e) { showErrors(e); }
 };

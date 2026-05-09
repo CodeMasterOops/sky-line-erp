@@ -8,6 +8,8 @@ use App\Annotation\Permissions;
 use App\Models\DeliveryChallan;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\Inventory\DeliveryChallanResource;
+use App\Http\Requests\Api\Admin\Inventory\DeliveryChallanRequest;
 
 class DeliveryChallanController extends Controller
 {
@@ -16,16 +18,13 @@ class DeliveryChallanController extends Controller
      */
     public function index(Request $request)
     {
-        $company = auth('admin')->user()->company;
-
         $challans = DeliveryChallan::with(['party', 'warehouse', 'createUser'])
-            ->where('company_id', $company->id)
             ->filter($request->all())
             ->orderByDesc('challan_date')
             ->orderByDesc('id')
             ->paginate($request->input('per_page', 15));
 
-        return response()->json($challans);
+        return DeliveryChallanResource::collection($challans);
     }
 
     /**
@@ -33,31 +32,20 @@ class DeliveryChallanController extends Controller
      */
     public function show(DeliveryChallan $deliveryChallan)
     {
-        return response()->json([
-            'data' => $deliveryChallan->load([
-                'party', 'warehouse', 'challanItems.productVariant.product', 'challanItems.unit',
-                'fiscalYear', 'createUser', 'approveUser',
-            ]),
+        $deliveryChallan->load([
+            'party', 'warehouse', 'challanItems.productVariant.product', 'challanItems.unit',
+            'fiscalYear', 'createUser', 'approveUser',
         ]);
+
+        return DeliveryChallanResource::make($deliveryChallan);
     }
 
     /**
      * @Permissions("create_delivery_challan", group="delivery_challan", desc="Create Delivery Challan")
      */
-    public function store(Request $request)
+    public function store(DeliveryChallanRequest $request)
     {
-        $validated = $request->validate([
-            'party_id' => ['nullable', 'integer', 'exists:parties,id'],
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'challan_date' => ['required', 'date'],
-            'delivery_address' => ['nullable', 'string'],
-            'receiver_name' => ['nullable', 'string', 'max:255'],
-            'remarks' => ['nullable', 'string'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
-            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
-            'items.*.rate' => ['required', 'numeric', 'min:0'],
-        ]);
+        $validated = $request->validated();
 
         $company = auth('admin')->user()->company;
         $challanNo = $this->generateChallanNo($company->id);
@@ -91,7 +79,9 @@ class DeliveryChallanController extends Controller
         });
 
         return response()->json([
-            'data' => $challan->load(['challanItems.productVariant.product', 'party', 'warehouse']),
+            'data' => DeliveryChallanResource::make(
+                $challan->load(['challanItems.productVariant.product', 'challanItems.unit', 'party', 'warehouse'])
+            ),
             'message' => 'Delivery Challan created successfully.',
         ], 201);
     }
@@ -99,24 +89,13 @@ class DeliveryChallanController extends Controller
     /**
      * @Permissions("edit_delivery_challan", group="delivery_challan", desc="Update Delivery Challan")
      */
-    public function update(Request $request, DeliveryChallan $deliveryChallan)
+    public function update(DeliveryChallanRequest $request, DeliveryChallan $deliveryChallan)
     {
         if ($deliveryChallan->status === StatusEnum::APPROVED) {
             return response()->json(['message' => 'Approved challan cannot be edited.'], 422);
         }
 
-        $validated = $request->validate([
-            'party_id' => ['nullable', 'integer', 'exists:parties,id'],
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
-            'challan_date' => ['required', 'date'],
-            'delivery_address' => ['nullable', 'string'],
-            'receiver_name' => ['nullable', 'string', 'max:255'],
-            'remarks' => ['nullable', 'string'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
-            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
-            'items.*.rate' => ['required', 'numeric', 'min:0'],
-        ]);
+        $validated = $request->validated();
 
         DB::transaction(function () use ($validated, $deliveryChallan) {
             $deliveryChallan->update([
@@ -142,7 +121,9 @@ class DeliveryChallanController extends Controller
         });
 
         return response()->json([
-            'data' => $deliveryChallan->fresh()->load(['challanItems.productVariant.product', 'party', 'warehouse']),
+            'data' => DeliveryChallanResource::make(
+                $deliveryChallan->fresh()->load(['challanItems.productVariant.product', 'challanItems.unit', 'party', 'warehouse'])
+            ),
             'message' => 'Delivery Challan updated successfully.',
         ]);
     }
@@ -165,7 +146,12 @@ class DeliveryChallanController extends Controller
         });
 
         return response()->json([
-            'data' => $deliveryChallan->fresh(),
+            'data' => DeliveryChallanResource::make(
+                $deliveryChallan->fresh()->load([
+                    'party', 'warehouse', 'challanItems.productVariant.product', 'challanItems.unit',
+                    'fiscalYear', 'createUser', 'approveUser',
+                ])
+            ),
             'message' => 'Delivery Challan approved.',
         ]);
     }

@@ -1,9 +1,9 @@
 <template>
     <PageHeader title="Delivery Challans" subtitle="Manage goods delivery notes">
         <template #actions>
-            <router-link :to="{ name: 'admin.delivery-challan-create' }" class="btn btn-primary d-flex align-items-center">
+            <button type="button" class="btn btn-primary d-flex align-items-center" @click="createModalOpened = true">
                 <i class="ti ti-circle-plus me-2"></i> Create Challan
-            </router-link>
+            </button>
         </template>
     </PageHeader>
 
@@ -70,6 +70,8 @@
             </div>
         </div>
     </div>
+
+    <CreateDeliveryChallan v-model:create-modal-opened="createModalOpened" @saved="loadChallans" />
 </template>
 
 <script setup>
@@ -79,11 +81,13 @@ import showErrors from '@/helpers/showErrors.js';
 import {toast} from '@/helpers/toast.js';
 import {formatDate} from '@/helpers/helper.js';
 import Swal from 'sweetalert2';
+import CreateDeliveryChallan from './Create.vue';
 
 const challans = ref([]);
 const loading = ref(false);
 const search = ref('');
 const statusFilter = ref('');
+const createModalOpened = ref(false);
 
 const loadChallans = async () => {
     loading.value = true;
