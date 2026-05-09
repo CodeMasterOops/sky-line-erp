@@ -650,9 +650,9 @@ class AccountReportService
 
         $layerCosts = DB::table('stock_layers')
             ->where('company_id', $companyId)
-            ->where('remaining_qty', '>', 0)
+            ->where('qty_remaining', '>', 0)
             ->select('product_variant_id', 'warehouse_id')
-            ->selectRaw('SUM(remaining_qty) as qty, SUM(remaining_qty * unit_cost) as total_cost')
+            ->selectRaw('SUM(qty_remaining) as qty, SUM(qty_remaining * unit_cost) as total_cost')
             ->groupBy('product_variant_id', 'warehouse_id')
             ->get()
             ->keyBy(fn ($row) => $row->product_variant_id.'_'.$row->warehouse_id);
@@ -695,13 +695,13 @@ class AccountReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'stock_layers.warehouse_id')
             ->where('stock_layers.company_id', $companyId)
-            ->where('stock_layers.remaining_qty', '>', 0)
+            ->where('stock_layers.qty_remaining', '>', 0)
             ->select([
                 'products.name as product_name',
                 'products.code as product_code',
                 'product_variants.sku',
                 'warehouses.name as warehouse_name',
-                'stock_layers.remaining_qty',
+                'stock_layers.qty_remaining',
                 'stock_layers.unit_cost',
                 'stock_layers.created_at',
             ])
@@ -709,14 +709,14 @@ class AccountReportService
 
         $rows = $layers->map(function ($layer) use ($asOf) {
             $ageInDays = Carbon::parse($layer->created_at)->diffInDays($asOf);
-            $totalValue = round($layer->remaining_qty * $layer->unit_cost, 2);
+            $totalValue = round($layer->qty_remaining * $layer->unit_cost, 2);
 
             return [
                 'product_name' => $layer->product_name,
                 'product_code' => $layer->product_code,
                 'sku' => $layer->sku,
                 'warehouse' => $layer->warehouse_name,
-                'quantity' => (float) $layer->remaining_qty,
+                'quantity' => (float) $layer->qty_remaining,
                 'unit_cost' => (float) $layer->unit_cost,
                 'total_value' => $totalValue,
                 'age_days' => $ageInDays,
