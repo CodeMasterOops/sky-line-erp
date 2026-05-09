@@ -21,7 +21,7 @@ class CashFlowForecastController extends Controller
             'opening_balance' => 'nullable|numeric',
         ]);
 
-        $company = auth()->user()->company;
+        $company = auth('admin')->user()->company;
         $days = (int) ($request->days ?? 90);
 
         // Opening balance: total bank/cash account balances

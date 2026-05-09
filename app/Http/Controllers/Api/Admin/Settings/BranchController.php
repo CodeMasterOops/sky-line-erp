@@ -75,7 +75,7 @@ class BranchController extends Controller
             'to_date' => 'required|date|after_or_equal:from_date',
         ]);
 
-        $company = auth()->user()->company;
+        $company = auth('admin')->user()->company;
 
         // Revenue accounts (credit normal)
         $revenue = \App\Models\JournalItem::query()
@@ -127,7 +127,7 @@ class BranchController extends Controller
             'to_date' => 'required|date|after_or_equal:from_date',
         ]);
 
-        $company = auth()->user()->company;
+        $company = auth('admin')->user()->company;
         $branches = Branch::where('company_id', $company->id)->get();
 
         $rows = $branches->map(function (Branch $branch) use ($request, $company) {
@@ -152,7 +152,7 @@ class BranchController extends Controller
                 ->whereDate('journals.date', '>=', $request->from_date)
                 ->whereDate('journals.date', '<=', $request->to_date)
                 ->whereIn('accounts.account_group_id', function ($q) {
-                    $q->select('id')->from('account_groups')->where('nature', 'expense');
+                    $q->select('id')->from('account_groups')->where('name', 'Expenses');
                 })
                 ->selectRaw('SUM(dr_amount) - SUM(cr_amount) as total')
                 ->value('total') ?? 0;
