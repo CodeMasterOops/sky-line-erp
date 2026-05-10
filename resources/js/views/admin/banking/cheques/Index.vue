@@ -1,5 +1,6 @@
 <template>
-    <PageHeader title="PDC Cheque Management" subtitle="Post-dated cheques — payable & receivable" @refresh="fetchCheques">
+    <PageHeader title="PDC Cheque Management" subtitle="Post-dated cheques — payable & receivable"
+                @refresh="fetchCheques">
         <template #actions>
             <button v-can="'create_cheque'" type="button" class="btn btn-primary" @click="openCreate">
                 <i class="ti ti-circle-plus me-2"></i> Record Cheque
@@ -58,10 +59,22 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <input type="date" class="form-control form-control-sm" v-model="filter.from_date" @change="fetchCheques" placeholder="From" />
+                        <VDatepicker
+                            id="from_date"
+                            input-type="date"
+                            v-model="filter.from_date"
+                            label="From"
+                            @change="fetchCheques"
+                        />
                     </div>
                     <div class="col-md-2">
-                        <input type="date" class="form-control form-control-sm" v-model="filter.to_date" @change="fetchCheques" placeholder="To" />
+                        <VDatepicker
+                            id="to_date"
+                            input-type="date"
+                            v-model="filter.to_date"
+                            label="To"
+                            @change="fetchCheques"
+                        />
                     </div>
                 </div>
             </div>
@@ -83,16 +96,24 @@
                             <template v-if="column.key === 'amount'">
                                 NPR {{ record.amount?.toLocaleString() }}
                             </template>
+                            <template v-if="column.key === 'bank'">
+                                {{ record.bank_name || record.bank_account?.bank_name || '-' }}
+                            </template>
                             <template v-if="column.key === 'action'">
                                 <div class="d-flex gap-2 flex-wrap">
                                     <button v-if="record.status === 'pending'" class="btn btn-xs btn-outline-warning"
-                                        @click="presentCheque(record)">Present</button>
-                                    <button v-if="['pending','presented'].includes(record.status)" class="btn btn-xs btn-outline-success"
-                                        @click="clearCheque(record)">Clear</button>
+                                            @click="presentCheque(record)">Present
+                                    </button>
+                                    <button v-if="['pending','presented'].includes(record.status)"
+                                            class="btn btn-xs btn-outline-success"
+                                            @click="clearCheque(record)">Clear
+                                    </button>
                                     <button v-if="record.status === 'presented'" class="btn btn-xs btn-outline-danger"
-                                        @click="bounceCheque(record)">Bounce</button>
+                                            @click="bounceCheque(record)">Bounce
+                                    </button>
                                     <button v-if="record.status !== 'cleared'" class="btn btn-xs btn-outline-secondary"
-                                        @click="cancelCheque(record.id)">Cancel</button>
+                                            @click="cancelCheque(record.id)">Cancel
+                                    </button>
                                 </div>
                             </template>
                         </template>
@@ -107,7 +128,8 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header"><h5 class="modal-title">Record PDC Cheque</h5>
-                    <button type="button" class="btn-close" @click="createModal = false"></button></div>
+                    <button type="button" class="btn-close" @click="createModal = false"></button>
+                </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -118,13 +140,13 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Party</label>
+                            <label class="form-label">{{ partyLabel }} <span class="text-danger">*</span></label>
                             <div class="position-relative">
                                 <input
                                     v-model="partySearch"
                                     type="text"
                                     class="form-control"
-                                    placeholder="Search party by name..."
+                                    :placeholder="`Search ${partyLabel.toLowerCase()} by name...`"
                                     @input="onPartySearch"
                                     @focus="showPartyDropdown = true"
                                     @blur="hidePartyDropdown"
@@ -140,7 +162,7 @@
                                         style="cursor:pointer"
                                         @mousedown.prevent="selectParty(p)">
                                         <div class="fw-semibold small">{{ p.name }}</div>
-                                        <div class="text-muted" style="font-size:0.75rem">{{ p.type }} · {{ p.phone }}</div>
+                                        <div class="text-muted" style="font-size:0.75rem">{{ p.phone }}</div>
                                     </div>
                                 </div>
                                 <div v-if="form.party_id" class="form-text text-success">
@@ -149,24 +171,47 @@
                             </div>
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label">{{ isReceivable ? 'Bank Name' : 'Bank Account' }} <span
+                                class="text-danger">*</span></label>
+                            <template v-if="isReceivable">
+                                <input v-model="form.bank_name" class="form-control"/>
+                            </template>
+                            <template v-else>
+                                <select v-model="form.bank_account_id" class="form-select">
+                                    <option value="">Select bank account</option>
+                                    <option v-for="account in bankAccounts" :key="account.id" :value="account.id">
+                                        {{ account.bank_name }} - {{ account.account_number }}
+                                    </option>
+                                </select>
+                            </template>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">Cheque No <span class="text-danger">*</span></label>
-                            <input v-model="form.cheque_no" class="form-control" />
+                            <input v-model="form.cheque_no" class="form-control"/>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Bank Name</label>
-                            <input v-model="form.bank_name" class="form-control" />
+                            <VDatepicker
+                                id="cheque_date"
+                                input-type="date"
+                                v-model="form.cheque_date"
+                                label="Cheque Date"
+                            />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Bank Branch</label>
-                            <input v-model="form.bank_branch" class="form-control" />
+                            <VDatepicker
+                                id="deposit_date"
+                                input-type="date"
+                                v-model="form.deposit_date"
+                                :label="depositDateLabel"
+                            />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Cheque Date <span class="text-danger">*</span></label>
-                            <input v-model="form.cheque_date" type="date" class="form-control" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Amount (NPR) <span class="text-danger">*</span></label>
-                            <input v-model="form.amount" type="number" class="form-control" />
+                            <VInput
+                                id="amount"
+                                v-model="form.amount"
+                                label="Amount (NPR)"
+                                input-type="number"
+                            />
                         </div>
                         <div class="col-12">
                             <label class="form-label">Remarks</label>
@@ -187,10 +232,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { apiAdmin } from '@/helpers/api';
-import { toast } from '@/helpers/toast';
+import {ref, onMounted, computed, watch} from 'vue';
+import {apiAdmin} from '@/helpers/api';
+import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+import {adToBsDate} from "@/helpers/helper.js";
 
 const loading = ref(false);
 const saving = ref(false);
@@ -201,8 +247,12 @@ const createModal = ref(false);
 
 // Party search state
 const parties = ref([]);
+const bankAccounts = ref([]);
 const partySearch = ref('');
 const showPartyDropdown = ref(false);
+const isReceivable = computed(() => form.value.type === 'receivable');
+const partyLabel = computed(() => isReceivable.value ? 'Customer' : 'Supplier');
+const depositDateLabel = computed(() => isReceivable.value ? 'Received Date (Deposit Date)' : 'Issued Date (Deposit Date)');
 const filteredParties = computed(() => {
     const q = partySearch.value.trim().toLowerCase();
     if (!q) return parties.value.slice(0, 20);
@@ -218,21 +268,33 @@ const selectParty = (p) => {
     showPartyDropdown.value = false;
 };
 const hidePartyDropdown = () => {
-    setTimeout(() => { showPartyDropdown.value = false; }, 150);
+    setTimeout(() => {
+        showPartyDropdown.value = false;
+    }, 150);
 };
 
-const filter = ref({ type: '', status: '', from_date: '', to_date: '' });
-const form = ref({ type: 'receivable', party_id: '', cheque_no: '', bank_name: '', bank_branch: '', cheque_date: '', amount: '', remarks: '' });
+const filter = ref({type: '', status: '', from_date: '', to_date: ''});
+const form = ref({
+    type: 'receivable',
+    party_id: '',
+    bank_account_id: '',
+    cheque_no: '',
+    bank_name: '',
+    cheque_date: '',
+    deposit_date: '',
+    amount: '',
+    remarks: ''
+});
 
 const columns = [
-    { title: 'Cheque No', dataIndex: 'cheque_no', key: 'cheque_no' },
-    { title: 'Party', key: 'party', dataIndex: ['party', 'name'] },
-    { title: 'Bank', dataIndex: 'bank_name', key: 'bank_name' },
-    { title: 'Cheque Date', dataIndex: 'cheque_date', key: 'cheque_date' },
-    { title: 'Amount', key: 'amount' },
-    { title: 'Type', key: 'type' },
-    { title: 'Status', key: 'status' },
-    { title: 'Actions', key: 'action' },
+    {title: 'Cheque No', dataIndex: 'cheque_no', key: 'cheque_no'},
+    {title: 'Party', key: 'party', dataIndex: ['party', 'name']},
+    {title: 'Bank', dataIndex: 'bank_name', key: 'bank'},
+    {title: 'Cheque Date', customRender: ({record}) => adToBsDate(record.cheque_date)},
+    {title: 'Amount', key: 'amount'},
+    {title: 'Type', key: 'type'},
+    {title: 'Status', key: 'status'},
+    {title: 'Actions', key: 'action'},
 ];
 
 const summaryCards = computed(() => {
@@ -242,42 +304,106 @@ const summaryCards = computed(() => {
         groups[k] = r;
     });
     return [
-        { label: 'Receivable Pending', count: groups['receivable-pending']?.count ?? 0, total: groups['receivable-pending']?.total ?? 0, icon: 'ti ti-arrow-down-circle', color: 'text-success' },
-        { label: 'Payable Pending', count: groups['payable-pending']?.count ?? 0, total: groups['payable-pending']?.total ?? 0, icon: 'ti ti-arrow-up-circle', color: 'text-danger' },
-        { label: 'Cleared Total', count: (groups['receivable-cleared']?.count ?? 0) + (groups['payable-cleared']?.count ?? 0), total: (groups['receivable-cleared']?.total ?? 0) - (groups['payable-cleared']?.total ?? 0), icon: 'ti ti-check-circle', color: 'text-primary' },
-        { label: 'Bounced', count: (groups['receivable-bounced']?.count ?? 0) + (groups['payable-bounced']?.count ?? 0), total: (groups['receivable-bounced']?.total ?? 0) + (groups['payable-bounced']?.total ?? 0), icon: 'ti ti-alert-circle', color: 'text-warning' },
+        {
+            label: 'Receivable Pending',
+            count: groups['receivable-pending']?.count ?? 0,
+            total: groups['receivable-pending']?.total ?? 0,
+            icon: 'ti ti-arrow-down-circle',
+            color: 'text-success'
+        },
+        {
+            label: 'Payable Pending',
+            count: groups['payable-pending']?.count ?? 0,
+            total: groups['payable-pending']?.total ?? 0,
+            icon: 'ti ti-arrow-up-circle',
+            color: 'text-danger'
+        },
+        {
+            label: 'Cleared Total',
+            count: (groups['receivable-cleared']?.count ?? 0) + (groups['payable-cleared']?.count ?? 0),
+            total: (groups['receivable-cleared']?.total ?? 0) - (groups['payable-cleared']?.total ?? 0),
+            icon: 'ti ti-check-circle',
+            color: 'text-primary'
+        },
+        {
+            label: 'Bounced',
+            count: (groups['receivable-bounced']?.count ?? 0) + (groups['payable-bounced']?.count ?? 0),
+            total: (groups['receivable-bounced']?.total ?? 0) + (groups['payable-bounced']?.total ?? 0),
+            icon: 'ti ti-alert-circle',
+            color: 'text-warning'
+        },
     ];
 });
 
-onMounted(() => { fetchCheques(); fetchSummary(); fetchParties(); });
+onMounted(() => {
+    fetchCheques();
+    fetchSummary();
+    fetchParties();
+});
+
+watch(() => form.value.type, async () => {
+    form.value.party_id = '';
+    form.value.bank_name = '';
+    form.value.bank_account_id = '';
+    partySearch.value = '';
+    await fetchParties();
+    if (!isReceivable.value && !bankAccounts.value.length) {
+        await fetchBankAccounts();
+    }
+});
 
 async function fetchParties() {
     try {
-        const { data } = await apiAdmin('party', 'get', { per_page: 500 });
+        const {data} = await apiAdmin('party', 'get', {
+            per_page: 500,
+            type: isReceivable.value ? 'customer' : 'supplier',
+        });
         parties.value = data.data ?? [];
-    } catch { /* optional */ }
+    } catch { /* optional */
+    }
+}
+
+async function fetchBankAccounts() {
+    try {
+        const {data} = await apiAdmin('bank-reconciliation/bank-accounts');
+        bankAccounts.value = data.data ?? data ?? [];
+    } catch { /* optional */
+    }
 }
 
 async function fetchCheques() {
     loading.value = true;
     try {
-        const params = new URLSearchParams(Object.fromEntries(Object.entries(filter.value).filter(([,v]) => v)));
-        const { data } = await apiAdmin(`cheque?${params}`);
+        const params = new URLSearchParams(Object.fromEntries(Object.entries(filter.value).filter(([, v]) => v)));
+        const {data} = await apiAdmin(`cheque?${params}`);
         cheques.value = data.data;
-    } finally { loading.value = false; }
+    } finally {
+        loading.value = false;
+    }
 }
 
 async function fetchSummary() {
-    const { data } = await apiAdmin('cheque/summary');
+    const {data} = await apiAdmin('cheque/summary');
     summary.value = data.data;
     dueThisWeek.value = data.due_this_week;
 }
 
 function openCreate() {
-    form.value = { type: 'receivable', party_id: '', cheque_no: '', bank_name: '', bank_branch: '', cheque_date: '', amount: '', remarks: '' };
+    form.value = {
+        type: 'receivable',
+        party_id: '',
+        bank_account_id: '',
+        cheque_no: '',
+        bank_name: '',
+        cheque_date: '',
+        deposit_date: '',
+        amount: '',
+        remarks: ''
+    };
     partySearch.value = '';
     showPartyDropdown.value = false;
     createModal.value = true;
+    fetchParties();
 }
 
 async function saveCheque() {
@@ -288,40 +414,53 @@ async function saveCheque() {
         createModal.value = false;
         fetchCheques();
         fetchSummary();
-    } catch (e) { showErrors(e); }
-    finally { saving.value = false; }
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        saving.value = false;
+    }
 }
 
 async function presentCheque(c) {
-    const date = prompt('Deposit/Presentation date:', new Date().toISOString().slice(0,10));
+    const date = prompt('Deposit/Presentation date:', new Date().toISOString().slice(0, 10));
     if (!date) return;
-    await apiAdmin(`cheque/${c.id}/present`, 'post', { deposit_date: date });
+    await apiAdmin(`cheque/${c.id}/present`, 'post', {deposit_date: date});
     toast('Cheque marked as presented');
-    fetchCheques(); fetchSummary();
+    fetchCheques();
+    fetchSummary();
 }
 
 async function clearCheque(c) {
-    const date = prompt('Cleared date:', new Date().toISOString().slice(0,10));
+    const date = prompt('Cleared date:', new Date().toISOString().slice(0, 10));
     if (!date) return;
-    await apiAdmin(`cheque/${c.id}/clear`, 'post', { cleared_date: date });
+    await apiAdmin(`cheque/${c.id}/clear`, 'post', {cleared_date: date});
     toast('Cheque cleared');
-    fetchCheques(); fetchSummary();
+    fetchCheques();
+    fetchSummary();
 }
 
 async function bounceCheque(c) {
     const remarks = prompt('Bounce reason:');
-    await apiAdmin(`cheque/${c.id}/bounce`, 'post', { remarks });
+    await apiAdmin(`cheque/${c.id}/bounce`, 'post', {remarks});
     toast('Cheque marked as bounced');
-    fetchCheques(); fetchSummary();
+    fetchCheques();
+    fetchSummary();
 }
 
 async function cancelCheque(id) {
     await apiAdmin(`cheque/${id}/cancel`, 'post');
     toast('Cheque cancelled');
-    fetchCheques(); fetchSummary();
+    fetchCheques();
+    fetchSummary();
 }
 
 function statusClass(s) {
-    return { pending: 'bg-warning text-dark', presented: 'bg-info', cleared: 'bg-success', bounced: 'bg-danger', cancelled: 'bg-secondary' }[s] ?? 'bg-secondary';
+    return {
+        pending: 'bg-warning text-dark',
+        presented: 'bg-info',
+        cleared: 'bg-success',
+        bounced: 'bg-danger',
+        cancelled: 'bg-secondary'
+    }[s] ?? 'bg-secondary';
 }
 </script>

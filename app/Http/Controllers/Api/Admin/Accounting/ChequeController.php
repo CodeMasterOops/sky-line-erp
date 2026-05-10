@@ -6,6 +6,11 @@ use App\Models\Cheque;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\Accounting\ChequeResource;
+use App\Http\Requests\Api\Admin\Accounting\ChequeRequest;
+use App\Http\Requests\Api\Admin\Accounting\ChequeClearRequest;
+use App\Http\Requests\Api\Admin\Accounting\ChequeBounceRequest;
+use App\Http\Requests\Api\Admin\Accounting\ChequePresentRequest;
 
 class ChequeController extends Controller
 {
@@ -23,29 +28,24 @@ class ChequeController extends Controller
             ->orderByDesc('cheque_date')
             ->paginate($request->per_page ?? 25);
 
-        return response()->json($cheques);
+        return ChequeResource::collection($cheques);
     }
 
     /**
      * @Permissions("create_cheque", group="cheque", desc="Record PDC Cheque")
      */
-    public function store(Request $request)
+    public function store(ChequeRequest $request)
     {
-        $data = $request->validate([
-            'party_id' => 'nullable|exists:parties,id',
-            'bank_account_id' => 'nullable|exists:bank_accounts,id',
-            'cheque_no' => 'required|string|max:50',
-            'bank_name' => 'nullable|string|max:150',
-            'bank_branch' => 'nullable|string|max:100',
-            'cheque_date' => 'required|date',
-            'amount' => 'required|numeric|min:0.01',
-            'type' => 'required|in:payable,receivable',
-            'reference_type' => 'nullable|string',
-            'reference_id' => 'nullable|integer',
-            'remarks' => 'nullable|string',
-        ]);
+        $data = $request->validated();
+        if (($data['type'] ?? null) === 'receivable') {
+            $data['bank_account_id'] = null;
+        }
 
-        $company = auth()->user()->company;
+        if (($data['type'] ?? null) === 'payable') {
+            $data['bank_name'] = null;
+        }
+
+        $company = auth('admin')->user()->company;
         $fiscalYear = $company->fiscalYear;
 
         $cheque = Cheque::create([
@@ -53,10 +53,15 @@ class ChequeController extends Controller
             'company_id' => $company->id,
             'fiscal_year_id' => $fiscalYear->id,
             'status' => 'pending',
-            'create_user_id' => auth()->id(),
+            'create_user_id' => auth('admin')->id(),
         ]);
 
-        return response()->json(['data' => $cheque->load('party:id,name'), 'message' => 'Cheque recorded successfully'], 201);
+        $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
+
+        return response()->json([
+            'data' => ChequeResource::make($cheque),
+            'message' => 'Cheque recorded successfully',
+        ], 201);
     }
 
     /**
@@ -64,49 +69,66 @@ class ChequeController extends Controller
      */
     public function show(Cheque $cheque)
     {
-        return response()->json(['data' => $cheque->load(['party', 'bankAccount', 'createUser:id,name'])]);
+        $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
+
+        return response()->json(['data' => ChequeResource::make($cheque)]);
     }
 
     /**
      * @Permissions("edit_cheque", group="cheque", desc="Present Cheque for Deposit")
      */
-    public function present(Request $request, Cheque $cheque)
+    public function present(ChequePresentRequest $request, Cheque $cheque)
     {
         abort_if($cheque->status !== 'pending', 422, 'Only pending cheques can be presented.');
 
-        $data = $request->validate(['deposit_date' => 'required|date']);
+        $data = $request->validated();
 
         $cheque->update(['status' => 'presented', 'deposit_date' => $data['deposit_date']]);
 
-        return response()->json(['message' => 'Cheque marked as presented.', 'data' => $cheque]);
+        $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
+
+        return response()->json([
+            'message' => 'Cheque marked as presented.',
+            'data' => ChequeResource::make($cheque),
+        ]);
     }
 
     /**
      * @Permissions("edit_cheque", group="cheque", desc="Clear Cheque")
      */
-    public function clear(Request $request, Cheque $cheque)
+    public function clear(ChequeClearRequest $request, Cheque $cheque)
     {
         abort_if(! in_array($cheque->status, ['pending', 'presented']), 422, 'Cheque cannot be cleared in current status.');
 
-        $data = $request->validate(['cleared_date' => 'required|date']);
+        $data = $request->validated();
 
         $cheque->update(['status' => 'cleared', 'cleared_date' => $data['cleared_date']]);
 
-        return response()->json(['message' => 'Cheque cleared successfully.', 'data' => $cheque]);
+        $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
+
+        return response()->json([
+            'message' => 'Cheque cleared successfully.',
+            'data' => ChequeResource::make($cheque),
+        ]);
     }
 
     /**
      * @Permissions("edit_cheque", group="cheque", desc="Mark Cheque Bounced")
      */
-    public function bounce(Request $request, Cheque $cheque)
+    public function bounce(ChequeBounceRequest $request, Cheque $cheque)
     {
         abort_if(! in_array($cheque->status, ['presented']), 422, 'Only presented cheques can be bounced.');
 
-        $data = $request->validate(['remarks' => 'nullable|string']);
+        $data = $request->validated();
 
         $cheque->update(['status' => 'bounced', 'remarks' => $data['remarks'] ?? $cheque->remarks]);
 
-        return response()->json(['message' => 'Cheque marked as bounced.', 'data' => $cheque]);
+        $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
+
+        return response()->json([
+            'message' => 'Cheque marked as bounced.',
+            'data' => ChequeResource::make($cheque),
+        ]);
     }
 
     /**
@@ -118,7 +140,12 @@ class ChequeController extends Controller
 
         $cheque->update(['status' => 'cancelled']);
 
-        return response()->json(['message' => 'Cheque cancelled.']);
+        $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
+
+        return response()->json([
+            'message' => 'Cheque cancelled.',
+            'data' => ChequeResource::make($cheque),
+        ]);
     }
 
     /**
@@ -126,7 +153,7 @@ class ChequeController extends Controller
      */
     public function summary()
     {
-        $company = auth()->user()->company;
+        $company = auth('admin')->user()->company;
 
         $data = Cheque::where('company_id', $company->id)
             ->selectRaw('type, status, COUNT(*) as count, SUM(amount) as total')
@@ -135,13 +162,13 @@ class ChequeController extends Controller
 
         $dueThisWeek = Cheque::where('company_id', $company->id)
             ->dueForPresentation(7)
-            ->with('party:id,name')
+            ->with(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name'])
             ->orderBy('cheque_date')
-            ->get(['id', 'cheque_no', 'party_id', 'cheque_date', 'amount', 'type']);
+            ->get();
 
         return response()->json([
             'data' => $data,
-            'due_this_week' => $dueThisWeek,
+            'due_this_week' => ChequeResource::collection($dueThisWeek),
         ]);
     }
 }
