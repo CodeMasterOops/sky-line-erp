@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\StatusEnum;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -26,6 +27,7 @@ class Payment extends Model
         'payment_date',
         'payment_mode_id',
         'account_id',
+        'tds_account_id',
         'reference_no',
         'remarks',
         'tds_category',
@@ -45,8 +47,10 @@ class Payment extends Model
         'party_id' => 'integer',
         'payment_mode_id' => 'integer',
         'account_id' => 'integer',
+        'tds_account_id' => 'integer',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
+        'tds_category' => TdsCategoryEnum::class,
         'tds_rate' => 'float',
         'tds_amount' => 'float',
         'gross_amount' => 'float',
@@ -84,6 +88,11 @@ class Payment extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function tdsAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'tds_account_id');
     }
 
     public function paymentMode(): BelongsTo

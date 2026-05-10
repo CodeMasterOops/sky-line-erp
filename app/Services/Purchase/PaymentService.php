@@ -4,7 +4,9 @@ namespace App\Services\Purchase;
 
 use App\Models\Payment;
 use App\Enums\StatusEnum;
+use App\Models\TdsDeduction;
 use App\Enums\JournalTypeEnum;
+use App\Enums\TdsCategoryEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,8 +22,9 @@ readonly class PaymentService
         $fiscalYearId = $setting->fiscal_year_id;
         $paymentNo = $formData['payment_no'] ?? $this->generatePaymentNo($fiscalYearId, $setting->fiscalYear?->year_code);
         $allocations = $this->validatedAllocations($formData);
+        $tdsData = $this->normalizeTdsData($formData, $allocations);
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $paymentNo, $allocations) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $paymentNo, $allocations, $tdsData) {
             $payment = Payment::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
@@ -31,6 +34,13 @@ readonly class PaymentService
                 'account_id' => $formData['account_id'],
                 'reference_no' => $formData['reference_no'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
+                'tds_account_id' => $tdsData['tds_account_id'],
+                'tds_category' => $tdsData['tds_category'],
+                'tds_rate' => $tdsData['tds_rate'],
+                'tds_amount' => $tdsData['tds_amount'],
+                'gross_amount' => $tdsData['gross_amount'],
+                'currency_code' => $formData['currency_code'] ?: 'NPR',
+                'exchange_rate' => $formData['exchange_rate'] ?: 1,
                 'create_user_id' => $user->id,
                 'approve_user_id' => $user->id,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
@@ -51,8 +61,9 @@ readonly class PaymentService
     {
         $paymentNo = $formData['payment_no'] ?? $payment->payment_no;
         $allocations = $this->validatedAllocations($formData);
+        $tdsData = $this->normalizeTdsData($formData, $allocations);
 
-        DB::transaction(function () use ($payment, $formData, $paymentNo, $allocations) {
+        DB::transaction(function () use ($payment, $formData, $paymentNo, $allocations, $tdsData) {
             $payment->update([
                 'party_id' => $formData['party_id'] ?? null,
                 'payment_no' => $paymentNo,
@@ -61,6 +72,13 @@ readonly class PaymentService
                 'account_id' => $formData['account_id'],
                 'reference_no' => $formData['reference_no'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
+                'tds_account_id' => $tdsData['tds_account_id'],
+                'tds_category' => $tdsData['tds_category'],
+                'tds_rate' => $tdsData['tds_rate'],
+                'tds_amount' => $tdsData['tds_amount'],
+                'gross_amount' => $tdsData['gross_amount'],
+                'currency_code' => $formData['currency_code'] ?: 'NPR',
+                'exchange_rate' => $formData['exchange_rate'] ?: 1,
             ]);
 
             $payment->allocations()->delete();
@@ -85,7 +103,7 @@ readonly class PaymentService
 
     private function createJournal(Payment $payment): void
     {
-        $payment->loadMissing('party:id,name', 'account')
+        $payment->loadMissing('party:id,name', 'account', 'tdsAccount:id,name')
             ->loadSum('allocations', 'amount');
 
         $accountSetting = AccountSetting::first();
@@ -104,6 +122,8 @@ readonly class PaymentService
         ]);
 
         $paidAmount = $payment->allocations_sum_amount;
+        $tdsAmount = round((float) ($payment->tds_amount ?? 0), 2);
+        $cashCredit = round(max((float) $paidAmount - $tdsAmount, 0), 2);
 
         // debit for account payable/supplier
         $journal->journalItems()->create([
@@ -114,12 +134,76 @@ readonly class PaymentService
         ]);
 
         // credit for paid account
-        $journal->journalItems()->create([
-            'account_id' => $payment->account_id,
-            'dr_amount' => 0,
-            'cr_amount' => $paidAmount,
-            'remarks' => 'By-'.($payment->account->name ?? ''),
-        ]);
+        if ($cashCredit > 0) {
+            $journal->journalItems()->create([
+                'account_id' => $payment->account_id,
+                'dr_amount' => 0,
+                'cr_amount' => $cashCredit,
+                'remarks' => 'By-'.($payment->account->name ?? ''),
+            ]);
+        }
+
+        if ($tdsAmount > 0 && $payment->tds_account_id) {
+            $journal->journalItems()->create([
+                'account_id' => $payment->tds_account_id,
+                'dr_amount' => 0,
+                'cr_amount' => $tdsAmount,
+                'remarks' => 'By-'.($payment->tdsAccount->name ?? 'TDS Account'),
+            ]);
+
+            TdsDeduction::create([
+                'company_id' => $payment->company_id,
+                'fiscal_year_id' => $payment->fiscal_year_id,
+                'deductible_type' => Payment::class,
+                'deductible_id' => $payment->id,
+                'party_id' => $payment->party_id,
+                'tds_category' => $payment->tds_category,
+                'base_amount' => round((float) $paidAmount, 2),
+                'tds_rate' => round((float) ($payment->tds_rate ?? 0), 2),
+                'tds_amount' => $tdsAmount,
+                'period_month' => null,
+                'journal_id' => $journal->id,
+            ]);
+        }
+    }
+
+    private function normalizeTdsData(array $formData, Collection $allocations): array
+    {
+        $category = $formData['tds_category'] ?? null;
+        $grossAmount = round($allocations->sum(fn ($allocation) => (float) $allocation['amount']), 2);
+
+        if (! $category) {
+            return [
+                'tds_account_id' => null,
+                'tds_category' => null,
+                'tds_rate' => null,
+                'tds_amount' => 0,
+                'gross_amount' => 0,
+            ];
+        }
+
+        $enum = TdsCategoryEnum::tryFrom((string) $category);
+        if (! $enum) {
+            $this->throwUnprocessableEntity('Invalid TDS category selected.');
+        }
+
+        $tdsAmount = round($grossAmount * $enum->rate() / 100, 2);
+        if ($tdsAmount > $grossAmount) {
+            $this->throwUnprocessableEntity('TDS amount cannot exceed allocated amount.');
+        }
+
+        $tdsAccountId = ! empty($formData['tds_account_id']) ? (int) $formData['tds_account_id'] : null;
+        if ($tdsAmount > 0 && ! $tdsAccountId) {
+            $this->throwUnprocessableEntity('TDS account is required when TDS is applied.');
+        }
+
+        return [
+            'tds_account_id' => $tdsAccountId,
+            'tds_category' => $enum->value,
+            'tds_rate' => $enum->rate(),
+            'tds_amount' => $tdsAmount,
+            'gross_amount' => $grossAmount,
+        ];
     }
 
     private function validatedAllocations(array $formData): Collection

@@ -6,6 +6,7 @@ use App\Models\Bill;
 use App\Tenancy\TRule;
 use App\Models\Expense;
 use App\Enums\StatusEnum;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -24,8 +25,15 @@ class PaymentRequest extends FormRequest
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'payment_mode_id' => ['required', TRule::exists('payment_modes', 'id')->withoutTrashed()],
             'account_id' => ['required', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'tds_account_id' => ['nullable', TRule::exists('accounts', 'id')->withoutTrashed()],
             'reference_no' => ['nullable', 'string', 'max:255'],
             'remarks' => ['nullable', 'string'],
+            'tds_category' => ['nullable', Rule::enum(TdsCategoryEnum::class)],
+            'tds_rate' => ['nullable', 'numeric', 'min:0'],
+            'tds_amount' => ['nullable', 'numeric', 'min:0'],
+            'gross_amount' => ['nullable', 'numeric', 'min:0'],
+            'currency_code' => ['nullable', 'string', 'size:3'],
+            'exchange_rate' => ['nullable', 'numeric', 'min:0.000001'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'allocations' => ['required', 'array', 'min:1'],
             'allocations.*.payable_type' => ['required', Rule::in(['bill', 'expense'])],

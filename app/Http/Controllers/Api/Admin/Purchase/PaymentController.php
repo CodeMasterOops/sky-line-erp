@@ -23,7 +23,7 @@ class PaymentController extends Controller
     public function index(Request $request)
     {
         $payments = Payment::filter($request->all())
-            ->with(['party', 'account', 'paymentMode', 'allocations'])
+            ->with(['party', 'account', 'tdsAccount', 'paymentMode', 'allocations'])
             ->latest('payment_date')
             ->paginate($request->limit ?? 25);
 
@@ -37,7 +37,7 @@ class PaymentController extends Controller
     {
         $payment = $this->paymentService->createPayment($request->validated());
 
-        $payment->load(['party', 'account', 'paymentMode', 'allocations.payable']);
+        $payment->load(['party', 'account', 'tdsAccount', 'paymentMode', 'allocations.payable']);
 
         return response()->json([
             'data' => PaymentResource::make($payment),
@@ -50,7 +50,7 @@ class PaymentController extends Controller
      */
     public function show(Payment $payment)
     {
-        $payment->load(['party', 'account', 'paymentMode', 'allocations.payable']);
+        $payment->load(['party', 'account', 'tdsAccount', 'paymentMode', 'allocations.payable']);
 
         return PaymentResource::make($payment);
     }
@@ -68,7 +68,7 @@ class PaymentController extends Controller
 
         $this->paymentService->updatePayment($request->validated(), $payment);
 
-        $payment->load(['party', 'account', 'paymentMode', 'allocations.payable']);
+        $payment->load(['party', 'account', 'tdsAccount', 'paymentMode', 'allocations.payable']);
 
         return response()->json([
             'data' => PaymentResource::make($payment),
@@ -103,7 +103,7 @@ class PaymentController extends Controller
 
         $this->paymentService->approvePayment($payment);
 
-        $payment->load(['party', 'account', 'paymentMode', 'allocations.payable']);
+        $payment->load(['party', 'account', 'tdsAccount', 'paymentMode', 'allocations.payable']);
 
         return response()->json([
             'data' => PaymentResource::make($payment),

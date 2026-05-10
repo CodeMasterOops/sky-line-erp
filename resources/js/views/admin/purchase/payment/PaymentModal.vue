@@ -209,17 +209,31 @@
                                         <input type="number" class="form-control form-control-sm" v-model="form.exchange_rate" placeholder="1.00" min="0" step="0.0001" />
                                     </div>
                                     <div class="col-md-6">
+                                        <VMultiselect
+                                            id="tds_account_id"
+                                            v-model="form.tds_account_id"
+                                            :options="accounts.data"
+                                            label="TDS Account"
+                                            :filter-results="false"
+                                        />
+                                    </div>
+                                    <div class="col-md-6">
                                         <label class="form-label small">TDS Category</label>
                                         <select class="form-select form-select-sm" v-model="form.tds_category">
                                             <option value="">None</option>
-                                            <option value="rent">Rent (10%)</option>
-                                            <option value="service_payment">Service Payment (15%)</option>
+                                            <option value="service_vat_bill">Service Fee (VAT Bill) – 1.5%</option>
+                                            <option value="service_pan_bill">Service Fee (PAN Bill) – 15%</option>
+                                            <option value="service_vat_exempt_institution">Service Fee (VAT-Exempt Institution) – 1%</option>
+                                            <option value="contract_vat_registered">Contract Payment (VAT Registered) – 1.5%</option>
+                                            <option value="rent_property">Rent (House/Land/Property) – 10%</option>
+                                            <option value="rent_vehicle_vat">Vehicle Hire (VAT Bill) – 1.5%</option>
+                                            <option value="rent_vehicle_no_vat">Vehicle Hire (No VAT Bill) – 10%</option>
+                                            <option value="interest_bank_natural_person">Interest by Bank to Natural Person – 6%</option>
+                                            <option value="interest_company">Interest by Company/Debenture – 15%</option>
                                             <option value="commission">Commission (15%)</option>
-                                            <option value="dividend">Dividend (5%)</option>
-                                            <option value="interest">Interest (15%)</option>
-                                            <option value="contract">Contract / Work (1.5%)</option>
-                                            <option value="royalty">Royalty (15%)</option>
-                                            <option value="others">Others</option>
+                                            <option value="dividend">Dividend – 5%</option>
+                                            <option value="royalty">Royalty – 15%</option>
+                                            <option value="windfall">Windfall Gains – 25%</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3">
@@ -227,8 +241,8 @@
                                         <input type="number" class="form-control form-control-sm" v-model="form.tds_rate" placeholder="Auto" readonly />
                                     </div>
                                     <div class="col-md-3">
-                                        <label class="form-label small">Gross Amount</label>
-                                        <input type="number" class="form-control form-control-sm" v-model="form.gross_amount" placeholder="0.00" min="0" step="0.01" />
+                                        <label class="form-label small">TDS Base Amount</label>
+                                        <input type="text" class="form-control form-control-sm bg-white" :value="formatMoney(totalAllocated)" readonly />
                                     </div>
                                     <div class="col-md-6" v-if="form.tds_category">
                                         <label class="form-label small">TDS Amount (computed)</label>
@@ -381,14 +395,19 @@ watch(
 );
 
 const TDS_RATES = {
-    rent: 10,
-    service_payment: 15,
+    service_vat_bill: 1.5,
+    service_pan_bill: 15,
+    service_vat_exempt_institution: 1,
+    contract_vat_registered: 1.5,
+    rent_property: 10,
+    rent_vehicle_vat: 1.5,
+    rent_vehicle_no_vat: 10,
+    interest_bank_natural_person: 6,
+    interest_company: 15,
     commission: 15,
     dividend: 5,
-    interest: 15,
-    contract: 1.5,
     royalty: 15,
-    others: 0,
+    windfall: 25,
 };
 
 const initialState = {
@@ -399,9 +418,9 @@ const initialState = {
     reference_no: '',
     remarks: '',
     status: 'draft',
+    tds_account_id: '',
     tds_category: '',
     tds_rate: '',
-    gross_amount: '',
     currency_code: '',
     exchange_rate: '',
 };
@@ -510,14 +529,14 @@ watch(showTdsCurrencySection, (show) => {
     if (!show) {
         form.currency_code = '';
         form.exchange_rate = '';
+        form.tds_account_id = '';
         form.tds_category = '';
         form.tds_rate = '';
-        form.gross_amount = '';
     }
 });
 
 const computedTdsAmount = computed(() => {
-    const gross = Number(form.gross_amount || 0);
+    const gross = Number(totalAllocated.value || 0);
     const rate = Number(form.tds_rate || 0);
     if (!gross || !rate) return '0.00';
     return (gross * rate / 100).toFixed(2);
@@ -571,6 +590,10 @@ const storePayment = async (status = 'draft') => {
             const payload = {
                 ...form,
                 allocations,
+                gross_amount:
+                    showTdsCurrencySection.value && form.tds_category
+                        ? totalAllocated.value
+                        : null,
                 tds_amount:
                     showTdsCurrencySection.value && form.tds_category
                         ? computedTdsAmount.value
@@ -579,9 +602,9 @@ const storePayment = async (status = 'draft') => {
             if (!showTdsCurrencySection.value) {
                 payload.currency_code = '';
                 payload.exchange_rate = '';
+                payload.tds_account_id = '';
                 payload.tds_category = '';
                 payload.tds_rate = '';
-                payload.gross_amount = '';
             }
             const res = await paymentStore.storePayment(payload);
             toast(res.status, res.data.message);
