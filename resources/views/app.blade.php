@@ -8,7 +8,7 @@
     <meta name="robots" content="noindex">
     <meta name="googlebot" content="noindex">
     <title>{{config('app.name')}}</title>
-    <link rel="icon" href="{{asset('favicon.ico')}}">
+    <link rel="icon" type="image/x-icon" href="{{asset('favicon.ico')}}?v=2">
     <link rel="stylesheet" href="{{asset('nepali-datepicker.css')}}?v=5.0.6">
     @vite('resources/js/app.js')
 </head>
