@@ -33,6 +33,8 @@ services:
       VITE_APP_NAME: "${APP_NAME:-POS}"
     volumes:
       - storage_data:/var/www/html/storage/app
+    networks:
+      - coolify
 
   scheduler:
     build:
@@ -55,6 +57,8 @@ services:
       LOG_CHANNEL: stderr
     volumes:
       - storage_data:/var/www/html/storage/app
+    networks:
+      - coolify
 
   worker:
     build:
@@ -85,6 +89,12 @@ services:
       LOG_CHANNEL: stderr
     volumes:
       - storage_data:/var/www/html/storage/app
+    networks:
+      - coolify
 
 volumes:
   storage_data:
+
+networks:
+  coolify:
+    external: true
