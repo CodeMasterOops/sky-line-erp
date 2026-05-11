@@ -33,5 +33,9 @@ COPY --chown=www-data:www-data --from=node-builder /app/public/build /var/www/ht
 USER www-data
 
 RUN composer install --no-interaction --optimize-autoloader --no-dev \
-    && mkdir -p storage/framework/{sessions,views,cache} \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views \
+    && mkdir -p storage/framework/cache/data \
+    && mkdir -p storage/app/public \
+    && mkdir -p bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
