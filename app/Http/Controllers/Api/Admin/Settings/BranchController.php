@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Api\Admin\Settings;
 
 use App\Models\Branch;
+use App\Models\AccountGroup;
+use App\Models\JournalItem;
+use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
@@ -76,32 +79,29 @@ class BranchController extends Controller
         ]);
 
         $company = auth('admin')->user()->company;
+        [$incomeIds, $expenseIds] = $this->resolveIncomeExpenseAccountIds($company->id);
 
-        // Revenue accounts (credit normal)
-        $revenue = \App\Models\JournalItem::query()
+        $revenue = JournalItem::query()
             ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
-            ->join('accounts', 'accounts.id', '=', 'journal_items.account_id')
             ->where('journals.company_id', $company->id)
             ->where('journals.branch_id', $branch->id)
+            ->where('journals.status', StatusEnum::APPROVED->value)
+            ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '>=', $request->from_date)
             ->whereDate('journals.date', '<=', $request->to_date)
-            ->whereIn('accounts.account_group_id', function ($q) {
-                $q->select('id')->from('account_groups')->where('nature', 'revenue');
-            })
+            ->whereIn('journal_items.account_id', $incomeIds)
             ->selectRaw('SUM(cr_amount) - SUM(dr_amount) as total')
             ->value('total') ?? 0;
 
-        // Expense accounts (debit normal)
-        $expenses = \App\Models\JournalItem::query()
+        $expenses = JournalItem::query()
             ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
-            ->join('accounts', 'accounts.id', '=', 'journal_items.account_id')
             ->where('journals.company_id', $company->id)
             ->where('journals.branch_id', $branch->id)
+            ->where('journals.status', StatusEnum::APPROVED->value)
+            ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '>=', $request->from_date)
             ->whereDate('journals.date', '<=', $request->to_date)
-            ->whereIn('accounts.account_group_id', function ($q) {
-                $q->select('id')->from('account_groups')->where('nature', 'expense');
-            })
+            ->whereIn('journal_items.account_id', $expenseIds)
             ->selectRaw('SUM(dr_amount) - SUM(cr_amount) as total')
             ->value('total') ?? 0;
 
@@ -129,31 +129,30 @@ class BranchController extends Controller
 
         $company = auth('admin')->user()->company;
         $branches = Branch::where('company_id', $company->id)->get();
+        [$incomeIds, $expenseIds] = $this->resolveIncomeExpenseAccountIds($company->id);
 
-        $rows = $branches->map(function (Branch $branch) use ($request, $company) {
-            $revenue = \App\Models\JournalItem::query()
+        $rows = $branches->map(function (Branch $branch) use ($request, $company, $incomeIds, $expenseIds) {
+            $revenue = JournalItem::query()
                 ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
-                ->join('accounts', 'accounts.id', '=', 'journal_items.account_id')
                 ->where('journals.company_id', $company->id)
                 ->where('journals.branch_id', $branch->id)
+                ->where('journals.status', StatusEnum::APPROVED->value)
+                ->whereNull('journals.deleted_at')
                 ->whereDate('journals.date', '>=', $request->from_date)
                 ->whereDate('journals.date', '<=', $request->to_date)
-                ->whereIn('accounts.account_group_id', function ($q) {
-                    $q->select('id')->from('account_groups')->where('nature', 'revenue');
-                })
+                ->whereIn('journal_items.account_id', $incomeIds)
                 ->selectRaw('SUM(cr_amount) - SUM(dr_amount) as total')
                 ->value('total') ?? 0;
 
-            $expenses = \App\Models\JournalItem::query()
+            $expenses = JournalItem::query()
                 ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
-                ->join('accounts', 'accounts.id', '=', 'journal_items.account_id')
                 ->where('journals.company_id', $company->id)
                 ->where('journals.branch_id', $branch->id)
+                ->where('journals.status', StatusEnum::APPROVED->value)
+                ->whereNull('journals.deleted_at')
                 ->whereDate('journals.date', '>=', $request->from_date)
                 ->whereDate('journals.date', '<=', $request->to_date)
-                ->whereIn('accounts.account_group_id', function ($q) {
-                    $q->select('id')->from('account_groups')->where('name', 'Expenses');
-                })
+                ->whereIn('journal_items.account_id', $expenseIds)
                 ->selectRaw('SUM(dr_amount) - SUM(cr_amount) as total')
                 ->value('total') ?? 0;
 
@@ -166,5 +165,37 @@ class BranchController extends Controller
         });
 
         return response()->json(['data' => $rows]);
+    }
+
+    private function resolveIncomeExpenseAccountIds(int $companyId): array
+    {
+        $rootGroups = AccountGroup::with(['childrenRecursive', 'accounts'])
+            ->where('company_id', $companyId)
+            ->whereNull('parent_id')
+            ->get();
+
+        $incomeIds = [];
+        $expenseIds = [];
+
+        foreach ($rootGroups as $group) {
+            $name = strtolower($group->name);
+            if ($name === 'income') {
+                $incomeIds = $this->collectAccountIdsFromGroup($group);
+            } elseif ($name === 'expenses') {
+                $expenseIds = $this->collectAccountIdsFromGroup($group);
+            }
+        }
+
+        return [$incomeIds, $expenseIds];
+    }
+
+    private function collectAccountIdsFromGroup(AccountGroup $group): array
+    {
+        $ids = $group->accounts->pluck('id')->toArray();
+        foreach ($group->childrenRecursive as $child) {
+            $ids = array_merge($ids, $this->collectAccountIdsFromGroup($child));
+        }
+
+        return $ids;
     }
 }

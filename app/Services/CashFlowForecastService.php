@@ -6,14 +6,11 @@ use Carbon\Carbon;
 use App\Models\Bill;
 use App\Models\Cheque;
 use App\Models\Invoice;
+use App\Enums\StatusEnum;
 use Illuminate\Support\Collection;
 
 class CashFlowForecastService
 {
-    /**
-     * Build a day-by-day cash flow forecast for the given number of days.
-     * Returns an array with inflows, outflows, and running balance per day.
-     */
     public function forecast(int $companyId, float $openingBalance, int $days = 90): array
     {
         $from = now()->toDateString();
@@ -42,25 +39,55 @@ class CashFlowForecastService
     /** Unpaid invoices due in range (expected cash in) */
     private function buildInflows(int $companyId, string $from, string $to): Collection
     {
-        return Invoice::where('company_id', $companyId)
-            ->whereIn('status', ['approved', 'partial'])
+        $invoices = Invoice::where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED)
             ->whereDate('due_date', '>=', $from)
             ->whereDate('due_date', '<=', $to)
-            ->selectRaw('due_date, SUM(grand_total - COALESCE(amount_received,0)) as expected_cash')
-            ->groupBy('due_date')
-            ->pluck('expected_cash', 'due_date');
+            ->with(['invoiceItems', 'discount', 'receiptAllocations.receipt'])
+            ->get();
+
+        $grouped = [];
+        foreach ($invoices as $invoice) {
+            $itemsTotal = $invoice->invoiceItems->sum(
+                fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount + $item->tax_amount
+            );
+            $grandTotal = $itemsTotal - (float) ($invoice->discount?->amount ?? 0);
+            $paid = $invoice->receiptAllocations
+                ->filter(fn ($ra) => $ra->receipt?->status === StatusEnum::APPROVED)
+                ->sum('amount');
+            $outstanding = max($grandTotal - $paid, 0);
+            $date = (string) $invoice->due_date;
+            $grouped[$date] = ($grouped[$date] ?? 0) + $outstanding;
+        }
+
+        return collect($grouped);
     }
 
     /** Unpaid bills due in range (expected cash out) */
     private function buildOutflows(int $companyId, string $from, string $to): Collection
     {
-        return Bill::where('company_id', $companyId)
-            ->whereIn('status', ['approved', 'partial'])
+        $bills = Bill::where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED)
             ->whereDate('due_date', '>=', $from)
             ->whereDate('due_date', '<=', $to)
-            ->selectRaw('due_date, SUM(grand_total - COALESCE(amount_paid,0)) as expected_cash')
-            ->groupBy('due_date')
-            ->pluck('expected_cash', 'due_date');
+            ->with(['billItems', 'discount', 'paymentAllocations.payment'])
+            ->get();
+
+        $grouped = [];
+        foreach ($bills as $bill) {
+            $itemsTotal = $bill->billItems->sum(
+                fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount + $item->tax_amount
+            );
+            $grandTotal = $itemsTotal - (float) ($bill->discount?->amount ?? 0);
+            $paid = $bill->paymentAllocations
+                ->filter(fn ($pa) => $pa->payment?->status === StatusEnum::APPROVED)
+                ->sum('amount');
+            $outstanding = max($grandTotal - $paid, 0);
+            $date = (string) $bill->due_date;
+            $grouped[$date] = ($grouped[$date] ?? 0) + $outstanding;
+        }
+
+        return collect($grouped);
     }
 
     /** PDC receivable cheques maturing in range */
