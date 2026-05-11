@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: pos-saas-app:latest
     environment:
       AUTORUN_ENABLED: "true"
       AUTORUN_LARAVEL_MIGRATION_ISOLATION: "false"
@@ -38,9 +39,7 @@ services:
       - coolify
 
   scheduler:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: pos-saas-app:latest
     command: ["php", "/var/www/html/artisan", "schedule:work"]
     environment:
       APP_ENV: production
@@ -60,11 +59,11 @@ services:
       - storage_data:/var/www/html/storage/app
     networks:
       - coolify
+    depends_on:
+      - app
 
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: pos-saas-app:latest
     command:
       [
         "php",
@@ -92,6 +91,8 @@ services:
       - storage_data:/var/www/html/storage/app
     networks:
       - coolify
+    depends_on:
+      - app
 
 volumes:
   storage_data:
