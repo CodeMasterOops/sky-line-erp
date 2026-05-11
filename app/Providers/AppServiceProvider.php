@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Bill;
 use App\Models\Expense;
 use App\Models\StockMovement;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use App\Observers\StockMovementObserver;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -27,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         Relation::morphMap([
             'bill' => Bill::class,
             'expense' => Expense::class,
