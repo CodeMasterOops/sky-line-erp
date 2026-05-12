@@ -16,7 +16,7 @@
                                     <div class="card-body p-5">
                                         <div class="login-userheading">
                                             <h3>Register</h3>
-                                            <h4>Create New Dreamspos Account</h4>
+                                            <h4>Create New Sky ERP Pro Account</h4>
                                         </div>
                                         <div v-if="errorMessage" class="mb-3">
                                             <div class="alert alert-danger" role="alert">
@@ -120,7 +120,7 @@
                             </form>
                         </div>
                         <div class="my-4 d-flex justify-content-center align-items-center copyright-text">
-                            <p>Copyright &copy; 2025 DreamsPOS</p>
+                            <p>Copyright &copy; 2025 Sky ERP Pro</p>
                         </div>
                     </div>
                 </div>

@@ -39,7 +39,6 @@ import VTimepicker from "@/components/base/VTimepicker.vue";
 import VDateTimePicker from "@/components/base/VDateTimePicker.vue";
 
 import VueFeather from "vue-feather";
-import ThemeSettings from "@/layouts/theme-settings.vue";
 import verticalSidebar from "@/layouts/admin/vertical-sidebar.vue";
 import PosLoader from "@/layouts/pos-loader.vue";
 import ProductHeader from "@/components/product/product-header.vue";
@@ -64,7 +63,6 @@ createApp(App)
     .use(createPinia())
     .use(myPlugins)
     .component("vue-feather", VueFeather)
-    .component("theme-settings", ThemeSettings)
     .component("vertical-sidebar", verticalSidebar)
     .component("PosLoader", PosLoader)
     .component("IconHome", IconHome)

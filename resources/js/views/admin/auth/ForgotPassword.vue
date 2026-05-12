@@ -48,7 +48,7 @@
                             </form>
                         </div>
                         <div class="my-4 d-flex justify-content-center align-items-center copyright-text">
-                            <p>Copyright &copy; {{ new Date().getFullYear() }} DreamsPOS</p>
+                            <p>Copyright &copy; {{ new Date().getFullYear() }} Sky ERP Pro</p>
                         </div>
                     </div>
                 </div>

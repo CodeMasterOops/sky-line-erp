@@ -217,7 +217,6 @@
   </div>
   <!-- /Header -->
 
-  <theme-settings v-if="!shouldHideThemeSettings"></theme-settings>
   <pos-loader></pos-loader>
 </template>
 
@@ -272,18 +271,6 @@ export default {
     userRole() {
       const user = useAdminAuthStore().user;
       return user?.role?.name ?? 'Admin';
-    },
-    shouldHideThemeSettings() {
-      const hiddenLayouts = [
-        '/layouts/layout-horizontal',
-        '/layouts/layout-detached',
-        '/layouts/layout-two-column',
-        '/layouts/layout-hovered',
-        '/layouts/layout-boxed',
-        '/layouts/layout-dark',
-        '/layouts/layout-rtl',
-      ];
-      return hiddenLayouts.includes(this.$route.path);
     },
   },
 

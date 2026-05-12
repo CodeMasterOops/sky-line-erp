@@ -102,7 +102,7 @@
                             </form>
                         </div>
                         <div class="my-4 d-flex justify-content-center align-items-center copyright-text">
-                            <p>Copyright &copy; 2025 DreamsPOS</p>
+                            <p>Copyright &copy; 2025 Sky ERP Pro</p>
                         </div>
                     </div>
                 </div>

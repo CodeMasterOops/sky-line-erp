@@ -16,7 +16,7 @@
                                     <div class="card-body p-5">
                                         <div class="login-userheading">
                                             <h3>Sign In</h3>
-                                            <h4>Access the Dreamspos panel using your email and passcode.</h4>
+                                            <h4>Access the Sky ERP Pro panel using your email and passcode.</h4>
                                         </div>
 
                                         <div class="mb-3">
@@ -157,7 +157,7 @@
                             </form>
                         </div>
                         <div class="my-4 d-flex justify-content-center align-items-center copyright-text">
-                            <p>Copyright &copy; 2025 DreamsPOS</p>
+                            <p>Copyright &copy; 2025 Sky ERP Pro</p>
                         </div>
                     </div>
                 </div>
