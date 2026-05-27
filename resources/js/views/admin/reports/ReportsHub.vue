@@ -78,6 +78,7 @@ const REPORT_CATEGORIES = [
         accentClass: 'is-teal',
         items: [
             { label: 'Sales Report', name: 'admin.sales-report', permission: 'list_sales_order' },
+            { label: 'Sales By Item', name: 'admin.sales-by-item', permission: 'list_sales_order' },
         ],
     },
     {
@@ -86,6 +87,7 @@ const REPORT_CATEGORIES = [
         accentClass: 'is-amber',
         items: [
             { label: 'Purchase Report', name: 'admin.purchase-report', permission: 'list_bill' },
+            { label: 'Purchase By Item', name: 'admin.purchase-by-item', permission: 'list_bill' },
         ],
     },
     {

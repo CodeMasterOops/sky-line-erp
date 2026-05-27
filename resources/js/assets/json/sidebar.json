@@ -12,6 +12,11 @@
                 "route": { "name": "admin.pos" },
                 "icon": "ti ti-device-laptop",
                 "permission": "list_product"
+            },
+            {
+                "menuValue": "Reports",
+                "route": { "name": "admin.reports-hub" },
+                "icon": "ti ti-report-analytics"
             }
         ]
     },
@@ -62,23 +67,6 @@
                 "route": { "name": "admin.quotation-list" },
                 "icon": "ti ti-file-diff",
                 "permission": "list_quotation"
-            },
-            {
-                "menuValue": "Sales Reports",
-                "icon": "ti ti-report-analytics",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "Sales Report",
-                        "route": { "name": "admin.sales-report" },
-                        "permission": "list_sales_order"
-                    },
-                    {
-                        "menuValue": "Sales By Item",
-                        "route": { "name": "admin.sales-by-item" },
-                        "permission": "list_sales_order"
-                    }
-                ]
             }
         ]
     },
@@ -129,24 +117,6 @@
                 "route": { "name": "admin.expense-list" },
                 "icon": "ti ti-receipt",
                 "permission": "list_expense"
-            },
-            {
-                "menuValue": "Purchase Reports",
-                "icon": "ti ti-report-analytics",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "Purchase Report",
-                        "route": { "name": "admin.purchase-report" },
-                        "permission": "list_bill"
-                    },
-                    {
-                        "menuValue": "Purchase By Item",
-                        "route": { "name": "admin.purchase-by-item" },
-                        "permission": "list_bill"
-                    }
-                ],
-                "permission": "list_bill"
             }
         ]
     },
@@ -229,28 +199,6 @@
                         "menuValue": "Production Orders",
                         "route": { "name": "admin.production-order-list" },
                         "permission": "list_production_order"
-                    }
-                ]
-            },
-            {
-                "menuValue": "Reports",
-                "icon": "ti ti-report-analytics",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "Inventory Valuation",
-                        "route": { "name": "admin.inventory-valuation" },
-                        "permission": "list_product"
-                    },
-                    {
-                        "menuValue": "Stock Aging",
-                        "route": { "name": "admin.stock-aging" },
-                        "permission": "list_product"
-                    },
-                    {
-                        "menuValue": "Reorder Alerts",
-                        "route": { "name": "admin.reorder-alerts" },
-                        "permission": "list_product"
                     }
                 ]
             },
@@ -353,90 +301,6 @@
                 "route": { "name": "admin.accounting-periods" },
                 "icon": "ti ti-calendar-time",
                 "permission": "list_accounting_period"
-            },
-            {
-                "menuValue": "Nepal VAT / TDS",
-                "icon": "ti ti-file-certificate",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "VAT Return (D3)",
-                        "route": { "name": "admin.vat-return" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "Bikri Khata (Sales Register)",
-                        "route": { "name": "admin.vat-sales-register" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "Kharid Khata (Purchase Register)",
-                        "route": { "name": "admin.vat-purchase-register" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "TDS Report",
-                        "route": { "name": "admin.tds-report" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "TDS Challan & Certificate",
-                        "route": { "name": "admin.tds-challan" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "IRD EBS Sync Status",
-                        "route": { "name": "admin.ird-sync" },
-                        "permission": "list_account"
-                    }
-                ]
-            },
-            {
-                "menuValue": "Financial Reports",
-                "icon": "ti ti-chart-dots",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "Trial Balance",
-                        "route": { "name": "admin.trial-balance" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "Profit & Loss",
-                        "route": { "name": "admin.profit-and-loss" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "Balance Sheet",
-                        "route": { "name": "admin.balance-sheet" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "Cash Flow",
-                        "route": { "name": "admin.cash-flow" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "General Ledger",
-                        "route": { "name": "admin.general-ledger" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "Journal Report",
-                        "route": { "name": "admin.journal-report" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "AR Aging",
-                        "route": { "name": "admin.ar-aging" },
-                        "permission": "list_account"
-                    },
-                    {
-                        "menuValue": "AP Aging",
-                        "route": { "name": "admin.ap-aging" },
-                        "permission": "list_account"
-                    }
-                ]
             }
         ]
     },
@@ -507,33 +371,6 @@
                     {
                         "menuValue": "Payroll",
                         "route": { "name": "admin.hr-payroll" },
-                        "permission": "list_payroll"
-                    }
-                ]
-            },
-            {
-                "menuValue": "Reports",
-                "icon": "ti ti-report-analytics",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "Payroll Summary",
-                        "route": { "name": "admin.hr-report-payroll" },
-                        "permission": "list_payroll"
-                    },
-                    {
-                        "menuValue": "Attendance Report",
-                        "route": { "name": "admin.hr-report-attendance" },
-                        "permission": "list_attendance"
-                    },
-                    {
-                        "menuValue": "Leave Balance",
-                        "route": { "name": "admin.hr-report-leave" },
-                        "permission": "list_leave_application"
-                    },
-                    {
-                        "menuValue": "TDS Salary Report",
-                        "route": { "name": "admin.hr-report-tds-salary" },
                         "permission": "list_payroll"
                     }
                 ]
