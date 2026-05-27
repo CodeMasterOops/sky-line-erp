@@ -217,7 +217,7 @@
 </template>
 
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -229,6 +229,8 @@ import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {useResolvedParty} from '@/composables/useResolvedParty.js';
+import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
@@ -296,6 +298,9 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
+usePartyDefaultOrderDiscount(toRef(form, 'party_id'), resolvedParty, form);
 
 const loadFromQuotation = async () => {
     await quotationStore.getQuotation(quotationId.value);

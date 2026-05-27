@@ -306,6 +306,7 @@ import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
+import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 
 const invoiceStore = useInvoiceStore();
 const quotationStore = useQuotationStore();
@@ -417,6 +418,7 @@ const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
 const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
+usePartyDefaultOrderDiscount(toRef(form, 'party_id'), resolvedParty, form);
 
 function variantLabel(variant) {
     let label = variant.name || '';

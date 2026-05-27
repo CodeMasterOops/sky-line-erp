@@ -252,6 +252,7 @@ import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
+import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 
 const invoiceStore = useInvoiceStore();
 const productStore = useProductStore();
@@ -308,6 +309,7 @@ const isHydratingInvoice = ref(false);
 const documentParty = computed(() => invoice.value.data?.party ?? null);
 
 const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties, documentParty);
+usePartyDefaultOrderDiscount(toRef(form, 'party_id'), resolvedParty, form, { skipInitial: true });
 
 const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     form,

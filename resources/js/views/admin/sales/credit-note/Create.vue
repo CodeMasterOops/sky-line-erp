@@ -321,6 +321,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
+import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
@@ -416,6 +417,7 @@ const debouncedInvoiceSearch = debounce((query) => {
 }, 300);
 
 const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
+usePartyDefaultOrderDiscount(toRef(form, 'party_id'), resolvedParty, form);
 
 watch(
     createModalOpened,

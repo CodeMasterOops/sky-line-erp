@@ -27,21 +27,16 @@
                     </div>
                 </div>
             </simplebar>
-            <div class="admin-sidebar-shell__footer">
-                <sidebar-trial-plan-card />
-            </div>
         </div>
     </div>
 </template>
 <script>
 import simplebar from "simplebar-vue";
 import "simplebar-vue/dist/simplebar.min.css";
-import SidebarTrialPlanCard from "@/components/layout/SidebarTrialPlanCard.vue";
 
 export default {
   components: {
     simplebar,
-    SidebarTrialPlanCard,
   },
   data() {
     return {
@@ -103,11 +98,5 @@ export default {
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
-}
-
-.admin-sidebar-shell__footer {
-  flex-shrink: 0;
-  padding: 0 12px 16px;
-  margin-top: auto;
 }
 </style>

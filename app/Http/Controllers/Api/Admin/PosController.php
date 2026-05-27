@@ -99,9 +99,18 @@ class PosController extends Controller
             });
         }
 
-        $customers = $query->select('id', 'name', 'phone', 'email')->limit(50)->get();
+        $customers = $query->with('discount')->limit(50)->get();
 
-        return response()->json(['data' => $customers]);
+        return response()->json([
+            'data' => $customers->map(fn (Party $party) => [
+                'id' => $party->id,
+                'name' => $party->name,
+                'phone' => $party->phone,
+                'email' => $party->email,
+                'discount_type' => $party->discount?->type ?? '',
+                'discount_value' => $party->discount?->value ?? '',
+            ]),
+        ]);
     }
 
     /**

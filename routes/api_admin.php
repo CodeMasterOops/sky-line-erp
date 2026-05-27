@@ -74,6 +74,7 @@ Route::middleware('auth:admin')->middleware(SetTenantContext::class)->group(func
         require __DIR__.'/modules/api_hr.php';
 
         // parties
+        Route::get('party/next-code', [PartyController::class, 'nextCode'])->name('party.next-code');
         Route::apiResource('party', PartyController::class);
 
         // Nepal compliance — Phase 1

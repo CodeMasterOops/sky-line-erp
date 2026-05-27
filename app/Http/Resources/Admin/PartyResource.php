@@ -21,6 +21,8 @@ class PartyResource extends JsonResource
             'address' => $this->address ?? '',
             'credit_limit' => $this->credit_limit ?? '',
             'is_active' => $this->is_active ?? '',
+            'discount_type' => $this->discount?->type ?? '',
+            'discount_value' => $this->discount?->value ?? '',
         ];
     }
 }

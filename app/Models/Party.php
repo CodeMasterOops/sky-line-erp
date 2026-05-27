@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use App\Enums\PartyTypeEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Party extends Model
 {
+    use HasDiscount;
     use MultiTenant;
     use SoftDeletes;
 

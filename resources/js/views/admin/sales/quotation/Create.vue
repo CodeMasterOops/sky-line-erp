@@ -278,6 +278,7 @@ import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
+import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
@@ -342,6 +343,7 @@ const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
 const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
+usePartyDefaultOrderDiscount(toRef(form, 'party_id'), resolvedParty, form);
 
 function variantLabel(variant) {
     let label = variant.name || '';

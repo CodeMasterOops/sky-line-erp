@@ -196,6 +196,37 @@ export const usePosStore = defineStore('pos', {
 
         setCustomer(customer) {
             this.selectedCustomer = customer;
+            this.applyCustomerDefaultDiscount(customer);
+        },
+
+        applyCustomerDefaultDiscount(customer) {
+            if (!customer || !this.cart.length) {
+                return;
+            }
+
+            const value = parseFloat(customer.discount_value);
+            if (!Number.isFinite(value) || value <= 0) {
+                return;
+            }
+
+            if (customer.discount_type === 'percent') {
+                this.applyDiscountPercent(value);
+
+                return;
+            }
+
+            this.applyFixedDiscount(value);
+        },
+
+        applyFixedDiscount(amount) {
+            const sub = this.cart.reduce((s, i) => s + i.rate * i.quantity, 0);
+            const totalDiscount = Math.min(amount, sub);
+            this.discountPercent = 0;
+            this.cart.forEach(item => {
+                const ratio = sub > 0 ? (item.rate * item.quantity) / sub : 0;
+                item.discountAmount = parseFloat((totalDiscount * ratio).toFixed(4));
+                this.recalcItemTax(item);
+            });
         },
 
         // ── Cart ────────────────────────────────────────────────────

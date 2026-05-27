@@ -654,7 +654,6 @@ export default {
       try {
         const res = await apiAdmin('party', 'post', {
           type: 'customer',
-          code: 'CUST-' + Date.now(),
           name: this.newCustomer.name,
           phone: this.newCustomer.phone || null,
           email: this.newCustomer.email || null,

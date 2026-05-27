@@ -292,6 +292,7 @@ import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
+import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
@@ -335,6 +336,7 @@ const form = reactive({...initialState});
 const isSubmitting = ref(false);
 
 const resolvedParty = useResolvedParty(toRef(form, 'party_id'), parties);
+usePartyDefaultOrderDiscount(toRef(form, 'party_id'), resolvedParty, form, { skipInitial: true });
 
 const isDraft = computed(() => quotation.value.data?.status === 'draft');
 

@@ -79,6 +79,24 @@
                         :error="errors.address"
                     />
                 </div>
+                <template v-if="form.type === 'customer'">
+                    <div class="col-md-6">
+                        <label class="form-label" for="party_edit_discount_value">
+                            Default order discount
+                        </label>
+                        <VDiscountAmountTypeGroup
+                            id="party_edit_discount_value"
+                            v-model="form.discount_value"
+                            v-model:discount-type="form.discount_type"
+                            :error="errors.discount_value"
+                            input-id="party_edit_discount_value"
+                            @blur="validateField('discount_value')"
+                        />
+                        <div class="form-text text-muted">
+                            Applied automatically when this customer is selected on sales documents. Can be changed per transaction.
+                        </div>
+                    </div>
+                </template>
                 <div class="col-12 text-end">
                     <button @click="closeEditModal" class="btn btn-danger me-2" type="button">
                         Close
@@ -99,6 +117,7 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {usePartyStore} from "@/stores/admin/party.js";
 import PartyTypeSelector from '@/components/party/PartyTypeSelector.vue';
+import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 
 const partyStore = usePartyStore();
 
@@ -115,6 +134,8 @@ const initialState = {
     pan: '',
     address: '',
     credit_limit: '',
+    discount_type: 'fixed',
+    discount_value: '',
 };
 
 const form = reactive({...initialState});
@@ -124,7 +145,8 @@ watch(() => edit_party_id.value, async (id) => {
     if (id) {
         await partyStore.getParty(id);
         Object.keys(form).forEach(key => {
-            form[key] = party.value.data[key] || '';
+            const value = party.value.data[key];
+            form[key] = value != null && value !== '' ? String(value) : (key === 'discount_type' ? 'fixed' : '');
         });
     }
 });
@@ -138,6 +160,8 @@ const validations = object({
     pan: string().nullable(),
     address: string().nullable(),
     credit_limit: string().nullable(),
+    discount_type: string().nullable(),
+    discount_value: string().nullable(),
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
@@ -147,7 +171,12 @@ const updateParty = async (id) => {
     if (validated) {
         isSubmitting.value = true;
         try {
-            let res = await partyStore.updateParty(id, form);
+            const payload = {...form};
+            if (payload.type !== 'customer') {
+                delete payload.discount_type;
+                delete payload.discount_value;
+            }
+            let res = await partyStore.updateParty(id, payload);
             toast(res.status, res.data.message);
             closeEditModal();
         } catch (e) {

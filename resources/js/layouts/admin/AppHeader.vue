@@ -184,6 +184,9 @@
                     <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">
                         <i class="ti ti-settings-2 me-2"></i>Settings
                     </router-link>
+                    <router-link class="dropdown-item" :to="{ name: 'admin.billing-pricing' }">
+                        <i class="ti ti-crown me-2"></i>View plans
+                    </router-link>
                     <hr class="my-2">
                     <button class="dropdown-item logout pb-0" type="button" @click.prevent="logout">
                         <i class="ti ti-logout me-2"></i>Logout
@@ -198,6 +201,7 @@
             <div class="dropdown-menu dropdown-menu-right">
                 <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">My Profile</router-link>
                 <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">Settings</router-link>
+                <router-link class="dropdown-item" :to="{ name: 'admin.billing-pricing' }">View plans</router-link>
                 <button class="dropdown-item" type="button" @click.prevent="logout">Logout</button>
             </div>
         </div>
