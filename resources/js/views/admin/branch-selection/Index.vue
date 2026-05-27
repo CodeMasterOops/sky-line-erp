@@ -1,112 +1,179 @@
 <template>
-    <div class="branch-select-page">
-        <div class="branch-select-shell">
-            <div class="branch-select-card card border-0 shadow-sm">
-                <div class="card-body p-4 p-lg-5">
-                    <div class="branch-select-head">
-                        <span class="branch-select-icon">
-                            <i class="ti ti-building-store"></i>
-                        </span>
-                        <div>
-                            <h2 class="mb-2">Select Branch</h2>
-                            <p class="text-muted mb-0">
-                                Choose the branch context to continue using branch-wise accounting features.
-                            </p>
-                        </div>
-                    </div>
+    <main class="main-wrapper">
+        <div class="account-content">
+            <div class="login-wrapper login-new">
+                <div class="row w-100 justify-content-center">
+                    <div class="col-lg-8 col-xl-7">
+                        <div class="login-content user-login">
+                            <div class="login-logo">
+                                <img :src="appLogo" alt="Sky ERP" />
+                                <router-link :to="{ name: 'admin.dashboard' }" class="login-logo logo-white">
+                                    <img :src="appLogoWhite" alt="Sky ERP" />
+                                </router-link>
+                            </div>
 
-                    <div v-if="branches.loading" class="py-5 text-center text-muted">
-                        Loading branches...
-                    </div>
-
-                    <div v-else-if="branches.data.length" class="row g-3 mt-1">
-                        <div class="col-md-6 col-xl-4" v-for="branch in branches.data" :key="branch.id">
-                            <button
-                                type="button"
-                                class="branch-option"
-                                :class="{ active: String(selectedBranchId) === String(branch.id) }"
-                                :disabled="submitting"
-                                @click="selectBranch(branch)"
-                            >
-                                <div class="branch-option-top">
-                                    <div>
-                                        <div class="branch-option-title">
-                                            {{ branch.name }}
-                                            <span v-if="branch.is_head_office"
-                                                  class="badge bg-primary ms-2">Head Office</span>
-                                        </div>
-                                        <div class="branch-option-code">{{ branch.code }}</div>
+                            <div class="card shadow-sm">
+                                <div class="card-body p-4 p-lg-5">
+                                    <div class="login-userheading mb-4">
+                                        <h3>Choose your branch</h3>
+                                        <h4>
+                                            Select the branch you want to work in. Reports and transactions use this
+                                            context across the app.
+                                        </h4>
                                     </div>
-                                    <span v-if="String(selectedBranchId) === String(branch.id)"
-                                          class="branch-option-check">
-                                        <i class="ti ti-check"></i>
-                                    </span>
+
+                                    <div v-if="branches.loading" class="py-5 text-center text-muted">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                        Loading branches...
+                                    </div>
+
+                                    <template v-else-if="branches.data.length">
+                                        <div class="row g-3">
+                                            <div
+                                                v-for="branch in branches.data"
+                                                :key="branch.id"
+                                                class="col-md-6"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    class="branch-option w-100"
+                                                    :class="{ active: String(selectedBranchId) === String(branch.id) }"
+                                                    :disabled="submitting"
+                                                    @click="selectBranch(branch)"
+                                                >
+                                                    <div class="branch-option-top">
+                                                        <div
+                                                            class="branch-option-icon"
+                                                            :class="{ 'branch-option-icon--active': String(selectedBranchId) === String(branch.id) }"
+                                                        >
+                                                            <i class="ti ti-building-store"></i>
+                                                        </div>
+                                                        <div class="flex-grow-1 text-start">
+                                                            <div class="branch-option-title">
+                                                                {{ branch.name }}
+                                                                <span
+                                                                    v-if="branch.is_head_office"
+                                                                    class="badge bg-primary-subtle text-primary ms-2"
+                                                                >Head Office</span>
+                                                            </div>
+                                                            <div class="branch-option-code">{{ branch.code }}</div>
+                                                        </div>
+                                                        <span
+                                                            v-if="String(selectedBranchId) === String(branch.id)"
+                                                            class="branch-option-check"
+                                                        >
+                                                            <i class="ti ti-check"></i>
+                                                        </span>
+                                                    </div>
+                                                    <div class="branch-option-meta">
+                                                        <span v-if="branch.phone">
+                                                            <i class="ti ti-phone me-1"></i>{{ branch.phone }}
+                                                        </span>
+                                                        <span v-if="branch.address">
+                                                            <i class="ti ti-map-pin me-1"></i>{{ branch.address }}
+                                                        </span>
+                                                        <span v-if="!branch.phone && !branch.address" class="text-muted">
+                                                            No contact details
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            v-if="selectedBranchId"
+                                            class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 pt-3 border-top"
+                                        >
+                                            <button
+                                                type="button"
+                                                class="btn btn-link text-muted px-0"
+                                                :disabled="submitting"
+                                                @click="clearBranch"
+                                            >
+                                                Clear selection
+                                            </button>
+                                            <div class="d-flex gap-2 ms-auto">
+                                                <router-link
+                                                    v-if="redirectPath"
+                                                    :to="redirectPath"
+                                                    class="btn btn-outline-secondary"
+                                                >
+                                                    Cancel
+                                                </router-link>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-primary px-4"
+                                                    :disabled="submitting || !selectedBranchId"
+                                                    @click="continueWithSelection"
+                                                >
+                                                    <span
+                                                        v-if="submitting"
+                                                        class="spinner-border spinner-border-sm me-1"
+                                                    ></span>
+                                                    Continue
+                                                    <i class="ti ti-arrow-right ms-1"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <div v-else class="text-center py-4">
+                                        <div
+                                            class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3"
+                                            style="width: 72px; height: 72px;"
+                                        >
+                                            <i class="ti ti-building-off text-muted" style="font-size: 32px;"></i>
+                                        </div>
+                                        <h5 class="fw-bold mb-2">No branches available</h5>
+                                        <p class="text-muted mb-3">
+                                            Create a branch before you continue with branch-based transactions and
+                                            reports.
+                                        </p>
+                                        <router-link
+                                            v-if="canOpenBranchSettings"
+                                            :to="{ name: 'admin.branch-list' }"
+                                            class="btn btn-primary"
+                                        >
+                                            Manage Branches
+                                        </router-link>
+                                        <p v-else class="text-muted small mb-0">
+                                            You do not have permission to manage branches. Contact an administrator.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="branch-option-meta">
-                                    <span>{{ branch.phone || 'No phone' }}</span>
-                                    <span>{{ branch.address || 'No address' }}</span>
-                                </div>
-                            </button>
+                            </div>
+
+                            <div class="my-4 text-center copyright-text">
+                                <p class="text-muted small">Copyright &copy; {{ currentYear }} Sky ERP Pro</p>
+                            </div>
                         </div>
-                    </div>
-
-                    <div v-else class="branch-empty text-center">
-                        <h5 class="mb-2">No branches available</h5>
-                        <p class="text-muted mb-3">
-                            Create a branch first before you continue with branch-based transactions and reports.
-                        </p>
-                        <router-link
-                            v-if="canOpenBranchSettings"
-                            :to="{ name: 'admin.branch-list' }"
-                            class="btn btn-primary"
-                        >
-                            Manage Branches
-                        </router-link>
-                        <p v-else class="text-muted mb-0">
-                            You do not have access to create or manage branches. Contact an administrator to create a branch first.
-                        </p>
-                    </div>
-
-                    <div class="branch-select-footer mt-4">
-                        <button
-                            v-if="selectedBranchId"
-                            type="button"
-                            class="btn btn-light"
-                            :disabled="submitting"
-                            @click="clearBranch"
-                        >
-                            Clear Selection
-                        </button>
-                        <router-link
-                            v-if="selectedBranchId && redirectPath"
-                            :to="redirectPath"
-                            class="btn btn-outline-secondary"
-                        >
-                            Cancel
-                        </router-link>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 </template>
 
 <script setup>
-import {computed, onMounted, ref} from 'vue';
-import {storeToRefs} from 'pinia';
-import {useRoute, useRouter} from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useRoute, useRouter } from 'vue-router';
 import showErrors from '@/helpers/showErrors';
-import {toast} from '@/helpers/toast';
-import {useBranchStore} from '@/stores/admin/settings/branch.js';
-import {getAdminRoutePermission} from '@/router/adminRoutePermissions';
-import {satisfiesAdminRoutePermission} from '@/helpers/checkPermission';
+import { toast } from '@/helpers/toast';
+import { useBranchStore } from '@/stores/admin/settings/branch.js';
+import { getAdminRoutePermission } from '@/router/adminRoutePermissions';
+import { satisfiesAdminRoutePermission } from '@/helpers/checkPermission';
+import appLogo from '@/assets/images/logo.svg';
+import appLogoWhite from '@/assets/images/logo-white.svg';
 
 const branchStore = useBranchStore();
 const router = useRouter();
 const route = useRoute();
 const submitting = ref(false);
 
-const {branches, selectedBranchId} = storeToRefs(branchStore);
+const { branches, selectedBranchId } = storeToRefs(branchStore);
+
+const currentYear = new Date().getFullYear();
 
 const redirectPath = computed(() => {
     const redirect = route.query.redirect;
@@ -126,12 +193,23 @@ onMounted(async () => {
     }
 });
 
-const selectBranch = async (branch) => {
+const goToRedirect = () => {
+    window.location.href = redirectPath.value;
+};
+
+const selectBranch = (branch) => {
+    branchStore.setSelectedBranch(branch);
+};
+
+const continueWithSelection = async () => {
+    if (!selectedBranchId.value) {
+        return;
+    }
+
     submitting.value = true;
     try {
-        branchStore.setSelectedBranch(branch);
         toast(200, 'Branch selected successfully');
-        window.location.href = redirectPath.value;
+        goToRedirect();
     } catch (e) {
         showErrors(e);
     } finally {
@@ -145,119 +223,91 @@ const clearBranch = () => {
 </script>
 
 <style scoped>
-.branch-select-page {
-    min-height: calc(100vh - 70px);
-    padding: 32px 16px;
-    background: radial-gradient(circle at top left, rgba(33, 150, 243, 0.12), transparent 28%),
-    linear-gradient(180deg, #f6f9fc 0%, #eef3f7 100%);
-}
-
-.branch-select-shell {
-    max-width: 1100px;
-    margin: 0 auto;
-}
-
-.branch-select-card {
-    border-radius: 24px;
-}
-
-.branch-select-head {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    margin-bottom: 24px;
-}
-
-.branch-select-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #0d6efd, #2a9df4);
-    color: #fff;
-    font-size: 24px;
-    flex-shrink: 0;
-}
-
 .branch-option {
-    width: 100%;
-    border: 1px solid #dbe5ef;
-    border-radius: 18px;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 12px;
     background: #fff;
-    padding: 18px;
+    padding: 1rem 1.125rem;
     text-align: left;
-    transition: 0.2s ease;
-    min-height: 160px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.branch-option:hover,
+.branch-option:hover:not(:disabled),
 .branch-option.active {
-    border-color: #0d6efd;
-    box-shadow: 0 16px 40px rgba(13, 110, 253, 0.12);
-    transform: translateY(-1px);
+    border-color: var(--bs-primary);
+    box-shadow: 0 8px 24px rgba(var(--bs-primary-rgb), 0.12);
+    background: rgba(var(--bs-primary-rgb), 0.03);
+}
+
+.branch-option:disabled {
+    opacity: 0.7;
+    cursor: wait;
 }
 
 .branch-option-top {
     display: flex;
-    justify-content: space-between;
+    align-items: flex-start;
     gap: 12px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
+}
+
+.branch-option-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bs-light);
+    color: var(--bs-secondary);
+    font-size: 20px;
+    flex-shrink: 0;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.branch-option-icon--active,
+.branch-option.active .branch-option-icon {
+    background: var(--bs-primary);
+    color: #fff;
 }
 
 .branch-option-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--bs-heading-color);
+    line-height: 1.35;
 }
 
 .branch-option-code {
-    font-size: 13px;
-    color: #64748b;
-    margin-top: 4px;
+    font-size: 0.8125rem;
+    color: var(--bs-secondary-color);
+    margin-top: 2px;
 }
 
 .branch-option-check {
     width: 28px;
     height: 28px;
-    border-radius: 999px;
+    border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #0d6efd;
+    background: var(--bs-primary);
     color: #fff;
     flex-shrink: 0;
 }
 
 .branch-option-meta {
-    display: grid;
-    gap: 8px;
-    font-size: 14px;
-    color: #475569;
-}
-
-.branch-empty {
-    padding: 48px 16px;
-    border: 1px dashed #cbd5e1;
-    border-radius: 18px;
-    background: #f8fafc;
-}
-
-.branch-select-footer {
     display: flex;
-    gap: 12px;
-    justify-content: flex-end;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.8125rem;
+    color: var(--bs-secondary-color);
+    padding-left: 56px;
 }
 
 @media (max-width: 767.98px) {
-    .branch-select-head {
-        flex-direction: column;
-    }
-
-    .branch-select-footer {
-        justify-content: stretch;
-        flex-direction: column;
+    .branch-option-meta {
+        padding-left: 0;
     }
 }
 </style>

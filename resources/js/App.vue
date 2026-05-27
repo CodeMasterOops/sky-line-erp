@@ -9,7 +9,9 @@
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+import { nextTick, onMounted } from "vue";
+import router from "@/router";
+import { initBootstrapUi } from "@/helpers/initBootstrap";
 
 /** Match resources/js/assets/scss/utils/_variables.scss */
 const antdTheme = {
@@ -19,6 +21,14 @@ const antdTheme = {
   },
 };
 
+const scheduleBootstrapUiInit = () => {
+  nextTick(() => initBootstrapUi());
+};
+
+router.afterEach(() => {
+  scheduleBootstrapUiInit();
+});
+
 onMounted(() => {
   const root = document.documentElement;
 
@@ -26,5 +36,7 @@ onMounted(() => {
   if (!root.hasAttribute("data-theme")) {
     root.setAttribute("data-theme", "light");
   }
+
+  scheduleBootstrapUiInit();
 });
 </script>

@@ -203,7 +203,6 @@ import {computed, onMounted, ref} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
-import 'daterangepicker/daterangepicker.js';
 import {storeToRefs} from 'pinia';
 import {useSuperAdminDashboardStore} from '@/stores/super-admin/dashboard';
 import {useSuperAdminProfileStore} from '@/stores/super-admin/profile';

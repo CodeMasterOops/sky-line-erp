@@ -55,6 +55,17 @@ const routes = [
         component: () => import("@/views/admin/onboarding/Index.vue"),
     },
     {
+        path: "/admin/select-branch",
+        name: "admin.branch-select",
+        meta: {
+            requiresAuth: true,
+            isAdmin: true,
+            allowWithoutBranch: true,
+            pageTitle: "Select Branch",
+        },
+        component: () => import("@/views/admin/branch-selection/Index.vue"),
+    },
+    {
         path: "/admin",
         component: AdminLayout,
         redirect: "/admin/dashboard",
@@ -67,15 +78,6 @@ const routes = [
                     pageTitle: "Dashboard",
                 },
                 component: () => import("@/views/admin/Dashboard.vue"),
-            },
-            {
-                path: "select-branch",
-                name: "admin.branch-select",
-                meta: {
-                    pageTitle: "Select Branch",
-                    allowWithoutBranch: true,
-                },
-                component: () => import("@/views/admin/branch-selection/Index.vue"),
             },
             {
                 path: "profile",
