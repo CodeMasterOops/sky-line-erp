@@ -46,25 +46,6 @@
                             />
                         </div>
                         <div class="col-lg-6 col-sm-6 col-12">
-                            <VSelect
-                                id="warehouse_id"
-                                v-model="form.warehouse_id"
-                                :options="warehouses.data"
-                                label="Warehouse"
-                                @validate="validateField('warehouse_id')"
-                                :error="errors.warehouse_id"
-                                @update:model-value="onWarehouseChange"
-                            />
-                        </div>
-                        <div class="col-lg-6 col-sm-6 col-12">
-                            <label class="form-label">Branch</label>
-                            <select class="form-select" v-model="form.branch_id">
-                                <option value="">— No Branch —</option>
-                                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }} ({{ b.code }})</option>
-                            </select>
-                        </div>
-
-                        <div class="col-lg-6 col-sm-6 col-12">
                             <VInput
                                 id="bijak_no"
                                 v-model="form.bijak_no"
@@ -75,6 +56,7 @@
 
                         <div class="col-12">
                             <ProductVariantSearchInput
+                                ref="productSearchRef"
                                 label="Product"
                                 required
                                 @select="onVariantSelected"
@@ -89,42 +71,55 @@
                                         <th class="inv-col-sn">SN</th>
                                         <th class="inv-col-product">Product</th>
                                         <th class="inv-col-qty">Qty</th>
-                                        <th class="inv-col-rate">Rate (sale)</th>
+                                        <th class="inv-col-rate">Rate</th>
                                         <th class="inv-col-disc">Discount</th>
                                         <th class="inv-col-tax">Tax</th>
-                                        <th>Tax Type</th>
-                                        <th style="min-width:9rem">Batch (FEFO)</th>
+                                        <th class="inv-col-total text-end">Total</th>
                                         <th class="text-center inv-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="9" class="text-center text-muted py-4">
+                                        <td colspan="8" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
                                     <tr
                                         v-for="(item, index) in form.items"
-                                        :key="`n-${index}-${item.product_variant_id}`"
+                                        :key="`n-${index}-${item.product_variant_id}-${item.warehouse_id}`"
                                         v-memo="[
                                             item.quantity,
                                             item.rate,
                                             item.line_discount_type,
                                             item.line_discount_value,
                                             item.tax_id,
-                                            item.tax_line_type,
+                                            item.warehouse_id,
                                         ]">
                                         <td>{{ index + 1 }}</td>
-                                        <td
-                                            class="text-start text-truncate inv-col-product"
-                                            :title="item.product_label">
-                                            {{ item.product_label }}
+                                        <td class="inv-col-product">
+                                            <div class="inv-line-product">
+                                                <span class="inv-line-product__name" :title="item.product_label">
+                                                    {{ item.product_label }}
+                                                </span>
+                                                <span v-if="item.sku" class="inv-line-product__sku">{{ item.sku }}</span>
+                                                <span v-if="item.warehouse_name" class="inv-line-product__wh">
+                                                    <i class="ti ti-building-warehouse"></i>
+                                                    {{ item.warehouse_name }}
+                                                </span>
+                                                <span
+                                                    v-if="item.stock_qty != null"
+                                                    class="inv-line-product__stock"
+                                                    :class="{ 'is-over': Number(item.quantity) > item.stock_qty }">
+                                                    Stock {{ item.stock_qty }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td>
                                             <VInput
                                                 input-type="number"
-                                                input-class="form-control form-control-sm"
+                                                input-class="form-control form-control-sm text-center"
                                                 v-model="form.items[index].quantity"
+                                                :max="item.stock_qty ?? undefined"
                                                 @validate="validateField(`items[${index}].quantity`)"
                                                 :error="errors[`items[${index}].quantity`]"
                                             />
@@ -132,7 +127,7 @@
                                         <td>
                                             <VInput
                                                 input-type="number"
-                                                input-class="form-control form-control-sm"
+                                                input-class="form-control form-control-sm text-end"
                                                 v-model="form.items[index].rate"
                                                 @validate="validateField(`items[${index}].rate`)"
                                                 :error="errors[`items[${index}].rate`]"
@@ -157,36 +152,22 @@
                                                 "
                                             />
                                         </td>
-                                        <td>
-                                            <VSelect
-                                                v-model="form.items[index].tax_id"
-                                                select-class="form-select form-select-sm line-item-tax-select"
-                                                :options="lineTaxOptions"
-                                                @validate="validateField(`items[${index}].tax_id`)"
-                                                :error="errors[`items[${index}].tax_id`]"
-                                            />
-                                        </td>
-                                        <td>
-                                            <select class="form-select form-select-sm" v-model="form.items[index].tax_line_type">
-                                                <option value="taxable">Taxable</option>
-                                                <option value="exempt">Exempt</option>
-                                                <option value="zero_rated">Zero Rated</option>
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <select class="form-select form-select-sm"
-                                                v-model="form.items[index].batch_id"
-                                                :disabled="!batchOptions[`${item.product_variant_id}-${form.warehouse_id}`]?.length">
-                                                <option value="">— none —</option>
-                                                <option
-                                                    v-for="b in (batchOptions[`${item.product_variant_id}-${form.warehouse_id}`] ?? [])"
-                                                    :key="b.id"
-                                                    :value="b.id">
-                                                    {{ b.batch_no }}
-                                                    <template v-if="b.expiry_date"> · exp {{ b.expiry_date }}</template>
-                                                    · {{ b.remaining_qty }} left
+                                        <td class="inv-col-tax">
+                                            <select
+                                                class="form-select form-select-sm inv-line-tax-select"
+                                                :value="item.tax_id ?? ''"
+                                                @change="onLineTaxChange(index, $event.target.value)">
+                                                <option value="">None</option>
+                                                <option v-for="t in taxes.data" :key="t.id" :value="t.id">
+                                                    {{ t.name }} ({{ t.rate }}%)
                                                 </option>
                                             </select>
+                                            <span v-if="calcLineTax(item, index) > 0" class="inv-line-tax-amt">
+                                                {{ fmt(calcLineTax(item, index)) }}
+                                            </span>
+                                        </td>
+                                        <td class="inv-col-total text-end">
+                                            <span class="inv-line-total">{{ fmt(calcLineTotal(item, index)) }}</span>
                                         </td>
                                         <td class="text-center">
                                             <button
@@ -203,7 +184,7 @@
                         </div>
 
                         <div class="col-lg-6 ms-auto">
-                            <div class="card bg-light mb-4">
+                            <div class="card bg-light mb-4 inv-summary-card">
                                 <div class="card-body py-2">
                                     <div class="d-flex justify-content-between">
                                         <span>Sub total</span>
@@ -281,11 +262,20 @@
             </div>
         </template>
     </VModal>
+
+    <WarehousePickerModal
+        ref="warehousePickerRef"
+        modal-id="invoice-create-warehouse-picker"
+        confirm-label="Add to Invoice"
+        @confirm="onWarehousePicked"
+        @cancel="cancelWarehousePick"
+    />
 </template>
 
 <script setup>
 import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
+import {useToast} from 'vue-toastification';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -293,18 +283,23 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
-import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
-import {apiAdmin} from '@/helpers/api.js';
-import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
+import {
+    buildOrderAllocations,
+    lineDiscountMoneyFromItem,
+    lineNetFromItem,
+    mergePoOrderDiscountIntoLineDiscounts,
+    orderDiscountMoney,
+} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useVariantWarehousePicker} from '@/composables/useVariantWarehousePicker.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
+import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 
@@ -313,40 +308,13 @@ const quotationStore = useQuotationStore();
 const salesOrderStore = useSalesOrderStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
-const warehouseStore = useWarehouseStore();
 
-// --- Branch & Batch (Phase 3/6) ---
-const branches = ref([]);
-const batchOptions = ref({}); // key: `${variant_id}-${warehouse_id}` → batches[]
-
-const loadBranches = async () => {
-    try {
-        const res = await apiAdmin('branch');
-        branches.value = res.data.data ?? [];
-    } catch { /* branches are optional */ }
-};
-
-const fetchBatchOptions = async (variantId, warehouseId) => {
-    if (!variantId || !warehouseId) return;
-    const key = `${variantId}-${warehouseId}`;
-    if (batchOptions.value[key]) return; // already loaded
-    try {
-        const res = await apiAdmin(`batch/fefo?product_variant_id=${variantId}&warehouse_id=${warehouseId}`);
-        batchOptions.value = { ...batchOptions.value, [key]: res.data.data ?? [] };
-    } catch { /* no batches for this variant/warehouse */ }
-};
-
-const onWarehouseChange = async (warehouseId) => {
-    // Reload batch options for all existing line items with the new warehouse
-    form.items.forEach((item) => {
-        if (item.product_variant_id) {
-            batchOptions.value = { ...batchOptions.value };
-            delete batchOptions.value[`${item.product_variant_id}-${warehouseId}`];
-            fetchBatchOptions(item.product_variant_id, warehouseId);
-        }
-        item.batch_id = '';
-    });
-};
+const {
+    warehousePickerRef,
+    resolveWarehouse,
+    confirmWarehousePick,
+    cancelWarehousePick,
+} = useVariantWarehousePicker();
 
 const createModalOpened = defineModel('createModalOpened');
 const quotationId = defineModel('quotationId');
@@ -357,11 +325,10 @@ const {currentAdDate} = useDateHelper();
 
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
-const {warehouses} = storeToRefs(warehouseStore);
 const {quotation} = storeToRefs(quotationStore);
 const {order} = storeToRefs(salesOrderStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const productSearchRef = ref(null);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({
@@ -378,9 +345,7 @@ watch(
     (opened) => {
         if (opened) {
             resetForm();
-            taxStore.getTaxes();
-            warehouseStore.getWarehouses();
-            loadBranches();
+            taxStore.getTaxes(false, {for: 'line_item'});
             partyStore.getParties({
                 filter: {
                     type: 'customer',
@@ -404,8 +369,6 @@ const getInitialState = () => ({
     party_id: '',
     quotation_id: '',
     sales_order_id: '',
-    warehouse_id: '',
-    branch_id: '',
     bijak_no: '',
     remarks: '',
     status: 'draft',
@@ -425,17 +388,23 @@ function variantLabel(variant) {
     if (variant.sku) {
         label += ` (${variant.sku})`;
     }
+
     return label;
 }
 
 function defaultLineRateString(variant) {
     const n = Number(variant.sales_price ?? variant.purchase_price ?? 0);
+
     return String(Number.isFinite(n) ? n : 0);
+}
+
+function fmt(val) {
+    return Number(val ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 const loadFromQuotation = async () => {
     await quotationStore.getQuotation(quotationId.value);
-    hydrateFromReference(quotation.value.data, {
+    await hydrateFromReference(quotation.value.data, {
         quotation_id: quotationId.value,
         sales_order_id: '',
     });
@@ -443,13 +412,31 @@ const loadFromQuotation = async () => {
 
 const loadFromSalesOrder = async () => {
     await salesOrderStore.getOrder(salesOrderId.value);
-    hydrateFromReference(order.value.data, {
+    await hydrateFromReference(order.value.data, {
         quotation_id: order.value.data?.quotation_id || '',
         sales_order_id: salesOrderId.value,
     });
 };
 
-function hydrateFromReference(data, sourceIds) {
+function buildPrefillLine(item) {
+    return {
+        product_variant_id: item.product_variant_id,
+        product_label: variantLabel(item.product_variant ?? {}),
+        sku: item.product_variant?.sku ?? '',
+        purchase_snapshot: item.product_variant?.purchase_price || 0,
+        unit_id: item.unit_id ?? item.product_variant?.unit_id ?? '',
+        quantity: String(item.quantity),
+        rate: String(item.rate),
+        tax_id: item.tax_id || '',
+        line_discount_type: item.line_discount_type || 'fixed',
+        line_discount_value: String(item.line_discount_value ?? 0),
+        warehouse_id: '',
+        warehouse_name: '',
+        stock_qty: null,
+    };
+}
+
+async function hydrateFromReference(data, sourceIds) {
     form.party_id = data.party_id || '';
     form.quotation_id = sourceIds.quotation_id || '';
     form.sales_order_id = sourceIds.sales_order_id || '';
@@ -457,6 +444,7 @@ function hydrateFromReference(data, sourceIds) {
 
     const items = data.items || [];
     const hasLineTypes = items.some((it) => it.line_discount_type != null);
+    const prefillLines = [];
 
     if (hasLineTypes) {
         form.order_discount_type = data.order_discount_type || 'fixed';
@@ -466,86 +454,134 @@ function hydrateFromReference(data, sourceIds) {
                 : '0';
 
         items.forEach((item) => {
-            form.items.push({
-                product_variant_id: item.product_variant_id,
-                product_label: variantLabel(item.product_variant),
-                purchase_snapshot: item.product_variant?.purchase_price || 0,
-                unit_id: item.unit_id ?? '',
-                quantity: String(item.quantity),
-                rate: String(item.rate),
-                tax_id: item.tax_id || '',
-                tax_line_type: item.tax_line_type || 'taxable',
-                line_discount_type: item.line_discount_type || 'fixed',
-                line_discount_value: String(item.line_discount_value ?? 0),
-                batch_id: '',
-            });
+            prefillLines.push(buildPrefillLine(item));
         });
+    } else {
+        const mergedDiscounts = mergePoOrderDiscountIntoLineDiscounts(items, data.order_discount_amount);
+        form.order_discount_type = 'fixed';
+        form.order_discount_value = '0';
+        items.forEach((item, i) => {
+            const line = buildPrefillLine(item);
+            line.line_discount_type = 'fixed';
+            line.line_discount_value = String(mergedDiscounts[i] ?? item.discount_amount ?? 0);
+            prefillLines.push(line);
+        });
+    }
+
+    form.items = [];
+    for (const line of prefillLines) {
+        await commitPrefillLine(line);
+    }
+}
+
+async function commitPrefillLine(line) {
+    const result = await resolveWarehouse(line.product_variant_id, line.product_label);
+
+    if (!result.success) {
+        if (result.error !== 'cancelled') {
+            useToast().warning(warehouseErrorMessage(result.error));
+        }
 
         return;
     }
 
-    const mergedDiscounts = mergePoOrderDiscountIntoLineDiscounts(items, data.order_discount_amount);
-    form.order_discount_type = 'fixed';
-    form.order_discount_value = '0';
-    items.forEach((item, i) => {
-        form.items.push({
-            product_variant_id: item.product_variant_id,
-            product_label: variantLabel(item.product_variant),
-            purchase_snapshot: item.product_variant?.purchase_price || 0,
-            unit_id: item.unit_id ?? '',
-            quantity: String(item.quantity),
-            rate: String(item.rate),
-            tax_id: item.tax_id || '',
-            tax_line_type: item.tax_line_type || 'taxable',
-            line_discount_type: 'fixed',
-            line_discount_value: String(mergedDiscounts[i] ?? item.discount_amount ?? 0),
-            batch_id: '',
-        });
+    form.items.push({
+        ...line,
+        warehouse_id: result.warehouse.warehouse_id,
+        warehouse_name: result.warehouse.warehouse_name,
+        stock_qty: result.warehouse.quantity,
     });
 }
 
-const onVariantSelected = (variant) => {
+function warehouseErrorMessage(error, stock) {
+    const messages = {
+        out_of_stock: 'Product is out of stock in all warehouses.',
+        insufficient_stock: `Only ${stock} unit(s) available in this warehouse.`,
+        fetch_failed: 'Could not load warehouse stock.',
+        cancelled: '',
+    };
+
+    return messages[error] ?? 'Could not add product.';
+}
+
+function commitVariantLine(variant, warehouse) {
     const vid = variant.id;
-    const existing = form.items.findIndex((i) => String(i.product_variant_id) === String(vid));
+    const wid = warehouse.warehouse_id;
+    const existing = form.items.findIndex(
+        (i) => String(i.product_variant_id) === String(vid) && String(i.warehouse_id) === String(wid),
+    );
+
     if (existing !== -1) {
         const nextQty = Number(form.items[existing].quantity || 0) + 1;
+        if (warehouse.quantity != null && nextQty > warehouse.quantity) {
+            useToast().warning(warehouseErrorMessage('insufficient_stock', warehouse.quantity));
+
+            return false;
+        }
         form.items[existing].quantity = String(nextQty);
-        return;
+
+        return true;
     }
+
     form.items.push({
         product_variant_id: vid,
         product_label: variantLabel(variant),
+        sku: variant.sku ?? '',
         purchase_snapshot: variant.purchase_price ?? 0,
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
         tax_id: '',
-        tax_line_type: 'taxable',
         line_discount_type: 'fixed',
         line_discount_value: '0',
-        batch_id: '',
+        warehouse_id: wid,
+        warehouse_name: warehouse.warehouse_name ?? '',
+        stock_qty: warehouse.quantity ?? null,
     });
-    // Load FEFO batches for this variant+warehouse combo
-    if (form.warehouse_id) {
-        fetchBatchOptions(vid, form.warehouse_id);
+
+    return true;
+}
+
+const onVariantSelected = async (variant) => {
+    const result = await resolveWarehouse(variant.id, variantLabel(variant));
+
+    if (!result.success) {
+        if (result.error !== 'cancelled') {
+            useToast().warning(warehouseErrorMessage(result.error));
+        }
+
+        return;
     }
+
+    if (commitVariantLine(variant, result.warehouse)) {
+        productSearchRef.value?.focus?.();
+    }
+};
+
+const onWarehousePicked = (warehouseOption) => {
+    confirmWarehousePick(warehouseOption);
 };
 
 const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
+const onLineTaxChange = (index, taxId) => {
+    form.items[index].tax_id = taxId || '';
+    validateField(`items[${index}].tax_id`);
+};
+
 const validations = object({
     invoice_date: string().required('Invoice date is required.'),
     due_date: string().nullable(),
     party_id: string().nullable(),
-    warehouse_id: string().required('Warehouse is required.'),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array()
         .of(
             object({
                 product_variant_id: string().required('Product is required.'),
+                warehouse_id: string().required('Warehouse is required.'),
                 quantity: string().required('Quantity is required.'),
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
@@ -564,16 +600,30 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     taxes,
 });
 
+function calcLineTotal(item, index) {
+    const nets = form.items.map((i) => lineNetFromItem(i));
+    const sumLineNet = nets.reduce((a, b) => a + b, 0);
+    const orderDisc = orderDiscountMoney(
+        sumLineNet,
+        form.order_discount_type,
+        form.order_discount_value,
+    );
+    const allocs = buildOrderAllocations(nets, orderDisc);
+    const lineNet = lineNetFromItem(item);
+    const afterOrder = Math.max(0, lineNet - (allocs[index] || 0));
+
+    return afterOrder + calcLineTax(item, index);
+}
+
 const buildInvoicePayload = () => {
     syncTaxAmounts();
-    const wid = form.warehouse_id || null;
+
     return {
         invoice_date: form.invoice_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
         quotation_id: form.quotation_id || null,
         sales_order_id: form.sales_order_id || null,
-        branch_id: form.branch_id || null,
         bijak_no: form.bijak_no || null,
         remarks: form.remarks,
         status: form.status,
@@ -581,17 +631,16 @@ const buildInvoicePayload = () => {
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
-            warehouse_id: wid,
+            warehouse_id: item.warehouse_id,
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,
             tax_id: item.tax_id || null,
-            tax_line_type: item.tax_line_type || 'taxable',
+            tax_line_type: 'taxable',
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
             tax_amount: calcLineTax(item, index),
             discount_amount: String(lineDiscountMoneyFromItem(item)),
-            batch_id: item.batch_id || null,
         })),
     };
 };
@@ -624,7 +673,6 @@ const closeCreateModal = () => {
 function resetForm() {
     Object.assign(form, getInitialState());
     errors.value = {};
-    batchOptions.value = {};
 }
 </script>
 
@@ -638,8 +686,8 @@ function resetForm() {
     vertical-align: middle;
 }
 .invoice-lines-table .inv-col-product {
-    min-width: 11rem;
-    max-width: 16rem;
+    min-width: 12rem;
+    max-width: 18rem;
 }
 .invoice-lines-table .inv-col-tax {
     min-width: 7.5rem;
@@ -650,11 +698,51 @@ function resetForm() {
 .invoice-lines-table .inv-col-action {
     width: 3rem;
 }
-
+.invoice-lines-table .inv-col-total {
+    min-width: 5.5rem;
+}
 .invoice-lines-table .inv-discount-cell {
     min-width: 9rem;
     position: relative;
     z-index: 2;
     overflow: visible;
+}
+.inv-line-product {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+.inv-line-product__name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.inv-line-product__sku,
+.inv-line-product__wh {
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color);
+}
+.inv-line-product__stock {
+    font-size: 0.7rem;
+    color: var(--bs-success);
+}
+.inv-line-product__stock.is-over {
+    color: var(--bs-danger);
+    font-weight: 600;
+}
+.inv-line-tax-select {
+    min-width: 6.5rem;
+}
+.inv-line-tax-amt {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--bs-secondary-color);
+    margin-top: 0.15rem;
+}
+.inv-line-total {
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 </style>

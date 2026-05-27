@@ -1,5 +1,5 @@
 <template>
-  <div class="modal fade" id="pos-warehouse-picker" tabindex="-1" aria-hidden="true">
+  <div class="modal fade" :id="modalId" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
@@ -35,7 +35,7 @@
             :disabled="!selectedId"
             @click="confirm"
           >
-            Add to Order
+            {{ confirmLabel }}
           </button>
         </div>
       </div>
@@ -47,6 +47,17 @@
 import { Modal } from 'bootstrap';
 
 export default {
+  props: {
+    modalId: {
+      type: String,
+      default: 'warehouse-picker-modal',
+    },
+    confirmLabel: {
+      type: String,
+      default: 'Confirm',
+    },
+  },
+
   emits: ['confirm', 'cancel'],
 
   data() {
@@ -60,7 +71,7 @@ export default {
   },
 
   mounted() {
-    const el = document.getElementById('pos-warehouse-picker');
+    const el = document.getElementById(this.modalId);
     if (el) {
       this.modalInstance = Modal.getOrCreateInstance(el);
       el.addEventListener('hidden.bs.modal', () => {

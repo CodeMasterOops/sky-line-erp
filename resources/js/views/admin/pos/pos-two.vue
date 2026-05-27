@@ -375,8 +375,10 @@
     @customer-created="onCustomerCreated"
   ></pos-two-modal>
 
-  <PosWarehousePickerModal
+  <WarehousePickerModal
     ref="warehousePicker"
+    modal-id="pos-warehouse-picker"
+    confirm-label="Add to Order"
     @confirm="onWarehousePicked"
   />
 </template>
@@ -387,7 +389,7 @@ import ProductVariantSearchInput from '@/components/inventory/ProductVariantSear
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import PosHeader from '@/layouts/pos-header.vue';
 import PosTwoModal from '@/components/modal/pos-two-modal.vue';
-import PosWarehousePickerModal from '@/components/modal/PosWarehousePickerModal.vue';
+import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import { usePosStore } from '@/stores/admin/pos/pos.js';
 import { useToast } from 'vue-toastification';
 import showErrors from '@/helpers/showErrors.js';
@@ -401,7 +403,7 @@ export default {
   components: {
     PosHeader,
     PosTwoModal,
-    PosWarehousePickerModal,
+    WarehousePickerModal,
     ProductVariantSearchInput,
     VDiscountAmountTypeGroup,
   },

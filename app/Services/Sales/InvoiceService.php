@@ -41,6 +41,7 @@ readonly class InvoiceService
             }
 
             $invoice = Invoice::create([
+                'company_id' => $user->company_id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'reference_type' => $reference['reference_type'],
