@@ -8,6 +8,7 @@ use App\Enums\UserTypeEnum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\SubscriptionService;
 use App\Services\SetCompanyDefaultDataService;
 use App\Http\Resources\SuperAdmin\CompanyResource;
 use App\Http\Requests\Api\SuperAdmin\CompanyRequest;
@@ -17,7 +18,7 @@ class CompanyController extends Controller
     public function index(Request $request)
     {
         $companies = Company::query()
-            ->with(['admin', 'ward.palika.district.province'])
+            ->with(['admin', 'ward.palika.district.province', 'currentSubscription.plan'])
             ->filter($request->query())
             ->paginate($request->query('limit', 25));
 
@@ -39,10 +40,12 @@ class CompanyController extends Controller
 
             SetCompanyDefaultDataService::setData($company);
 
+            app(SubscriptionService::class)->assignDefaultPlan($company);
+
             return $company;
         });
 
-        $company->load(['admin', 'ward.palika.district.province']);
+        $company->load(['admin', 'ward.palika.district.province', 'currentSubscription.plan']);
 
         return response()->json([
             'data' => CompanyResource::make($company),
@@ -52,7 +55,7 @@ class CompanyController extends Controller
 
     public function show(Company $company)
     {
-        $company->load(['admin', 'ward.palika.district.province']);
+        $company->load(['admin', 'ward.palika.district.province', 'currentSubscription.plan']);
 
         return CompanyResource::make($company);
     }
@@ -60,7 +63,7 @@ class CompanyController extends Controller
     public function update(CompanyRequest $request, Company $company)
     {
         $company->update($request->validated());
-        $company->load(['admin', 'ward.palika.district.province']);
+        $company->load(['admin', 'ward.palika.district.province', 'currentSubscription.plan']);
 
         return response()->json([
             'data' => CompanyResource::make($company),

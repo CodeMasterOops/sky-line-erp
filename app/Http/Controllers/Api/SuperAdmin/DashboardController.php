@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\SuperAdmin;
 
 use Carbon\Carbon;
+use App\Models\Plan;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
+use App\Models\Subscription;
 use App\Http\Controllers\Controller;
+use App\Enums\SubscriptionStatusEnum;
 
 class DashboardController extends Controller
 {
@@ -32,6 +35,19 @@ class DashboardController extends Controller
             ->where('onboarding_completed_at', '<=', now()->subMonth()->endOfMonth())
             ->count();
 
+        $activeSubscriptions = Subscription::query()->active()->with('plan')->get();
+        $totalEarnings = round($activeSubscriptions->sum(fn (Subscription $subscription) => $subscription->monthlyRecurringRevenue()), 2);
+
+        $earningsAtLastMonthEnd = Subscription::query()
+            ->whereIn('status', SubscriptionStatusEnum::activeStatuses())
+            ->where('starts_at', '<=', now()->subMonth()->endOfMonth())
+            ->where(function ($query) {
+                $query->whereNull('ends_at')
+                    ->orWhere('ends_at', '>', now()->subMonth()->endOfMonth());
+            })
+            ->get()
+            ->sum(fn (Subscription $subscription) => $subscription->monthlyRecurringRevenue());
+
         return response()->json([
             'total_companies' => $totalCompanies,
             'active_companies' => $activeCompanies,
@@ -40,12 +56,21 @@ class DashboardController extends Controller
             'companies_today' => $companiesToday,
             'total_users' => User::where('user_type', UserTypeEnum::ADMIN->value)->count(),
             'fiscal_years_count' => FiscalYear::count(),
-            'total_earnings' => 0,
+            'total_earnings' => $totalEarnings,
+            'subscription_summary' => [
+                'total_subscribers' => Subscription::query()->active()->distinct('company_id')->count('company_id'),
+                'active_subscribers' => Subscription::query()->where('status', SubscriptionStatusEnum::Active)->count(),
+                'trialing_subscribers' => Subscription::query()->where('status', SubscriptionStatusEnum::Trialing)->count(),
+                'cancelled_this_month' => Subscription::query()
+                    ->where('status', SubscriptionStatusEnum::Cancelled)
+                    ->where('cancelled_at', '>=', now()->startOfMonth())
+                    ->count(),
+            ],
             'growth' => [
                 'total_companies' => $this->percentChange($totalCompanies, $totalAtLastMonthEnd),
                 'active_companies' => $this->percentChange($activeCompanies, $activeAtLastMonthEnd),
                 'onboarded_companies' => $this->percentChange($onboardedCompanies, $onboardedAtLastMonthEnd),
-                'total_earnings' => 0,
+                'total_earnings' => $this->percentChange($totalEarnings, $earningsAtLastMonthEnd),
                 'new_companies' => $this->percentChange($thisMonthNew, $lastMonthNew),
             ],
             'companies_from_last_month' => $thisMonthNew - $lastMonthNew,
@@ -54,7 +79,7 @@ class DashboardController extends Controller
                 'monthly' => $this->monthlyCompanyChart(),
                 'sparklines' => $this->sparklineData(),
             ],
-            'top_plans' => [],
+            'top_plans' => $this->topPlans(),
         ]);
     }
 
@@ -65,6 +90,30 @@ class DashboardController extends Controller
         }
 
         return round((($current - $previous) / $previous) * 100, 2);
+    }
+
+    /**
+     * @return list<array{name: string, subscribers: int, revenue: float}>
+     */
+    private function topPlans(): array
+    {
+        return Plan::query()
+            ->withCount(['subscriptions as subscribers' => fn ($query) => $query->active()])
+            ->with(['subscriptions' => fn ($query) => $query->active()])
+            ->get()
+            ->map(function (Plan $plan) {
+                $revenue = $plan->subscriptions->sum(fn (Subscription $subscription) => $subscription->monthlyRecurringRevenue());
+
+                return [
+                    'name' => $plan->name,
+                    'subscribers' => (int) $plan->subscribers,
+                    'revenue' => round($revenue, 2),
+                ];
+            })
+            ->sortByDesc('subscribers')
+            ->take(5)
+            ->values()
+            ->all();
     }
 
     /**
@@ -120,7 +169,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * @return array{total: list<int>, active: list<int>, onboarded: list<int>, earnings: list<int>}
+     * @return array{total: list<int>, active: list<int>, onboarded: list<int>, earnings: list<int|float>}
      */
     private function sparklineData(): array
     {
@@ -154,11 +203,18 @@ class DashboardController extends Controller
             ->values()
             ->all();
 
+        $earningsByDate = Subscription::query()
+            ->active()
+            ->where('starts_at', '>=', $since)
+            ->get()
+            ->groupBy(fn (Subscription $subscription) => $subscription->starts_at->toDateString())
+            ->map(fn ($subscriptions) => round($subscriptions->sum(fn (Subscription $subscription) => $subscription->monthlyRecurringRevenue()), 2));
+
         return [
             'total' => $mapCounts($newByDate),
             'active' => $mapCounts($activeByDate),
             'onboarded' => $mapCounts($onboardedByDate),
-            'earnings' => array_fill(0, 7, 0),
+            'earnings' => $days->map(fn (string $date) => (float) ($earningsByDate[$date] ?? 0))->values()->all(),
         ];
     }
 }

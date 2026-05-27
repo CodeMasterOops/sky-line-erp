@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Services\SubscriptionService;
 use App\Http\Requests\Api\Admin\LoginRequest;
 use App\Http\Resources\Admin\ProfileResource;
 use App\Services\SetCompanyDefaultDataService;
@@ -80,6 +81,8 @@ class AuthController extends Controller
             ]);
 
             SetCompanyDefaultDataService::setData($company);
+
+            app(SubscriptionService::class)->assignDefaultPlan($company);
 
             return [$company, $user];
         });

@@ -13,7 +13,10 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             SuperAdminSeeder::class,
+            CurrencySeeder::class,
+            PlanSeeder::class,
             CompanySeeder::class,
+            BackfillSubscriptionSeeder::class,
         ]);
     }
 }

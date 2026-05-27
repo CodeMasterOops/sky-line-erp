@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Company extends Model
 {
@@ -102,5 +103,29 @@ class Company extends Model
     public function ward(): BelongsTo
     {
         return $this->belongsTo(Ward::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function currentSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)
+            ->active()
+            ->latestOfMany();
+    }
+
+    public function plan(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Plan::class,
+            Subscription::class,
+            'company_id',
+            'id',
+            'id',
+            'plan_id'
+        )->whereIn('subscriptions.status', \App\Enums\SubscriptionStatusEnum::activeStatuses());
     }
 }

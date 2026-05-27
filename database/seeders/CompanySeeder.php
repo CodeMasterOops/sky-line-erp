@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
 use Illuminate\Database\Seeder;
+use App\Services\SubscriptionService;
 use App\Services\SetCompanyDefaultDataService;
 
 class CompanySeeder extends Seeder
@@ -29,6 +30,7 @@ class CompanySeeder extends Seeder
             ]);
 
             SetCompanyDefaultDataService::setData($company);
+            app(SubscriptionService::class)->assignDefaultPlan($company);
         }
     }
 }

@@ -1,26 +1,23 @@
 <?php
 
+use App\Models\Plan;
 use App\Models\Company;
-use App\Models\SuperAdmin;
-use Laravel\Sanctum\Sanctum;
-
-uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
-
-function actingAsSuperAdmin(): SuperAdmin
-{
-    $superAdmin = SuperAdmin::create([
-        'name' => 'Super Admin',
-        'email' => 'super@admin.com',
-        'password' => 'password123',
-    ]);
-
-    Sanctum::actingAs($superAdmin, [], 'super_admin');
-
-    return $superAdmin;
-}
+use App\Models\Subscription;
+use App\Enums\BillingCycleEnum;
+use App\Enums\SubscriptionStatusEnum;
 
 it('returns dashboard statistics for authenticated super admin', function () {
     actingAsSuperAdmin();
+
+    $plan = Plan::create([
+        'name' => 'Basic',
+        'slug' => 'basic',
+        'price_monthly' => 49,
+        'price_yearly' => 490,
+        'is_active' => true,
+        'sort_order' => 1,
+    ]);
+
     Company::create([
         'company_name' => 'Active Co',
         'code' => 'ACT001',
@@ -29,11 +26,20 @@ it('returns dashboard statistics for authenticated super admin', function () {
         'onboarding_completed_at' => now(),
     ]);
 
-    Company::create([
+    $inactiveCompany = Company::create([
         'company_name' => 'Inactive Co',
         'code' => 'INA001',
         'email' => 'inactive@example.com',
         'is_active' => false,
+    ]);
+
+    Subscription::create([
+        'company_id' => $inactiveCompany->id,
+        'plan_id' => $plan->id,
+        'status' => SubscriptionStatusEnum::Active,
+        'billing_cycle' => BillingCycleEnum::Monthly,
+        'price' => 49,
+        'starts_at' => now(),
     ]);
 
     $response = $this->getJson('/api/super-admin/dashboard');
@@ -44,7 +50,7 @@ it('returns dashboard statistics for authenticated super admin', function () {
         ->assertJsonPath('inactive_companies', 1)
         ->assertJsonPath('onboarded_companies', 1)
         ->assertJsonPath('companies_today', 2)
-        ->assertJsonPath('total_earnings', 0)
+        ->assertJsonPath('total_earnings', 49)
         ->assertJsonStructure([
             'total_companies',
             'active_companies',
@@ -54,6 +60,12 @@ it('returns dashboard statistics for authenticated super admin', function () {
             'total_users',
             'fiscal_years_count',
             'total_earnings',
+            'subscription_summary' => [
+                'total_subscribers',
+                'active_subscribers',
+                'trialing_subscribers',
+                'cancelled_this_month',
+            ],
             'growth' => [
                 'total_companies',
                 'active_companies',
@@ -72,6 +84,8 @@ it('returns dashboard statistics for authenticated super admin', function () {
 
     expect($response->json('chart_data.weekly.labels'))->toHaveCount(7);
     expect($response->json('chart_data.monthly.labels'))->toHaveCount(12);
+    expect($response->json('top_plans.0.name'))->toBe('Basic');
+    expect($response->json('top_plans.0.subscribers'))->toBe(1);
 });
 
 it('requires authentication to access dashboard', function () {

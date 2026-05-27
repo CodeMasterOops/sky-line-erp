@@ -13,24 +13,52 @@
         <div class="col-lg-3 col-md-6 d-flex">
             <div class="card flex-fill">
                 <div class="card-body d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center overflow-hidden">
-                        <span class="avatar avatar-lg bg-primary flex-shrink-0">
-                            <i class="ti ti-building fs-16"></i>
-                        </span>
-                        <div class="ms-2 overflow-hidden">
-                            <p class="fs-12 fw-medium mb-1 text-truncate">Total Companies</p>
-                            <h4>{{ companies.meta?.total || 0 }}</h4>
-                        </div>
+                    <div>
+                        <p class="fs-12 fw-medium mb-1">Total Companies</p>
+                        <h4>{{ stats.total }}</h4>
                     </div>
-                    <div id="total-chart">
-                        <apexchart
-                            type="area"
-                            width="50"
-                            :options="totalChart.total"
-                            :series="totalChart.series"
-                        >
-                        </apexchart>
+                    <span class="avatar avatar-lg bg-primary flex-shrink-0">
+                        <i class="ti ti-building fs-16"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 d-flex">
+            <div class="card flex-fill">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="fs-12 fw-medium mb-1">Active Companies</p>
+                        <h4>{{ stats.active }}</h4>
                     </div>
+                    <span class="avatar avatar-lg bg-success flex-shrink-0">
+                        <i class="ti ti-circle-check fs-16"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 d-flex">
+            <div class="card flex-fill">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="fs-12 fw-medium mb-1">Inactive Companies</p>
+                        <h4>{{ stats.inactive }}</h4>
+                    </div>
+                    <span class="avatar avatar-lg bg-danger flex-shrink-0">
+                        <i class="ti ti-player-pause fs-16"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 d-flex">
+            <div class="card flex-fill">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <p class="fs-12 fw-medium mb-1">New Today</p>
+                        <h4>{{ stats.newToday }}</h4>
+                    </div>
+                    <span class="avatar avatar-lg bg-skyblue flex-shrink-0">
+                        <i class="ti ti-calendar-plus fs-16"></i>
+                    </span>
                 </div>
             </div>
         </div>
@@ -51,6 +79,9 @@
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
                                 {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+                            </template>
+                            <template v-if="column.key === 'plan'">
+                                {{ record.current_subscription?.plan?.name || '—' }}
                             </template>
                             <template v-if="column.key === 'status'">
                                 <div class="form-check form-switch">
@@ -93,14 +124,15 @@ import {onMounted, reactive, ref, computed} from "vue";
 import {toast} from "@/helpers/toast";
 import showErrors from "@/helpers/showErrors";
 import {useCompanyStore} from "@/stores/super-admin/company";
+import {useSuperAdminDashboardStore} from "@/stores/super-admin/dashboard";
 import {storeToRefs} from "pinia";
 import RestPassword from './ResetPassword.vue'
 import {useRouter} from "vue-router";
 import {useSuperAdminAuthStore} from "@/stores/super-admin/auth.js";
 import Swal from "sweetalert2";
-import { totalChart } from "@/views/super-admin/subscription/data.js";
 
 const companyStore = useCompanyStore();
+const dashboardStore = useSuperAdminDashboardStore();
 const authStore = useSuperAdminAuthStore();
 const router = useRouter();
 
@@ -112,6 +144,17 @@ const filter = reactive({
 const reset_company_password = ref('');
 
 const {companies} = storeToRefs(companyStore);
+
+const stats = computed(() => {
+    const dash = dashboardStore.dashboard.data;
+
+    return {
+        total: dash.total_companies ?? companies.value.meta?.total ?? 0,
+        active: dash.active_companies ?? 0,
+        inactive: dash.inactive_companies ?? 0,
+        newToday: dash.companies_today ?? 0,
+    };
+});
 
 const columns = [
     {
@@ -135,6 +178,10 @@ const columns = [
         sorter: true,
     },
     {
+        title: 'Plan',
+        key: 'plan',
+    },
+    {
         title: 'Status',
         key: 'status',
     },
@@ -155,11 +202,13 @@ const pagination = computed(() => ({
 
 onMounted(() => {
     fetchCompanies();
-})
+    dashboardStore.getDashboardData();
+});
 
 const fetchCompanies = () => {
     companyStore.getCompanies({filter});
-}
+    dashboardStore.getDashboardData();
+};
 
 const handleTableChange = (pag) => {
     filter.page = pag.current;
@@ -180,11 +229,11 @@ const updateCompanyStatus = async (id) => {
                 toast(res.status, res.data.message);
                 fetchCompanies();
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 
 const loginToCompany = async (id) => {
     Swal.fire({
@@ -200,9 +249,9 @@ const loginToCompany = async (id) => {
                 const {href: companyLoginUrl} = router.resolve({name: 'admin.dashboard'})
                 window.open(companyLoginUrl, '_blank');
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 </script>

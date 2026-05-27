@@ -35,7 +35,8 @@
                 <div class="d-flex align-items-center flex-wrap mb-1">
                     <router-link :to="{ name: 'super-admin.company-list' }"
                         class="btn btn-dark btn-md me-2 mb-2">Companies</router-link>
-                    <router-link to="#" class="btn btn-light btn-md mb-2">All Packages</router-link>
+                    <router-link :to="{ name: 'super-admin.packages' }"
+                        class="btn btn-light btn-md mb-2">All Packages</router-link>
                 </div>
             </div>
             <div class="welcome-bg">
@@ -194,11 +195,10 @@
                 <div class="card flex-fill">
                     <div class="card-header pb-2 d-flex align-items-center justify-content-between flex-wrap">
                         <h5 class="mb-2">Top Plans</h5>
-                        <span class="badge bg-light text-dark mb-2">Coming Soon</span>
                     </div>
                     <div class="card-body">
                         <div v-if="!dash.top_plans.length" class="text-center py-4">
-                            <p class="text-muted mb-0">Subscription plans will appear here once billing is enabled.</p>
+                            <p class="text-muted mb-0">No active subscriptions yet.</p>
                         </div>
                         <template v-else>
                             <div id="plan-overview">
@@ -207,8 +207,8 @@
                             </div>
                             <div v-for="plan in dash.top_plans" :key="plan.name"
                                 class="d-flex align-items-center justify-content-between mb-2">
-                                <p class="f-13 mb-0"><i :class="`ti ti-circle-filled ${plan.color_class} me-1`"></i>{{ plan.name }}</p>
-                                <p class="f-13 fw-medium text-gray-9">{{ plan.percentage }}%</p>
+                                <p class="f-13 mb-0">{{ plan.name }}</p>
+                                <p class="f-13 fw-medium text-gray-9">{{ plan.subscribers }} · {{ formatCurrency(plan.revenue) }}</p>
                             </div>
                         </template>
                     </div>
@@ -337,7 +337,7 @@ const monthlyChartOptions = computed(() => ({
     },
 }));
 
-const donutChartSeries = computed(() => dash.value.top_plans?.map((plan) => plan.count) || []);
+const donutChartSeries = computed(() => dash.value.top_plans?.map((plan) => plan.subscribers) || []);
 const donutChartOptions = computed(() => ({
     ...donutChart.donut,
     labels: dash.value.top_plans?.map((plan) => plan.name) || [],

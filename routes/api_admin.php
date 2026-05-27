@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Admin\Nepal\InvoicePdfController;
 use App\Http\Controllers\Api\Admin\Nepal\IrdSettingController;
 use App\Http\Controllers\Api\Admin\Nepal\TdsChallanController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
+use App\Http\Controllers\Api\Admin\BillingController;
 use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
 
 // Phase 3 — Inventory Enhancements
@@ -32,7 +33,7 @@ Route::middleware('auth:admin')->prefix('onboarding')->as('onboarding.')->group(
     Route::post('complete', [OnboardingController::class, 'complete'])->name('complete');
 });
 
-Route::middleware('auth:admin')->middleware(SetTenantContext::class)->group(function () {
+Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
     Route::middleware('checkRole')->group(function () {
         // profile
         Route::prefix('profile')->as('profile')->controller(ProfileController::class)->group(function () {
@@ -43,6 +44,10 @@ Route::middleware('auth:admin')->middleware(SetTenantContext::class)->group(func
 
         // dashboard
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+        // billing (read-only subscription info)
+        Route::get('billing/subscription', [BillingController::class, 'subscription'])->name('billing.subscription');
+        Route::get('billing/plans', [BillingController::class, 'plans'])->name('billing.plans');
 
         // address reference (read-only, for company settings & forms)
         Route::prefix('location-reference')->as('location-reference.')->controller(AddressReferenceController::class)->group(function () {

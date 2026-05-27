@@ -45,3 +45,32 @@ function something()
 {
     // ..
 }
+
+function actingAsSuperAdmin(): \App\Models\SuperAdmin
+{
+    $superAdmin = \App\Models\SuperAdmin::create([
+        'name' => 'Super Admin',
+        'email' => 'super@admin.com',
+        'password' => 'password123',
+    ]);
+
+    \Laravel\Sanctum\Sanctum::actingAs($superAdmin, [], 'super_admin');
+
+    return $superAdmin;
+}
+
+function createDefaultPlan(array $overrides = []): \App\Models\Plan
+{
+    return \App\Models\Plan::create(array_merge([
+        'name' => 'Basic',
+        'slug' => 'basic',
+        'description' => 'Starter — ideal for startups & shops',
+        'price_monthly' => 999,
+        'price_yearly' => 9999,
+        'features' => ['1 branch location', 'Purchase & sales management'],
+        'is_active' => true,
+        'is_default' => true,
+        'is_recommended' => false,
+        'sort_order' => 1,
+    ], $overrides));
+}

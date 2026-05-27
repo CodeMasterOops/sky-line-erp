@@ -1,8 +1,10 @@
 <?php
 
+use App\Models\Plan;
 use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
+use App\Models\Subscription;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -20,6 +22,16 @@ function warmTablesCache(): void
 
 beforeEach(function () {
     warmTablesCache();
+
+    Plan::create([
+        'name' => 'Basic',
+        'slug' => 'basic',
+        'price_monthly' => 999,
+        'price_yearly' => 9999,
+        'is_active' => true,
+        'is_default' => true,
+        'sort_order' => 1,
+    ]);
 });
 
 it('creates a company and admin user on successful registration', function () {
@@ -55,6 +67,10 @@ it('creates a company and admin user on successful registration', function () {
             ->where('company_id', $company->id)
             ->exists()
     )->toBeTrue();
+
+    $subscription = Subscription::query()->where('company_id', $company->id)->active()->first();
+    expect($subscription)->not->toBeNull();
+    expect($subscription->plan->slug)->toBe('basic');
 });
 
 it('returns a valid access token on registration', function () {

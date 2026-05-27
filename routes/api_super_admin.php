@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\SuperAdmin\ProvinceController;
 use App\Http\Controllers\Api\SuperAdmin\DistrictController;
 use App\Http\Controllers\Api\SuperAdmin\PalikaController;
 use App\Http\Controllers\Api\SuperAdmin\WardController;
+use App\Http\Controllers\Api\SuperAdmin\PlanController;
+use App\Http\Controllers\Api\SuperAdmin\SubscriptionController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
@@ -52,4 +54,12 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::put('company/{company}/update-status', [CompanyController::class, 'updateStatus'])->name('company.update-status');
     Route::put('company/{company}/reset-password', [CompanyController::class, 'resetPassword'])->name('company.reset-password');
     Route::apiResource('company', CompanyController::class);
+
+    // plans (packages)
+    Route::apiResource('plan', PlanController::class);
+
+    // subscriptions
+    Route::put('subscription/{subscription}/cancel', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    Route::put('subscription/{subscription}/renew', [SubscriptionController::class, 'renew'])->name('subscription.renew');
+    Route::apiResource('subscription', SubscriptionController::class);
 });

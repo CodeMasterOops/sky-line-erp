@@ -1,87 +1,113 @@
 <template>
   <PageHeader
     title="Plans & pricing"
-    subtitle="Choose the plan that fits your team. Switch between monthly and yearly billing anytime."
+    subtitle="View your current plan. Contact support to change your subscription."
     hide-action-buttons
   />
-  <div class="row">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-body pb-1">
-          <div class="d-flex justify-content-center align-items-center mb-4">
-            <p class="mb-0 me-2">Monthly</p>
-            <div class="form-check form-switch">
-              <input
-                id="billing-period-switch"
-                v-model="yearly"
-                class="form-check-input"
-                type="checkbox"
-                role="switch"
-                :aria-label="yearly ? 'Yearly billing' : 'Monthly billing'"
-              />
+
+  <div v-if="loading" class="text-center py-5">
+    <span class="spinner-border text-primary"></span>
+  </div>
+
+  <template v-else>
+    <div v-if="currentSubscription" class="alert alert-info mb-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <strong>Current plan:</strong> {{ currentSubscription.plan.name }}
+          <span class="badge bg-primary ms-2">{{ currentSubscription.status_label }}</span>
+        </div>
+        <div class="text-muted">
+          {{ currentSubscription.billing_cycle_label }} billing
+          <span v-if="currentSubscription.ends_at"> · Renews {{ formatDate(currentSubscription.ends_at) }}</span>
+          <span v-else-if="currentSubscription.trial_ends_at"> · Trial ends {{ formatDate(currentSubscription.trial_ends_at) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body pb-1">
+            <div class="d-flex justify-content-center align-items-center mb-4">
+              <p class="mb-0 me-2">Monthly</p>
+              <div class="form-check form-switch">
+                <input
+                  id="billing-period-switch"
+                  v-model="yearly"
+                  class="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  :aria-label="yearly ? 'Yearly billing' : 'Monthly billing'"
+                />
+              </div>
+              <p class="mb-0">Yearly</p>
             </div>
-            <p class="mb-0">Yearly</p>
-          </div>
-          <div class="row justify-content-center">
-            <div
-              v-for="plan in plans"
-              :key="plan.name"
-              class="col-xl-3 col-lg-4 col-md-6 col-sm-12"
-            >
+
+            <div v-if="!planList.length" class="text-center py-5">
+              <p class="text-muted mb-0">No plans are available at the moment. Please contact support.</p>
+            </div>
+
+            <div v-else class="row justify-content-center">
               <div
-                :class="[
-                  'card mb-3',
-                  plan.recommended
-                    ? 'pricing-active position-relative'
-                    : 'bg-light',
-                ]"
+                v-for="plan in planList"
+                :key="plan.id"
+                class="col-xl-3 col-lg-4 col-md-6 col-sm-12"
               >
-                <span
-                  v-if="plan.recommended"
-                  class="badge bg-pink badge-top"
+                <div
+                  :class="[
+                    'card mb-3 h-100',
+                    isCurrentPlan(plan) ? 'pricing-active position-relative border-primary' : 'bg-light',
+                  ]"
                 >
-                  Recommended
-                </span>
-                <div class="card-body">
-                  <p class="mb-1">{{ plan.name }}</p>
-                  <div class="d-flex align-items-center mb-2">
-                    <h4 class="mb-0">
-                      {{ formatMoney(yearly ? plan.yearly : plan.monthly) }}
-                    </h4>
-                    <span class="d-inline-flex ms-1 text-body">
-                      {{ yearly ? "/ Per Year" : "/ Per Month" }}
-                    </span>
-                  </div>
-                  <p class="mb-3">Feature for {{ plan.userLimit }}</p>
-                  <button
-                    type="button"
-                    class="btn btn-secondary w-100 mb-3"
-                    @click="subscribe(plan)"
+                  <span
+                    v-if="plan.is_recommended"
+                    class="badge bg-pink badge-top"
                   >
-                    Subscribe Now
-                  </button>
-                  <span class="d-block mb-1">Features</span>
-                  <p class="mb-2">{{ plan.featuresHeading }}</p>
-                  <ul class="list-unstyled mb-0">
-                    <li
-                      v-for="(f, i) in plan.features"
-                      :key="i"
-                      class="d-flex align-items-center"
-                      :class="i < plan.features.length - 1 ? 'mb-2' : ''"
-                    >
-                      <span
-                        :class="[
-                          'pricing-check rounded-circle me-2',
-                          f.included
-                            ? 'bg-success'
-                            : 'bg-secondary-transparent',
-                        ]"
-                      >
-                        <i class="ti ti-check fs-10" />
+                    Recommended
+                  </span>
+                  <span
+                    v-if="isCurrentPlan(plan)"
+                    class="badge bg-primary badge-top"
+                    style="right: 1rem; left: auto;"
+                  >
+                    Current Plan
+                  </span>
+                  <div class="card-body">
+                    <p class="mb-0 fw-semibold text-uppercase">{{ plan.name }}</p>
+                    <p class="mb-2 text-muted fs-13">{{ plan.description }}</p>
+                    <div class="d-flex align-items-center mb-2">
+                      <h4 class="mb-0" :class="{ 'fw-bold': yearly }">
+                        {{ formatMoney(yearly ? plan.price_yearly : plan.price_monthly) }}
+                      </h4>
+                      <span class="d-inline-flex ms-1 text-body">
+                        {{ yearly ? "/ year" : "/ month" }}
                       </span>
-                      {{ f.label }}
-                    </li>
-                  </ul>
+                    </div>
+                    <p v-if="yearly" class="text-success fs-12 mb-3">
+                      Best value with yearly billing
+                    </p>
+                    <button
+                      type="button"
+                      class="btn w-100 mb-3"
+                      :class="isCurrentPlan(plan) ? 'btn-primary' : 'btn-secondary'"
+                      disabled
+                    >
+                      {{ isCurrentPlan(plan) ? 'Current Plan' : 'Contact support to change plan' }}
+                    </button>
+                    <span class="d-block mb-2 fw-medium">Features</span>
+                    <ul class="list-unstyled mb-0">
+                      <li
+                        v-for="(feature, index) in plan.features"
+                        :key="index"
+                        class="d-flex align-items-start mb-2"
+                      >
+                        <span class="pricing-check rounded-circle me-2 bg-success flex-shrink-0 mt-1">
+                          <i class="ti ti-check fs-10" />
+                        </span>
+                        <span>{{ feature }}</span>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -89,102 +115,51 @@
         </div>
       </div>
     </div>
-  </div>
+  </template>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useToast } from "vue-toastification";
+import {computed, onMounted, ref} from "vue";
+import {storeToRefs} from "pinia";
+import {useBillingStore} from "@/stores/admin/billing";
 
-const toast = useToast();
+const billingStore = useBillingStore();
+const {subscription, plans} = storeToRefs(billingStore);
 
 const yearly = ref(false);
+const loading = ref(true);
 
-const featureSets = {
-  basic: [
-    { label: "Customer Profiles", included: true },
-    { label: "Inventory Management", included: true },
-    { label: "Discounts & Promotions", included: true },
-    { label: "24/7 Email & Chat Support", included: false },
-    { label: "API Access & Integrations", included: false },
-    { label: "Reports & Analytics", included: false },
-  ],
-  business: [
-    { label: "Customer Profiles", included: true },
-    { label: "Inventory Management", included: true },
-    { label: "Discounts & Promotions", included: true },
-    { label: "24/7 Email & Chat Support", included: true },
-    { label: "API Access & Integrations", included: false },
-    { label: "Reports & Analytics", included: false },
-  ],
-  premium: [
-    { label: "Customer Profiles", included: true },
-    { label: "Inventory Management", included: true },
-    { label: "Discounts & Promotions", included: true },
-    { label: "24/7 Email & Chat Support", included: true },
-    { label: "API Access & Integrations", included: true },
-    { label: "Reports & Analytics", included: false },
-  ],
-  enterprise: [
-    { label: "Customer Profiles", included: true },
-    { label: "Inventory Management", included: true },
-    { label: "Discounts & Promotions", included: true },
-    { label: "24/7 Email & Chat Support", included: true },
-    { label: "API Access & Integrations", included: true },
-    { label: "Reports & Analytics", included: true },
-  ],
-};
+const currentSubscription = computed(() => subscription.value.data);
+const planList = computed(() => plans.value.data ?? []);
 
-const plans = ref([
-  {
-    name: "Basic Plan",
-    userLimit: "up to 10 users",
-    monthly: 29,
-    yearly: 290,
-    recommended: false,
-    featuresHeading: "Includes in this basic plan",
-    features: featureSets.basic,
-  },
-  {
-    name: "Business Plan",
-    userLimit: "up to 22 users",
-    monthly: 69,
-    yearly: 690,
-    recommended: true,
-    featuresHeading: "Includes in this business plan",
-    features: featureSets.business,
-  },
-  {
-    name: "Premium Plan",
-    userLimit: "up to 33 users",
-    monthly: 99,
-    yearly: 990,
-    recommended: false,
-    featuresHeading: "Includes in this premium plan",
-    features: featureSets.premium,
-  },
-  {
-    name: "Enterprise Plan",
-    userLimit: "up to Unlimited users",
-    monthly: 199,
-    yearly: 1990,
-    recommended: false,
-    featuresHeading: "Includes in this enterprise plan",
-    features: featureSets.enterprise,
-  },
-]);
+onMounted(async () => {
+    try {
+        await billingStore.loadBillingPage();
+        if (currentSubscription.value?.billing_cycle === 'yearly') {
+            yearly.value = true;
+        }
+    } finally {
+        loading.value = false;
+    }
+});
 
-function formatMoney(amount) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(amount);
+function isCurrentPlan(plan) {
+    return currentSubscription.value?.plan?.id === plan.id;
 }
 
-function subscribe(plan) {
-  toast.success(
-    `Subscribe: ${plan.name} (${yearly.value ? "yearly" : "monthly"}) — connect billing when ready.`
-  );
+function formatMoney(amount) {
+    return new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+    }).format(Number(amount || 0));
+}
+
+function formatDate(value) {
+    if (!value) {
+        return '';
+    }
+
+    return new Date(value).toLocaleDateString();
 }
 </script>
