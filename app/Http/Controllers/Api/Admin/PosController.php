@@ -13,10 +13,12 @@ use App\Models\PosHeldOrder;
 use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
 use App\Models\AccountSetting;
+use App\Models\ProductVariant;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\Nepal\NepaliDateService;
+use App\Http\Requests\Api\Admin\PosCheckoutRequest;
 use App\Services\Accounting\InvoiceGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
 
@@ -81,6 +83,37 @@ class PosController extends Controller
         });
 
         return response()->json(['data' => $data->values()]);
+    }
+
+    /**
+     * Warehouses with available stock for a product variant (POS add-to-cart).
+     */
+    public function variantWarehouses(ProductVariant $productVariant)
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        $stocks = DB::table('stocks')
+            ->join('warehouses', 'warehouses.id', '=', 'stocks.warehouse_id')
+            ->where('stocks.company_id', $companyId)
+            ->where('stocks.product_variant_id', $productVariant->id)
+            ->where('stocks.quantity', '>', 0)
+            ->whereNull('stocks.deleted_at')
+            ->whereNull('warehouses.deleted_at')
+            ->select([
+                'stocks.warehouse_id',
+                'warehouses.name as warehouse_name',
+                'stocks.quantity',
+            ])
+            ->orderBy('warehouses.name')
+            ->get();
+
+        return response()->json([
+            'data' => $stocks->map(fn ($row) => [
+                'warehouse_id' => $row->warehouse_id,
+                'warehouse_name' => $row->warehouse_name,
+                'quantity' => (float) $row->quantity,
+            ])->values(),
+        ]);
     }
 
     /**
@@ -183,23 +216,8 @@ class PosController extends Controller
      *   remarks: string|null
      * }
      */
-    public function checkout(Request $request)
+    public function checkout(PosCheckoutRequest $request)
     {
-        $request->validate([
-            'warehouse_id' => ['required', 'integer'],
-            'payment_method' => ['required', 'string'],
-            'items' => ['required', 'array', 'min:1'],
-            'items.*.product_variant_id' => ['required', 'integer'],
-            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
-            'items.*.rate' => ['required', 'numeric', 'min:0'],
-            'items.*.unit_id' => ['nullable', 'integer'],
-            'items.*.tax_id' => ['nullable', 'integer'],
-            'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
-            'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
-            'party_id' => ['nullable', 'integer'],
-            'remarks' => ['nullable', 'string'],
-        ]);
-
         $user = auth('admin')->user();
         $company = $user->company;
         $fiscalYearId = $company->fiscal_year_id;
@@ -223,6 +241,7 @@ class PosController extends Controller
                 }
 
                 $invoice = Invoice::create([
+                    'company_id' => $company->id,
                     'fiscal_year_id' => $fiscalYearId,
                     'party_id' => $request->party_id ?? null,
                     'invoice_no' => $invoiceNo,
@@ -236,9 +255,34 @@ class PosController extends Controller
                     'status' => StatusEnum::APPROVED->value,
                 ]);
 
-                $items = collect($request->items)->map(fn ($item) => [
+                $lineDiscountTotal = 0.0;
+                $lineNetTotal = 0.0;
+
+                foreach ($request->items as $item) {
+                    $lineSubtotal = (float) $item['quantity'] * (float) $item['rate'];
+                    $lineDiscount = (float) ($item['discount_amount'] ?? 0);
+                    $lineDiscountTotal += $lineDiscount;
+                    $lineNetTotal += max($lineSubtotal - $lineDiscount, 0);
+                }
+
+                $orderDiscountAmount = $this->resolveOrderDiscountAmount(
+                    $lineNetTotal,
+                    $request->input('order_discount_type', 'fixed'),
+                    (float) ($request->input('order_discount_value') ?? 0),
+                );
+
+                if ($request->filled('order_discount_type') || $request->filled('order_discount_value')) {
+                    $invoice->saveDiscount(
+                        $request->input('order_discount_type', 'fixed'),
+                        $request->filled('order_discount_value') ? (float) $request->order_discount_value : null,
+                        $orderDiscountAmount,
+                    );
+                }
+
+                $invoiceItems = collect($request->items)->map(fn ($item) => [
+                    'company_id' => $company->id,
                     'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $request->warehouse_id,
+                    'warehouse_id' => $item['warehouse_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -248,8 +292,19 @@ class PosController extends Controller
                     'tax_line_type' => 'taxable',
                 ])->all();
 
-                $invoice->invoiceItems()->createMany($items);
-                $invoice->refresh()->loadMissing('invoiceItems');
+                $createdItems = $invoice->invoiceItems()->createMany($invoiceItems);
+                $invoice->refresh()->loadMissing(['invoiceItems', 'discount']);
+
+                foreach ($createdItems as $index => $invoiceItem) {
+                    $sourceItem = $request->items[$index] ?? null;
+                    if ($sourceItem && (isset($sourceItem['line_discount_type']) || isset($sourceItem['line_discount_value']))) {
+                        $invoiceItem->saveDiscount(
+                            $sourceItem['line_discount_type'] ?? 'fixed',
+                            isset($sourceItem['line_discount_value']) ? (float) $sourceItem['line_discount_value'] : null,
+                            (float) ($sourceItem['discount_amount'] ?? 0),
+                        );
+                    }
+                }
 
                 // Deduct inventory
                 foreach ($invoice->invoiceItems as $item) {
@@ -267,10 +322,11 @@ class PosController extends Controller
                     }
                 }
 
-                // Calculate grand total for receipt
-                $grandTotal = $invoice->invoiceItems->reduce(function ($carry, $item) {
-                    return $carry + ($item->quantity * $item->rate) - $item->discount_amount + $item->tax_amount;
-                }, 0.0);
+                $subtotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->quantity * (float) $item->rate);
+                $lineDiscountTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->discount_amount);
+                $taxTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->tax_amount);
+                $orderDiscountAmount = (float) ($invoice->discount?->amount ?? $orderDiscountAmount);
+                $grandTotal = $subtotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
 
                 // Create receipt if we have an account to credit
                 if ($accountId && $grandTotal > 0) {
@@ -280,6 +336,7 @@ class PosController extends Controller
                     $receiptNo = 'RC-'.($receiptCount + 1).$suffix;
 
                     $receipt = Receipt::create([
+                        'company_id' => $company->id,
                         'fiscal_year_id' => $fiscalYearId,
                         'party_id' => $request->party_id ?? null,
                         'receipt_no' => $receiptNo,
@@ -324,11 +381,24 @@ class PosController extends Controller
 
         $invoice->load([
             'party',
+            'discount',
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
         ]);
+
+        $warehouseNames = $invoice->invoiceItems
+            ->loadMissing('warehouse')
+            ->pluck('warehouse.name')
+            ->filter()
+            ->unique()
+            ->values();
+        $subtotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->quantity * (float) $item->rate);
+        $lineDiscountTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->discount_amount);
+        $taxTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->tax_amount);
+        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
+        $grandTotal = $subtotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
 
         $responseData = [
             'id' => $invoice->id,
@@ -338,10 +408,19 @@ class PosController extends Controller
             'invoice_date' => $invoice->invoice_date,
             'party_id' => $invoice->party_id,
             'party_name' => $invoice->party?->name ?? 'Walk-in Customer',
-            'grand_total' => $invoice->grand_total ?? 0,
+            'warehouse_name' => $warehouseNames->count() === 1
+                ? ($warehouseNames->first() ?? '')
+                : ($warehouseNames->count() > 1 ? 'Multiple warehouses' : ''),
+            'warehouses' => $warehouseNames->all(),
+            'subtotal' => round($subtotal, 2),
+            'line_discount_total' => round($lineDiscountTotal, 2),
+            'order_discount_amount' => round($orderDiscountAmount, 2),
+            'tax_total' => round($taxTotal, 2),
+            'grand_total' => round($grandTotal, 2),
             'payment_method' => $request->payment_method,
             'items' => $invoice->invoiceItems->map(fn ($item) => [
                 'name' => $item->productVariant?->product?->name ?? '',
+                'warehouse_name' => $item->warehouse?->name ?? '',
                 'quantity' => $item->quantity,
                 'rate' => $item->rate,
                 'tax_amount' => $item->tax_amount,
@@ -369,6 +448,7 @@ class PosController extends Controller
         ]);
 
         $held = PosHeldOrder::create([
+            'company_id' => auth('admin')->user()->company_id,
             'party_id' => $request->party_id,
             'label' => $request->label,
             'order_data' => $request->order_data,
@@ -405,6 +485,21 @@ class PosController extends Controller
     }
 
     // -----------------------------------------------------------------------
+
+    private function resolveOrderDiscountAmount(float $sumLineNet, string $type, float $value): float
+    {
+        if ($sumLineNet <= 0 || $value <= 0) {
+            return 0.0;
+        }
+
+        if ($type === 'percent') {
+            $pct = min(100.0, max(0.0, $value));
+
+            return min($sumLineNet * ($pct / 100), $sumLineNet);
+        }
+
+        return min(max(0.0, $value), $sumLineNet);
+    }
 
     private function resolveAccountId(string $paymentMethod, ?AccountSetting $setting): ?int
     {

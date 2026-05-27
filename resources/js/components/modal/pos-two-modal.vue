@@ -40,8 +40,38 @@
             type="button"
             class="btn btn-md btn-success"
             :disabled="cashTendered < grandTotal"
-            @click="doCheckout('cash')"
+            @click="doCheckout()"
           >
+            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
+            Confirm Payment
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       PAYMENT — GENERIC (dynamic payment modes)
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="modal fade modal-default" id="payment-generic" aria-labelledby="payment-generic">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ paymentMethod }} Payment</h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="bg-light br-10 p-4 text-center mb-3">
+            <p class="mb-1 text-muted">Amount Due</p>
+            <h2 class="display-1">{{ fmt(grandTotal) }}</h2>
+          </div>
+          <p class="text-muted text-center mb-0">Confirm payment via {{ paymentMethod }}.</p>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-md btn-primary" @click="doCheckout()">
             <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
             Confirm Payment
           </button>
@@ -71,7 +101,7 @@
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-primary" @click="doCheckout('card')">
+          <button type="button" class="btn btn-md btn-primary" @click="doCheckout()">
             <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
             <i class="ti ti-credit-card me-1"></i>Charge Card
           </button>
@@ -102,7 +132,7 @@
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-info" @click="doCheckout('scan')">
+          <button type="button" class="btn btn-md btn-info" @click="doCheckout()">
             <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
             <i class="ti ti-scan me-1"></i>Confirm Scan
           </button>
@@ -149,67 +179,97 @@
   <!-- ═══════════════════════════════════════════════════════════════
        PRINT RECEIPT
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="print-receipt" aria-labelledby="print-receipt">
+  <div class="modal fade modal-default pos-receipt-modal" id="print-receipt" aria-labelledby="print-receipt">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-body" id="receipt-print-area">
-          <div class="icon-head text-center invoice-logo d-flex justify-content-center">
-            <a href="javascript:void(0);">
-              <img src="@/assets/images/logo.svg" width="130" class="img-fluid dark-logo" alt="logo" />
-              <img src="@/assets/images/logo-white.svg" width="130" class="img-fluid white-logo" alt="logo" />
-            </a>
-          </div>
-          <div class="text-center info">
-            <h6 class="mb-0">{{ companyName }}</h6>
-            <p class="mb-0">Phone: {{ companyPhone }}</p>
-          </div>
-          <div class="tax-invoice mt-2">
-            <h6 class="text-center">Tax Invoice</h6>
-            <div class="row">
-              <div class="col-6">
-                <div class="invoice-user-name"><span>Customer: </span>{{ lastSale?.party_name ?? 'Walk-in Customer' }}</div>
-                <div class="invoice-user-name"><span>Invoice No: </span>{{ lastSale?.invoice_no }}</div>
+        <div class="modal-body p-0">
+          <div id="receipt-print-area" class="pos-receipt">
+            <header class="pos-receipt__header">
+              <img
+                v-if="receiptLogoUrl"
+                :src="receiptLogoUrl"
+                alt="Company logo"
+                class="pos-receipt__logo"
+              />
+              <h6 v-if="companyName" class="pos-receipt__company">{{ companyName }}</h6>
+              <p v-if="companyPhone" class="pos-receipt__meta">Tel: {{ companyPhone }}</p>
+            </header>
+
+            <div class="pos-receipt__divider"></div>
+            <p class="pos-receipt__title">Tax Invoice</p>
+            <div class="pos-receipt__divider"></div>
+
+            <section class="pos-receipt__info">
+              <div class="pos-receipt__info-row">
+                <span>Customer</span>
+                <strong>{{ lastSale?.party_name ?? 'Walk-in Customer' }}</strong>
               </div>
-              <div class="col-6">
-                <div class="invoice-user-name"><span>Date: </span>{{ lastSale?.invoice_date }}</div>
-                <div class="invoice-user-name"><span>Payment: </span>{{ lastSale?.payment_method }}</div>
+              <div class="pos-receipt__info-row">
+                <span>Invoice No</span>
+                <strong>{{ lastSale?.invoice_no ?? '—' }}</strong>
               </div>
-            </div>
-          </div>
-          <table class="table-borderless w-100 table-fit mt-2">
-            <thead>
-              <tr>
-                <th># Item</th>
-                <th>Price</th>
-                <th>Qty</th>
-                <th class="text-end">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(item, idx) in (lastSale?.items ?? [])" :key="idx">
-                <td>{{ idx + 1 }}. {{ item.name }}</td>
-                <td>{{ fmt(item.rate) }}</td>
-                <td>{{ item.quantity }}</td>
-                <td class="text-end">{{ fmt(item.total) }}</td>
-              </tr>
-              <tr>
-                <td colspan="4">
-                  <table class="table-borderless w-100 table-fit">
-                    <tbody>
-                      <tr>
-                        <td class="fw-bold">Total Bill:</td>
-                        <td class="text-end">{{ fmt(lastSale?.grand_total) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="text-center invoice-bar mt-2">
-            <div class="border-bottom border-dashed pb-2 mb-2">
-              <p class="mb-0">Thank you for your business!</p>
-            </div>
+              <div class="pos-receipt__info-row">
+                <span>Date</span>
+                <strong>{{ lastSale?.invoice_date ?? '—' }}</strong>
+              </div>
+              <div class="pos-receipt__info-row">
+                <span>Payment</span>
+                <strong>{{ lastSale?.payment_method ?? '—' }}</strong>
+              </div>
+              <div v-if="lastSale?.warehouse_name" class="pos-receipt__info-row">
+                <span>Warehouse{{ (lastSale?.warehouses?.length ?? 0) > 1 ? 's' : '' }}</span>
+                <strong>{{ lastSale.warehouse_name }}</strong>
+              </div>
+            </section>
+
+            <table class="pos-receipt__items">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th class="text-end">Qty</th>
+                  <th class="text-end">Rate</th>
+                  <th class="text-end">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, idx) in (lastSale?.items ?? [])" :key="idx">
+                  <td>
+                    <span class="pos-receipt__item-name">{{ item.name }}</span>
+                    <span v-if="item.warehouse_name" class="pos-receipt__item-wh">{{ item.warehouse_name }}</span>
+                  </td>
+                  <td class="text-end">{{ item.quantity }}</td>
+                  <td class="text-end">{{ fmt(item.rate) }}</td>
+                  <td class="text-end">{{ fmt(item.total) }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <section class="pos-receipt__totals">
+              <div v-if="lastSale?.subtotal != null" class="pos-receipt__total-row">
+                <span>Subtotal</span>
+                <span>{{ fmt(lastSale.subtotal) }}</span>
+              </div>
+              <div v-if="Number(lastSale?.line_discount_total) > 0" class="pos-receipt__total-row is-discount">
+                <span>Line discount</span>
+                <span>-{{ fmt(lastSale.line_discount_total) }}</span>
+              </div>
+              <div v-if="Number(lastSale?.order_discount_amount) > 0" class="pos-receipt__total-row is-discount">
+                <span>Order discount</span>
+                <span>-{{ fmt(lastSale.order_discount_amount) }}</span>
+              </div>
+              <div v-if="Number(lastSale?.tax_total) > 0" class="pos-receipt__total-row">
+                <span>Tax</span>
+                <span>{{ fmt(lastSale.tax_total) }}</span>
+              </div>
+              <div class="pos-receipt__total-row is-grand">
+                <span>Total</span>
+                <span>{{ fmt(lastSale?.grand_total) }}</span>
+              </div>
+            </section>
+
+            <footer class="pos-receipt__footer">
+              <p>Thank you for your business!</p>
+            </footer>
           </div>
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
@@ -562,6 +622,137 @@ import { Modal } from 'bootstrap';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { useToast } from 'vue-toastification';
+import defaultLogoUrl from '@/assets/images/logo.svg';
+
+const RECEIPT_PRINT_STYLES = `
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #111;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .pos-receipt {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    padding: 16px 14px 20px;
+  }
+  .pos-receipt__header { text-align: center; margin-bottom: 10px; }
+  .pos-receipt__logo {
+    display: block;
+    max-width: 120px;
+    max-height: 48px;
+    width: auto;
+    height: auto;
+    margin: 0 auto 8px;
+    object-fit: contain;
+  }
+  .pos-receipt__company {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .pos-receipt__meta {
+    margin: 0;
+    color: #555;
+    font-size: 11px;
+  }
+  .pos-receipt__divider {
+    border-top: 1px dashed #bbb;
+    margin: 10px 0;
+  }
+  .pos-receipt__title {
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .pos-receipt__info { margin-bottom: 10px; }
+  .pos-receipt__info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+    font-size: 11px;
+  }
+  .pos-receipt__info-row span { color: #666; }
+  .pos-receipt__info-row strong {
+    font-weight: 600;
+    text-align: right;
+    color: #111;
+  }
+  .pos-receipt__items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+  }
+  .pos-receipt__items th {
+    border-top: 1px dashed #bbb;
+    border-bottom: 1px dashed #bbb;
+    padding: 6px 2px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #333;
+  }
+  .pos-receipt__items td {
+    padding: 6px 2px;
+    vertical-align: top;
+    border-bottom: 1px dotted #e5e5e5;
+    font-size: 11px;
+  }
+  .pos-receipt__item-name { display: block; font-weight: 600; }
+  .pos-receipt__item-wh {
+    display: block;
+    margin-top: 2px;
+    color: #777;
+    font-size: 10px;
+  }
+  .text-end { text-align: right; }
+  .pos-receipt__totals {
+    border-top: 1px dashed #bbb;
+    padding-top: 8px;
+    margin-bottom: 12px;
+  }
+  .pos-receipt__total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: #444;
+  }
+  .pos-receipt__total-row.is-discount { color: #c0392b; }
+  .pos-receipt__total-row.is-grand {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #bbb;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111;
+  }
+  .pos-receipt__footer {
+    border-top: 1px dashed #bbb;
+    padding-top: 10px;
+    text-align: center;
+  }
+  .pos-receipt__footer p {
+    margin: 0;
+    font-size: 11px;
+    color: #555;
+  }
+  @page { margin: 8mm; size: auto; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+`;
 
 export default {
   props: {
@@ -588,7 +779,14 @@ export default {
       newCustomer: { name: '', phone: '', email: '', address: '' },
       companyName: '',
       companyPhone: '',
+      companyLogoUrl: '',
     };
+  },
+
+  computed: {
+    receiptLogoUrl() {
+      return this.companyLogoUrl || defaultLogoUrl;
+    },
   },
 
   mounted() {
@@ -603,7 +801,7 @@ export default {
 
   methods: {
     fmt(val) {
-      return '$' + Number(val ?? 0).toFixed(2);
+      return Number(val ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
 
     formatTime(datetime) {
@@ -611,13 +809,12 @@ export default {
       return new Date(datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     },
 
-    async doCheckout(method) {
+    async doCheckout() {
       if (this.loading) return;
       this.loading = true;
       try {
-        await this.$emit('checkout', method);
-        // Close this payment modal
-        ['#payment-cash', '#payment-card', '#scan-payment'].forEach(sel => {
+        await this.$emit('checkout', this.paymentMethod);
+        ['#payment-cash', '#payment-card', '#scan-payment', '#payment-generic'].forEach(sel => {
           const el = document.querySelector(sel);
           if (el) Modal.getInstance(el)?.hide();
         });
@@ -634,18 +831,64 @@ export default {
 
     printReceipt() {
       const area = document.getElementById('receipt-print-area');
-      if (!area) return;
-      const win = window.open('', '_blank', 'width=400,height=600');
-      win.document.write(`<html><head><title>Receipt</title>
-        <style>
-          body { font-family: monospace; font-size: 12px; padding: 10px; }
-          table { width: 100%; }
-          th, td { padding: 2px 4px; }
-          .text-end { text-align: right; }
-        </style>
-        </head><body>${area.innerHTML}</body></html>`);
-      win.document.close();
-      win.print();
+      if (!area) {
+        return;
+      }
+
+      const printWindow = window.open('', '_blank', 'width=420,height=720');
+      if (!printWindow) {
+        useToast().warning('Allow pop-ups to print the receipt');
+
+        return;
+      }
+
+      printWindow.document.open();
+      printWindow.document.write(`<!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>Receipt ${this.lastSale?.invoice_no ?? ''}</title>
+            <style>${RECEIPT_PRINT_STYLES}</style>
+          </head>
+          <body>${area.outerHTML}</body>
+        </html>`);
+      printWindow.document.close();
+
+      const runPrint = () => {
+        const images = Array.from(printWindow.document.images ?? []);
+        if (!images.length) {
+          printWindow.focus();
+          printWindow.print();
+          printWindow.close();
+
+          return;
+        }
+
+        let settled = 0;
+        const finish = () => {
+          settled += 1;
+          if (settled >= images.length) {
+            printWindow.focus();
+            printWindow.print();
+            printWindow.close();
+          }
+        };
+
+        images.forEach((img) => {
+          if (img.complete) {
+            finish();
+          } else {
+            img.addEventListener('load', finish, { once: true });
+            img.addEventListener('error', finish, { once: true });
+          }
+        });
+      };
+
+      if (printWindow.document.readyState === 'complete') {
+        runPrint();
+      } else {
+        printWindow.addEventListener('load', runPrint, { once: true });
+      }
     },
 
     async createCustomer() {
@@ -693,6 +936,7 @@ export default {
         const settings = res.data.data ?? res.data ?? {};
         this.companyName = settings.company_name ?? settings.name ?? '';
         this.companyPhone = settings.phone ?? settings.company_phone ?? '';
+        this.companyLogoUrl = settings.logo_url ?? '';
       } catch {
         // silently ignore — company info is cosmetic
       }
@@ -700,3 +944,155 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.pos-receipt-modal .modal-dialog {
+  max-width: 380px;
+}
+
+.pos-receipt {
+  color: var(--bs-body-color);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  padding: 1.5rem 1.25rem;
+}
+
+.pos-receipt__header {
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+.pos-receipt__logo {
+  display: block;
+  height: auto;
+  margin: 0 auto 0.65rem;
+  max-height: 52px;
+  max-width: 130px;
+  object-fit: contain;
+  width: auto;
+}
+
+.pos-receipt__company {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+}
+
+.pos-receipt__meta {
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.pos-receipt__divider {
+  border-top: 1px dashed var(--bs-border-color);
+  margin: 0.75rem 0;
+}
+
+.pos-receipt__title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.pos-receipt__info {
+  margin-bottom: 0.75rem;
+}
+
+.pos-receipt__info-row {
+  display: flex;
+  font-size: 0.75rem;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.pos-receipt__info-row span {
+  color: var(--bs-secondary-color);
+}
+
+.pos-receipt__info-row strong {
+  font-weight: 600;
+  text-align: right;
+}
+
+.pos-receipt__items {
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+  width: 100%;
+}
+
+.pos-receipt__items th {
+  border-bottom: 1px dashed var(--bs-border-color);
+  border-top: 1px dashed var(--bs-border-color);
+  color: var(--bs-secondary-color);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.45rem 0.15rem;
+  text-transform: uppercase;
+}
+
+.pos-receipt__items td {
+  border-bottom: 1px dotted rgba(var(--bs-border-color-rgb, 222, 226, 230), 0.85);
+  font-size: 0.75rem;
+  padding: 0.45rem 0.15rem;
+  vertical-align: top;
+}
+
+.pos-receipt__item-name {
+  display: block;
+  font-weight: 600;
+}
+
+.pos-receipt__item-wh {
+  color: var(--bs-secondary-color);
+  display: block;
+  font-size: 0.6875rem;
+  margin-top: 0.15rem;
+}
+
+.pos-receipt__totals {
+  border-top: 1px dashed var(--bs-border-color);
+  margin-bottom: 0.85rem;
+  padding-top: 0.65rem;
+}
+
+.pos-receipt__total-row {
+  color: var(--bs-secondary-color);
+  display: flex;
+  font-size: 0.75rem;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.pos-receipt__total-row.is-discount {
+  color: var(--bs-danger);
+}
+
+.pos-receipt__total-row.is-grand {
+  border-top: 1px dashed var(--bs-border-color);
+  color: var(--bs-body-color);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 0;
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+}
+
+.pos-receipt__footer {
+  border-top: 1px dashed var(--bs-border-color);
+  padding-top: 0.75rem;
+  text-align: center;
+}
+
+.pos-receipt__footer p {
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  margin: 0;
+}
+</style>

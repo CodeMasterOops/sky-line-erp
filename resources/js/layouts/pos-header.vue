@@ -38,46 +38,6 @@
         </router-link>
       </li>
 
-      <!-- Warehouse / Store Selector -->
-      <li class="nav-item dropdown has-arrow main-drop select-store-dropdown">
-        <a
-          href="javascript:void(0);"
-          class="dropdown-toggle nav-link select-store"
-          data-bs-toggle="dropdown"
-        >
-          <span class="user-info">
-            <span class="user-letter">
-              <img :src="'/img/store/store-01.png'" alt="Store Logo" class="img-fluid" />
-            </span>
-            <span class="user-detail">
-              <span class="user-name">{{ selectedWarehouseName }}</span>
-            </span>
-          </span>
-        </a>
-        <div class="dropdown-menu dropdown-menu-right">
-          <a
-            href="javascript:void(0);"
-            class="dropdown-item"
-            :class="{ active: selectedWarehouseId === null }"
-            @click="selectWarehouse({ id: null, name: 'All Warehouses' })"
-          >
-            <img :src="'/img/store/store-01.png'" alt="Store Logo" class="img-fluid" />
-            All Warehouses
-          </a>
-          <a
-            v-for="wh in warehouses"
-            :key="wh.id"
-            href="javascript:void(0);"
-            class="dropdown-item"
-            :class="{ active: wh.id === selectedWarehouseId }"
-            @click="selectWarehouse(wh)"
-          >
-            <img :src="'/img/store/store-01.png'" alt="Store Logo" class="img-fluid" />
-            {{ wh.name }}
-          </a>
-        </div>
-      </li>
-
       <!-- Calculator -->
       <li class="nav-item nav-item-box">
         <a
@@ -228,8 +188,6 @@ import showErrors from '@/helpers/showErrors';
 import { useToast } from 'vue-toastification';
 
 export default {
-  emits: ['warehouse-changed'],
-
   setup() {
     const posStore = usePosStore();
     return { posStore };
@@ -253,17 +211,6 @@ export default {
   },
 
   computed: {
-    warehouses() {
-      return this.posStore.warehouses;
-    },
-    selectedWarehouseId() {
-      return this.posStore.selectedWarehouseId;
-    },
-    selectedWarehouseName() {
-      if (this.posStore.selectedWarehouseId === null) return 'All Warehouses';
-      const wh = this.posStore.warehouses.find(w => w.id === this.posStore.selectedWarehouseId);
-      return wh?.name ?? 'All Warehouses';
-    },
     userName() {
       const user = useAdminAuthStore().user;
       return user?.name ?? 'Admin';
@@ -278,11 +225,6 @@ export default {
     updateClock() {
       const now = new Date();
       this.currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    },
-
-    selectWarehouse(wh) {
-      this.posStore.setWarehouse(wh.id);
-      this.$emit('warehouse-changed', wh.id);
     },
 
     printLastReceipt() {

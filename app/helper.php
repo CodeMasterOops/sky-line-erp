@@ -11,6 +11,15 @@ if (! function_exists('allTables')) {
     function allTables()
     {
         return Cache::rememberForever('allTables', function () {
+            if (Schema::getConnection()->getDriverName() === 'sqlite') {
+                $list = [];
+                foreach (Schema::getTableListing() as $table) {
+                    $list[$table] = Schema::getColumnListing($table);
+                }
+
+                return $list;
+            }
+
             $tables = DB::select('SHOW TABLES');
             $list = [];
             foreach ($tables as $table) {

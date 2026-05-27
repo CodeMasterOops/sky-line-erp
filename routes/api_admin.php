@@ -109,6 +109,7 @@ Route::middleware('auth:admin')->middleware(SetTenantContext::class)->group(func
     // POS
     Route::prefix('pos')->as('pos.')->middleware('checkRole')->controller(PosController::class)->group(function () {
         Route::get('products', 'products')->name('products');
+        Route::get('variants/{productVariant}/warehouses', 'variantWarehouses')->name('variants.warehouses');
         Route::get('customers', 'customers')->name('customers');
         Route::get('warehouses', 'warehouses')->name('warehouses');
         Route::get('today-summary', 'todaySummary')->name('today-summary');

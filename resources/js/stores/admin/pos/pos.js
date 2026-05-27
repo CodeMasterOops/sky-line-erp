@@ -1,50 +1,44 @@
 import { defineStore } from 'pinia';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import {
+    buildOrderAllocations,
+    lineDiscountMoneyFromItem,
+    lineNetFromItem,
+    orderDiscountMoney,
+} from '@/composables/purchaseOrderTotals.js';
+
+function itemForCalc(item) {
+    return {
+        quantity: item.quantity,
+        rate: item.rate,
+        line_discount_type: item.line_discount_type || 'fixed',
+        line_discount_value: item.line_discount_value ?? '0',
+    };
+}
+
+export function cartLineKey(variantId, warehouseId) {
+    return `${variantId}-${warehouseId}`;
+}
 
 export const usePosStore = defineStore('pos', {
     state: () => ({
-        // product browser
-        categories: [],
-        products: [],
-        productsLoading: false,
-        searchQuery: '',
-        activeCategoryId: null,
-
-        // cart items: [{variantId, productId, name, sku, unitId, rate, taxId, taxRate, taxAmount, discountAmount, quantity, stock, image}]
         cart: [],
 
-        // order-level settings
-        orderTaxId: null,
-        orderTaxRate: 0,
-        shippingAmount: 0,
-        discountPercent: 0,
+        order_discount_type: 'fixed',
+        order_discount_value: '0',
 
-        // customer
         selectedCustomer: null,
         customers: [],
         customersLoading: false,
 
-        // warehouses / store selector
         warehouses: [],
-        selectedWarehouseId: null,
-
-        // taxes from API
         taxes: [],
-
-        // payment modes from API
         paymentModes: [],
-
-        // held orders
         heldOrders: [],
-
-        // today summary
         todaySummary: { sale_count: 0, sale_total: 0, profit: 0, cogs: 0 },
-
-        // last completed sale (for receipt printing)
         lastSale: null,
 
-        // loading flags
         checkoutLoading: false,
         holdLoading: false,
         initialized: false,
@@ -54,53 +48,94 @@ export const usePosStore = defineStore('pos', {
         subtotal(state) {
             return state.cart.reduce((sum, item) => sum + item.rate * item.quantity, 0);
         },
-        discountTotal(state) {
-            return state.cart.reduce((sum, item) => sum + (item.discountAmount ?? 0), 0);
+
+        lineDiscountTotal(state) {
+            return state.cart.reduce(
+                (sum, item) => sum + lineDiscountMoneyFromItem(itemForCalc(item)),
+                0,
+            );
         },
+
+        orderDiscountTotal(state) {
+            const nets = state.cart.map((item) => lineNetFromItem(itemForCalc(item)));
+            const sumLineNet = nets.reduce((a, b) => a + b, 0);
+
+            return orderDiscountMoney(
+                sumLineNet,
+                state.order_discount_type || 'fixed',
+                state.order_discount_value,
+            );
+        },
+
+        discountTotal() {
+            return this.lineDiscountTotal + this.orderDiscountTotal;
+        },
+
         taxTotal(state) {
             return state.cart.reduce((sum, item) => sum + (item.taxAmount ?? 0), 0);
         },
-        grandTotal(state) {
-            const sub = this.subtotal - this.discountTotal + this.taxTotal + Number(state.shippingAmount);
-            return Math.max(sub, 0);
+
+        grandTotal() {
+            const nets = this.cart.map((item) => lineNetFromItem(itemForCalc(item)));
+            const sumLineNet = nets.reduce((a, b) => a + b, 0);
+            const orderDisc = this.orderDiscountTotal;
+
+            return Math.max(sumLineNet - orderDisc + this.taxTotal, 0);
         },
+
         cartCount(state) {
             return state.cart.reduce((sum, item) => sum + item.quantity, 0);
         },
-        filteredProducts(state) {
-            let list = state.products;
-            if (state.activeCategoryId) {
-                list = list.filter(p => p.category_id === state.activeCategoryId);
-            }
-            if (state.searchQuery.trim()) {
-                const q = state.searchQuery.trim().toLowerCase();
-                list = list.filter(p =>
-                    p.name.toLowerCase().includes(q) ||
-                    (p.sku && p.sku.toLowerCase().includes(q))
-                );
-            }
-            return list;
-        },
-        // returns tax objects safe for a dropdown
+
         taxOptions(state) {
-            return state.taxes.map(t => ({
+            return state.taxes.map((t) => ({
                 label: `${t.name} (${t.rate}%)`,
                 value: t.id,
                 rate: t.rate,
                 tax: t,
             }));
         },
+
+        /** Unique warehouses used in the current cart with line counts. */
+        cartWarehouseSummary(state) {
+            const map = new Map();
+            for (const item of state.cart) {
+                if (!item.warehouseId) {
+                    continue;
+                }
+                const existing = map.get(item.warehouseId);
+                if (existing) {
+                    existing.lineCount += 1;
+                } else {
+                    map.set(item.warehouseId, {
+                        warehouseId: item.warehouseId,
+                        warehouseName: item.warehouseName ?? '',
+                        lineCount: 1,
+                    });
+                }
+            }
+
+            return [...map.values()];
+        },
+
+        usesMultipleWarehouses() {
+            return this.cartWarehouseSummary.length > 1;
+        },
+
+        canCheckout(state) {
+            return state.cart.length > 0
+                && state.cart.every((item) => item.warehouseId != null);
+        },
     },
 
     actions: {
-        // ── Bootstrap ────────────────────────────────────────────────
         async init() {
-            if (this.initialized) return;
-            // fetch warehouses first so selectedWarehouseId is ready for products
+            if (this.initialized) {
+                return;
+            }
+
             await this.fetchWarehouses();
             await Promise.all([
-                this.fetchCategories(),
-                this.fetchProducts(),
                 this.fetchCustomers(),
                 this.fetchTaxes(),
                 this.fetchPaymentModes(),
@@ -109,7 +144,43 @@ export const usePosStore = defineStore('pos', {
             this.initialized = true;
         },
 
-        // ── Warehouses ──────────────────────────────────────────────
+        findCartLine(lineKey) {
+            return this.cart.find((i) => i.lineKey === lineKey);
+        },
+
+        getTaxRate(taxId) {
+            if (!taxId) {
+                return 0;
+            }
+            const tax = this.taxes.find((t) => t.id === taxId);
+
+            return tax ? Number(tax.rate) : 0;
+        },
+
+        calcLineTax(item, index) {
+            const nets = this.cart.map((i) => lineNetFromItem(itemForCalc(i)));
+            const sumLineNet = nets.reduce((a, b) => a + b, 0);
+            const orderDisc = orderDiscountMoney(
+                sumLineNet,
+                this.order_discount_type || 'fixed',
+                this.order_discount_value,
+            );
+            const allocs = buildOrderAllocations(nets, orderDisc);
+            const lineNet = nets[index] ?? 0;
+            const alloc = allocs[index] || 0;
+            const taxable = Math.max(0, lineNet - alloc);
+            const taxRate = this.getTaxRate(item.taxId);
+
+            return parseFloat((taxable * (taxRate / 100)).toFixed(4));
+        },
+
+        syncAllTaxes() {
+            this.cart.forEach((item, index) => {
+                item.discountAmount = lineDiscountMoneyFromItem(itemForCalc(item));
+                item.taxAmount = this.calcLineTax(item, index);
+            });
+        },
+
         async fetchWarehouses() {
             try {
                 const res = await apiAdmin('pos/warehouses');
@@ -119,72 +190,19 @@ export const usePosStore = defineStore('pos', {
             }
         },
 
-        setWarehouse(warehouseId) {
-            this.selectedWarehouseId = warehouseId;
-            this.fetchProducts();
+        async fetchVariantWarehouses(variantId) {
+            const res = await apiAdmin(`pos/variants/${variantId}/warehouses`);
+
+            return res.data.data ?? [];
         },
 
-        // ── Categories ──────────────────────────────────────────────
-        async fetchCategories() {
-            try {
-                const res = await apiAdmin('product-category');
-                this.categories = res.data.data;
-            } catch (err) {
-                showErrors(err);
-            }
-        },
-
-        // ── Products ────────────────────────────────────────────────
-        async fetchProducts() {
-            this.productsLoading = true;
-            try {
-                const params = new URLSearchParams();
-                if (this.selectedWarehouseId) params.set('warehouse_id', this.selectedWarehouseId);
-                if (this.searchQuery.trim()) params.set('search', this.searchQuery.trim());
-                const res = await apiAdmin(`pos/products?${params.toString()}`);
-                this.products = res.data.data ?? [];
-            } catch (err) {
-                showErrors(err);
-                this.products = [];
-            } finally {
-                this.productsLoading = false;
-            }
-        },
-
-        setSearchQuery(q) {
-            this.searchQuery = q;
-        },
-
-        setActiveCategory(categoryId) {
-            this.activeCategoryId = categoryId;
-        },
-
-        // ── Taxes ────────────────────────────────────────────────────
-        async fetchTaxes() {
-            try {
-                const res = await apiAdmin('tax?for=line_item');
-                this.taxes = res.data.data ?? [];
-            } catch (err) {
-                showErrors(err);
-            }
-        },
-
-        // ── Payment Modes ────────────────────────────────────────────
-        async fetchPaymentModes() {
-            try {
-                const res = await apiAdmin('payment-mode');
-                this.paymentModes = (res.data.data ?? []).filter(m => m.is_active);
-            } catch (err) {
-                showErrors(err);
-            }
-        },
-
-        // ── Customers ───────────────────────────────────────────────
         async fetchCustomers(search = '') {
             this.customersLoading = true;
             try {
                 const params = new URLSearchParams();
-                if (search) params.set('search', search);
+                if (search) {
+                    params.set('search', search);
+                }
                 const res = await apiAdmin(`pos/customers?${params.toString()}`);
                 this.customers = res.data.data ?? [];
             } catch (err) {
@@ -196,11 +214,20 @@ export const usePosStore = defineStore('pos', {
 
         setCustomer(customer) {
             this.selectedCustomer = customer;
+
+            if (!customer) {
+                this.order_discount_type = 'fixed';
+                this.order_discount_value = '0';
+                this.syncAllTaxes();
+
+                return;
+            }
+
             this.applyCustomerDefaultDiscount(customer);
         },
 
         applyCustomerDefaultDiscount(customer) {
-            if (!customer || !this.cart.length) {
+            if (!customer) {
                 return;
             }
 
@@ -209,137 +236,205 @@ export const usePosStore = defineStore('pos', {
                 return;
             }
 
-            if (customer.discount_type === 'percent') {
-                this.applyDiscountPercent(value);
+            const discountType = customer.discount_type === 'percent' ? 'percent' : 'fixed';
+            this.order_discount_type = discountType;
+            this.order_discount_value = String(value);
+            this.syncAllTaxes();
+        },
 
+        setOrderDiscount(type, value) {
+            this.order_discount_type = type || 'fixed';
+            this.order_discount_value = value ?? '0';
+            this.syncAllTaxes();
+        },
+
+        updateLineDiscount(lineKey, type, value) {
+            const item = this.findCartLine(lineKey);
+            if (!item) {
+                return;
+            }
+            item.line_discount_type = type || 'fixed';
+            item.line_discount_value = value ?? '0';
+            this.syncAllTaxes();
+        },
+
+        async addVariantToCart(variant) {
+            let warehouseOptions;
+
+            try {
+                warehouseOptions = await this.fetchVariantWarehouses(variant.id);
+            } catch (err) {
+                showErrors(err);
+
+                return { success: false, error: 'fetch_failed' };
+            }
+
+            if (warehouseOptions.length === 0) {
+                return { success: false, error: 'out_of_stock' };
+            }
+
+            if (warehouseOptions.length === 1) {
+                const wh = warehouseOptions[0];
+
+                return this.commitAddToCart(
+                    variant,
+                    wh.warehouse_id,
+                    wh.warehouse_name,
+                    wh.quantity,
+                );
+            }
+
+            return {
+                needsWarehousePick: true,
+                variant,
+                options: warehouseOptions,
+            };
+        },
+
+        completeAddWithWarehouse(variant, warehouseId, warehouseName, stockQty) {
+            return this.commitAddToCart(variant, warehouseId, warehouseName, stockQty);
+        },
+
+        commitAddToCart(variant, warehouseId, warehouseName, stockQty) {
+            const lineKey = cartLineKey(variant.id, warehouseId);
+            const existing = this.findCartLine(lineKey);
+
+            if (existing) {
+                if (existing.quantity + 1 > stockQty) {
+                    return { success: false, error: 'insufficient_stock', stock: stockQty };
+                }
+                existing.quantity += 1;
+                this.syncAllTaxes();
+
+                return { success: true };
+            }
+
+            const item = {
+                lineKey,
+                variantId: variant.id,
+                warehouseId,
+                warehouseName: warehouseName ?? '',
+                productId: variant.product_id ?? null,
+                name: variant.name,
+                sku: variant.sku ?? '',
+                unitId: variant.unit_id ?? null,
+                rate: Number(variant.sales_price ?? variant.purchase_price ?? 0),
+                taxId: null,
+                taxRate: 0,
+                taxAmount: 0,
+                line_discount_type: 'fixed',
+                line_discount_value: '0',
+                discountAmount: 0,
+                quantity: 1,
+                stock: stockQty,
+                image: variant.image ?? null,
+            };
+
+            this.cart.push(item);
+            this.syncAllTaxes();
+
+            if (this.selectedCustomer) {
+                this.applyCustomerDefaultDiscount(this.selectedCustomer);
+            }
+
+            return { success: true };
+        },
+
+        updateCartItem(lineKey, fields) {
+            const item = this.findCartLine(lineKey);
+            if (!item) {
+                return;
+            }
+            Object.assign(item, fields);
+            this.syncAllTaxes();
+        },
+
+        setCartItemQty(lineKey, qty) {
+            const item = this.findCartLine(lineKey);
+            if (!item) {
                 return;
             }
 
-            this.applyFixedDiscount(value);
-        },
-
-        applyFixedDiscount(amount) {
-            const sub = this.cart.reduce((s, i) => s + i.rate * i.quantity, 0);
-            const totalDiscount = Math.min(amount, sub);
-            this.discountPercent = 0;
-            this.cart.forEach(item => {
-                const ratio = sub > 0 ? (item.rate * item.quantity) / sub : 0;
-                item.discountAmount = parseFloat((totalDiscount * ratio).toFixed(4));
-                this.recalcItemTax(item);
-            });
-        },
-
-        // ── Cart ────────────────────────────────────────────────────
-        addToCart(product) {
-            const existing = this.cart.find(i => i.variantId === product.id);
-            if (existing) {
-                existing.quantity += 1;
-                this.recalcItemTax(existing);
+            const nextQty = Math.max(1, qty);
+            if (item.stock !== null && nextQty > item.stock) {
+                item.quantity = item.stock;
             } else {
-                const item = {
-                    variantId: product.id,
-                    productId: product.product_id,
-                    name: product.name,
-                    sku: product.sku,
-                    unitId: product.unit_id ?? null,
-                    rate: product.sales_price,
-                    taxId: this.orderTaxId,
-                    taxRate: this.orderTaxRate,
-                    taxAmount: 0,
-                    discountAmount: 0,
-                    quantity: 1,
-                    stock: product.stock,
-                    image: product.image,
-                };
-                this.recalcItemTax(item);
-                this.cart.push(item);
+                item.quantity = nextQty;
             }
+            this.syncAllTaxes();
         },
 
-        updateCartItem(variantId, fields) {
-            const item = this.cart.find(i => i.variantId === variantId);
-            if (!item) return;
-            Object.assign(item, fields);
-            this.recalcItemTax(item);
-        },
-
-        setCartItemQty(variantId, qty) {
-            const item = this.cart.find(i => i.variantId === variantId);
-            if (!item) return;
-            item.quantity = Math.max(1, qty);
-            this.recalcItemTax(item);
-        },
-
-        removeFromCart(variantId) {
-            this.cart = this.cart.filter(i => i.variantId !== variantId);
+        removeFromCart(lineKey) {
+            this.cart = this.cart.filter((i) => i.lineKey !== lineKey);
+            if (this.cart.length) {
+                this.syncAllTaxes();
+            }
         },
 
         clearCart() {
             this.cart = [];
             this.selectedCustomer = null;
-            this.orderTaxId = null;
-            this.orderTaxRate = 0;
-            this.shippingAmount = 0;
-            this.discountPercent = 0;
+            this.order_discount_type = 'fixed';
+            this.order_discount_value = '0';
         },
 
-        recalcItemTax(item) {
-            const lineSubtotal = item.rate * item.quantity;
-            const taxable = Math.max(lineSubtotal - (item.discountAmount ?? 0), 0);
-            item.taxAmount = parseFloat((taxable * (item.taxRate / 100)).toFixed(4));
+        onLineTaxChange(lineKey, taxId) {
+            const parsed = taxId ? parseInt(taxId, 10) : null;
+            const tax = parsed ? this.taxes.find((t) => t.id === parsed) : null;
+            this.updateCartItem(lineKey, {
+                taxId: parsed,
+                taxRate: tax ? Number(tax.rate) : 0,
+            });
         },
 
-        applyOrderTax(taxOption) {
-            if (!taxOption) {
-                this.orderTaxId = null;
-                this.orderTaxRate = 0;
-            } else {
-                this.orderTaxId = taxOption.value;
-                this.orderTaxRate = taxOption.rate;
+        async fetchTaxes() {
+            try {
+                const res = await apiAdmin('tax?for=line_item');
+                this.taxes = res.data.data ?? [];
+            } catch (err) {
+                showErrors(err);
             }
-            // re-apply to all cart items
-            this.cart.forEach(item => {
-                item.taxId = this.orderTaxId;
-                item.taxRate = this.orderTaxRate;
-                this.recalcItemTax(item);
-            });
         },
 
-        applyDiscountPercent(percent) {
-            this.discountPercent = percent;
-            const sub = this.cart.reduce((s, i) => s + i.rate * i.quantity, 0);
-            const totalDiscount = sub * (percent / 100);
-            this.cart.forEach(item => {
-                const ratio = sub > 0 ? (item.rate * item.quantity) / sub : 0;
-                item.discountAmount = parseFloat((totalDiscount * ratio).toFixed(4));
-            });
+        async fetchPaymentModes() {
+            try {
+                const res = await apiAdmin('payment-mode');
+                this.paymentModes = (res.data.data ?? []).filter((m) => m.is_active);
+            } catch (err) {
+                showErrors(err);
+            }
         },
 
-        // ── Checkout ────────────────────────────────────────────────
+        buildCheckoutItems() {
+            return this.cart.map((item) => ({
+                product_variant_id: item.variantId,
+                warehouse_id: item.warehouseId,
+                unit_id: item.unitId,
+                quantity: item.quantity,
+                rate: item.rate,
+                tax_id: item.taxId,
+                tax_amount: item.taxAmount,
+                discount_amount: lineDiscountMoneyFromItem(itemForCalc(item)),
+                line_discount_type: item.line_discount_type || 'fixed',
+                line_discount_value: parseFloat(item.line_discount_value) || 0,
+            }));
+        },
+
         async checkout(paymentMethod) {
             this.checkoutLoading = true;
             try {
-                const items = this.cart.map(item => ({
-                    product_variant_id: item.variantId,
-                    unit_id: item.unitId,
-                    quantity: item.quantity,
-                    rate: item.rate,
-                    tax_id: item.taxId,
-                    tax_amount: item.taxAmount,
-                    discount_amount: item.discountAmount,
-                }));
-
                 const res = await apiAdmin('pos/checkout', 'post', {
-                    warehouse_id: this.selectedWarehouseId,
                     party_id: this.selectedCustomer?.id ?? null,
                     payment_method: paymentMethod,
-                    shipping_amount: this.shippingAmount,
-                    items,
+                    order_discount_type: this.order_discount_type || 'fixed',
+                    order_discount_value: parseFloat(this.order_discount_value) || 0,
+                    items: this.buildCheckoutItems(),
                     remarks: 'POS Sale',
                 });
 
                 this.lastSale = res.data.data;
                 this.fetchTodaySummary();
+
                 return res.data;
             } catch (err) {
                 throw err;
@@ -348,19 +443,17 @@ export const usePosStore = defineStore('pos', {
             }
         },
 
-        // ── Hold Orders ─────────────────────────────────────────────
         async holdCurrentOrder(label) {
-            if (!this.cart.length) return;
+            if (!this.cart.length) {
+                return;
+            }
             this.holdLoading = true;
             try {
                 const orderData = {
-                    items: this.cart.map(i => ({ ...i })),
+                    items: this.cart.map((i) => ({ ...i })),
                     customer: this.selectedCustomer,
-                    discountPercent: this.discountPercent,
-                    shippingAmount: this.shippingAmount,
-                    orderTaxId: this.orderTaxId,
-                    orderTaxRate: this.orderTaxRate,
-                    warehouseId: this.selectedWarehouseId,
+                    order_discount_type: this.order_discount_type,
+                    order_discount_value: this.order_discount_value,
                 };
                 const res = await apiAdmin('pos/hold', 'post', {
                     party_id: this.selectedCustomer?.id ?? null,
@@ -369,6 +462,7 @@ export const usePosStore = defineStore('pos', {
                 });
                 this.heldOrders.unshift(res.data.data);
                 this.clearCart();
+
                 return res.data;
             } catch (err) {
                 throw err;
@@ -389,7 +483,7 @@ export const usePosStore = defineStore('pos', {
         async deleteHeldOrder(id) {
             try {
                 await apiAdmin(`pos/held-orders/${id}`, 'delete');
-                this.heldOrders = this.heldOrders.filter(o => o.id !== id);
+                this.heldOrders = this.heldOrders.filter((o) => o.id !== id);
             } catch (err) {
                 showErrors(err);
             }
@@ -397,16 +491,27 @@ export const usePosStore = defineStore('pos', {
 
         restoreHeldOrder(order) {
             const data = order.order_data;
-            this.cart = data.items ?? [];
+            const fallbackWarehouseId = data.warehouseId ?? null;
+            const fallbackWarehouseName = data.warehouseName ?? '';
+
+            this.cart = (data.items ?? []).map((item) => {
+                const warehouseId = item.warehouseId ?? fallbackWarehouseId;
+                const warehouseName = item.warehouseName ?? fallbackWarehouseName;
+                const variantId = item.variantId;
+
+                return {
+                    ...item,
+                    warehouseId,
+                    warehouseName,
+                    lineKey: item.lineKey ?? cartLineKey(variantId, warehouseId),
+                };
+            });
             this.selectedCustomer = data.customer ?? null;
-            this.discountPercent = data.discountPercent ?? 0;
-            this.shippingAmount = data.shippingAmount ?? 0;
-            this.orderTaxId = data.orderTaxId ?? null;
-            this.orderTaxRate = data.orderTaxRate ?? 0;
-            if (data.warehouseId) this.selectedWarehouseId = data.warehouseId;
+            this.order_discount_type = data.order_discount_type ?? 'fixed';
+            this.order_discount_value = data.order_discount_value ?? '0';
+            this.syncAllTaxes();
         },
 
-        // ── Today Summary ───────────────────────────────────────────
         async fetchTodaySummary() {
             try {
                 const res = await apiAdmin('pos/today-summary');
