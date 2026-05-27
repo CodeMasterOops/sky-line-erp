@@ -52,6 +52,7 @@ class CreditNoteController extends Controller
         try {
             $creditNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $creditNoteNo) {
                 $creditNote = CreditNote::create([
+                    'company_id' => $user->company_id,
                     'fiscal_year_id' => $fiscalYearId,
                     'party_id' => $formData['party_id'] ?? null,
                     'invoice_id' => $formData['invoice_id'] ?? null,

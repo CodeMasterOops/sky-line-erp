@@ -50,6 +50,7 @@ class DebitNoteController extends Controller
         try {
             $debitNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $debitNoteNo) {
                 $debitNote = DebitNote::create([
+                    'company_id' => $user->company_id,
                     'fiscal_year_id' => $fiscalYearId,
                     'party_id' => $formData['party_id'] ?? null,
                     'bill_id' => $formData['bill_id'] ?? null,

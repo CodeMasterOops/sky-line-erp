@@ -7,6 +7,7 @@ import {
     lineNetFromItem,
     orderDiscountMoney,
 } from '@/composables/purchaseOrderTotals.js';
+import {fetchVariantWarehouses as fetchVariantWarehousesApi} from '@/composables/useVariantWarehousePicker.js';
 
 function itemForCalc(item) {
     return {
@@ -191,9 +192,7 @@ export const usePosStore = defineStore('pos', {
         },
 
         async fetchVariantWarehouses(variantId) {
-            const res = await apiAdmin(`pos/variants/${variantId}/warehouses`);
-
-            return res.data.data ?? [];
+            return fetchVariantWarehousesApi(variantId);
         },
 
         async fetchCustomers(search = '') {

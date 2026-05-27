@@ -12,7 +12,7 @@
                         <div class="col-12">
                             <p class="text-muted small mb-0">
                                 Select customer and search an approved invoice, add return lines from that invoice when possible,
-                                or add products manually. Warehouse applies to all lines.
+                                or add products manually. Warehouse is chosen per line.
                             </p>
                         </div>
 
@@ -83,18 +83,6 @@
                                 <span v-else class="form-text text-muted small">Search by invoice number (approved invoices only).</span>
                             </div>
                         </div>
-                        <div class="col-lg-6 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VMultiselect
-                                    id="warehouse_id"
-                                    v-model="form.warehouse_id"
-                                    :options="warehouses.data"
-                                    label="Warehouse"
-                                    @validate="validateField('warehouse_id')"
-                                    :error="errors.warehouse_id"
-                                />
-                            </div>
-                        </div>
 
                         <div v-if="form.invoice_id && invoiceLinePickOptions.length" class="col-12">
                             <VMultiselect
@@ -142,19 +130,33 @@
                                     </tr>
                                     <tr
                                         v-for="(item, index) in form.items"
-                                        :key="`n-${index}-${item.product_variant_id}-${item.invoice_item_id || 'x'}`"
+                                        :key="`n-${index}-${item.product_variant_id}-${item.warehouse_id}-${item.invoice_item_id || 'x'}`"
                                         v-memo="[
                                             item.quantity,
                                             item.rate,
                                             item.line_discount_type,
                                             item.line_discount_value,
                                             item.tax_id,
+                                            item.warehouse_id,
                                         ]">
                                         <td>{{ index + 1 }}</td>
-                                        <td
-                                            class="text-start text-truncate so-col-product"
-                                            :title="item.product_label">
-                                            {{ item.product_label }}
+                                        <td class="so-col-product">
+                                            <div class="cn-line-product">
+                                                <span class="cn-line-product__name" :title="item.product_label">
+                                                    {{ item.product_label }}
+                                                </span>
+                                                <span v-if="item.sku" class="cn-line-product__sku">{{ item.sku }}</span>
+                                                <span v-if="item.warehouse_name" class="cn-line-product__wh">
+                                                    <i class="ti ti-building-warehouse"></i>
+                                                    {{ item.warehouse_name }}
+                                                </span>
+                                                <span
+                                                    v-if="item.stock_qty != null && !item.invoice_item_id"
+                                                    class="cn-line-product__stock"
+                                                    :class="{ 'is-over': Number(item.quantity) > item.stock_qty }">
+                                                    Stock {{ item.stock_qty }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td>
                                             <VInput
@@ -303,6 +305,14 @@
         v-model:createModalOpened="createCustomerOpened"
         type="customer"
     />
+
+    <WarehousePickerModal
+        ref="warehousePickerRef"
+        modal-id="credit-note-create-warehouse-picker"
+        confirm-label="Add to Credit Note"
+        @confirm="onWarehousePicked"
+        @cancel="cancelWarehousePick"
+    />
 </template>
 
 <script setup>
@@ -317,9 +327,9 @@ import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
-import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
@@ -328,12 +338,21 @@ import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import CreateCustomer from '@/views/admin/party/Create.vue';
 
 const creditNoteStore = useCreditNoteStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
-const warehouseStore = useWarehouseStore();
+
+const {
+    warehousePickerRef,
+    resolveWarehouse,
+    confirmWarehousePick,
+    cancelWarehousePick,
+    showWarehouseToast,
+    buildLineWarehouseFields,
+} = useProductLineWarehouse();
 
 const {currentAdDate} = useDateHelper();
 
@@ -342,7 +361,6 @@ const createCustomerOpened = ref(false);
 
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
-const {warehouses} = storeToRefs(warehouseStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
 
@@ -373,7 +391,6 @@ const getInitialState = () => ({
     credit_note_date: currentAdDate,
     party_id: '',
     invoice_id: '',
-    warehouse_id: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',
@@ -424,7 +441,6 @@ watch(
     (opened) => {
         if (opened) {
             taxStore.getTaxes();
-            warehouseStore.getWarehouses();
             partyStore.getParties({
                 filter: {
                     type: 'customer',
@@ -467,12 +483,6 @@ watch(
             }
             if (data.party) {
                 mergePartyFromPayload(data.party);
-            }
-            if (!form.warehouse_id && data.items?.length) {
-                const wh = data.items.find((it) => it.warehouse_id);
-                if (wh?.warehouse_id) {
-                    form.warehouse_id = String(wh.warehouse_id);
-                }
             }
         } catch (e) {
             showErrors(e);
@@ -562,6 +572,7 @@ function lineFromInvoiceItem(item, invoicedQty) {
         invoice_item_id: item.id,
         product_variant_id: item.product_variant_id,
         product_label: productLabelFromInvoiceLine(item),
+        sku: item.product_variant?.sku ?? '',
         purchase_snapshot: item.product_variant?.purchase_price ?? 0,
         unit_id: item.unit_id ?? '',
         quantity: String(qtyDefault),
@@ -569,23 +580,46 @@ function lineFromInvoiceItem(item, invoicedQty) {
         tax_id: item.tax_id || '',
         line_discount_type: item.line_discount_type || 'fixed',
         line_discount_value: ldv,
+        warehouse_id: item.warehouse_id || '',
+        warehouse_name: item.warehouse?.name ?? '',
+        stock_qty: null,
     };
 }
 
-const onVariantSelected = (variant) => {
+const onVariantSelected = async (variant) => {
     const vid = variant.id;
-    const existing = form.items.findIndex(
-        (i) => String(i.product_variant_id) === String(vid) && !i.invoice_item_id
-    );
-    if (existing !== -1) {
-        const nextQty = Number(form.items[existing].quantity || 0) + 1;
-        form.items[existing].quantity = String(nextQty);
+    const result = await resolveWarehouse(variant.id, variantLabel(variant));
+
+    if (!result.success) {
+        showWarehouseToast(result.error);
+
         return;
     }
+
+    const wid = result.warehouse.warehouse_id;
+    const mergeIdx = form.items.findIndex(
+        (i) => String(i.product_variant_id) === String(vid)
+            && !i.invoice_item_id
+            && String(i.warehouse_id) === String(wid),
+    );
+
+    if (mergeIdx !== -1) {
+        const nextQty = Number(form.items[mergeIdx].quantity || 0) + 1;
+        if (result.warehouse.quantity != null && nextQty > result.warehouse.quantity) {
+            showWarehouseToast('insufficient_stock', result.warehouse.quantity);
+
+            return;
+        }
+        form.items[mergeIdx].quantity = String(nextQty);
+
+        return;
+    }
+
     form.items.push({
         invoice_item_id: '',
         product_variant_id: vid,
         product_label: variantLabel(variant),
+        sku: variant.sku ?? '',
         purchase_snapshot: variant.purchase_price ?? 0,
         unit_id: variant.unit_id ?? '',
         quantity: '1',
@@ -593,7 +627,12 @@ const onVariantSelected = (variant) => {
         tax_id: '',
         line_discount_type: 'fixed',
         line_discount_value: '0',
+        ...buildLineWarehouseFields(result.warehouse),
     });
+};
+
+const onWarehousePicked = (warehouseOption) => {
+    confirmWarehousePick(warehouseOption);
 };
 
 const removeItem = (index) => {
@@ -604,13 +643,13 @@ const validations = object({
     credit_note_date: string().required('Credit note date is required.'),
     party_id: string().nullable(),
     invoice_id: string().nullable(),
-    warehouse_id: string().required('Warehouse is required.'),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array()
         .of(
             object({
                 product_variant_id: string().required('Product is required.'),
+                warehouse_id: string().required('Warehouse is required.'),
                 quantity: string().required('Quantity is required.'),
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
@@ -636,7 +675,6 @@ const lineQtyInt = (q) => {
 
 const buildCreditNotePayload = () => {
     syncTaxAmounts();
-    const wid = form.warehouse_id;
     return {
         credit_note_date: form.credit_note_date,
         party_id: form.party_id || null,
@@ -648,7 +686,7 @@ const buildCreditNotePayload = () => {
         items: form.items.map((item, index) => ({
             invoice_item_id: item.invoice_item_id || null,
             product_variant_id: item.product_variant_id,
-            warehouse_id: wid,
+            warehouse_id: item.warehouse_id,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
@@ -719,5 +757,30 @@ function resetForm() {
     position: relative;
     z-index: 2;
     overflow: visible;
+}
+.cn-line-product {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+.cn-line-product__name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cn-line-product__sku,
+.cn-line-product__wh {
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color);
+}
+.cn-line-product__stock {
+    font-size: 0.7rem;
+    color: var(--bs-success);
+}
+.cn-line-product__stock.is-over {
+    color: var(--bs-danger);
+    font-weight: 600;
 }
 </style>

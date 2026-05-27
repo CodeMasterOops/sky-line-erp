@@ -267,7 +267,6 @@
 
 <script setup>
 import {computed, nextTick, onMounted, reactive, ref, toRef, watch} from 'vue';
-import {useToast} from 'vue-toastification';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -284,7 +283,7 @@ import {
     orderDiscountMoney,
 } from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useVariantWarehousePicker} from '@/composables/useVariantWarehousePicker.js';
+import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
@@ -301,7 +300,9 @@ const {
     resolveWarehouse,
     confirmWarehousePick,
     cancelWarehousePick,
-} = useVariantWarehousePicker();
+    showWarehouseToast,
+    buildLineWarehouseFields,
+} = useProductLineWarehouse();
 
 const edit_invoice_id = defineModel('invoice_id');
 
@@ -507,19 +508,14 @@ const onVariantChange = async (index, variantId) => {
         form.items[index].stock_qty = null;
 
         if (result.error !== 'cancelled') {
-            const messages = {
-                out_of_stock: 'Product is out of stock in all warehouses.',
-                fetch_failed: 'Could not load warehouse stock.',
-            };
-            useToast().warning(messages[result.error] ?? 'Could not add product.');
+            showWarehouseToast(result.error);
         }
 
         return;
     }
 
     form.items[index].warehouse_id = result.warehouse.warehouse_id;
-    form.items[index].warehouse_name = result.warehouse.warehouse_name;
-    form.items[index].stock_qty = result.warehouse.quantity;
+    Object.assign(form.items[index], buildLineWarehouseFields(result.warehouse));
 };
 
 const onWarehousePicked = (warehouseOption) => {

@@ -275,7 +275,6 @@
 <script setup>
 import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
-import {useToast} from 'vue-toastification';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -295,7 +294,7 @@ import {
     orderDiscountMoney,
 } from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useVariantWarehousePicker} from '@/composables/useVariantWarehousePicker.js';
+import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -314,7 +313,10 @@ const {
     resolveWarehouse,
     confirmWarehousePick,
     cancelWarehousePick,
-} = useVariantWarehousePicker();
+    warehouseErrorMessage,
+    showWarehouseToast,
+    buildLineWarehouseFields,
+} = useProductLineWarehouse();
 
 const createModalOpened = defineModel('createModalOpened');
 const quotationId = defineModel('quotationId');
@@ -478,30 +480,15 @@ async function commitPrefillLine(line) {
     const result = await resolveWarehouse(line.product_variant_id, line.product_label);
 
     if (!result.success) {
-        if (result.error !== 'cancelled') {
-            useToast().warning(warehouseErrorMessage(result.error));
-        }
+        showWarehouseToast(result.error);
 
         return;
     }
 
     form.items.push({
         ...line,
-        warehouse_id: result.warehouse.warehouse_id,
-        warehouse_name: result.warehouse.warehouse_name,
-        stock_qty: result.warehouse.quantity,
+        ...buildLineWarehouseFields(result.warehouse),
     });
-}
-
-function warehouseErrorMessage(error, stock) {
-    const messages = {
-        out_of_stock: 'Product is out of stock in all warehouses.',
-        insufficient_stock: `Only ${stock} unit(s) available in this warehouse.`,
-        fetch_failed: 'Could not load warehouse stock.',
-        cancelled: '',
-    };
-
-    return messages[error] ?? 'Could not add product.';
 }
 
 function commitVariantLine(variant, warehouse) {
@@ -514,7 +501,7 @@ function commitVariantLine(variant, warehouse) {
     if (existing !== -1) {
         const nextQty = Number(form.items[existing].quantity || 0) + 1;
         if (warehouse.quantity != null && nextQty > warehouse.quantity) {
-            useToast().warning(warehouseErrorMessage('insufficient_stock', warehouse.quantity));
+            showWarehouseToast('insufficient_stock', warehouse.quantity);
 
             return false;
         }
@@ -546,9 +533,7 @@ const onVariantSelected = async (variant) => {
     const result = await resolveWarehouse(variant.id, variantLabel(variant));
 
     if (!result.success) {
-        if (result.error !== 'cancelled') {
-            useToast().warning(warehouseErrorMessage(result.error));
-        }
+        showWarehouseToast(result.error);
 
         return;
     }

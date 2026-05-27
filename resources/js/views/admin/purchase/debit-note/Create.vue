@@ -12,7 +12,7 @@
                         <div class="col-12">
                             <p class="text-muted small mb-0">
                                 Select supplier first, link an approved bill if the return relates to it, then add lines from that bill
-                                or search products manually. Warehouse applies to all lines.
+                                or search products manually. Warehouse is chosen per line.
                             </p>
                         </div>
 
@@ -79,17 +79,6 @@
                                 Search approved bills for this supplier, or leave empty for a standalone return.
                             </span>
                         </div>
-                        <div class="col-12 col-lg-6">
-                            <VMultiselect
-                                id="warehouse_id"
-                                v-model="form.warehouse_id"
-                                :options="warehouses.data"
-                                label="Warehouse"
-                                :filter-results="false"
-                                @validate="validateField('warehouse_id')"
-                                :error="errors.warehouse_id"
-                            />
-                        </div>
 
                         <div v-if="form.bill_id && billLinePickOptions.length" class="col-12">
                             <VMultiselect
@@ -137,19 +126,33 @@
                                     </tr>
                                     <tr
                                         v-for="(item, index) in form.items"
-                                        :key="`n-${index}-${item.product_variant_id}-${item.bill_item_id || 'm'}`"
+                                        :key="`n-${index}-${item.product_variant_id}-${item.warehouse_id}-${item.bill_item_id || 'm'}`"
                                         v-memo="[
                                             item.quantity,
                                             item.rate,
                                             item.line_discount_type,
                                             item.line_discount_value,
                                             item.tax_id,
+                                            item.warehouse_id,
                                         ]">
                                         <td>{{ index + 1 }}</td>
-                                        <td
-                                            class="text-start text-truncate dn-col-product"
-                                            :title="item.product_label">
-                                            {{ item.product_label }}
+                                        <td class="dn-col-product">
+                                            <div class="dn-line-product">
+                                                <span class="dn-line-product__name" :title="item.product_label">
+                                                    {{ item.product_label }}
+                                                </span>
+                                                <span v-if="item.sku" class="dn-line-product__sku">{{ item.sku }}</span>
+                                                <span v-if="item.warehouse_name" class="dn-line-product__wh">
+                                                    <i class="ti ti-building-warehouse"></i>
+                                                    {{ item.warehouse_name }}
+                                                </span>
+                                                <span
+                                                    v-if="item.stock_qty != null && !item.bill_item_id"
+                                                    class="dn-line-product__stock"
+                                                    :class="{ 'is-over': Number(item.quantity) > item.stock_qty }">
+                                                    Stock {{ item.stock_qty }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td>
                                             <VInput
@@ -296,6 +299,14 @@
         v-model:createModalOpened="createSupplierOpened"
         type="supplier"
     />
+
+    <WarehousePickerModal
+        ref="warehousePickerRef"
+        modal-id="debit-note-create-warehouse-picker"
+        confirm-label="Add to Debit Note"
+        @confirm="onWarehousePicked"
+        @cancel="cancelWarehousePick"
+    />
 </template>
 
 <script setup>
@@ -310,15 +321,16 @@ import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
-import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 import {formatMoney} from '@/helpers/formatMoney';
@@ -331,7 +343,15 @@ function lineQtyInt(q) {
 const debitNoteStore = useDebitNoteStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
-const warehouseStore = useWarehouseStore();
+
+const {
+    warehousePickerRef,
+    resolveWarehouse,
+    confirmWarehousePick,
+    cancelWarehousePick,
+    showWarehouseToast,
+    buildLineWarehouseFields,
+} = useProductLineWarehouse();
 
 const notifier = useToast();
 
@@ -343,7 +363,6 @@ const {currentAdDate} = useDateHelper();
 
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
-const {warehouses} = storeToRefs(warehouseStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
 
@@ -357,7 +376,6 @@ function getInitialState() {
         debit_note_date: currentAdDate,
         party_id: '',
         bill_id: '',
-        warehouse_id: '',
         remarks: '',
         status: 'draft',
         order_discount_type: 'fixed',
@@ -424,7 +442,6 @@ watch(
     (opened) => {
         if (opened) {
             taxStore.getTaxes();
-            warehouseStore.getWarehouses();
             partyStore.getParties({
                 filter: {
                     type: 'supplier',
@@ -467,12 +484,6 @@ watch(
             }
             if (data.party) {
                 mergePartyFromPayload(data.party);
-            }
-            if (!form.warehouse_id && data.items?.length) {
-                const wh = data.items.find((it) => it.warehouse_id);
-                if (wh?.warehouse_id) {
-                    form.warehouse_id = String(wh.warehouse_id);
-                }
             }
         } catch (e) {
             showErrors(e);
@@ -564,36 +575,65 @@ function lineFromBillItem(billItem, billedQty) {
         bill_item_id: billItem.id,
         product_variant_id: billItem.product_variant_id,
         product_label: productLabelFromBillLine(billItem),
+        sku: billItem.product_variant?.sku ?? '',
         unit_id: billItem.unit_id ?? '',
         quantity: String(qtyDefault),
         rate: String(Number(billItem.rate ?? 0)),
         tax_id: billItem.tax_id || '',
         line_discount_type: billItem.line_discount_type || 'fixed',
         line_discount_value: ldv,
+        warehouse_id: billItem.warehouse_id || '',
+        warehouse_name: billItem.warehouse?.name ?? '',
+        stock_qty: null,
     };
 }
 
-const onVariantSelected = (variant) => {
+const onVariantSelected = async (variant) => {
     const vid = variant.id;
-    const existing = form.items.findIndex(
-        (i) => String(i.product_variant_id) === String(vid) && !i.bill_item_id,
-    );
-    if (existing !== -1) {
-        const nextQty = Number(form.items[existing].quantity || 0) + 1;
-        form.items[existing].quantity = String(nextQty);
+    const result = await resolveWarehouse(variant.id, variantLabel(variant));
+
+    if (!result.success) {
+        showWarehouseToast(result.error);
+
         return;
     }
+
+    const wid = result.warehouse.warehouse_id;
+    const mergeIdx = form.items.findIndex(
+        (i) => String(i.product_variant_id) === String(vid)
+            && !i.bill_item_id
+            && String(i.warehouse_id) === String(wid),
+    );
+
+    if (mergeIdx !== -1) {
+        const nextQty = Number(form.items[mergeIdx].quantity || 0) + 1;
+        if (result.warehouse.quantity != null && nextQty > result.warehouse.quantity) {
+            showWarehouseToast('insufficient_stock', result.warehouse.quantity);
+
+            return;
+        }
+        form.items[mergeIdx].quantity = String(nextQty);
+
+        return;
+    }
+
     form.items.push({
         bill_item_id: '',
         product_variant_id: vid,
         product_label: variantLabel(variant),
+        sku: variant.sku ?? '',
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
         tax_id: '',
         line_discount_type: 'fixed',
         line_discount_value: '0',
+        ...buildLineWarehouseFields(result.warehouse),
     });
+};
+
+const onWarehousePicked = (warehouseOption) => {
+    confirmWarehousePick(warehouseOption);
 };
 
 const removeItem = (index) => {
@@ -604,13 +644,13 @@ const validations = object({
     debit_note_date: string().required('Debit note date is required.'),
     party_id: string().nullable(),
     bill_id: string().nullable(),
-    warehouse_id: string().required('Warehouse is required.'),
     remarks: string().nullable(),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array().of(
         object({
             product_variant_id: string().required('Product is required.'),
+            warehouse_id: string().required('Warehouse is required.'),
             quantity: string().required('Quantity is required.'),
             rate: string().required('Rate is required.'),
             unit_id: string().nullable(),
@@ -630,7 +670,6 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
 
 function buildDebitNotePayload() {
     syncTaxAmounts();
-    const wid = form.warehouse_id;
     return {
         debit_note_date: form.debit_note_date,
         party_id: form.party_id,
@@ -641,7 +680,7 @@ function buildDebitNotePayload() {
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
-            warehouse_id: wid,
+            warehouse_id: item.warehouse_id,
             unit_id: item.unit_id || '',
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
@@ -716,5 +755,30 @@ function resetForm() {
 }
 .debit-note-lines-table .dn-col-action {
     width: 3.25rem;
+}
+.dn-line-product {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    text-align: start;
+}
+.dn-line-product__name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dn-line-product__sku,
+.dn-line-product__wh {
+    font-size: 0.75rem;
+    color: var(--bs-secondary-color);
+}
+.dn-line-product__stock {
+    font-size: 0.75rem;
+    color: var(--bs-success);
+}
+.dn-line-product__stock.is-over {
+    color: var(--bs-danger);
+    font-weight: 600;
 }
 </style>
