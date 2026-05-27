@@ -61,7 +61,7 @@ import {storeToRefs} from 'pinia';
 import CreateWarehouse from './Create.vue';
 import EditWarehouse from './Edit.vue';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
-import {flattenWarehousesWithOutline} from './warehouseTree.js';
+import {flattenWarehousesWithOutline} from '@/helpers/warehouseTree.js';
 
 const warehouseStore = useWarehouseStore();
 

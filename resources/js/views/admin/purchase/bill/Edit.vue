@@ -75,7 +75,7 @@
                                 <VMultiselect
                                     id="warehouse_id"
                                     v-model="form.warehouse_id"
-                                    :options="warehouses.data"
+                                    :options="warehouseOptionsTree"
                                     label="Warehouse"
                                     :disabled="!isDraft"
                                     @validate="validateField('warehouse_id')"
@@ -321,7 +321,7 @@ const createSupplierOpened = ref(false);
 const {bill} = storeToRefs(billStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
-const {warehouses} = storeToRefs(warehouseStore);
+const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
 

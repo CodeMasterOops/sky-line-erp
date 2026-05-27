@@ -39,7 +39,7 @@
                                         <VMultiselect
                                             id="from_warehouse_id"
                                             v-model="form.from_warehouse_id"
-                                            :options="warehouses.data"
+                                            :options="warehouseOptionsTree"
                                             label="From Warehouse"
                                             required
                                             @validate="validateField('from_warehouse_id')"
@@ -52,7 +52,7 @@
                                         <VMultiselect
                                             id="to_warehouse_id"
                                             v-model="form.to_warehouse_id"
-                                            :options="toWarehouses"
+                                            :options="toWarehouseOptionsTree"
                                             label="To Warehouse"
                                             required
                                             @validate="validateField('to_warehouse_id')"
@@ -182,7 +182,7 @@ const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
 
-const {warehouses} = storeToRefs(warehouseStore);
+const {optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 watch(
     createModalOpened,
@@ -207,11 +207,12 @@ const getInitialState = () => ({
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
-const toWarehouses = computed(() => {
-    if (!form.from_warehouse_id) {
-        return warehouses.value.data;
-    }
-    return warehouses.value.data.filter(w => w.id !== parseInt(form.from_warehouse_id, 10));
+const toWarehouseOptionsTree = computed(() => {
+    const exclude = form.from_warehouse_id
+        ? new Set([Number(form.from_warehouse_id)])
+        : new Set();
+
+    return warehouseStore.optionsTreeExcluding(exclude);
 });
 
 function variantLabel(variant) {

@@ -113,7 +113,7 @@ export function buildWarehouseOptionsTree(warehouses, excludeIds = new Set()) {
         const w = node.warehouse;
         const option = {
             id: w.id,
-            name: w.code ? `${w.name} (${w.code})` : w.name,
+            name: formatWarehouseDisplayName(w),
         };
         if (node.children.length) {
             option.children = node.children.map(mapNode);
@@ -122,4 +122,21 @@ export function buildWarehouseOptionsTree(warehouses, excludeIds = new Set()) {
     };
 
     return buildWarehouseTree(warehouses, excludeIds).map(mapNode);
+}
+
+/**
+ * @param {{ name: string, code?: string }} warehouse
+ * @param {number} [depth]
+ * @returns {string}
+ */
+export function formatWarehouseOptionLabel(warehouse, depth = 0) {
+    return `${'— '.repeat(depth)}${formatWarehouseDisplayName(warehouse)}`;
+}
+
+/**
+ * @param {{ name: string, code?: string }} warehouse
+ * @returns {string}
+ */
+export function formatWarehouseDisplayName(warehouse) {
+    return warehouse.code ? `${warehouse.name} (${warehouse.code})` : warehouse.name;
 }

@@ -37,7 +37,7 @@
                                 <VMultiselect
                                     id="warehouse_id"
                                     v-model="form.warehouse_id"
-                                    :options="warehouses.data"
+                                    :options="warehouseOptionsTree"
                                     label="Warehouse"
                                     required
                                     @validate="validateField('warehouse_id')"
@@ -188,7 +188,7 @@ const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
 
-const {warehouses} = storeToRefs(warehouseStore);
+const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 watch(
     createModalOpened,

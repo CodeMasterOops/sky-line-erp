@@ -35,7 +35,7 @@
                             <VMultiselect
                                 id="warehouse_id"
                                 v-model="form.warehouse_id"
-                                :options="warehouses.data"
+                                :options="warehouseOptionsTree"
                                 label="Warehouse"
                                 required
                                 :loading="warehouses.loading"
@@ -246,7 +246,7 @@ const partyStore = usePartyStore();
 const warehouseStore = useWarehouseStore();
 const purchaseOrderStore = usePurchaseOrderStore();
 const {parties} = storeToRefs(partyStore);
-const {warehouses} = storeToRefs(warehouseStore);
+const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {order} = storeToRefs(purchaseOrderStore);
 const {currentAdDate} = useDateHelper();
 

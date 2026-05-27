@@ -37,7 +37,7 @@
                             <VMultiselect
                                 id="edit_warehouse_id"
                                 v-model="form.warehouse_id"
-                                :options="warehouses.data"
+                                :options="warehouseOptionsTree"
                                 label="Warehouse"
                                 required
                                 :disabled="!isDraft"
@@ -195,7 +195,7 @@ const grnId = defineModel('grnId');
 const partyStore = usePartyStore();
 const warehouseStore = useWarehouseStore();
 const {parties} = storeToRefs(partyStore);
-const {warehouses} = storeToRefs(warehouseStore);
+const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const loading = ref(false);
 const saving = ref(false);

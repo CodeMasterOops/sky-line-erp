@@ -40,7 +40,7 @@
                                 <VMultiselect
                                     id="warehouse_id"
                                     v-model="form.warehouse_id"
-                                    :options="warehouses.data"
+                                    :options="warehouseOptionsTree"
                                     label="Warehouse"
                                     required
                                     :disabled="!isDraft"
@@ -184,7 +184,7 @@ const warehouseStore = useWarehouseStore();
 const edit_adjustment_id = defineModel('adjustment_id');
 
 const {adjustment} = storeToRefs(stockAdjustmentStore);
-const {warehouses} = storeToRefs(warehouseStore);
+const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const getInitialState = () => ({
     reference_no: '',

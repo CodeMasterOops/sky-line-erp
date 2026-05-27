@@ -1,6 +1,7 @@
 import {defineStore} from "pinia";
 import {apiAdmin} from "@/helpers/api.js";
 import showErrors from "@/helpers/showErrors.js";
+import {buildWarehouseOptionsTree} from "@/helpers/warehouseTree.js";
 
 const apiUrl = 'warehouse'
 
@@ -15,6 +16,14 @@ export const useWarehouseStore = defineStore('warehouse', {
             loading: false
         }
     }),
+
+    getters: {
+        optionsTree(state) {
+            return buildWarehouseOptionsTree(state.warehouses.data);
+        },
+        optionsTreeExcluding: (state) => (excludeIds = new Set()) =>
+            buildWarehouseOptionsTree(state.warehouses.data, excludeIds),
+    },
 
     actions: {
         getWarehouses(refetch = false) {

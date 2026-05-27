@@ -82,7 +82,14 @@
                         <div class="col-md-6">
                             <label class="form-label">Warehouse <span class="text-danger">*</span></label>
                             <select v-model="form.warehouse_id" class="form-select">
-                                <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
+                                <option value="" disabled>Select warehouse</option>
+                                <option
+                                    v-for="w in warehouseSelectRows"
+                                    :key="w.id"
+                                    :value="w.id"
+                                >
+                                    {{ formatWarehouseOptionLabel(w, w.depth) }}
+                                </option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -155,15 +162,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+import {
+    flattenWarehousesWithOutline,
+    formatWarehouseOptionLabel,
+} from '@/helpers/warehouseTree.js';
 
 const loading = ref(false);
 const saving = ref(false);
 const batches = ref([]);
 const warehouses = ref([]);
+const warehouseSelectRows = computed(() => flattenWarehousesWithOutline(warehouses.value));
 const showForm = ref(false);
 const alertModal = ref(false);
 const alerts = ref([]);

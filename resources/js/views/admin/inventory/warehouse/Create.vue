@@ -71,7 +71,7 @@ import {object, string, mixed} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
-import {buildWarehouseOptionsTree} from './warehouseTree.js';
+import {buildWarehouseOptionsTree} from '@/helpers/warehouseTree.js';
 
 const warehouseStore = useWarehouseStore();
 const {warehouses} = storeToRefs(warehouseStore);

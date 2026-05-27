@@ -42,7 +42,7 @@
                                         <VMultiselect
                                             id="from_warehouse_id"
                                             v-model="form.from_warehouse_id"
-                                            :options="warehouses.data"
+                                            :options="warehouseOptionsTree"
                                             label="From Warehouse"
                                             required
                                             :disabled="!isDraft"
@@ -56,7 +56,7 @@
                                         <VMultiselect
                                             id="to_warehouse_id"
                                             v-model="form.to_warehouse_id"
-                                            :options="toWarehouses"
+                                            :options="toWarehouseOptionsTree"
                                             label="To Warehouse"
                                             required
                                             :disabled="!isDraft"
@@ -177,7 +177,7 @@ const warehouseStore = useWarehouseStore();
 const edit_transfer_id = defineModel('transfer_id');
 
 const {transfer} = storeToRefs(stockTransferStore);
-const {warehouses} = storeToRefs(warehouseStore);
+const {optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const getInitialState = () => ({
     reference_no: '',
@@ -192,11 +192,12 @@ const getInitialState = () => ({
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
 
-const toWarehouses = computed(() => {
-    if (!form.from_warehouse_id) {
-        return warehouses.value.data;
-    }
-    return warehouses.value.data.filter(w => w.id !== parseInt(form.from_warehouse_id, 10));
+const toWarehouseOptionsTree = computed(() => {
+    const exclude = form.from_warehouse_id
+        ? new Set([Number(form.from_warehouse_id)])
+        : new Set();
+
+    return warehouseStore.optionsTreeExcluding(exclude);
 });
 
 function variantLabel(variant) {
