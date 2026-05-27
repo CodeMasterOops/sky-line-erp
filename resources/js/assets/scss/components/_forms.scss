@@ -1113,6 +1113,11 @@ input[type="number"]::-webkit-inner-spin-button {
   font-weight: variables.$font-weight-normal;
 }
 
+// Teleported dropdown must sit above VModal (1050) and match Ant date pickers.
+.multiselect-dropdown {
+  z-index: 1060 !important;
+}
+
 // Line-item tables: compact tax select matches qty/rate row height (VSelect + form-select-sm)
 select.form-select-sm.line-item-tax-select {
   min-height: calc(2px + 0.5rem + 0.8rem * 1.5);

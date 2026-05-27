@@ -6,22 +6,23 @@
     <Multiselect
         :id="id"
         :label="nameProp"
-        :value="modelValue"
-        :customLabel="label"
-        @input="updateModelValue"
+        :model-value="modelValue"
+        @update:model-value="updateModelValue"
         @search-change="onSearchChange"
         :disabled="disabled || loading"
         :loading="loading"
-        :valueProp="valueProp"
+        :value-prop="valueProp"
         :searchable="true"
         :track-by="nameProp"
         :options="flattenOptions(options)"
         :placeholder="'Select '+ (placeholder??label??'')"
         :mode="mode"
-        :multiple-label=formatMultipleLabel
+        :multiple-label="formatMultipleLabel"
         :hide-selected="false"
         :filter-results="filterResults"
         :min-chars="minChars"
+        :append-to-body="appendToBody"
+        :close-on-scroll="appendToBody"
     />
     <div v-if="error" class="text-danger">
         {{ error }}
@@ -86,6 +87,10 @@ const props = defineProps({
     required: {
         type: Boolean,
         default: false,
+    },
+    appendToBody: {
+        type: Boolean,
+        default: true,
     },
 })
 

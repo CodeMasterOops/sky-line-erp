@@ -23,6 +23,7 @@
                                 label="Supplier"
                                 required
                                 :disabled="!isDraft"
+                                :loading="parties.loading"
                                 :filter-results="false"
                                 @search-change="debouncedSupplierSearch"
                             />
@@ -40,6 +41,7 @@
                                 label="Warehouse"
                                 required
                                 :disabled="!isDraft"
+                                :loading="warehouses.loading"
                             />
                         </div>
                         <div class="col-lg-4 col-md-6">
@@ -238,7 +240,14 @@ const variantLabel = (variant) => {
     return label;
 };
 
+const mergePartyFromPayload = (party) => {
+    if (party?.id && !partyStore.parties.data.some((p) => String(p.id) === String(party.id))) {
+        partyStore.parties.data = [party, ...partyStore.parties.data];
+    }
+};
+
 const hydrateForm = (data) => {
+    mergePartyFromPayload(data.party);
     grnStatus.value = data.status || 'draft';
     form.party_id = data.party_id ? String(data.party_id) : '';
     form.warehouse_id = data.warehouse_id ? String(data.warehouse_id) : '';
@@ -338,12 +347,14 @@ watch(
     grnId,
     async (id) => {
         if (id) {
-            partyStore.getParties({filter: {type: 'supplier', limit: 50, search: ''}});
-            warehouseStore.getWarehouses();
-            await loadGrn(id);
+            await Promise.all([
+                partyStore.getParties({filter: {type: 'supplier', limit: 50, search: ''}}),
+                warehouseStore.getWarehouses(),
+                loadGrn(id),
+            ]);
         }
     },
-    {flush: 'post'}
+    {flush: 'post'},
 );
 </script>
 

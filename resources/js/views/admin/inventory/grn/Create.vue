@@ -21,6 +21,7 @@
                                 :options="parties.data"
                                 label="Supplier"
                                 required
+                                :loading="parties.loading"
                                 :filter-results="false"
                                 @search-change="debouncedSupplierSearch"
                             />
@@ -37,6 +38,7 @@
                                 :options="warehouses.data"
                                 label="Warehouse"
                                 required
+                                :loading="warehouses.loading"
                             />
                         </div>
                         <div class="col-lg-4 col-md-6">
@@ -60,6 +62,8 @@
                                 id="purchase_order_id"
                                 v-model="form.purchase_order_id"
                                 :options="purchaseOrderOptions"
+                                name-prop="label"
+                                value-prop="value"
                                 label="Purchase Order"
                                 placeholder="Optional — load lines from PO"
                                 @update:model-value="onPurchaseOrderChange"
@@ -363,10 +367,17 @@ const onPurchaseOrderChange = async (poId) => {
     await loadFromPurchaseOrder(poId);
 };
 
+const mergePartyFromPayload = (party) => {
+    if (party?.id && !partyStore.parties.data.some((p) => String(p.id) === String(party.id))) {
+        partyStore.parties.data = [party, ...partyStore.parties.data];
+    }
+};
+
 const loadFromPurchaseOrder = async (poId) => {
     await purchaseOrderStore.getOrder(poId);
     const data = order.value.data;
 
+    mergePartyFromPayload(data.party);
     form.party_id = data.party_id ? String(data.party_id) : form.party_id;
     form.purchase_order_id = String(poId);
     form.remarks = data.remarks || form.remarks;
@@ -458,14 +469,17 @@ watch(
     async (opened) => {
         if (opened) {
             resetForm();
-            partyStore.getParties({filter: {type: 'supplier', limit: 50, search: ''}});
-            warehouseStore.getWarehouses();
-            await loadPurchaseOrders();
+            await Promise.all([
+                partyStore.getParties({filter: {type: 'supplier', limit: 50, search: ''}}),
+                warehouseStore.getWarehouses(),
+                loadPurchaseOrders(),
+            ]);
             if (purchaseOrderId.value) {
                 await loadFromPurchaseOrder(purchaseOrderId.value);
             }
         }
-    }
+    },
+    {flush: 'post'},
 );
 
 watch(

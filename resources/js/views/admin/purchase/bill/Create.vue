@@ -75,16 +75,6 @@
                                 />
                             </div>
                         </div>
-                        <div class="col-lg-4 col-sm-6 col-12 d-flex align-items-end">
-                            <button
-                                type="button"
-                                class="btn btn-outline-primary w-100"
-                                :disabled="!form.party_id || !form.warehouse_id || loadingGrnItems"
-                                @click="loadFromGrn">
-                                <span v-if="loadingGrnItems" class="spinner-border spinner-border-sm me-1"></span>
-                                Load from GRN
-                            </button>
-                        </div>
                         <div class="col-12">
                             <ProductVariantSearchInput
                                 label="Product"
@@ -310,7 +300,6 @@ import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePurchaseOrderStore} from "@/stores/admin/purchase/purchase-order.js";
-import {apiAdmin} from '@/helpers/api.js';
 
 const billStore = useBillStore();
 const partyStore = usePartyStore();
@@ -323,7 +312,6 @@ const {currentAdDate} = useDateHelper();
 const createModalOpened = defineModel('createModalOpened');
 const purchaseOrderId = defineModel('purchaseOrderId');
 const createSupplierOpened = ref(false);
-const loadingGrnItems = ref(false);
 
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
@@ -427,44 +415,6 @@ const loadFromPurchaseOrder = async () => {
                 line_discount_value: String(mergedDiscounts[i] ?? item.discount_amount ?? 0),
             });
         });
-    }
-};
-
-const loadFromGrn = async () => {
-    if (!form.party_id || !form.warehouse_id) {
-        return;
-    }
-
-    loadingGrnItems.value = true;
-    try {
-        const res = await apiAdmin('grn/billable-items', 'get', {
-            party_id: form.party_id,
-            warehouse_id: form.warehouse_id,
-        });
-        const rows = res.data.data || [];
-
-        if (!rows.length) {
-            toast('warning', 'No open GRN lines found for this supplier and warehouse.');
-            return;
-        }
-
-        form.items = rows.map((row) => ({
-            product_variant_id: row.product_variant_id,
-            product_label: variantLabel(row.product_variant || {}),
-            list_sale_snapshot: row.product_variant?.sales_price || 0,
-            unit_id: row.unit_id ?? '',
-            quantity: String(Math.floor(Number(row.remaining_qty) || 0)),
-            rate: String(row.unit_cost ?? 0),
-            tax_id: '',
-            tax_line_type: 'taxable',
-            line_discount_type: 'fixed',
-            line_discount_value: '0',
-            grn_item_id: row.grn_item_id,
-        }));
-    } catch (e) {
-        showErrors(e);
-    } finally {
-        loadingGrnItems.value = false;
     }
 };
 
@@ -578,7 +528,6 @@ const buildBillPayload = () => {
             tax_amount: item.tax_amount ?? 0,
             discount_amount: String(lineDiscountMoneyFromItem(item)),
             tax_line_type: item.tax_line_type || 'taxable',
-            grn_item_id: item.grn_item_id || null,
         })),
     };
 };
