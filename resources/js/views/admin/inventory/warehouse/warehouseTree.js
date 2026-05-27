@@ -1,4 +1,29 @@
 /**
+ * @param {Array<{ id: number|string, parent_id?: number|string|null }>} warehouses
+ * @returns {Map<number|null, Array>}
+ */
+function groupWarehousesByParent(warehouses) {
+    const ids = new Set(warehouses.map((w) => Number(w.id)));
+    const byParent = new Map();
+
+    for (const w of warehouses) {
+        let parentKey = null;
+        if (w.parent_id != null && w.parent_id !== '') {
+            const pid = Number(w.parent_id);
+            if (ids.has(pid)) {
+                parentKey = pid;
+            }
+        }
+        if (!byParent.has(parentKey)) {
+            byParent.set(parentKey, []);
+        }
+        byParent.get(parentKey).push(w);
+    }
+
+    return byParent;
+}
+
+/**
  * Descendant warehouse ids (excluding rootId), depth-first via parent_id links.
  *
  * @param {Array<{ id: number|string, parent_id?: number|string|null }>} flat
@@ -6,14 +31,7 @@
  * @returns {Set<number|string>}
  */
 export function collectDescendantIds(flat, rootId) {
-    const byParent = new Map();
-    for (const w of flat) {
-        const p = w.parent_id == null || w.parent_id === '' ? null : Number(w.parent_id);
-        if (!byParent.has(p)) {
-            byParent.set(p, []);
-        }
-        byParent.get(p).push(w);
-    }
+    const byParent = groupWarehousesByParent(flat);
     const out = new Set();
     const queue = [Number(rootId)];
     let i = 0;
@@ -31,6 +49,59 @@ export function collectDescendantIds(flat, rootId) {
 }
 
 /**
+ * @param {Array<{ id: number|string, parent_id?: number|string|null, name: string, code?: string }>} warehouses
+ * @param {Set<number|string>} [excludeIds]
+ * @returns {Array<{ warehouse: object, children: Array }>}
+ */
+export function buildWarehouseTree(warehouses, excludeIds = new Set()) {
+    const exclude = new Set([...excludeIds].map((x) => Number(x)));
+    const flat = (warehouses || []).filter((w) => !exclude.has(Number(w.id)));
+    const byParent = groupWarehousesByParent(flat);
+
+    const build = (parentKey) => {
+        const list = (byParent.get(parentKey) || [])
+            .slice()
+            .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+        return list.map((w) => ({
+            warehouse: w,
+            children: build(Number(w.id)),
+        }));
+    };
+
+    return build(null);
+}
+
+/**
+ * Depth-first flat rows with outline numbering (1, 1.1, 1.1.1).
+ *
+ * @param {Array<{ id: number|string, parent_id?: number|string|null, name: string, code?: string }>} warehouses
+ * @returns {Array<object & { outline: string, depth: number }>}
+ */
+export function flattenWarehousesWithOutline(warehouses) {
+    const tree = buildWarehouseTree(warehouses);
+    const rows = [];
+
+    const walk = (nodes, pathPrefix) => {
+        nodes.forEach((node, index) => {
+            const path = [...pathPrefix, index + 1];
+            rows.push({
+                ...node.warehouse,
+                outline: path.join('.'),
+                depth: path.length - 1,
+            });
+            if (node.children.length) {
+                walk(node.children, path);
+            }
+        });
+    };
+
+    walk(tree, []);
+
+    return rows;
+}
+
+/**
  * Nested options for VMultiselect (supports `children` for indentation).
  *
  * @param {Array<{ id: number|string, parent_id?: number|string|null, name: string, code?: string }>} warehouses
@@ -38,31 +109,17 @@ export function collectDescendantIds(flat, rootId) {
  * @returns {Array<{ id: number|string, name: string, children?: Array }>}
  */
 export function buildWarehouseOptionsTree(warehouses, excludeIds = new Set()) {
-    const exclude = new Set([...excludeIds].map((x) => Number(x)));
-    const flat = (warehouses || []).filter((w) => !exclude.has(Number(w.id)));
-    const byParent = new Map();
-    for (const w of flat) {
-        const p = w.parent_id == null || w.parent_id === '' ? null : Number(w.parent_id);
-        if (!byParent.has(p)) {
-            byParent.set(p, []);
+    const mapNode = (node) => {
+        const w = node.warehouse;
+        const option = {
+            id: w.id,
+            name: w.code ? `${w.name} (${w.code})` : w.name,
+        };
+        if (node.children.length) {
+            option.children = node.children.map(mapNode);
         }
-        byParent.get(p).push(w);
-    }
-    const build = (parentKey) => {
-        const list = (byParent.get(parentKey) || [])
-            .slice()
-            .sort((a, b) => String(a.name).localeCompare(String(b.name)));
-        return list.map((w) => {
-            const children = build(Number(w.id));
-            const node = {
-                id: w.id,
-                name: w.code ? `${w.name} (${w.code})` : w.name,
-            };
-            if (children.length) {
-                node.children = children;
-            }
-            return node;
-        });
+        return option;
     };
-    return build(null);
+
+    return buildWarehouseTree(warehouses, excludeIds).map(mapNode);
 }

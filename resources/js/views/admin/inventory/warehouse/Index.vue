@@ -18,15 +18,17 @@
                     <a-table
                         class="table datanew table-hover table-center mb-0"
                         :columns="columns"
-                        :data-source="warehouses.data"
+                        :data-source="warehouseRows"
                         :loading="warehouses.loading"
                     >
-                        <template #bodyCell="{ column, record, index }">
+                        <template #bodyCell="{ column, record }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ record.outline }}
                             </template>
-                            <template v-else-if="column.key === 'parent'">
-                                {{ record.parent?.name || '—' }}
+                            <template v-else-if="column.key === 'name'">
+                                <span :style="{ paddingLeft: `${record.depth * 1.25}rem` }">
+                                    {{ record.name }}
+                                </span>
                             </template>
                             <template v-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
@@ -51,7 +53,7 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import Swal from 'sweetalert2';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -59,6 +61,7 @@ import {storeToRefs} from 'pinia';
 import CreateWarehouse from './Create.vue';
 import EditWarehouse from './Edit.vue';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
+import {flattenWarehousesWithOutline} from './warehouseTree.js';
 
 const warehouseStore = useWarehouseStore();
 
@@ -71,41 +74,25 @@ const createModalOpened = ref(false);
 
 const {warehouses} = storeToRefs(warehouseStore);
 
+const warehouseRows = computed(() => flattenWarehousesWithOutline(warehouses.value.data));
+
 const fetchWarehouses = (refetch = false) => {
     warehouseStore.getWarehouses(refetch);
 }
 
 const columns = [
     {
-        title: 'SN',
+        title: 'No.',
         key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Parent',
-        key: 'parent',
+        width: 72,
     },
     {
         title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
+        key: 'name',
     },
     {
         title: 'Code',
         dataIndex: 'code',
-        sorter: {
-            compare: (a, b) => {
-                a = a.code.toLowerCase();
-                b = b.code.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
     },
     {
         title: 'Phone',
