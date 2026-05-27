@@ -24,7 +24,7 @@ class BillRequest extends FormRequest
             'bill_no' => ['nullable', 'string', 'max:255'],
             'bill_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:bill_date'],
-            'party_id' => ['nullable', TRule::exists('parties', 'id')->withoutTrashed()],
+            'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'purchase_order_id' => ['nullable', TRule::exists('purchase_orders', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],

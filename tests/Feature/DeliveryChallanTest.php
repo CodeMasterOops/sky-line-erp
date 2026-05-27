@@ -106,6 +106,7 @@ function dcSeedAccounts(Company $company): void
 function dcPayload(object $test, array $overrides = []): array
 {
     return array_merge([
+        'party_id' => $test->customer->id,
         'warehouse_id' => $test->warehouse->id,
         'challan_date' => now()->toDateString(),
         'status' => StatusEnum::DRAFT->value,
@@ -162,6 +163,13 @@ beforeEach(function () {
         'sku' => 'SKU-DC-1',
         'sales_price' => 100,
         'is_default' => true,
+    ]);
+
+    $this->customer = Party::create([
+        'company_id' => $this->company->id,
+        'name' => 'Delivery Customer',
+        'code' => 'CUST-DC',
+        'type' => PartyTypeEnum::CUSTOMER,
     ]);
 
     Sanctum::actingAs($this->user, ['*'], 'admin');
@@ -296,6 +304,7 @@ it('does not double deduct stock when invoicing delivery challan lines', functio
 
     $invoice = $this->postJson('/api/admin/invoice', [
         'invoice_date' => now()->toDateString(),
+        'party_id' => $this->customer->id,
         'status' => StatusEnum::APPROVED->value,
         'order_discount_type' => 'fixed',
         'order_discount_value' => 0,
@@ -336,6 +345,7 @@ it('still deducts stock for standalone approved invoices', function () {
 
     $invoice = $this->postJson('/api/admin/invoice', [
         'invoice_date' => now()->toDateString(),
+        'party_id' => $this->customer->id,
         'status' => StatusEnum::APPROVED->value,
         'order_discount_type' => 'fixed',
         'order_discount_value' => 0,

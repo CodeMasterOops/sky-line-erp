@@ -39,6 +39,7 @@
                                             label="Customer"
                                             :filter-results="false"
                                             @validate="validateField('party_id')"
+                                            required
                                             @search-change="debouncedPartySearch"
                                             :error="errors.party_id"
                                         />
@@ -644,7 +645,7 @@ const removeItem = (index) => {
 
 const validations = object({
     credit_note_date: string().required('Credit note date is required.'),
-    party_id: string().nullable(),
+    party_id: string().required('Customer is required.'),
     invoice_id: string().nullable(),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),

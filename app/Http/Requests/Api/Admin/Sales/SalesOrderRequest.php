@@ -19,7 +19,7 @@ class SalesOrderRequest extends FormRequest
         return [
             'order_no' => ['nullable', 'string', 'max:255'],
             'order_date' => ['required', 'date'],
-            'party_id' => ['nullable', TRule::exists('parties', 'id')->withoutTrashed()],
+            'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'quotation_id' => ['nullable', TRule::exists('quotations', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],

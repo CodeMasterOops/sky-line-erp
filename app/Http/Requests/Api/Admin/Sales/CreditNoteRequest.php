@@ -21,7 +21,7 @@ class CreditNoteRequest extends FormRequest
         return [
             'credit_note_no' => ['nullable', 'string', 'max:255'],
             'credit_note_date' => ['required', 'date'],
-            'party_id' => ['nullable', TRule::exists('parties', 'id')->withoutTrashed()],
+            'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'invoice_id' => ['nullable', TRule::exists('invoices', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],

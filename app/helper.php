@@ -167,6 +167,13 @@ if (! function_exists('adToBsDate')) {
     }
 }
 
+if (! function_exists('sanitizeDownloadFilename')) {
+    function sanitizeDownloadFilename(string $filename): string
+    {
+        return str_replace(['/', '\\'], '-', $filename);
+    }
+}
+
 if (! function_exists('adToBsDateTime')) {
     function adToBsDateTime($adDate, $format = 'en'): string
     {

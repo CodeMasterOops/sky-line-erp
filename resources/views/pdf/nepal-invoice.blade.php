@@ -7,303 +7,342 @@
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-        font-family: 'DejaVu Sans', sans-serif;
+        font-family: DejaVu Sans, sans-serif;
         font-size: 10px;
         color: #111;
-        background: #fff;
+        line-height: 1.35;
     }
-    .page { padding: 20px 24px; }
+    .page { padding: 18px 22px; }
 
-    /* Header */
-    .header { display: table; width: 100%; border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 8px; }
-    .header-left { display: table-cell; width: 70%; vertical-align: top; }
-    .header-right { display: table-cell; width: 30%; vertical-align: top; text-align: right; }
-    .company-name { font-size: 16px; font-weight: bold; }
+    .header-table { width: 100%; border-collapse: collapse; border-bottom: 2px solid #111; margin-bottom: 10px; }
+    .header-table td { vertical-align: top; padding-bottom: 8px; }
+    .header-left { width: 68%; }
+    .header-right { width: 32%; text-align: right; }
+    .logo { height: 42px; margin-bottom: 4px; }
+    .company-name { font-size: 15px; font-weight: bold; }
     .company-meta { font-size: 9px; color: #333; margin-top: 2px; }
-    .doc-title { font-size: 13px; font-weight: bold; text-align: center; margin: 6px 0 4px; letter-spacing: 1px; }
+    .doc-title { font-size: 14px; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .doc-subtitle { font-size: 9px; color: #444; margin-bottom: 6px; }
     .vat-badge {
-        display: inline-block; border: 1px solid #111;
-        padding: 1px 6px; font-size: 8px; font-weight: bold;
-        margin-top: 2px;
+        display: inline-block;
+        border: 1px solid #111;
+        padding: 2px 8px;
+        font-size: 8px;
+        font-weight: bold;
     }
 
-    /* Party / Meta row */
-    .meta-table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-    .meta-table td { padding: 2px 4px; font-size: 9px; vertical-align: top; }
-    .meta-table .label { font-weight: bold; white-space: nowrap; width: 80px; }
-    .meta-table .col-right { text-align: right; }
+    .info-box { border: 1px solid #999; margin-bottom: 8px; }
+    .info-box td { padding: 4px 6px; font-size: 9px; vertical-align: top; }
+    .info-box .lbl { font-weight: bold; white-space: nowrap; width: 88px; color: #222; }
+    .info-box .section-title {
+        background: #f0f0f0;
+        font-weight: bold;
+        padding: 4px 6px;
+        border-bottom: 1px solid #ccc;
+        font-size: 9px;
+    }
 
-    /* Line items */
-    .items-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+    .items-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
     .items-table th {
-        background: #f0f0f0; border: 0.5px solid #999;
-        padding: 3px 4px; font-size: 9px; text-align: center;
+        background: #ececec;
+        border: 1px solid #999;
+        padding: 4px 5px;
+        font-size: 8px;
+        text-align: center;
+        font-weight: bold;
     }
     .items-table td {
-        border: 0.5px solid #bbb;
-        padding: 2px 4px; font-size: 9px;
+        border: 1px solid #bbb;
+        padding: 3px 5px;
+        font-size: 9px;
+        vertical-align: top;
     }
-    .items-table td.num { text-align: right; }
+    .items-table td.num { text-align: right; white-space: nowrap; }
     .items-table td.center { text-align: center; }
-    .items-table tr.total-row td { font-weight: bold; background: #f8f8f8; }
+    .items-table td.desc { text-align: left; }
+    .items-table tr.empty-row td { text-align: center; color: #666; font-style: italic; padding: 10px; }
+    .item-sub { display: block; font-size: 8px; color: #555; margin-top: 1px; }
 
-    /* Totals */
-    .totals-wrap { display: table; width: 100%; margin-top: 6px; }
-    .totals-left { display: table-cell; width: 55%; vertical-align: bottom; font-size: 9px; }
-    .totals-right { display: table-cell; width: 45%; vertical-align: top; }
-    .totals-box { border-collapse: collapse; width: 100%; }
-    .totals-box td { padding: 2px 6px; font-size: 9px; border: 0.5px solid #ccc; }
-    .totals-box td.lbl { background: #f4f4f4; }
-    .totals-box td.amt { text-align: right; font-weight: bold; }
-    .grand-total-row td { background: #e8e8e8; font-size: 10px; font-weight: bold; }
+    .summary-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .summary-table td { vertical-align: top; }
+    .summary-left { width: 58%; padding-right: 8px; }
+    .summary-right { width: 42%; }
 
-    /* Amount in words */
-    .amount-words { font-style: italic; font-size: 9px; margin-top: 4px; border-top: 0.5px dashed #999; padding-top: 3px; }
-
-    /* QR + signatures */
-    .footer-row { display: table; width: 100%; margin-top: 10px; border-top: 0.5px solid #bbb; padding-top: 6px; }
-    .footer-left  { display: table-cell; width: 30%; vertical-align: top; text-align: center; }
-    .footer-mid   { display: table-cell; width: 40%; vertical-align: bottom; text-align: center; font-size: 8px; }
-    .footer-right { display: table-cell; width: 30%; vertical-align: top; text-align: right; }
-    .sig-line { border-top: 0.5px solid #555; margin-top: 20px; padding-top: 2px; font-size: 8px; }
-    .qr-code img { width: 70px; height: 70px; }
-    .ird-status { font-size: 8px; margin-top: 2px; }
-
-    /* IRD sync badge */
-    .badge-synced { color: #155724; background: #d4edda; border: 0.5px solid #c3e6cb; padding: 1px 5px; border-radius: 2px; font-size: 8px; }
-    .badge-pending { color: #856404; background: #fff3cd; border: 0.5px solid #ffeeba; padding: 1px 5px; border-radius: 2px; font-size: 8px; }
-
-    /* Tax summary box */
-    .tax-summary { border: 0.5px solid #bbb; padding: 4px 6px; margin-top: 4px; font-size: 9px; }
+    .tax-summary {
+        border: 1px solid #bbb;
+        padding: 6px 8px;
+        font-size: 9px;
+    }
+    .tax-summary-title { font-weight: bold; margin-bottom: 4px; }
     .tax-summary table { width: 100%; border-collapse: collapse; }
-    .tax-summary td { padding: 1px 3px; }
-    .tax-summary td.r { text-align: right; }
+    .tax-summary td { padding: 2px 0; }
+    .tax-summary td.r { text-align: right; white-space: nowrap; }
+
+    .totals-box { width: 100%; border-collapse: collapse; }
+    .totals-box td { padding: 4px 6px; font-size: 9px; border: 1px solid #ccc; }
+    .totals-box td.lbl { background: #f4f4f4; width: 55%; }
+    .totals-box td.amt { text-align: right; font-weight: bold; white-space: nowrap; }
+    .totals-box tr.grand td { background: #e8e8e8; font-size: 10px; font-weight: bold; }
+
+    .amount-words {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px dashed #aaa;
+        font-size: 9px;
+    }
+
+    .footer-table { width: 100%; border-collapse: collapse; margin-top: 12px; border-top: 1px solid #bbb; }
+    .footer-table td { vertical-align: bottom; padding-top: 8px; font-size: 8px; }
+    .footer-qr { width: 24%; text-align: center; }
+    .footer-notes { width: 46%; color: #555; padding-left: 8px; padding-right: 8px; }
+    .footer-sig { width: 30%; text-align: right; }
+    .sig-line { border-top: 1px solid #555; margin-top: 28px; padding-top: 3px; text-align: center; }
+    .badge {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 2px;
+        font-size: 8px;
+        font-weight: bold;
+        margin-top: 4px;
+    }
+    .badge-synced { color: #155724; background: #d4edda; border: 1px solid #c3e6cb; }
+    .badge-pending { color: #856404; background: #fff3cd; border: 1px solid #ffeeba; }
+    .badge-failed { color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; }
+    .muted { color: #666; }
 </style>
 </head>
 <body>
 <div class="page">
 
-    {{-- ===================== HEADER ===================== --}}
-    <div class="header">
-        <div class="header-left">
-            @if($company->logo)
-                <img src="{{ public_path(Storage::url($company->logo)) }}" style="height:40px; margin-bottom:4px;" alt="logo">
-            @endif
-            <div class="company-name">{{ $company->company_name }}</div>
-            <div class="company-meta">
-                @if($company->address) {{ $company->address }}<br>@endif
-                @if($company->phone) Tel: {{ $company->phone }}@endif
-                @if($company->email) &nbsp;|&nbsp; {{ $company->email }}@endif
-                @if($company->website) &nbsp;|&nbsp; {{ $company->website }}@endif
-            </div>
-            @if($company->pan)
-                <div class="company-meta"><strong>PAN:</strong> {{ $company->pan }}</div>
-            @endif
-        </div>
-        <div class="header-right">
-            <div class="doc-title">VAT INVOICE (Kar Chalaan)</div>
-            <div class="vat-badge">VAT REGISTERED</div>
-        </div>
-    </div>
-
-    {{-- ===================== META ===================== --}}
-    <table class="meta-table">
+    <table class="header-table">
         <tr>
-            <td>
-                <table>
+            <td class="header-left">
+                @if($logoPath)
+                    <img src="{{ $logoPath }}" class="logo" alt="Logo">
+                @endif
+                <div class="company-name">{{ $company?->legal_name ?: ($company?->company_name ?? 'Company') }}</div>
+                <div class="company-meta">
+                    @if($company?->address){{ $company->address }}<br>@endif
+                    @if($company?->phone)Tel: {{ $company->phone }}@endif
+                    @if($company?->email) &nbsp;|&nbsp; {{ $company->email }}@endif
+                    @if($company?->website) &nbsp;|&nbsp; {{ $company->website }}@endif
+                </div>
+                @if($company?->pan)
+                    <div class="company-meta"><strong>PAN:</strong> {{ $company->pan }}</div>
+                @endif
+            </td>
+            <td class="header-right">
+                <div class="doc-title">TAX INVOICE</div>
+                <div class="doc-subtitle">Kar Chalaan / VAT Invoice</div>
+                <span class="vat-badge">VAT REGISTERED</span>
+            </td>
+        </tr>
+    </table>
+
+    <table class="info-box" style="width:100%; border-collapse:collapse;">
+        <tr>
+            <td style="width:50%; border-right:1px solid #999;">
+                <div class="section-title">Buyer Details</div>
+                <table style="width:100%; border-collapse:collapse;">
                     <tr>
-                        <td class="label">Bill To:</td>
-                        <td>
-                            <strong>{{ $invoice->party?->name ?? 'Cash Customer' }}</strong>
-                            @if($invoice->party?->address)
-                                <br>{{ $invoice->party->address }}
-                            @endif
-                            @if($invoice->party?->phone)
-                                <br>Tel: {{ $invoice->party->phone }}
-                            @endif
-                        </td>
+                        <td class="lbl">Name</td>
+                        <td><strong>{{ $invoice->party?->name ?? 'Cash Customer' }}</strong></td>
                     </tr>
+                    @if($invoice->party?->address)
+                    <tr>
+                        <td class="lbl">Address</td>
+                        <td>{{ $invoice->party->address }}</td>
+                    </tr>
+                    @endif
+                    @if($invoice->party?->phone)
+                    <tr>
+                        <td class="lbl">Phone</td>
+                        <td>{{ $invoice->party->phone }}</td>
+                    </tr>
+                    @endif
                     @if($invoice->party?->pan)
                     <tr>
-                        <td class="label">Buyer PAN:</td>
+                        <td class="lbl">Buyer PAN</td>
                         <td>{{ $invoice->party->pan }}</td>
                     </tr>
                     @endif
                 </table>
             </td>
-            <td style="text-align:right; vertical-align:top;">
-                <table style="float:right; border-collapse:collapse;">
+            <td style="width:50%;">
+                <div class="section-title">Invoice Details</div>
+                <table style="width:100%; border-collapse:collapse;">
                     <tr>
-                        <td style="padding:2px 6px; font-weight:bold;">Invoice No:</td>
-                        <td style="padding:2px 6px;">{{ $invoice->invoice_no }}</td>
+                        <td class="lbl">Invoice No</td>
+                        <td><strong>{{ $invoice->invoice_no }}</strong></td>
                     </tr>
                     @if($invoice->bijak_no && $invoice->bijak_no !== $invoice->invoice_no)
                     <tr>
-                        <td style="padding:2px 6px; font-weight:bold;">Bijak No:</td>
-                        <td style="padding:2px 6px;">{{ $invoice->bijak_no }}</td>
+                        <td class="lbl">Bijak No</td>
+                        <td>{{ $invoice->bijak_no }}</td>
                     </tr>
                     @endif
                     <tr>
-                        <td style="padding:2px 6px; font-weight:bold;">Date (AD):</td>
-                        <td style="padding:2px 6px;">{{ is_string($invoice->invoice_date) ? $invoice->invoice_date : $invoice->invoice_date->format('Y-m-d') }}</td>
+                        <td class="lbl">Date (AD)</td>
+                        <td>{{ $invoiceDateAd }}</td>
                     </tr>
                     <tr>
-                        <td style="padding:2px 6px; font-weight:bold;">Date (BS):</td>
-                        <td style="padding:2px 6px;">{{ $invoiceDateBs }}</td>
+                        <td class="lbl">Date (BS)</td>
+                        <td>{{ $invoiceDateBs ?: '—' }}</td>
                     </tr>
-                    @if($invoice->due_date)
+                    @if($dueDateAd)
                     <tr>
-                        <td style="padding:2px 6px; font-weight:bold;">Due Date:</td>
-                        <td style="padding:2px 6px;">{{ is_string($invoice->due_date) ? $invoice->due_date : $invoice->due_date->format('Y-m-d') }}</td>
+                        <td class="lbl">Due Date</td>
+                        <td>{{ $dueDateAd }}</td>
                     </tr>
                     @endif
+                    @if($invoice->fiscalYear?->year_code)
                     <tr>
-                        <td style="padding:2px 6px; font-weight:bold;">Fiscal Year:</td>
-                        <td style="padding:2px 6px;">{{ $invoice->fiscalYear?->year_code ?? '' }}</td>
+                        <td class="lbl">Fiscal Year</td>
+                        <td>{{ $invoice->fiscalYear->year_code }}</td>
+                    </tr>
+                    @endif
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width:4%">#</th>
+                <th style="width:27%; text-align:left;">Description</th>
+                <th style="width:8%">HSN</th>
+                <th style="width:7%">Unit</th>
+                <th style="width:7%">Qty</th>
+                <th style="width:10%">Rate</th>
+                <th style="width:9%">Discount</th>
+                <th style="width:10%">Taxable</th>
+                <th style="width:8%">VAT</th>
+                <th style="width:10%">VAT Amt</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($invoice->invoiceItems as $index => $item)
+                @php
+                    $taxableAmount = ($item->quantity * $item->rate) - $item->discount_amount;
+                    $description = $item->productVariant?->variant_name
+                        ?: ($item->productVariant?->product?->name ?? 'Item');
+                    $vatLabel = match ($item->tax_line_type?->value) {
+                        'taxable' => ($item->tax?->rate ?? 13).'%',
+                        'exempt' => 'Exempt',
+                        'zero_rated' => '0%',
+                        default => '—',
+                    };
+                @endphp
+                <tr>
+                    <td class="center">{{ $index + 1 }}</td>
+                    <td class="desc">
+                        {{ $description }}
+                        @if($item->productVariant?->sku)
+                            <span class="item-sub">SKU: {{ $item->productVariant->sku }}</span>
+                        @endif
+                    </td>
+                    <td class="center">{{ $item->productVariant?->product?->hsn_code ?? '—' }}</td>
+                    <td class="center">{{ $item->unit?->name ?? '—' }}</td>
+                    <td class="num">{{ number_format($item->quantity, 2) }}</td>
+                    <td class="num">{{ number_format($item->rate, 2) }}</td>
+                    <td class="num">{{ number_format($item->discount_amount, 2) }}</td>
+                    <td class="num">{{ number_format($taxableAmount, 2) }}</td>
+                    <td class="center">{{ $vatLabel }}</td>
+                    <td class="num">{{ number_format($item->tax_amount, 2) }}</td>
+                </tr>
+            @empty
+                <tr class="empty-row">
+                    <td colspan="10">No line items</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <table class="summary-table">
+        <tr>
+            <td class="summary-left">
+                <div class="tax-summary">
+                    <div class="tax-summary-title">Tax Summary</div>
+                    <table>
+                        <tr>
+                            <td>Taxable Amount</td>
+                            <td class="r">NPR {{ number_format($vatTaxableAmount, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Exempt Amount</td>
+                            <td class="r">NPR {{ number_format($exemptAmount, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Zero-Rated Amount</td>
+                            <td class="r">NPR {{ number_format($zeroRatedAmount, 2) }}</td>
+                        </tr>
+                        <tr>
+                            <td>Total VAT</td>
+                            <td class="r"><strong>NPR {{ number_format($vatAmount, 2) }}</strong></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="amount-words">
+                    Amount in Words: <strong>{{ $amountInWords }}</strong>
+                </div>
+            </td>
+            <td class="summary-right">
+                <table class="totals-box">
+                    <tr>
+                        <td class="lbl">Sub Total</td>
+                        <td class="amt">NPR {{ number_format($subtotal, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Total Discount</td>
+                        <td class="amt">NPR {{ number_format($totalDiscount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Taxable Amount</td>
+                        <td class="amt">NPR {{ number_format($vatTaxableAmount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">VAT</td>
+                        <td class="amt">NPR {{ number_format($vatAmount, 2) }}</td>
+                    </tr>
+                    <tr class="grand">
+                        <td class="lbl">Grand Total</td>
+                        <td class="amt">NPR {{ number_format($grandTotal, 2) }}</td>
                     </tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    {{-- ===================== LINE ITEMS ===================== --}}
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th style="width:4%">#</th>
-                <th style="width:28%; text-align:left;">Description</th>
-                <th style="width:8%">HSN</th>
-                <th style="width:7%">Unit</th>
-                <th style="width:7%">Qty</th>
-                <th style="width:10%">Rate</th>
-                <th style="width:9%">Discount</th>
-                <th style="width:10%">Taxable Amt</th>
-                <th style="width:8%">VAT %</th>
-                <th style="width:9%">VAT Amt</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($invoice->invoiceItems as $i => $item)
-            <tr>
-                <td class="center">{{ $i + 1 }}</td>
-                <td>{{ $item->productVariant?->product?->name ?? '' }}
-                    @if($item->productVariant?->variant_name && $item->productVariant->variant_name !== 'Default')
-                        <br><small>{{ $item->productVariant->variant_name }}</small>
+    <table class="footer-table">
+        <tr>
+            <td class="footer-qr">
+                @if($qrCode)
+                    <div>{!! $qrCode !!}</div>
+                @endif
+                @if($invoice->ird_sync_status === 'synced')
+                    <span class="badge badge-synced">IRD Verified</span>
+                    @if($invoice->ird_internal_id)
+                        <div class="muted" style="margin-top:3px;">IRD ID: {{ $invoice->ird_internal_id }}</div>
                     @endif
-                </td>
-                <td class="center">{{ $item->productVariant?->product?->hsn_code ?? '' }}</td>
-                <td class="center">{{ $item->unit?->name ?? '' }}</td>
-                <td class="num">{{ number_format($item->quantity, 2) }}</td>
-                <td class="num">{{ number_format($item->rate, 2) }}</td>
-                <td class="num">{{ number_format($item->discount_amount, 2) }}</td>
-                <td class="num">{{ number_format(($item->quantity * $item->rate) - $item->discount_amount, 2) }}</td>
-                <td class="center">
-                    @if($item->tax_line_type?->value === 'taxable')
-                        {{ $item->tax?->rate ?? 13 }}%
-                    @elseif($item->tax_line_type?->value === 'exempt')
-                        Exempt
-                    @else
-                        0%
-                    @endif
-                </td>
-                <td class="num">{{ number_format($item->tax_amount, 2) }}</td>
-            </tr>
-            @endforeach
-        </tbody>
+                @elseif($invoice->ird_sync_status === 'failed')
+                    <span class="badge badge-failed">IRD Sync Failed</span>
+                @elseif($invoice->ird_sync_status === 'pending')
+                    <span class="badge badge-pending">IRD Sync Pending</span>
+                @endif
+            </td>
+            <td class="footer-notes">
+                @if($invoice->remarks)
+                    <strong>Remarks:</strong> {{ $invoice->remarks }}<br>
+                @endif
+                <span class="muted">This is a computer-generated tax invoice.</span>
+            </td>
+            <td class="footer-sig">
+                <div class="sig-line">Prepared By</div>
+                <div class="sig-line">Authorized Signatory</div>
+            </td>
+        </tr>
     </table>
-
-    {{-- ===================== TOTALS ===================== --}}
-    <div class="totals-wrap">
-        <div class="totals-left">
-            <div class="tax-summary">
-                <strong>Tax Summary</strong>
-                <table>
-                    <tr>
-                        <td>Taxable Amount (13% VAT):</td>
-                        <td class="r"><strong>NPR {{ number_format($vatTaxableAmount, 2) }}</strong></td>
-                    </tr>
-                    <tr>
-                        <td>Exempt Amount:</td>
-                        <td class="r">NPR {{ number_format($exemptAmount, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td>Zero-Rated Amount:</td>
-                        <td class="r">NPR {{ number_format($zeroRatedAmount, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <td>Total VAT (13%):</td>
-                        <td class="r"><strong>NPR {{ number_format($vatAmount, 2) }}</strong></td>
-                    </tr>
-                </table>
-            </div>
-            <div class="amount-words">
-                Amount in Words: <strong>{{ $amountInWords }}</strong>
-            </div>
-        </div>
-        <div class="totals-right">
-            <table class="totals-box">
-                <tr>
-                    <td class="lbl">Sub Total:</td>
-                    <td class="amt">NPR {{ number_format($subtotal, 2) }}</td>
-                </tr>
-                <tr>
-                    <td class="lbl">Total Discount:</td>
-                    <td class="amt">NPR {{ number_format($totalDiscount, 2) }}</td>
-                </tr>
-                <tr>
-                    <td class="lbl">Taxable Amount:</td>
-                    <td class="amt">NPR {{ number_format($vatTaxableAmount, 2) }}</td>
-                </tr>
-                <tr>
-                    <td class="lbl">VAT (13%):</td>
-                    <td class="amt">NPR {{ number_format($vatAmount, 2) }}</td>
-                </tr>
-                <tr class="grand-total-row">
-                    <td class="lbl">GRAND TOTAL:</td>
-                    <td class="amt">NPR {{ number_format($grandTotal, 2) }}</td>
-                </tr>
-            </table>
-        </div>
-    </div>
-
-    {{-- ===================== FOOTER ===================== --}}
-    <div class="footer-row">
-        <div class="footer-left">
-            @if($invoice->ird_qr_data)
-                <div class="qr-code">
-                    {!! $qrCode !!}
-                </div>
-                <div class="ird-status">
-                    @if($invoice->ird_sync_status === 'synced')
-                        <span class="badge-synced">IRD Verified &#10003;</span>
-                        @if($invoice->ird_internal_id)
-                            <br>IRD ID: {{ $invoice->ird_internal_id }}
-                        @endif
-                    @else
-                        <span class="badge-pending">IRD Sync Pending</span>
-                    @endif
-                </div>
-            @else
-                <div class="ird-status">
-                    <span class="badge-pending">IRD Sync Pending</span>
-                </div>
-            @endif
-        </div>
-        <div class="footer-mid">
-            @if($invoice->remarks)
-                <div style="font-size:8px; color:#555; margin-bottom:4px;">
-                    Remarks: {{ $invoice->remarks }}
-                </div>
-            @endif
-            <div style="font-size:8px; color:#777; margin-top:4px;">
-                This is a computer-generated invoice.
-            </div>
-        </div>
-        <div class="footer-right">
-            <div class="sig-line">Prepared by</div>
-            <div class="sig-line" style="margin-top:16px;">Authorized Signatory</div>
-        </div>
-    </div>
 
 </div>
 </body>

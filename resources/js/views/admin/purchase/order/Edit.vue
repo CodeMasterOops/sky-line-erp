@@ -31,6 +31,7 @@
                                     label="Supplier"
                                     :filter-results="false"
                                     @validate="validateField('party_id')"
+                                    required
                                     @search-change="debouncedSupplierSearch"
                                     :error="errors.party_id"
                                 />
@@ -423,7 +424,7 @@ const isDraft = computed(() => order.value.data.status === 'draft');
 
 const validations = object({
     order_date: string().required('Order date is required.'),
-    party_id: string().nullable(),
+    party_id: string().required('Supplier is required'),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array()

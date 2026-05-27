@@ -20,7 +20,10 @@
                                 :options="parties.data"
                                 label="Customer"
                                 :filter-results="false"
+                                required
+                                @validate="validateField('party_id')"
                                 @search-change="debouncedPartySearch"
+                                :error="errors.party_id"
                             />
                             <PartyMetaPanel
                                 v-if="resolvedParty"
@@ -344,6 +347,7 @@ const buildPayload = () => ({
 });
 
 const validations = object({
+    party_id: string().required('Customer is required.'),
     warehouse_id: string().required('Add a product to select the dispatch warehouse.'),
     challan_date: string().required('Challan date is required.'),
     items: array().of(

@@ -36,6 +36,7 @@
                                         label="Supplier"
                                         :filter-results="false"
                                         @validate="validateField('party_id')"
+                                        required
                                         @search-change="debouncedSupplierSearch"
                                         :error="errors.party_id"
                                     />
@@ -649,7 +650,7 @@ const removeItem = (index) => {
 
 const validations = object({
     debit_note_date: string().required('Debit note date is required.'),
-    party_id: string().nullable(),
+    party_id: string().required('Supplier is required'),
     bill_id: string().nullable(),
     remarks: string().nullable(),
     order_discount_type: string().nullable(),

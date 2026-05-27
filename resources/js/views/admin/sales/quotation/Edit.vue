@@ -54,6 +54,7 @@
                                             :filter-results="false"
                                             :disabled="!isDraft"
                                             @validate="validateField('party_id')"
+                                            required
                                             @search-change="debouncedPartySearch"
                                             :error="errors.party_id"
                                         />
@@ -443,7 +444,7 @@ watch(
 const validations = object({
     quotation_date: string().required('Quotation date is required.'),
     expiry_date: string().nullable(),
-    party_id: string().nullable(),
+    party_id: string().required('Customer is required.'),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array()

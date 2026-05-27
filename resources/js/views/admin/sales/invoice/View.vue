@@ -468,3 +468,50 @@ const voidInvoice = async () => {
     }
 }
 </style>
+
+<style>
+@media print {
+    .sidebar,
+    .header,
+    .page-header,
+    .footer,
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .page-wrapper,
+    .page-wrapper .content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    #invoice-print-area {
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+    }
+
+    #invoice-print-area .card-body {
+        padding: 0 !important;
+    }
+
+    #invoice-print-area .white-logo {
+        display: none !important;
+    }
+
+    #invoice-print-area .dark-logo {
+        display: block !important;
+    }
+
+    @page {
+        margin: 12mm;
+        size: A4 portrait;
+    }
+}
+</style>

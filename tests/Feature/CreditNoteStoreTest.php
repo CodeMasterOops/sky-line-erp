@@ -2,6 +2,7 @@
 
 use App\Models\Bill;
 use App\Models\User;
+use App\Models\Party;
 use App\Models\Company;
 use App\Models\Product;
 use App\Models\BillItem;
@@ -9,6 +10,7 @@ use App\Enums\StatusEnum;
 use App\Models\Warehouse;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
+use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
 use App\Enums\ChangeTypeEnum;
 use App\Models\ProductVariant;
@@ -78,6 +80,7 @@ function creditNoteStorePayload(object $test, array $overrides = []): array
 {
     return array_merge([
         'credit_note_date' => now()->toDateString(),
+        'party_id' => $test->customer->id,
         'status' => StatusEnum::DRAFT->value,
         'order_discount_type' => 'fixed',
         'order_discount_value' => 0,
@@ -145,6 +148,13 @@ beforeEach(function () {
         'sku' => 'SKU-CN-1',
         'sales_price' => 100,
         'is_default' => true,
+    ]);
+
+    $this->customer = Party::create([
+        'company_id' => $this->company->id,
+        'name' => 'Credit Note Customer',
+        'code' => 'CUST-CN',
+        'type' => PartyTypeEnum::CUSTOMER,
     ]);
 
     Sanctum::actingAs($this->user, ['*'], 'admin');

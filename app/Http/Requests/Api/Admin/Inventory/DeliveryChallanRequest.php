@@ -17,7 +17,7 @@ class DeliveryChallanRequest extends FormRequest
     {
         return [
             'sales_order_id' => ['nullable', TRule::exists('sales_orders', 'id')->withoutTrashed()],
-            'party_id' => ['nullable', TRule::exists('parties', 'id')->withoutTrashed()],
+            'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'challan_date' => ['required', 'date'],
             'delivery_address' => ['nullable', 'string'],

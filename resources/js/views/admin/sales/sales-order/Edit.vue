@@ -31,6 +31,7 @@
                                     label="Customer"
                                     :filter-results="false"
                                     @validate="validateField('party_id')"
+                                    required
                                     @search-change="debouncedPartySearch"
                                     :error="errors.party_id"
                                 />
@@ -372,7 +373,7 @@ const isDraft = computed(() => order.value.data.status === 'draft');
 
 const validations = object({
     order_date: string().required('Order date is required.'),
-    party_id: string().nullable(),
+    party_id: string().required('Customer is required.'),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array()

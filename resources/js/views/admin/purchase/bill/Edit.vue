@@ -47,6 +47,7 @@
                                         :filter-results="false"
                                         :disabled="!isDraft"
                                         @validate="validateField('party_id')"
+                                        required
                                         @search-change="debouncedSupplierSearch"
                                         :error="errors.party_id"
                                     />
@@ -481,7 +482,7 @@ const hasPhysicalBillItems = () => form.items.length > 0;
 const validations = object({
     bill_date: string().required('Bill date is required.'),
     due_date: string().nullable(),
-    party_id: string().nullable(),
+    party_id: string().required('Supplier is required'),
     warehouse_id: string()
         .nullable()
         .test('warehouse-required', 'Warehouse is required when purchasing stock products.', function () {

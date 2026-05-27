@@ -4,6 +4,7 @@ import {useAdminAuthStore} from '@/stores/admin/auth';
 import {useSuperAdminAuthStore} from '@/stores/super-admin/auth.js';
 import {useBranchStore} from '@/stores/admin/settings/branch.js';
 import {formattedRequest} from '@/helpers/apiRequest.js';
+import {sanitizeDownloadFilename} from '@/helpers/helper.js';
 
 function piniaStore(useStore) {
     const pinia = getActivePinia();
@@ -94,7 +95,7 @@ const downloadAdminFile = async (url, filename, params = {}) => {
     const blob = new Blob([response.data], {type: response.headers['content-type']});
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = filename;
+    link.download = sanitizeDownloadFilename(filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

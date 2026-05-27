@@ -3,6 +3,7 @@
 use App\Models\Tax;
 use App\Models\Bill;
 use App\Models\User;
+use App\Models\Party;
 use App\Models\Company;
 use App\Models\Product;
 use App\Models\BillItem;
@@ -11,6 +12,7 @@ use App\Models\Warehouse;
 use App\Enums\TaxTypeEnum;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
+use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
 use App\Enums\ChangeTypeEnum;
 use App\Enums\TdsCategoryEnum;
@@ -81,6 +83,7 @@ function invoiceStorePayload(object $test, array $overrides = []): array
 {
     return array_merge([
         'invoice_date' => now()->toDateString(),
+        'party_id' => $test->customer->id,
         'status' => StatusEnum::DRAFT->value,
         'order_discount_type' => 'fixed',
         'order_discount_value' => 0,
@@ -149,6 +152,13 @@ beforeEach(function () {
         'sku' => 'SKU-INV-1',
         'sales_price' => 100,
         'is_default' => true,
+    ]);
+
+    $this->customer = Party::create([
+        'company_id' => $this->company->id,
+        'name' => 'Invoice Customer',
+        'code' => 'CUST-INV',
+        'type' => PartyTypeEnum::CUSTOMER,
     ]);
 
     Sanctum::actingAs($this->user, ['*'], 'admin');
@@ -225,4 +235,15 @@ it('rejects tds taxes on invoice line items', function () {
 
     $response->assertUnprocessable();
     $response->assertJsonValidationErrors(['items.0.tax_id']);
+});
+
+it('requires a customer when storing an invoice', function () {
+    invoiceSeedVariantStock($this, $this->warehouse->id, 5);
+
+    $response = $this->postJson('/api/admin/invoice', invoiceStorePayload($this, [
+        'party_id' => null,
+    ]));
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['party_id']);
 });

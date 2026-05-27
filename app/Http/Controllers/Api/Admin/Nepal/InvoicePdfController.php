@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Admin\Nepal;
 
 use App\Models\Invoice;
+use App\Enums\TaxLineTypeEnum;
 use App\Annotation\Permissions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Storage;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Nepal\NepaliNumberService;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -25,6 +27,7 @@ class InvoicePdfController extends Controller
         $invoice->load([
             'party',
             'invoiceItems.productVariant.product',
+            'invoiceItems.productVariant.variantOptions',
             'invoiceItems.unit',
             'invoiceItems.tax',
             'fiscalYear',
@@ -34,61 +37,92 @@ class InvoicePdfController extends Controller
             ? \App\Models\Company::find($invoice->company_id)
             : null;
 
-        $invoiceDateBs = '';
-        try {
-            $bs = $this->nepaliDate->adToBs($invoice->invoice_date);
-            $invoiceDateBs = $this->nepaliDate->formatBsFull($bs['year'], $bs['month'], $bs['day']);
-        } catch (\Throwable) {
+        $logoPath = null;
+        if ($company?->logo && Storage::disk('public')->exists($company->logo)) {
+            $logoPath = Storage::disk('public')->path($company->logo);
         }
 
-        $subtotal = (float) $invoice->invoiceItems->sum(fn ($i) => $i->quantity * $i->rate);
+        $invoiceDateAd = $invoice->invoice_date instanceof \DateTimeInterface
+            ? $invoice->invoice_date->format('Y-m-d')
+            : (string) $invoice->invoice_date;
+
+        $dueDateAd = $invoice->due_date instanceof \DateTimeInterface
+            ? $invoice->due_date->format('Y-m-d')
+            : ($invoice->due_date ? (string) $invoice->due_date : null);
+
+        $invoiceDateBs = $invoice->invoice_date_bs ?? '';
+        if ($invoiceDateBs === '') {
+            try {
+                $bs = $this->nepaliDate->adToBs($invoice->invoice_date);
+                $invoiceDateBs = $this->nepaliDate->formatBsFull($bs['year'], $bs['month'], $bs['day']);
+            } catch (\Throwable) {
+            }
+        }
+
+        $subtotal = (float) $invoice->invoiceItems->sum(fn ($item) => $item->quantity * $item->rate);
         $totalDiscount = (float) $invoice->invoiceItems->sum('discount_amount');
 
         $vatTaxableAmount = (float) $invoice->invoiceItems
-            ->where('tax_line_type.value', 'taxable')
-            ->sum(fn ($i) => ($i->quantity * $i->rate) - $i->discount_amount);
+            ->filter(fn ($item) => $item->tax_line_type === TaxLineTypeEnum::TAXABLE)
+            ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
 
         $vatAmount = (float) $invoice->invoiceItems
-            ->where('tax_line_type.value', 'taxable')
+            ->filter(fn ($item) => $item->tax_line_type === TaxLineTypeEnum::TAXABLE)
             ->sum('tax_amount');
 
         $exemptAmount = (float) $invoice->invoiceItems
-            ->where('tax_line_type.value', 'exempt')
-            ->sum(fn ($i) => ($i->quantity * $i->rate) - $i->discount_amount);
+            ->filter(fn ($item) => $item->tax_line_type === TaxLineTypeEnum::EXEMPT)
+            ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
 
         $zeroRatedAmount = (float) $invoice->invoiceItems
-            ->where('tax_line_type.value', 'zero_rated')
-            ->sum(fn ($i) => ($i->quantity * $i->rate) - $i->discount_amount);
+            ->filter(fn ($item) => $item->tax_line_type === TaxLineTypeEnum::ZERO_RATED)
+            ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
 
         $grandTotal = round($vatTaxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount, 2);
-
         $amountInWords = $this->nepaliNumber->amountToWordsEn($grandTotal);
 
-        // Generate QR code SVG (inline)
-        $qrCode = '';
-        if ($invoice->ird_qr_data) {
-            $qrContent = $invoice->ird_qr_data;
-            $qrCode = QrCode::format('svg')->size(70)->generate($qrContent);
-        } elseif ($invoice->invoice_no) {
-            // Fallback QR: basic invoice info
+        $qrCode = $this->buildQrCode($invoice, $company, $invoiceDateBs, $grandTotal);
+
+        $pdf = Pdf::loadView('pdf.nepal-invoice', [
+            'invoice' => $invoice,
+            'company' => $company,
+            'logoPath' => $logoPath,
+            'invoiceDateAd' => $invoiceDateAd,
+            'dueDateAd' => $dueDateAd,
+            'invoiceDateBs' => $invoiceDateBs,
+            'subtotal' => $subtotal,
+            'totalDiscount' => $totalDiscount,
+            'vatTaxableAmount' => $vatTaxableAmount,
+            'vatAmount' => $vatAmount,
+            'exemptAmount' => $exemptAmount,
+            'zeroRatedAmount' => $zeroRatedAmount,
+            'grandTotal' => $grandTotal,
+            'amountInWords' => $amountInWords,
+            'qrCode' => $qrCode,
+        ])->setPaper('A4', 'portrait');
+
+        $filename = sanitizeDownloadFilename('INV-'.$invoice->invoice_no.'.pdf');
+
+        return $pdf->download($filename);
+    }
+
+    private function buildQrCode(Invoice $invoice, ?\App\Models\Company $company, string $invoiceDateBs, float $grandTotal): string
+    {
+        $qrContent = $invoice->ird_qr_data;
+
+        if (! $qrContent && $invoice->invoice_no) {
             $qrContent = implode('|', array_filter([
                 $company?->pan,
                 $invoice->invoice_no,
-                $invoice->invoice_date_bs ?? $invoiceDateBs,
-                number_format($grandTotal, 2),
+                $invoiceDateBs,
+                number_format($grandTotal, 2, '.', ''),
             ]));
-            $qrCode = QrCode::format('svg')->size(70)->generate($qrContent);
         }
 
-        $pdf = Pdf::loadView('pdf.nepal-invoice', compact(
-            'invoice', 'company', 'invoiceDateBs',
-            'subtotal', 'totalDiscount', 'vatTaxableAmount',
-            'vatAmount', 'exemptAmount', 'zeroRatedAmount',
-            'grandTotal', 'amountInWords', 'qrCode'
-        ))->setPaper('A4', 'portrait');
+        if (! $qrContent) {
+            return '';
+        }
 
-        $filename = 'INV-'.$invoice->invoice_no.'.pdf';
-
-        return $pdf->download($filename);
+        return QrCode::format('svg')->size(72)->margin(0)->generate($qrContent);
     }
 }

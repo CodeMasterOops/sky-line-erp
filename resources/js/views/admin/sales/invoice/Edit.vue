@@ -34,6 +34,7 @@
                         :options="parties.data"
                         label="Customer"
                         @validate="validateField('party_id')"
+                        required
                         :error="errors.party_id"
                     />
                     <PartyMetaPanel
@@ -460,7 +461,7 @@ watch(() => edit_invoice_id.value, async (id) => {
 const validations = object({
     invoice_date: string().required('Invoice date is required.'),
     due_date: string().nullable(),
-    party_id: string().nullable(),
+    party_id: string().required('Customer is required.'),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array()

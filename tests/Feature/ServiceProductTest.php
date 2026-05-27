@@ -2,6 +2,7 @@
 
 use App\Models\Unit;
 use App\Models\User;
+use App\Models\Party;
 use App\Models\Account;
 use App\Models\Company;
 use App\Models\Product;
@@ -9,6 +10,7 @@ use App\Enums\StatusEnum;
 use App\Models\Warehouse;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
+use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
 use App\Models\StockMovement;
 use App\Enums\ProductTypeEnum;
@@ -150,6 +152,20 @@ beforeEach(function () {
         'is_default' => true,
     ]);
 
+    $this->customer = Party::create([
+        'company_id' => $this->company->id,
+        'name' => 'Service Customer',
+        'code' => 'CUST-SVC',
+        'type' => PartyTypeEnum::CUSTOMER,
+    ]);
+
+    $this->supplier = Party::create([
+        'company_id' => $this->company->id,
+        'name' => 'Service Supplier',
+        'code' => 'SUP-SVC',
+        'type' => PartyTypeEnum::SUPPLIER,
+    ]);
+
     Sanctum::actingAs($this->user, ['*'], 'admin');
     TenantService::setCompanyId($this->company->id);
 });
@@ -225,6 +241,7 @@ it('approves an invoice with a service line and no warehouse without stock movem
 
     $response = $this->postJson('/api/admin/invoice', [
         'invoice_date' => now()->toDateString(),
+        'party_id' => $this->customer->id,
         'status' => StatusEnum::APPROVED->value,
         'order_discount_type' => 'fixed',
         'order_discount_value' => 0,
@@ -269,6 +286,7 @@ it('requires warehouse for physical product invoice lines', function () {
 
     $response = $this->postJson('/api/admin/invoice', [
         'invoice_date' => now()->toDateString(),
+        'party_id' => $this->customer->id,
         'status' => StatusEnum::DRAFT->value,
         'order_discount_type' => 'fixed',
         'order_discount_value' => 0,
@@ -313,6 +331,7 @@ it('rejects a purchase bill with a service line', function () {
 
     $response = $this->postJson('/api/admin/bill', [
         'bill_date' => now()->toDateString(),
+        'party_id' => $this->supplier->id,
         'status' => StatusEnum::APPROVED->value,
         'order_discount_type' => 'fixed',
         'order_discount_value' => 0,

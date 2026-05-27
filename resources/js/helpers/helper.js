@@ -86,3 +86,5 @@ export const formatAmount = (value) => {
         maximumFractionDigits: 2,
     }).format(amount);
 };
+
+export const sanitizeDownloadFilename = (filename) => String(filename ?? '').replace(/[\\/]/g, '-');

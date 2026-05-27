@@ -20,7 +20,7 @@ class DebitNoteRequest extends FormRequest
         return [
             'debit_note_no' => ['nullable', 'string', 'max:255'],
             'debit_note_date' => ['required', 'date'],
-            'party_id' => ['nullable', TRule::exists('parties', 'id')->withoutTrashed()],
+            'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'bill_id' => ['nullable', TRule::exists('bills', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
