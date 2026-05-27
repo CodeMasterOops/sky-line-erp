@@ -92,6 +92,8 @@ class StockLayerLedger
             'warehouse_id' => $warehouseId,
             'qty_remaining' => $quantity,
             'unit_cost' => $unitCost,
+            'base_unit_cost' => $unitCost,
+            'landed_unit_cost' => 0,
             'received_at' => $receivedAt,
             'source_bill_item_id' => $sourceBillItemId,
             'source_grn_item_id' => $sourceGrnItemId,
@@ -124,6 +126,8 @@ class StockLayerLedger
                 'warehouse_id' => $warehouseId,
                 'qty_remaining' => $quantity,
                 'unit_cost' => $unitCost,
+                'base_unit_cost' => $unitCost,
+                'landed_unit_cost' => 0,
                 'received_at' => $receivedAt,
                 'source_bill_item_id' => $sourceBillItemId,
                 'source_grn_item_id' => $sourceGrnItemId,
@@ -134,12 +138,18 @@ class StockLayerLedger
 
         $oldQty = (int) $layer->qty_remaining;
         $oldCost = (float) $layer->unit_cost;
+        $oldBaseCost = (float) ($layer->base_unit_cost ?: $layer->unit_cost);
+        $oldLandedCost = (float) $layer->landed_unit_cost;
         $newQty = $oldQty + $quantity;
         $newCost = ($oldQty * $oldCost + $quantity * $unitCost) / $newQty;
+        $newBaseCost = ($oldQty * $oldBaseCost + $quantity * $unitCost) / $newQty;
+        $newLandedCost = ($oldQty * $oldLandedCost) / $newQty;
 
         $layer->update([
             'qty_remaining' => $newQty,
             'unit_cost' => round($newCost, 4),
+            'base_unit_cost' => round($newBaseCost, 4),
+            'landed_unit_cost' => round($newLandedCost, 4),
             'received_at' => $receivedAt,
             'source_bill_item_id' => $sourceBillItemId ?? $layer->source_bill_item_id,
             'source_grn_item_id' => $sourceGrnItemId ?? $layer->source_grn_item_id,

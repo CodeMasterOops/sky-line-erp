@@ -18,6 +18,8 @@ class StockLayer extends Model
         'warehouse_id',
         'qty_remaining',
         'unit_cost',
+        'base_unit_cost',
+        'landed_unit_cost',
         'received_at',
         'lot_number',
         'source_bill_item_id',
@@ -27,6 +29,8 @@ class StockLayer extends Model
     protected $casts = [
         'qty_remaining' => 'integer',
         'unit_cost' => 'float',
+        'base_unit_cost' => 'float',
+        'landed_unit_cost' => 'float',
         'received_at' => 'datetime',
     ];
 

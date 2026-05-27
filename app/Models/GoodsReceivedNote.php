@@ -58,6 +58,11 @@ class GoodsReceivedNote extends Model
         return $this->hasMany(GrnItem::class);
     }
 
+    public function landedCosts(): HasMany
+    {
+        return $this->hasMany(LandedCost::class);
+    }
+
     public function purchaseOrder(): BelongsTo
     {
         return $this->belongsTo(PurchaseOrder::class);

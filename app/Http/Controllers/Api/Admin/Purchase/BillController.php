@@ -18,6 +18,25 @@ class BillController extends Controller
     ) {}
 
     /**
+     * @return array<int, string>
+     */
+    private function billRelations(): array
+    {
+        return [
+            'party',
+            'discount',
+            'billItems.discount',
+            'billItems.productVariant.product',
+            'billItems.unit',
+            'billItems.tax',
+            'billItems.warehouse',
+            'billItems.grnItem.goodsReceivedNote.landedCosts.account',
+            'landedCosts.account',
+            'landedCosts.allocations',
+        ];
+    }
+
+    /**
      * @Permissions("list_bill", group="bill", desc="List Bill")
      */
     public function index(Request $request)
@@ -37,15 +56,7 @@ class BillController extends Controller
     {
         $bill = $this->purchaseBillService->createBill($request->validated());
 
-        $bill->load([
-            'party',
-            'discount',
-            'billItems.discount',
-            'billItems.productVariant.product',
-            'billItems.unit',
-            'billItems.tax',
-            'billItems.warehouse',
-        ]);
+        $bill->load($this->billRelations());
 
         return response()->json([
             'data' => BillResource::make($bill),
@@ -58,15 +69,7 @@ class BillController extends Controller
      */
     public function show(Bill $bill)
     {
-        $bill->load([
-            'party',
-            'discount',
-            'billItems.discount',
-            'billItems.productVariant.product',
-            'billItems.unit',
-            'billItems.tax',
-            'billItems.warehouse',
-        ]);
+        $bill->load($this->billRelations());
 
         return BillResource::make($bill);
     }
@@ -90,15 +93,7 @@ class BillController extends Controller
 
         $this->purchaseBillService->updateBill($request->validated(), $bill);
 
-        $bill->load([
-            'party',
-            'discount',
-            'billItems.discount',
-            'billItems.productVariant.product',
-            'billItems.unit',
-            'billItems.tax',
-            'billItems.warehouse',
-        ]);
+        $bill->load($this->billRelations());
 
         return response()->json([
             'data' => BillResource::make($bill),
@@ -118,6 +113,7 @@ class BillController extends Controller
         }
 
         $bill->billItems()->delete();
+        $bill->landedCosts()->delete();
         $bill->delete();
 
         return response()->json([
@@ -145,15 +141,7 @@ class BillController extends Controller
 
         $this->purchaseBillService->voidBill($bill);
 
-        $bill->load([
-            'party',
-            'discount',
-            'billItems.discount',
-            'billItems.productVariant.product',
-            'billItems.unit',
-            'billItems.tax',
-            'billItems.warehouse',
-        ]);
+        $bill->load($this->billRelations());
 
         return response()->json([
             'data' => BillResource::make($bill),
@@ -181,15 +169,7 @@ class BillController extends Controller
 
         $this->purchaseBillService->approveBill($bill);
 
-        $bill->load([
-            'party',
-            'discount',
-            'billItems.discount',
-            'billItems.productVariant.product',
-            'billItems.unit',
-            'billItems.tax',
-            'billItems.warehouse',
-        ]);
+        $bill->load($this->billRelations());
 
         return response()->json([
             'data' => BillResource::make($bill),

@@ -48,4 +48,14 @@ class GrnItem extends Model
     {
         return $this->hasMany(BillItem::class);
     }
+
+    public function landedCostAllocations(): HasMany
+    {
+        return $this->hasMany(LandedCostAllocation::class);
+    }
+
+    public function stockLayers(): HasMany
+    {
+        return $this->hasMany(StockLayer::class, 'source_grn_item_id');
+    }
 }

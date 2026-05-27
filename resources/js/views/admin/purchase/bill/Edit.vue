@@ -84,6 +84,22 @@
                             </div>
                         </div>
 
+                        <div v-if="isDraft && form.party_id" class="col-12">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary"
+                                    :disabled="isSubmitting || !form.party_id"
+                                    @click="openGrnImport">
+                                    <i class="ti ti-package-import me-1"></i>
+                                    Load from GRN
+                                </button>
+                                <small v-if="hasGrnLines" class="text-muted">
+                                    GRN lines loaded — additional charges were applied on the GRN.
+                                </small>
+                            </div>
+                        </div>
+
                         <div v-if="isDraft" class="col-12">
                             <ProductVariantSearchInput
                                 label="Product name / code / SKU"
@@ -100,6 +116,7 @@
                                     <tr>
                                         <th class="po-col-sn">SN</th>
                                         <th class="po-col-product">Product</th>
+                                        <th class="po-col-grn">GRN</th>
                                         <th class="po-col-qty">Qty</th>
                                         <th
                                             class="po-col-rate"
@@ -112,7 +129,7 @@
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 7 : 6" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 8 : 7" class="text-center text-muted py-4">
                                             No line items.
                                         </td>
                                     </tr>
@@ -134,6 +151,7 @@
                                             :title="item.product_label">
                                             {{ item.product_label }}
                                         </td>
+                                        <td class="text-muted small">{{ item.grn_no || '—' }}</td>
                                         <td>
                                             <VInput
                                                 input-type="number"
@@ -196,6 +214,165 @@
                                         </td>
                                     </tr>
                                     </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div v-if="hasGrnLines && grnLandedCosts.length" class="col-12">
+                            <h6 class="mb-2">GRN Additional Charges <span class="text-muted small">(applied on GRN)</span></h6>
+                            <div class="table-responsive no-pagination">
+                                <table class="table datanew table-bordered mb-0">
+                                    <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Treatment</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-end">VAT</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-for="(cost, idx) in grnLandedCosts" :key="idx">
+                                        <td>{{ cost.cost_type }}</td>
+                                        <td>{{ cost.treatment }}</td>
+                                        <td class="text-end">{{ formatMoney(cost.amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(cost.vat_amount) }}</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div v-if="!hasGrnLines" class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-0">Additional Charges / Landed Costs</h6>
+                                    <small class="text-muted">
+                                        Capitalized charges increase inventory cost; expense charges post separately.
+                                    </small>
+                                </div>
+                                <button
+                                    v-if="isDraft"
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    @click="addLandedCost">
+                                    <i class="ti ti-plus me-1"></i> Add Charge
+                                </button>
+                            </div>
+                            <div class="table-responsive no-pagination">
+                                <table class="table datanew table-bordered mb-0 landed-costs-table">
+                                    <thead>
+                                    <tr>
+                                        <th class="landed-col-type">Type</th>
+                                        <th class="landed-col-treatment">Treatment</th>
+                                        <th class="landed-col-allocation">Allocation</th>
+                                        <th class="text-end landed-col-amount">Amount</th>
+                                        <th class="text-end landed-col-amount">VAT</th>
+                                        <th class="text-end landed-col-amount">Claimable VAT</th>
+                                        <th class="landed-col-account">Account</th>
+                                        <th class="landed-col-description">Description</th>
+                                        <th v-if="isDraft" class="text-center landed-col-action">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-if="!form.landed_costs.length">
+                                        <td :colspan="isDraft ? 9 : 8" class="text-center text-muted py-3">
+                                            No additional charges added.
+                                        </td>
+                                    </tr>
+                                    <tr v-for="(cost, index) in form.landed_costs" :key="index">
+                                        <td>
+                                            <VInput
+                                                v-if="isDraft"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.landed_costs[index].cost_type"
+                                                placeholder="Transport"
+                                            />
+                                            <span v-else>{{ cost.cost_type }}</span>
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-if="isDraft"
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].treatment"
+                                                :options="treatmentOptions"
+                                            />
+                                            <span v-else>{{ cost.treatment }}</span>
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-if="isDraft"
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].allocation_method"
+                                                :options="allocationOptions"
+                                                :disabled="cost.treatment === 'expense'"
+                                            />
+                                            <span v-else>{{ cost.allocation_method }}</span>
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                v-if="isDraft"
+                                                input-type="number"
+                                                input-class="form-control form-control-sm text-end"
+                                                v-model="form.landed_costs[index].amount"
+                                                :min-value="0"
+                                            />
+                                            <span v-else class="d-block text-end">{{ formatMoney(cost.amount) }}</span>
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                v-if="isDraft"
+                                                input-type="number"
+                                                input-class="form-control form-control-sm text-end"
+                                                v-model="form.landed_costs[index].vat_amount"
+                                                :min-value="0"
+                                            />
+                                            <span v-else class="d-block text-end">{{ formatMoney(cost.vat_amount) }}</span>
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                v-if="isDraft"
+                                                input-type="number"
+                                                input-class="form-control form-control-sm text-end"
+                                                v-model="form.landed_costs[index].vat_claimable_amount"
+                                                :min-value="0"
+                                            />
+                                            <span v-else class="d-block text-end">{{ formatMoney(cost.vat_claimable_amount) }}</span>
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-if="isDraft"
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].account_id"
+                                                :options="accounts.data"
+                                                placeholder="Account"
+                                            />
+                                            <span v-else>{{ accounts.data.find(a => String(a.id) === String(cost.account_id))?.name || '—' }}</span>
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                v-if="isDraft"
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.landed_costs[index].description"
+                                                placeholder="Optional note"
+                                            />
+                                            <span v-else>{{ cost.description || '—' }}</span>
+                                        </td>
+                                        <td v-if="isDraft" class="text-center">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" @click="removeLandedCost(index)">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                    <tfoot v-if="form.landed_costs.length" class="table-secondary fw-bold">
+                                    <tr>
+                                        <td colspan="3" class="text-end">Charge Total</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
+                                        <td :colspan="isDraft ? 3 : 2"></td>
+                                    </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         </div>
@@ -281,6 +458,42 @@
             </div>
         </template>
     </VModal>
+    <VModal
+        :show-modal="grnImportOpen"
+        @close-click="grnImportOpen = false"
+        size="lg"
+        title="Load billable GRN lines">
+        <template #modal-body>
+            <VLoader v-if="loadingBillableGrn" loader-type="progress"/>
+            <div v-else-if="!billableGrnItems.length" class="text-muted py-3">No billable GRN lines for this supplier.</div>
+            <div v-else class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>GRN</th>
+                        <th>Product</th>
+                        <th>Remaining</th>
+                        <th>Unit cost</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="row in billableGrnItems" :key="row.grn_item_id">
+                        <td><input v-model="selectedGrnItemIds" type="checkbox" class="form-check-input" :value="String(row.grn_item_id)"></td>
+                        <td>{{ row.grn_no }}</td>
+                        <td>{{ variantLabel(row.product_variant || {}) }}</td>
+                        <td>{{ row.remaining_qty }}</td>
+                        <td>{{ row.unit_cost }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-end mt-3">
+                <button type="button" class="btn btn-cancel me-2" @click="grnImportOpen = false">Cancel</button>
+                <button type="button" class="btn btn-primary" :disabled="!selectedGrnItemIds.length" @click="importSelectedGrnLines">Import selected</button>
+            </div>
+        </template>
+    </VModal>
     <CreateSupplier
         v-if="createSupplierOpened"
         v-model:createModalOpened="createSupplierOpened"
@@ -309,11 +522,15 @@ import ProductVariantSearchInput from '@/components/inventory/ProductVariantSear
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
+import {useAccountStore} from '@/stores/admin/accounting/account.js';
+import {useGrnStore} from '@/stores/admin/inventory/grn.js';
 
 const billStore = useBillStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 const warehouseStore = useWarehouseStore();
+const accountStore = useAccountStore();
+const grnStore = useGrnStore();
 
 const edit_bill_id = defineModel('bill_id');
 const createSupplierOpened = ref(false);
@@ -322,8 +539,36 @@ const {bill} = storeToRefs(billStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {accounts} = storeToRefs(accountStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
+
+const grnImportOpen = ref(false);
+const loadingBillableGrn = ref(false);
+const billableGrnItems = ref([]);
+const selectedGrnItemIds = ref([]);
+
+const treatmentOptions = [
+    {id: 'capitalized', name: 'Capitalize'},
+    {id: 'expense', name: 'Expense'},
+];
+
+const allocationOptions = [
+    {id: 'value', name: 'By Value'},
+    {id: 'quantity', name: 'By Quantity'},
+    {id: 'equal', name: 'Equal'},
+];
+
+const newLandedCostTemplate = () => ({
+    cost_type: '',
+    description: '',
+    treatment: 'capitalized',
+    allocation_method: 'value',
+    amount: 0,
+    vat_amount: 0,
+    vat_claimable_amount: 0,
+    account_id: '',
+});
 
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
@@ -345,6 +590,7 @@ const initialState = {
     order_discount_type: 'fixed',
     order_discount_value: '0',
     items: [],
+    landed_costs: [],
 };
 
 const form = reactive({...initialState});
@@ -418,6 +664,7 @@ watch(
         }
         taxStore.getTaxes();
         warehouseStore.getWarehouses();
+        accountStore.getAccounts();
         await billStore.getBill(id);
         const data = bill.value.data;
         await partyStore.getParties({
@@ -446,6 +693,9 @@ watch(
                     id: item.id,
                     product_variant_id: item.product_variant_id || '',
                     product_label: item.product_variant ? variantLabel(item.product_variant) : '',
+                    grn_item_id: item.grn_item_id || null,
+                    grn_no: item.grn_no || '',
+                    grn_landed_costs: item.grn_item_id ? (data.grn_landed_costs || []) : [],
                     list_sale_snapshot: item.product_variant?.sales_price ?? 0,
                     unit_id: item.unit_id || '',
                     quantity: String(item.quantity ?? '1'),
@@ -470,12 +720,104 @@ watch(
             data.order_discount_value != null && data.order_discount_value !== ''
                 ? String(data.order_discount_value)
                 : '0';
+        form.landed_costs = (data.landed_costs || []).map((cost) => ({
+            cost_type: cost.cost_type || '',
+            description: cost.description || '',
+            treatment: cost.treatment || 'capitalized',
+            allocation_method: cost.allocation_method || 'value',
+            amount: cost.amount ?? 0,
+            vat_amount: cost.vat_amount ?? 0,
+            vat_claimable_amount: cost.vat_claimable_amount ?? 0,
+            account_id: cost.account_id || '',
+        }));
         await nextTick();
         isHydratingBill.value = false;
     }
 );
 
 const isDraft = computed(() => bill.value.data.status === 'draft');
+const hasGrnLines = computed(() => form.items.some((item) => item.grn_item_id));
+const canEnterLandedCosts = computed(() => isDraft.value && !hasGrnLines.value);
+
+const grnLandedCosts = computed(() => {
+    const fromItems = [];
+    form.items.forEach((item) => {
+        (item.grn_landed_costs || []).forEach((cost) => fromItems.push(cost));
+    });
+    if (fromItems.length) {
+        const map = new Map();
+        fromItems.forEach((cost) => map.set(`${cost.id}-${cost.cost_type}`, cost));
+        return [...map.values()];
+    }
+    return bill.value.data?.grn_landed_costs || [];
+});
+
+const landedCostSummary = computed(() =>
+    form.landed_costs.reduce((summary, cost) => {
+        summary.amount += Number(cost.amount || 0);
+        summary.vat += Number(cost.vat_amount || 0);
+        summary.claimableVat += Number(cost.vat_claimable_amount || 0);
+        return summary;
+    }, {amount: 0, vat: 0, claimableVat: 0})
+);
+
+const addLandedCost = () => {
+    form.landed_costs.push(newLandedCostTemplate());
+};
+
+const removeLandedCost = (index) => {
+    form.landed_costs.splice(index, 1);
+};
+
+const openGrnImport = async () => {
+    if (!form.party_id) {
+        return;
+    }
+    grnImportOpen.value = true;
+    loadingBillableGrn.value = true;
+    selectedGrnItemIds.value = [];
+    try {
+        billableGrnItems.value = await grnStore.getBillableItems({
+            partyId: form.party_id,
+            warehouseId: form.warehouse_id || null,
+        });
+    } finally {
+        loadingBillableGrn.value = false;
+    }
+};
+
+const importSelectedGrnLines = () => {
+    const selected = billableGrnItems.value.filter((row) =>
+        selectedGrnItemIds.value.includes(String(row.grn_item_id))
+    );
+
+    selected.forEach((row) => {
+        if (form.items.some((item) => String(item.grn_item_id) === String(row.grn_item_id))) {
+            return;
+        }
+        if (row.warehouse_id && !form.warehouse_id) {
+            form.warehouse_id = String(row.warehouse_id);
+        }
+        form.items.push({
+            product_variant_id: row.product_variant_id,
+            product_label: variantLabel(row.product_variant || {}),
+            grn_item_id: row.grn_item_id,
+            grn_no: row.grn_no,
+            grn_landed_costs: row.grn_landed_costs || [],
+            list_sale_snapshot: row.product_variant?.sales_price || 0,
+            unit_id: row.unit_id ?? '',
+            quantity: String(row.remaining_qty),
+            rate: String(row.unit_cost),
+            tax_id: '',
+            tax_line_type: 'taxable',
+            line_discount_type: 'fixed',
+            line_discount_value: '0',
+        });
+    });
+
+    form.landed_costs = [];
+    grnImportOpen.value = false;
+};
 
 const hasPhysicalBillItems = () => form.items.length > 0;
 
@@ -537,6 +879,7 @@ const buildBillPayload = () => {
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
+            grn_item_id: item.grn_item_id || null,
             warehouse_id: wid || null,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
@@ -548,6 +891,20 @@ const buildBillPayload = () => {
             discount_amount: String(lineDiscountMoneyFromItem(item)),
             tax_line_type: item.tax_line_type || 'taxable',
         })),
+        landed_costs: canEnterLandedCosts.value
+            ? form.landed_costs
+                .filter((cost) => cost.cost_type || Number(cost.amount || 0) > 0 || Number(cost.vat_amount || 0) > 0)
+                .map((cost) => ({
+                    cost_type: cost.cost_type,
+                    description: cost.description || null,
+                    treatment: cost.treatment || 'capitalized',
+                    allocation_method: cost.allocation_method || 'value',
+                    amount: Number(cost.amount || 0),
+                    vat_amount: Number(cost.vat_amount || 0),
+                    vat_claimable_amount: Number(cost.vat_claimable_amount || 0),
+                    account_id: cost.account_id || null,
+                }))
+            : [],
     };
 };
 
@@ -650,5 +1007,36 @@ function resetForm() {
 
 .po-order-disc-input-group {
     max-width: 15rem;
+}
+
+.landed-costs-table :deep(.form-control),
+.landed-costs-table :deep(.form-select) {
+    min-width: 6rem;
+}
+
+.landed-col-type,
+.landed-col-treatment,
+.landed-col-allocation {
+    min-width: 8rem;
+}
+
+.landed-col-amount {
+    min-width: 7rem;
+}
+
+.landed-col-account {
+    min-width: 10rem;
+}
+
+.landed-col-description {
+    min-width: 12rem;
+}
+
+.landed-col-action {
+    width: 3rem;
+}
+
+.order-lines-table .po-col-grn {
+    min-width: 5rem;
 }
 </style>

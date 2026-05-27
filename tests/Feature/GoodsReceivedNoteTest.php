@@ -11,6 +11,8 @@ use App\Models\Product;
 use App\Enums\StatusEnum;
 use App\Models\Warehouse;
 use App\Models\FiscalYear;
+use App\Models\LandedCost;
+use App\Models\StockLayer;
 use App\Enums\UserTypeEnum;
 use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
@@ -208,6 +210,143 @@ it('posts grni journal when grn is approved and accounts are configured', functi
     expect($journal)->not->toBeNull();
 });
 
+it('capitalizes landed costs into grn stock layers and posts clearing journal', function () {
+    $settings = grnSeedAccounts($this->company);
+    $clearing = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Landed Cost Clearing',
+        'code' => 'LC-CLEAR-GRN',
+    ]);
+
+    $create = $this->postJson('/api/admin/grn', grnPayload($this, [
+        'landed_costs' => [
+            [
+                'cost_type' => 'transport',
+                'description' => 'Transport to warehouse',
+                'treatment' => 'capitalized',
+                'allocation_method' => 'quantity',
+                'amount' => 50,
+                'account_id' => $clearing->id,
+            ],
+        ],
+    ]));
+    $grnId = $create->json('data.id');
+
+    $this->postJson("/api/admin/grn/{$grnId}/approve")->assertSuccessful();
+
+    $landedCost = LandedCost::with('allocations')->first();
+    expect($landedCost)->not->toBeNull();
+    expect($landedCost->journal_id)->not->toBeNull();
+    expect($landedCost->allocations)->toHaveCount(1);
+    expect((float) $landedCost->allocations->first()->allocated_amount)->toBe(50.0);
+    expect((float) $landedCost->allocations->first()->allocated_unit_cost)->toBe(10.0);
+
+    $layer = StockLayer::withoutGlobalScopes()
+        ->where('source_grn_item_id', GrnItem::value('id'))
+        ->first();
+
+    expect($layer)->not->toBeNull();
+    expect((float) $layer->base_unit_cost)->toBe(50.0);
+    expect((float) $layer->landed_unit_cost)->toBe(10.0);
+    expect((float) $layer->unit_cost)->toBe(60.0);
+
+    $journal = Journal::withoutGlobalScopes()
+        ->with('journalItems')
+        ->find($landedCost->journal_id);
+
+    expect($journal)->not->toBeNull();
+    expect((float) $journal->journalItems->where('account_id', $settings->inventory_account_id)->sum('dr_amount'))->toBe(50.0);
+    expect((float) $journal->journalItems->where('account_id', $clearing->id)->sum('cr_amount'))->toBe(50.0);
+});
+
+it('keeps claimable vat out of capitalized landed cost', function () {
+    $settings = grnSeedAccounts($this->company);
+    $clearing = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'VAT Landed Clearing',
+        'code' => 'LC-VAT-GRN',
+    ]);
+
+    $create = $this->postJson('/api/admin/grn', grnPayload($this, [
+        'landed_costs' => [
+            [
+                'cost_type' => 'freight',
+                'treatment' => 'capitalized',
+                'allocation_method' => 'quantity',
+                'amount' => 100,
+                'vat_amount' => 13,
+                'vat_claimable_amount' => 13,
+                'account_id' => $clearing->id,
+            ],
+        ],
+    ]));
+    $grnId = $create->json('data.id');
+
+    $this->postJson("/api/admin/grn/{$grnId}/approve")->assertSuccessful();
+
+    $layer = StockLayer::withoutGlobalScopes()
+        ->where('source_grn_item_id', GrnItem::value('id'))
+        ->first();
+
+    expect((float) $layer->landed_unit_cost)->toBe(20.0);
+    expect((float) $layer->unit_cost)->toBe(70.0);
+
+    $landedCost = LandedCost::first();
+    $journal = Journal::withoutGlobalScopes()
+        ->with('journalItems')
+        ->find($landedCost->journal_id);
+
+    expect((float) $journal->journalItems->where('account_id', $settings->inventory_account_id)->sum('dr_amount'))->toBe(100.0);
+    expect((float) $journal->journalItems->where('account_id', $settings->vat_account_id)->sum('dr_amount'))->toBe(13.0);
+    expect((float) $journal->journalItems->where('account_id', $clearing->id)->sum('cr_amount'))->toBe(113.0);
+});
+
+it('posts expense landed costs without changing inventory value', function () {
+    $settings = grnSeedAccounts($this->company);
+    $expense = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Procurement Expense',
+        'code' => 'PROC-EXP-GRN',
+    ]);
+
+    $create = $this->postJson('/api/admin/grn', grnPayload($this, [
+        'landed_costs' => [
+            [
+                'cost_type' => 'admin',
+                'treatment' => 'expense',
+                'amount' => 30,
+                'vat_amount' => 3,
+                'vat_claimable_amount' => 3,
+                'account_id' => $expense->id,
+            ],
+        ],
+    ]));
+    $grnId = $create->json('data.id');
+
+    $this->postJson("/api/admin/grn/{$grnId}/approve")->assertSuccessful();
+
+    $layer = StockLayer::withoutGlobalScopes()
+        ->where('source_grn_item_id', GrnItem::value('id'))
+        ->first();
+
+    expect((float) $layer->landed_unit_cost)->toBe(0.0);
+    expect((float) $layer->unit_cost)->toBe(50.0);
+
+    $landedCost = LandedCost::with('allocations')->first();
+    expect($landedCost->allocations)->toHaveCount(0);
+
+    $journal = Journal::withoutGlobalScopes()
+        ->with('journalItems')
+        ->find($landedCost->journal_id);
+
+    expect((float) $journal->journalItems->where('account_id', $expense->id)->sum('dr_amount'))->toBe(30.0);
+    expect((float) $journal->journalItems->where('account_id', $settings->vat_account_id)->sum('dr_amount'))->toBe(3.0);
+    expect((float) $journal->journalItems->where('account_id', $settings->supplier_account_id)->sum('cr_amount'))->toBe(33.0);
+});
+
 it('bills grn without double stock receipt', function () {
     grnSeedAccounts($this->company);
 
@@ -351,4 +490,97 @@ it('keeps direct bill stock receipt when no grn link', function () {
         ->first();
 
     expect($stock->quantity)->toBe(3);
+});
+
+it('capitalizes landed costs on direct purchase bill approval', function () {
+    grnSeedAccounts($this->company);
+
+    $clearing = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Freight Clearing',
+        'code' => 'FR-BILL',
+    ]);
+
+    $this->postJson('/api/admin/bill', [
+        'bill_date' => now()->toDateString(),
+        'party_id' => $this->supplier->id,
+        'status' => StatusEnum::APPROVED->value,
+        'order_discount_type' => 'fixed',
+        'order_discount_value' => 0,
+        'items' => [
+            [
+                'product_variant_id' => $this->variant->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 4,
+                'rate' => 25,
+                'line_discount_type' => 'fixed',
+                'line_discount_value' => 0,
+                'tax_amount' => 0,
+                'discount_amount' => 0,
+                'tax_line_type' => 'taxable',
+            ],
+        ],
+        'landed_costs' => [
+            [
+                'cost_type' => 'transport',
+                'treatment' => 'capitalized',
+                'allocation_method' => 'quantity',
+                'amount' => 40,
+                'account_id' => $clearing->id,
+            ],
+        ],
+    ])->assertCreated();
+
+    $landedCost = LandedCost::query()->whereNotNull('bill_id')->with('allocations')->first();
+    expect($landedCost)->not->toBeNull();
+    expect((float) $landedCost->amount)->toBe(40.0);
+    expect($landedCost->journal_id)->not->toBeNull();
+
+    $layer = StockLayer::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->first();
+
+    expect((float) $layer->base_unit_cost)->toBe(25.0);
+    expect((float) $layer->landed_unit_cost)->toBe(10.0);
+    expect((float) $layer->unit_cost)->toBe(35.0);
+});
+
+it('rejects landed costs when billing grn lines on a bill', function () {
+    grnSeedAccounts($this->company);
+
+    $create = $this->postJson('/api/admin/grn', grnPayload($this));
+    $grnId = $create->json('data.id');
+    $grnItemId = $create->json('data.grn_items.0.id');
+    $this->postJson("/api/admin/grn/{$grnId}/approve")->assertSuccessful();
+
+    $this->postJson('/api/admin/bill', [
+        'bill_date' => now()->toDateString(),
+        'party_id' => $this->supplier->id,
+        'status' => StatusEnum::DRAFT->value,
+        'order_discount_type' => 'fixed',
+        'order_discount_value' => 0,
+        'items' => [
+            [
+                'product_variant_id' => $this->variant->id,
+                'grn_item_id' => $grnItemId,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 2,
+                'rate' => 50,
+                'line_discount_type' => 'fixed',
+                'line_discount_value' => 0,
+                'tax_amount' => 0,
+                'discount_amount' => 0,
+                'tax_line_type' => 'taxable',
+            ],
+        ],
+        'landed_costs' => [
+            [
+                'cost_type' => 'transport',
+                'treatment' => 'capitalized',
+                'amount' => 10,
+            ],
+        ],
+    ])->assertUnprocessable();
 });

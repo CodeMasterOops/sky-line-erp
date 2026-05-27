@@ -10,6 +10,7 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Inventory\LandedCostService;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
 use Illuminate\Validation\ValidationException;
 use App\Services\Inventory\InventoryCostCalculator;
@@ -24,6 +25,7 @@ readonly class PurchaseBillService
         private InventoryLayerReceiptService $inventoryReceipt,
         private InventoryDocumentReversalService $documentReversal,
         private GoodsReceivedNoteService $grnService,
+        private LandedCostService $landedCosts,
         private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
@@ -89,10 +91,13 @@ readonly class PurchaseBillService
                 );
             }
 
+            $this->syncBillLandedCosts($bill, $formData);
+
             if ($status === StatusEnum::APPROVED->value) {
                 $bill->refresh();
                 $this->createJournal($bill);
                 $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
+                $this->landedCosts->applyApprovedBillCosts($bill->fresh(['billItems.productVariant.product', 'landedCosts']), $user->company, $user->id);
                 $this->incrementGrnBilledQuantities($bill);
             }
 
@@ -144,6 +149,8 @@ readonly class PurchaseBillService
                     $item['discount_amount'],
                 );
             }
+
+            $this->syncBillLandedCosts($bill, $formData);
         });
     }
 
@@ -191,8 +198,34 @@ readonly class PurchaseBillService
 
             $this->createJournal($bill);
             $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
+            $this->landedCosts->applyApprovedBillCosts($bill->fresh(['billItems.productVariant.product', 'landedCosts']), $user->company, $user->id);
             $this->incrementGrnBilledQuantities($bill);
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $formData
+     */
+    private function syncBillLandedCosts(Bill $bill, array $formData): void
+    {
+        if (! array_key_exists('landed_costs', $formData)) {
+            return;
+        }
+
+        $hasGrnLines = collect($formData['items'] ?? [])
+            ->contains(fn (array $item): bool => ! empty($item['grn_item_id']));
+
+        if ($hasGrnLines && ! empty($formData['landed_costs'])) {
+            throw ValidationException::withMessages([
+                'landed_costs' => __('Additional charges cannot be added when billing GRN lines. They are already applied on the GRN.'),
+            ]);
+        }
+
+        if ($hasGrnLines) {
+            return;
+        }
+
+        $this->landedCosts->syncForBill($bill, $formData['landed_costs'] ?? []);
     }
 
     private function createJournal(Bill $bill): void

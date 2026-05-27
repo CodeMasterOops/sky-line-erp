@@ -108,4 +108,9 @@ class Bill extends Model
     {
         return $this->morphOne(Journal::class, 'reference');
     }
+
+    public function landedCosts(): HasMany
+    {
+        return $this->hasMany(LandedCost::class);
+    }
 }

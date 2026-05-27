@@ -44,6 +44,7 @@
                             <tr>
                                 <th>SN</th>
                                 <th>Product</th>
+                                <th>GRN</th>
                                 <th>Qty</th>
                                 <th>Rate</th>
                                 <th>Discount</th>
@@ -54,6 +55,7 @@
                             <tr v-for="(item, index) in (detailData.items || [])" :key="item.id || index">
                                 <td>{{ index + 1 }}</td>
                                 <td class="text-start">{{ productLabel(item) }}</td>
+                                <td class="text-muted small">{{ item.grn_no || '—' }}</td>
                                 <td>{{ item.quantity }}</td>
                                 <td>{{ formatN(item.rate) }}</td>
                                 <td>{{ formatN(item.discount_amount) }}</td>
@@ -61,6 +63,35 @@
                             </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div v-if="displayLandedCosts.length" class="mt-4">
+                        <h5 class="order-text mb-3">Additional Charges / Landed Costs</h5>
+                        <div class="table-responsive no-pagination">
+                            <table class="table datanew table-bordered mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Treatment</th>
+                                    <th>Allocation</th>
+                                    <th>Account</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">VAT</th>
+                                    <th class="text-end">Claimable VAT</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr v-for="(cost, idx) in displayLandedCosts" :key="cost.id || idx">
+                                    <td>{{ cost.cost_type }}</td>
+                                    <td>{{ cost.treatment }}</td>
+                                    <td>{{ cost.allocation_method || '—' }}</td>
+                                    <td>{{ cost.account?.name || '—' }}</td>
+                                    <td class="text-end">{{ formatN(cost.amount) }}</td>
+                                    <td class="text-end">{{ formatN(cost.vat_amount) }}</td>
+                                    <td class="text-end">{{ formatN(cost.vat_claimable_amount) }}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="row mt-3">
                         <div class="col-lg-6 ms-auto">
@@ -134,6 +165,14 @@ const detailTotalDiscount = computed(() => {
     const line = Number(d.discount_total ?? d.line_discount_total ?? 0) || 0;
     const orderAmt = Number(d.order_discount_amount ?? 0) || 0;
     return line + orderAmt;
+});
+
+const displayLandedCosts = computed(() => {
+    const d = detailData.value;
+    if ((d.landed_costs || []).length) {
+        return d.landed_costs;
+    }
+    return d.grn_landed_costs || [];
 });
 
 watch(

@@ -3,7 +3,10 @@
 namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Tenancy\TRule;
+use Illuminate\Validation\Rule;
+use App\Enums\LandedCostTreatmentEnum;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Enums\LandedCostAllocationMethodEnum;
 
 class GoodsReceivedNoteRequest extends FormRequest
 {
@@ -30,6 +33,15 @@ class GoodsReceivedNoteRequest extends FormRequest
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
             'items.*.batch_no' => ['nullable', 'string'],
             'items.*.expiry_date' => ['nullable', 'date'],
+            'landed_costs' => ['nullable', 'array'],
+            'landed_costs.*.cost_type' => ['required_with:landed_costs', 'string', 'max:100'],
+            'landed_costs.*.description' => ['nullable', 'string', 'max:255'],
+            'landed_costs.*.treatment' => ['nullable', Rule::in(array_column(LandedCostTreatmentEnum::cases(), 'value'))],
+            'landed_costs.*.allocation_method' => ['nullable', Rule::in(array_column(LandedCostAllocationMethodEnum::cases(), 'value'))],
+            'landed_costs.*.amount' => ['required_with:landed_costs', 'numeric', 'min:0'],
+            'landed_costs.*.vat_amount' => ['nullable', 'numeric', 'min:0'],
+            'landed_costs.*.vat_claimable_amount' => ['nullable', 'numeric', 'min:0'],
+            'landed_costs.*.account_id' => ['nullable', TRule::exists('accounts', 'id')->withoutTrashed()],
         ];
     }
 }

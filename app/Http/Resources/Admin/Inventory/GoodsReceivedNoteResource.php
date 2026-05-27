@@ -33,6 +33,7 @@ class GoodsReceivedNoteResource extends JsonResource
             'create_user' => $this->whenLoaded('createUser', fn () => UserResource::make($this->createUser)),
             'approve_user' => $this->whenLoaded('approveUser', fn () => UserResource::make($this->approveUser)),
             'grn_items' => GrnItemResource::collection($this->whenLoaded('grnItems')),
+            'landed_costs' => LandedCostResource::collection($this->whenLoaded('landedCosts')),
         ];
     }
 }

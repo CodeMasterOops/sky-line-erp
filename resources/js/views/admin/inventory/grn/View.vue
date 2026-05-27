@@ -133,6 +133,65 @@
                 </div>
             </div>
         </div>
+
+        <div class="card border-0 mt-4">
+            <div class="card-header bg-transparent border-0 d-flex align-items-center justify-content-between">
+                <h6 class="mb-0">Additional Charges / Landed Costs</h6>
+                <span class="text-muted small">{{ grn.landed_costs?.length || 0 }} charge(s)</span>
+            </div>
+            <div class="card-body p-0 border-0">
+                <div class="table-responsive">
+                    <table class="table datanew table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Type</th>
+                                <th>Treatment</th>
+                                <th>Allocation</th>
+                                <th>Account</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end">VAT</th>
+                                <th class="text-end">Claimable VAT</th>
+                                <th class="text-end">Allocated</th>
+                                <th>Journal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="!grn.landed_costs?.length">
+                                <td colspan="10" class="text-center text-muted py-3">
+                                    No additional charges recorded.
+                                </td>
+                            </tr>
+                            <tr v-for="(cost, idx) in grn.landed_costs" :key="cost.id">
+                                <td>{{ idx + 1 }}</td>
+                                <td>
+                                    <div class="fw-medium">{{ cost.cost_type }}</div>
+                                    <small v-if="cost.description" class="text-muted">{{ cost.description }}</small>
+                                </td>
+                                <td class="text-capitalize">{{ cost.treatment }}</td>
+                                <td>{{ cost.treatment === 'expense' ? '-' : allocationLabel(cost.allocation_method) }}</td>
+                                <td>{{ cost.account?.name || (cost.account_id ? `#${cost.account_id}` : '-') }}</td>
+                                <td class="text-end">{{ fmt(cost.amount) }}</td>
+                                <td class="text-end">{{ fmt(cost.vat_amount) }}</td>
+                                <td class="text-end">{{ fmt(cost.vat_claimable_amount) }}</td>
+                                <td class="text-end">{{ fmt(allocatedTotal(cost)) }}</td>
+                                <td>{{ cost.journal_id ? `JV #${cost.journal_id}` : '-' }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot v-if="grn.landed_costs?.length" class="table-secondary fw-bold">
+                            <tr>
+                                <td colspan="5" class="text-end">Charge Total</td>
+                                <td class="text-end">{{ fmt(landedCostSummary.amount) }}</td>
+                                <td class="text-end">{{ fmt(landedCostSummary.vat) }}</td>
+                                <td class="text-end">{{ fmt(landedCostSummary.claimableVat) }}</td>
+                                <td class="text-end">{{ fmt(landedCostSummary.allocated) }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <EditGrn v-model:grn-id="editGrnId" @saved="loadGrn" />
@@ -164,6 +223,26 @@ const grandTotal = computed(() =>
         0
     )
 );
+
+const landedCostSummary = computed(() =>
+    (grn.value?.landed_costs || []).reduce((summary, cost) => {
+        summary.amount += Number(cost.amount || 0);
+        summary.vat += Number(cost.vat_amount || 0);
+        summary.claimableVat += Number(cost.vat_claimable_amount || 0);
+        summary.allocated += allocatedTotal(cost);
+
+        return summary;
+    }, {amount: 0, vat: 0, claimableVat: 0, allocated: 0})
+);
+
+const allocatedTotal = (cost) =>
+    (cost.allocations || []).reduce((sum, allocation) => sum + Number(allocation.allocated_amount || 0), 0);
+
+const allocationLabel = (method) => ({
+    value: 'By Value',
+    quantity: 'By Quantity',
+    equal: 'Equal',
+}[method] || method || '-');
 
 const loadGrn = async () => {
     loading.value = true;

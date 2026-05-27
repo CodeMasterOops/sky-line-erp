@@ -6,6 +6,7 @@ use App\Models\Tax;
 use Illuminate\Http\Request;
 use App\Http\Resources\Admin\PartyResource;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Admin\Inventory\LandedCostResource;
 
 class BillResource extends JsonResource
 {
@@ -45,6 +46,11 @@ class BillResource extends JsonResource
             'tax_total' => $totals['tax_total'],
             'grand_total' => $totals['grand_total'],
             'items' => BillItemResource::collection($this->whenLoaded('billItems')),
+            'landed_costs' => LandedCostResource::collection($this->whenLoaded('landedCosts')),
+            'grn_landed_costs' => $this->when(
+                $this->relationLoaded('billItems'),
+                fn () => $this->resolveGrnLandedCosts(),
+            ),
         ];
     }
 
@@ -113,5 +119,30 @@ class BillResource extends JsonResource
             'tax_total' => round($taxTotal, 2),
             'grand_total' => round($grandTotal, 2),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function resolveGrnLandedCosts(): array
+    {
+        $costs = [];
+
+        foreach ($this->billItems ?? [] as $item) {
+            if (! $item->relationLoaded('grnItem') || ! $item->grnItem) {
+                continue;
+            }
+
+            $grn = $item->grnItem->goodsReceivedNote;
+            if (! $grn?->relationLoaded('landedCosts')) {
+                continue;
+            }
+
+            foreach ($grn->landedCosts as $landedCost) {
+                $costs[$landedCost->id] = LandedCostResource::make($landedCost)->resolve();
+            }
+        }
+
+        return array_values($costs);
     }
 }

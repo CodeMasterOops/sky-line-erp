@@ -159,6 +159,130 @@
                             </div>
                         </div>
 
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <h6 class="mb-0">Additional Charges / Landed Costs</h6>
+                                    <small class="text-muted">
+                                        Capitalized charges increase inventory cost; expense charges post separately.
+                                    </small>
+                                </div>
+                                <button
+                                    v-if="isDraft"
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary"
+                                    @click="addLandedCost">
+                                    <i class="ti ti-plus me-1"></i> Add Charge
+                                </button>
+                            </div>
+                            <div class="table-responsive no-pagination">
+                                <table class="table datanew table-bordered mb-0 landed-costs-table">
+                                    <thead>
+                                    <tr>
+                                        <th class="landed-col-type">Type</th>
+                                        <th class="landed-col-treatment">Treatment</th>
+                                        <th class="landed-col-allocation">Allocation</th>
+                                        <th class="text-end landed-col-amount">Amount</th>
+                                        <th class="text-end landed-col-amount">VAT</th>
+                                        <th class="text-end landed-col-amount">Claimable VAT</th>
+                                        <th class="landed-col-account">Account</th>
+                                        <th class="landed-col-description">Description</th>
+                                        <th v-if="isDraft" class="text-center landed-col-action">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-if="!form.landed_costs.length">
+                                        <td :colspan="isDraft ? 9 : 8" class="text-center text-muted py-3">
+                                            No additional charges added.
+                                        </td>
+                                    </tr>
+                                    <tr v-for="(cost, index) in form.landed_costs" :key="cost.id || index">
+                                        <td>
+                                            <VInput
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.landed_costs[index].cost_type"
+                                                :disabled="!isDraft"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].treatment"
+                                                :options="treatmentOptions"
+                                                :disabled="!isDraft"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].allocation_method"
+                                                :options="allocationOptions"
+                                                :disabled="!isDraft || cost.treatment === 'expense'"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm text-end"
+                                                v-model="form.landed_costs[index].amount"
+                                                :disabled="!isDraft"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm text-end"
+                                                v-model="form.landed_costs[index].vat_amount"
+                                                :disabled="!isDraft"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-type="number"
+                                                input-class="form-control form-control-sm text-end"
+                                                v-model="form.landed_costs[index].vat_claimable_amount"
+                                                :disabled="!isDraft"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].account_id"
+                                                :options="accounts.data"
+                                                placeholder="Account"
+                                                :disabled="!isDraft"
+                                            />
+                                        </td>
+                                        <td>
+                                            <VInput
+                                                input-class="form-control form-control-sm"
+                                                v-model="form.landed_costs[index].description"
+                                                :disabled="!isDraft"
+                                            />
+                                        </td>
+                                        <td v-if="isDraft" class="text-center">
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                @click="removeLandedCost(index)">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                    <tfoot v-if="form.landed_costs.length" class="table-secondary fw-bold">
+                                    <tr>
+                                        <td colspan="3" class="text-end">Charge Total</td>
+                                        <td class="text-end">{{ fmt(landedCostSummary.amount) }}</td>
+                                        <td class="text-end">{{ fmt(landedCostSummary.vat) }}</td>
+                                        <td class="text-end">{{ fmt(landedCostSummary.claimableVat) }}</td>
+                                        <td :colspan="isDraft ? 3 : 2"></td>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
                         <div v-if="isDraft" class="col-12 text-end">
                             <button class="btn btn-cancel add-cancel me-2" type="button" @click="closeEditModal">
                                 Cancel
@@ -184,6 +308,7 @@ import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import {toast} from '@/helpers/toast.js';
 import {usePartyStore} from '@/stores/admin/party.js';
+import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
@@ -193,8 +318,10 @@ const emit = defineEmits(['saved']);
 const grnId = defineModel('grnId');
 
 const partyStore = usePartyStore();
+const accountStore = useAccountStore();
 const warehouseStore = useWarehouseStore();
 const {parties} = storeToRefs(partyStore);
+const {accounts} = storeToRefs(accountStore);
 const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const loading = ref(false);
@@ -204,6 +331,17 @@ const grnStatus = ref('draft');
 
 const isDraft = computed(() => grnStatus.value === 'draft');
 
+const treatmentOptions = [
+    {id: 'capitalized', name: 'Capitalize'},
+    {id: 'expense', name: 'Expense'},
+];
+
+const allocationOptions = [
+    {id: 'value', name: 'By Value'},
+    {id: 'quantity', name: 'By Quantity'},
+    {id: 'equal', name: 'Equal'},
+];
+
 const form = reactive({
     party_id: '',
     warehouse_id: '',
@@ -212,6 +350,7 @@ const form = reactive({
     supplier_invoice_no: '',
     remarks: '',
     items: [],
+    landed_costs: [],
 });
 
 const resolvedParty = useResolvedParty(() => form.party_id, parties);
@@ -224,6 +363,16 @@ const debouncedSupplierSearch = debounce((query) => {
 
 const grandTotal = computed(() =>
     form.items.reduce((sum, item) => sum + lineTotal(item), 0)
+);
+
+const landedCostSummary = computed(() =>
+    form.landed_costs.reduce((summary, cost) => {
+        summary.amount += Number(cost.amount || 0);
+        summary.vat += Number(cost.vat_amount || 0);
+        summary.claimableVat += Number(cost.vat_claimable_amount || 0);
+
+        return summary;
+    }, {amount: 0, vat: 0, claimableVat: 0})
 );
 
 const lineTotal = (item) =>
@@ -265,6 +414,17 @@ const hydrateForm = (data) => {
         unit_cost: Number(item.unit_cost || 0),
         batch_no: item.batch_no || '',
     }));
+    form.landed_costs = (data.landed_costs || []).map((cost) => ({
+        id: cost.id,
+        cost_type: cost.cost_type || '',
+        description: cost.description || '',
+        treatment: cost.treatment || 'capitalized',
+        allocation_method: cost.allocation_method || 'value',
+        amount: Number(cost.amount || 0),
+        vat_amount: Number(cost.vat_amount || 0),
+        vat_claimable_amount: Number(cost.vat_claimable_amount || 0),
+        account_id: cost.account_id ? String(cost.account_id) : '',
+    }));
 };
 
 const loadGrn = async (id) => {
@@ -304,6 +464,23 @@ const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
+const addLandedCost = () => {
+    form.landed_costs.push({
+        cost_type: '',
+        description: '',
+        treatment: 'capitalized',
+        allocation_method: 'value',
+        amount: 0,
+        vat_amount: 0,
+        vat_claimable_amount: 0,
+        account_id: '',
+    });
+};
+
+const removeLandedCost = (index) => {
+    form.landed_costs.splice(index, 1);
+};
+
 const buildPayload = () => ({
     party_id: form.party_id,
     warehouse_id: form.warehouse_id,
@@ -319,6 +496,18 @@ const buildPayload = () => ({
         unit_cost: item.unit_cost,
         batch_no: item.batch_no || null,
     })),
+    landed_costs: form.landed_costs
+        .filter((cost) => cost.cost_type || Number(cost.amount || 0) > 0 || Number(cost.vat_amount || 0) > 0)
+        .map((cost) => ({
+            cost_type: cost.cost_type,
+            description: cost.description || null,
+            treatment: cost.treatment || 'capitalized',
+            allocation_method: cost.treatment === 'expense' ? 'value' : (cost.allocation_method || 'value'),
+            amount: Number(cost.amount || 0),
+            vat_amount: Number(cost.vat_amount || 0),
+            vat_claimable_amount: Number(cost.vat_claimable_amount || 0),
+            account_id: cost.account_id || null,
+        })),
 });
 
 const updateGrn = async () => {
@@ -349,6 +538,7 @@ watch(
         if (id) {
             await Promise.all([
                 partyStore.getParties({filter: {type: 'supplier', limit: 50, search: ''}}),
+                accountStore.getAccounts(),
                 warehouseStore.getWarehouses(),
                 loadGrn(id),
             ]);
@@ -402,5 +592,32 @@ watch(
     display: block;
     font-size: 0.75rem;
     color: var(--bs-secondary-color);
+}
+
+.landed-costs-table :deep(.form-control),
+.landed-costs-table :deep(.form-select) {
+    min-width: 6rem;
+}
+
+.landed-col-type,
+.landed-col-treatment,
+.landed-col-allocation {
+    min-width: 8rem;
+}
+
+.landed-col-amount {
+    min-width: 7rem;
+}
+
+.landed-col-account {
+    min-width: 10rem;
+}
+
+.landed-col-description {
+    min-width: 12rem;
+}
+
+.landed-col-action {
+    width: 3rem;
 }
 </style>

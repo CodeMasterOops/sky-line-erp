@@ -8,8 +8,10 @@ use App\Enums\TaxTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use App\Enums\LandedCostTreatmentEnum;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
+use App\Enums\LandedCostAllocationMethodEnum;
 
 class BillRequest extends FormRequest
 {
@@ -59,6 +61,15 @@ class BillRequest extends FormRequest
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
             'items.*.grn_item_id' => ['nullable', 'integer', Rule::exists('grn_items', 'id')],
+            'landed_costs' => ['nullable', 'array'],
+            'landed_costs.*.cost_type' => ['required_with:landed_costs', 'string', 'max:100'],
+            'landed_costs.*.description' => ['nullable', 'string', 'max:255'],
+            'landed_costs.*.treatment' => ['nullable', Rule::in(array_column(LandedCostTreatmentEnum::cases(), 'value'))],
+            'landed_costs.*.allocation_method' => ['nullable', Rule::in(array_column(LandedCostAllocationMethodEnum::cases(), 'value'))],
+            'landed_costs.*.amount' => ['required_with:landed_costs', 'numeric', 'min:0'],
+            'landed_costs.*.vat_amount' => ['nullable', 'numeric', 'min:0'],
+            'landed_costs.*.vat_claimable_amount' => ['nullable', 'numeric', 'min:0'],
+            'landed_costs.*.account_id' => ['nullable', TRule::exists('accounts', 'id')->withoutTrashed()],
         ];
     }
 
@@ -76,6 +87,13 @@ class BillRequest extends FormRequest
                 if ($t === 'percent' && isset($item['line_discount_value']) && (float) $item['line_discount_value'] > 100) {
                     $v->errors()->add("items.$i.line_discount_value", 'Line discount may not be greater than 100%.');
                 }
+            }
+
+            $hasGrnLines = collect($this->input('items', []))
+                ->contains(fn (array $item): bool => ! empty($item['grn_item_id']));
+
+            if ($hasGrnLines && ! empty($this->input('landed_costs'))) {
+                $v->errors()->add('landed_costs', 'Additional charges cannot be added when billing GRN lines.');
             }
         });
     }

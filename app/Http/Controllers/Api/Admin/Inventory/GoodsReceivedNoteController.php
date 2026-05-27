@@ -41,7 +41,7 @@ class GoodsReceivedNoteController extends Controller
     {
         $goodsReceivedNote->load([
             'party', 'warehouse', 'purchaseOrder', 'grnItems.productVariant.product', 'grnItems.unit',
-            'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
+            'fiscalYear', 'createUser', 'approveUser', 'stockMovements', 'landedCosts.account', 'landedCosts.allocations',
         ]);
 
         return GoodsReceivedNoteResource::make($goodsReceivedNote);
@@ -87,7 +87,7 @@ class GoodsReceivedNoteController extends Controller
 
         return response()->json([
             'data' => GoodsReceivedNoteResource::make(
-                $grn->load(['grnItems.productVariant.product', 'grnItems.unit', 'party', 'warehouse', 'purchaseOrder'])
+                $grn->load(['grnItems.productVariant.product', 'grnItems.unit', 'party', 'warehouse', 'purchaseOrder', 'landedCosts.account', 'landedCosts.allocations'])
             ),
             'message' => 'GRN created successfully.',
         ], 201);
@@ -104,7 +104,7 @@ class GoodsReceivedNoteController extends Controller
 
         return response()->json([
             'data' => GoodsReceivedNoteResource::make(
-                $grn->load(['grnItems.productVariant.product', 'grnItems.unit', 'party', 'warehouse', 'purchaseOrder'])
+                $grn->load(['grnItems.productVariant.product', 'grnItems.unit', 'party', 'warehouse', 'purchaseOrder', 'landedCosts.account', 'landedCosts.allocations'])
             ),
             'message' => 'GRN updated successfully.',
         ]);
@@ -127,7 +127,7 @@ class GoodsReceivedNoteController extends Controller
             'data' => GoodsReceivedNoteResource::make(
                 $grn->load([
                     'party', 'warehouse', 'purchaseOrder', 'grnItems.productVariant.product', 'grnItems.unit',
-                    'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
+                    'fiscalYear', 'createUser', 'approveUser', 'stockMovements', 'landedCosts.account', 'landedCosts.allocations',
                 ])
             ),
             'message' => 'GRN approved and stock received.',
@@ -145,6 +145,7 @@ class GoodsReceivedNoteController extends Controller
 
         DB::transaction(function () use ($goodsReceivedNote) {
             $goodsReceivedNote->grnItems()->delete();
+            $goodsReceivedNote->landedCosts()->delete();
             $goodsReceivedNote->delete();
         });
 

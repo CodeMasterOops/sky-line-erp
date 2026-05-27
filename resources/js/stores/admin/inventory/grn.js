@@ -85,5 +85,18 @@ export const useGrnStore = defineStore('grn', {
                     throw err;
                 });
         },
+        getBillableItems({partyId, warehouseId}) {
+            const params = new URLSearchParams({party_id: String(partyId)});
+            if (warehouseId) {
+                params.set('warehouse_id', String(warehouseId));
+            }
+
+            return apiAdmin(`${apiUrl}/billable-items?${params.toString()}`)
+                .then((res) => res.data.data ?? [])
+                .catch((err) => {
+                    showErrors(err);
+                    throw err;
+                });
+        },
     },
 });

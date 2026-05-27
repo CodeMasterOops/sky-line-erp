@@ -17,6 +17,7 @@ class GoodsReceivedNoteService
     public function __construct(
         private InventoryLayerReceiptService $inventoryReceipt,
         private InventoryDocumentReversalService $documentReversal,
+        private LandedCostService $landedCosts,
     ) {}
 
     /**
@@ -43,6 +44,7 @@ class GoodsReceivedNoteService
             ]);
 
             $this->syncGrnItems($grn, $validated['items'] ?? []);
+            $this->landedCosts->sync($grn, $validated['landed_costs'] ?? []);
 
             return $grn;
         });
@@ -71,7 +73,9 @@ class GoodsReceivedNoteService
             ]);
 
             $grn->grnItems()->delete();
+            $grn->landedCosts()->delete();
             $this->syncGrnItems($grn, $validated['items'] ?? []);
+            $this->landedCosts->sync($grn, $validated['landed_costs'] ?? []);
 
             return $grn->fresh();
         });
@@ -95,6 +99,7 @@ class GoodsReceivedNoteService
             ]);
 
             $this->applyInventoryReceipts($grn->fresh(), $company, $userId);
+            $this->landedCosts->applyApprovedGrnCosts($grn->fresh(['grnItems.productVariant.product', 'landedCosts']), $company, $userId);
 
             return $grn->fresh();
         });
@@ -110,6 +115,7 @@ class GoodsReceivedNoteService
                 'productVariant.product',
                 'unit',
                 'goodsReceivedNote:id,grn_no,party_id,warehouse_id,received_date,status,billing_status',
+                'goodsReceivedNote.landedCosts.account',
             ])
             ->whereHas('goodsReceivedNote', function ($q) use ($partyId, $warehouseId) {
                 $q->where('party_id', $partyId)
@@ -154,6 +160,16 @@ class GoodsReceivedNoteService
                 'remaining_qty' => $remainingQty,
                 'unit_cost' => (float) $grnItem->unit_cost,
                 'purchase_order_item_id' => $grnItem->purchase_order_item_id,
+                'grn_landed_costs' => $grnItem->goodsReceivedNote?->landedCosts
+                    ?->map(fn ($cost): array => [
+                        'id' => $cost->id,
+                        'cost_type' => $cost->cost_type,
+                        'treatment' => $cost->treatment?->value ?? (string) $cost->treatment,
+                        'amount' => (float) $cost->amount,
+                        'vat_amount' => (float) $cost->vat_amount,
+                    ])
+                    ->values()
+                    ->all() ?? [],
             ];
         }
 
