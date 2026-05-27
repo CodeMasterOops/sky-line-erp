@@ -5,16 +5,26 @@ namespace App\Services\Sales;
 use App\Enums\StatusEnum;
 use App\Models\Quotation;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 
 readonly class QuotationService
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     public function createQuotation(array $formData): Quotation
     {
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $quotationNo = $formData['quotation_no'] ?? $this->generateQuotationNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $quotationNo = $formData['quotation_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            Quotation::class,
+            'QT-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $quotationNo) {
             $quotation = Quotation::create([
@@ -116,16 +126,5 @@ readonly class QuotationService
             'approved_at' => now(),
             'status' => StatusEnum::APPROVED->value,
         ]);
-    }
-
-    private function generateQuotationNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Quotation::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'QT-'.($count + 1).$suffix;
     }
 }

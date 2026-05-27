@@ -17,7 +17,7 @@ class UnitRequest extends FormRequest
         return match ($this->method()) {
             'POST' => [
                 'name' => ['required', 'string', 'max:255', TRule::unique('units')->withoutTrashed()],
-                'code' => ['required', 'string', 'max:255', TRule::unique('units')->withoutTrashed()],
+                'code' => ['nullable', 'string', 'max:255', TRule::unique('units')->withoutTrashed()],
             ],
             'PUT' => [
                 'name' => ['required', 'string', 'max:255', TRule::unique('units')->withoutTrashed()->ignore($this->unit)],

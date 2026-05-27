@@ -39,7 +39,7 @@ class EmployeeRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'employee_code' => ['required', 'string', 'max:50', TRule::unique('employees')->withoutTrashed()],
+                'employee_code' => ['nullable', 'string', 'max:50', TRule::unique('employees')->withoutTrashed()],
             ]),
             'PUT' => array_merge($validations, [
                 'employee_code' => ['required', 'string', 'max:50', TRule::unique('employees')->withoutTrashed()->ignore($this->employee)],

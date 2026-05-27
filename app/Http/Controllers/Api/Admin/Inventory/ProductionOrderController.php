@@ -10,10 +10,15 @@ use App\Annotation\Permissions;
 use App\Models\ProductionOrder;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\DocumentNumberGenerator;
 use App\Models\ProductionOrderConsumption;
 
 class ProductionOrderController extends Controller
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     /**
      * @Permissions("list_production_order", group="production_order", desc="List Production Orders")
      */
@@ -47,10 +52,7 @@ class ProductionOrderController extends Controller
             $fiscalYear = $company->fiscalYear;
             $bom = Bom::with('items')->findOrFail($data['bom_id']);
 
-            $orderNo = 'PO-'.date('ymd').'-'.str_pad(
-                ProductionOrder::where('company_id', $company->id)->count() + 1,
-                4, '0', STR_PAD_LEFT
-            );
+            $orderNo = $this->documentNumberGenerator->productionOrder($company->id);
 
             $order = ProductionOrder::create([
                 ...$data,

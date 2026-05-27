@@ -9,6 +9,7 @@ use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Http\Resources\Admin\Purchase\DebitNoteResource;
@@ -20,6 +21,7 @@ class DebitNoteController extends Controller
     public function __construct(
         private InventoryLayerIssueService $inventoryIssue,
         private InventoryDocumentReversalService $documentReversal,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     /**
@@ -45,7 +47,12 @@ class DebitNoteController extends Controller
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $debitNoteNo = $formData['debit_note_no'] ?? $this->generateDebitNoteNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $debitNoteNo = $formData['debit_note_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            DebitNote::class,
+            'DN-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         try {
             $debitNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $debitNoteNo) {
@@ -359,16 +366,5 @@ class DebitNoteController extends Controller
                 $debitNote->remarks,
             );
         }
-    }
-
-    private function generateDebitNoteNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = DebitNote::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'DN-'.($count + 1).$suffix;
     }
 }

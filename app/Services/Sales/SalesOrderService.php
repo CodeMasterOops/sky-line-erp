@@ -5,16 +5,26 @@ namespace App\Services\Sales;
 use App\Enums\StatusEnum;
 use App\Models\SalesOrder;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 
 readonly class SalesOrderService
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     public function createSalesOrder(array $formData): SalesOrder
     {
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $orderNo = $formData['order_no'] ?? $this->generateOrderNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $orderNo = $formData['order_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            SalesOrder::class,
+            'SO-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $orderNo) {
             $order = SalesOrder::create([
@@ -116,16 +126,5 @@ readonly class SalesOrderService
             'approved_at' => now(),
             'status' => StatusEnum::APPROVED->value,
         ]);
-    }
-
-    private function generateOrderNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = SalesOrder::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'SO-'.($count + 1).$suffix;
     }
 }

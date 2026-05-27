@@ -14,15 +14,8 @@ class BranchRequest extends FormRequest
 
     public function rules(): array
     {
-        $codeRule = TRule::unique('branches')->withoutTrashed();
-
-        if ($this->method() !== 'POST') {
-            $codeRule->ignore($this->branch);
-        }
-
-        return [
+        $shared = [
             'name' => ['required', 'string', 'max:150'],
-            'code' => ['required', 'string', 'max:20', $codeRule],
             'address' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:100'],
@@ -30,5 +23,15 @@ class BranchRequest extends FormRequest
             'is_head_office' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
         ];
+
+        return match ($this->method()) {
+            'POST' => array_merge($shared, [
+                'code' => ['nullable', 'string', 'max:20', TRule::unique('branches')->withoutTrashed()],
+            ]),
+            'PUT' => array_merge($shared, [
+                'code' => ['required', 'string', 'max:20', TRule::unique('branches')->withoutTrashed()->ignore($this->branch)],
+            ]),
+            default => $shared,
+        };
     }
 }

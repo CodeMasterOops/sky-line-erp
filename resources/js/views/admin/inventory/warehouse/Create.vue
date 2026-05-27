@@ -15,13 +15,31 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="code"
-                        v-model="form.code"
-                        label="Code"
-                        @validate="validateField('code')"
-                        :error="errors.code"
-                    />
+                    <label class="form-label" for="code">
+                        Code
+                        <VRequiredMark />
+                    </label>
+                    <div class="input-group">
+                        <input
+                            id="code"
+                            v-model="form.code"
+                            type="text"
+                            class="form-control"
+                            :class="{ 'is-invalid': errors.code }"
+                            autocomplete="off"
+                            @blur="validateField('code')"
+                        />
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="codeLoading"
+                            @click="fetchNextCode">
+                            Generate
+                        </button>
+                    </div>
+                    <div v-if="errors.code" class="invalid-feedback d-block">
+                        {{ errors.code }}
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <VMultiselect
@@ -69,6 +87,7 @@ import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string, mixed} from 'yup';
 import {useYup} from '@/helpers/yup';
+import {useNextCode} from '@/helpers/useNextCode.js';
 import {storeToRefs} from 'pinia';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {buildWarehouseOptionsTree} from '@/helpers/warehouseTree.js';
@@ -78,9 +97,10 @@ const {warehouses} = storeToRefs(warehouseStore);
 
 const createModalOpened = defineModel('createModalOpened');
 
-watch(createModalOpened, (open) => {
+watch(createModalOpened, async (open) => {
     if (open) {
         warehouseStore.getWarehouses(true);
+        await fetchNextCode();
     }
 });
 
@@ -106,6 +126,7 @@ const validations = object({
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
+const {loading: codeLoading, fetchNextCode} = useNextCode(form, 'code', 'warehouse/next-code', validateField);
 
 const storeWarehouse = async () => {
     let validated = await validateForm(validations, form);

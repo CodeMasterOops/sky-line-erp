@@ -5,17 +5,21 @@ namespace App\Http\Controllers\Api\Admin\Inventory;
 use App\Models\Product;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
+use App\Enums\EntityCodeType;
 use App\Enums\ProductTypeEnum;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Resources\Admin\Inventory\ProductResource;
 use App\Http\Requests\Api\Admin\Inventory\ProductRequest;
 use App\Http\Resources\Admin\Inventory\ProductVariantResource;
 
 class ProductController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_product_variant", group="product", desc="List Product Variant")
      */
@@ -105,9 +109,19 @@ class ProductController extends Controller
     /**
      * @Permissions("create_product", group="product", desc="Create Product")
      */
+    public function nextCode()
+    {
+        return $this->nextCodeResponse(EntityCodeType::Product);
+    }
+
+    /**
+     * @Permissions("create_product", group="product", desc="Create Product")
+     */
     public function store(ProductRequest $request)
     {
-        $formData = $this->sanitizeProductData($request->validated());
+        $validated = $request->validated();
+        $this->assignEntityCode($validated, EntityCodeType::Product);
+        $formData = $this->sanitizeProductData($validated);
 
         $product = DB::transaction(function () use ($request, $formData) {
             $hasVariants = $request->boolean('has_variants');

@@ -20,12 +20,15 @@ use App\Http\Controllers\Api\Admin\Inventory\InventoryStockReconciliationControl
 use App\Http\Controllers\Api\Admin\Inventory\InventoryStockReconciliationAlignController;
 
 // unit
+Route::get('unit/next-code', [UnitController::class, 'nextCode'])->name('unit.next-code');
 Route::apiResource('unit', UnitController::class);
 
 // brand
+Route::get('brand/next-code', [BrandController::class, 'nextCode'])->name('brand.next-code');
 Route::apiResource('brand', BrandController::class);
 
 // warehouse
+Route::get('warehouse/next-code', [WarehouseController::class, 'nextCode'])->name('warehouse.next-code');
 Route::apiResource('warehouse', WarehouseController::class);
 
 // product category
@@ -34,6 +37,7 @@ Route::apiResource('product-category', ProductCategoryController::class);
 // product
 Route::get('product/variant/all', [ProductController::class, 'productVariants'])->name('product.variant.all');
 Route::get('product/variant/search', [ProductController::class, 'searchProductVariants'])->name('product.variant.search');
+Route::get('product/next-code', [ProductController::class, 'nextCode'])->name('product.next-code');
 Route::apiResource('product', ProductController::class);
 
 // barcode generation & label printing

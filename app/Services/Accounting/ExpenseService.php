@@ -8,9 +8,14 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 
 readonly class ExpenseService
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     public function createExpense(array $formData): Expense
     {
         $user = auth('admin')->user();
@@ -19,7 +24,12 @@ readonly class ExpenseService
         $fiscalYearId = $setting->fiscal_year_id;
         $expenseNo = ! empty($formData['expense_no'])
             ? $formData['expense_no']
-            : $this->generateExpenseNo($fiscalYearId, $setting->fiscalYear?->year_code);
+            : $this->documentNumberGenerator->fiscalYear(
+                Expense::class,
+                'EX-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
 
         return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $expenseNo) {
             $expense = Expense::create([
@@ -165,16 +175,5 @@ readonly class ExpenseService
                 'discount_amount' => $item['discount_amount'] ?? 0,
             ];
         })->all();
-    }
-
-    private function generateExpenseNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Expense::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'EX-'.($count + 1).$suffix;
     }
 }

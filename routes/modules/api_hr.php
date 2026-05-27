@@ -16,8 +16,10 @@ use App\Http\Controllers\Api\Admin\HR\LeaveApplicationController;
 
 // HR — Phase 1: Employee Foundation
 Route::prefix('hr')->as('hr.')->group(function () {
+    Route::get('department/next-code', [DepartmentController::class, 'nextCode'])->name('department.next-code');
     Route::apiResource('department', DepartmentController::class);
     Route::apiResource('designation', DesignationController::class);
+    Route::get('employee/next-code', [EmployeeController::class, 'nextCode'])->name('employee.next-code');
     Route::apiResource('employee', EmployeeController::class);
 
     // Phase 2: Attendance & Leave

@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Api\Admin\HR;
 
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\HR\EmployeeResource;
 use App\Http\Requests\Api\Admin\HR\EmployeeRequest;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 
 class EmployeeController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_employee", group="employee", desc="List Employee")
      */
@@ -26,9 +30,19 @@ class EmployeeController extends Controller
     /**
      * @Permissions("create_employee", group="employee", desc="Create Employee")
      */
+    public function nextCode()
+    {
+        return $this->nextCodeResponse(EntityCodeType::Employee);
+    }
+
+    /**
+     * @Permissions("create_employee", group="employee", desc="Create Employee")
+     */
     public function store(EmployeeRequest $request)
     {
-        $employee = Employee::create($request->validated());
+        $data = $request->validated();
+        $this->assignEntityCode($data, EntityCodeType::Employee);
+        $employee = Employee::create($data);
 
         return response()->json([
             'data' => EmployeeResource::make($employee->load(['department', 'designation'])),

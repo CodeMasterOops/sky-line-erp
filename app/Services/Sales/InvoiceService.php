@@ -11,6 +11,7 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Services\Inventory\InventoryDocumentReversalService;
@@ -21,6 +22,7 @@ readonly class InvoiceService
         private InventoryLayerIssueService $inventoryIssue,
         private InventoryDocumentReversalService $documentReversal,
         private NepaliDateService $nepaliDate,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     public function createInvoice(array $formData): Invoice
@@ -30,7 +32,12 @@ readonly class InvoiceService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $invoiceNo = $formData['invoice_no'] ?? $this->generateInvoiceNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $invoiceNo = $formData['invoice_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            Invoice::class,
+            'INV-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         $invoice = DB::transaction(function () use ($formData, $reference, $user, $status, $fiscalYearId, $invoiceNo) {
             $invoiceDateBs = null;
@@ -276,17 +283,6 @@ readonly class InvoiceService
                 'remarks' => 'By-'.($invoice->party->name ?? ''),
             ]);
         }
-    }
-
-    private function generateInvoiceNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Invoice::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'INV-'.($count + 1).$suffix;
     }
 
     /**

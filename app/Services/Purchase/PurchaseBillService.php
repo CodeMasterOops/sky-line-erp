@@ -9,6 +9,7 @@ use App\Enums\ChangeTypeEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
 use Illuminate\Validation\ValidationException;
 use App\Services\Inventory\InventoryCostCalculator;
@@ -23,6 +24,7 @@ readonly class PurchaseBillService
         private InventoryLayerReceiptService $inventoryReceipt,
         private InventoryDocumentReversalService $documentReversal,
         private GoodsReceivedNoteService $grnService,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     public function createBill(array $formData)
@@ -31,7 +33,12 @@ readonly class PurchaseBillService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $billNo = $formData['bill_no'] ?? $this->generateBillNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $billNo = $formData['bill_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            Bill::class,
+            'BILL-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         $formData = $this->applyResolvedDiscounts($formData);
 
@@ -304,17 +311,6 @@ readonly class PurchaseBillService
             $this->decrementGrnBilledQuantities($bill);
             $bill->update(['voided_at' => now()]);
         });
-    }
-
-    private function generateBillNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Bill::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'BILL-'.($count + 1).$suffix;
     }
 
     private function applyInventoryReceiptsForApprovedBill(Bill $bill, \App\Models\Company $company, \App\Models\User $user): void

@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Unit;
+use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Inventory\UnitResource;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Requests\Api\Admin\Inventory\UnitRequest;
 
 class UnitController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_unit", group="unit", desc="List Unit")
      */
@@ -23,9 +27,19 @@ class UnitController extends Controller
     /**
      * @Permissions("create_unit", group="unit", desc="Create Unit")
      */
+    public function nextCode()
+    {
+        return $this->nextCodeResponse(EntityCodeType::Unit);
+    }
+
+    /**
+     * @Permissions("create_unit", group="unit", desc="Create Unit")
+     */
     public function store(UnitRequest $request)
     {
-        $unit = Unit::create($request->validated());
+        $data = $request->validated();
+        $this->assignEntityCode($data, EntityCodeType::Unit);
+        $unit = Unit::create($data);
 
         return response()->json([
             'data' => UnitResource::make($unit),

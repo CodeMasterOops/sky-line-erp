@@ -9,11 +9,16 @@ use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\DocumentNumberGenerator;
 use App\Http\Resources\Admin\Accounting\ReceiptVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\ReceiptVoucherRequest;
 
 class ReceiptVoucherController extends Controller
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     /**
      * @Permissions("list_receipt_voucher", group="receipt_voucher", desc="List Receipt Voucher")
      */
@@ -40,11 +45,12 @@ class ReceiptVoucherController extends Controller
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
 
-        $voucherCount = Journal::where('type', JournalTypeEnum::RECEIPT_VOUCHER->value)
-            ->where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-        $voucherNo = 'RV-'.($voucherCount + 1).'/'.($setting->fiscalYear->year_code ?? '');
+        $voucherNo = $this->documentNumberGenerator->journalVoucher(
+            JournalTypeEnum::RECEIPT_VOUCHER,
+            'RV-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $voucherNo) {
             $journal = Journal::create([

@@ -3,17 +3,21 @@
 namespace App\Http\Controllers\Api\Admin\Settings;
 
 use App\Models\Branch;
-use App\Models\AccountGroup;
-use App\Models\JournalItem;
 use App\Enums\StatusEnum;
+use App\Models\JournalItem;
+use App\Models\AccountGroup;
 use Illuminate\Http\Request;
+use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Settings\BranchResource;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Requests\Api\Admin\Settings\BranchRequest;
 
 class BranchController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_branch", group="branch", desc="List Branches")
      */
@@ -27,9 +31,19 @@ class BranchController extends Controller
     /**
      * @Permissions("create_branch", group="branch", desc="Create Branch")
      */
+    public function nextCode()
+    {
+        return $this->nextCodeResponse(EntityCodeType::Branch);
+    }
+
+    /**
+     * @Permissions("create_branch", group="branch", desc="Create Branch")
+     */
     public function store(BranchRequest $request)
     {
-        $branch = Branch::create($request->validated());
+        $data = $request->validated();
+        $this->assignEntityCode($data, EntityCodeType::Branch);
+        $branch = Branch::create($data);
 
         return response()->json([
             'data' => BranchResource::make($branch),

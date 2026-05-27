@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Brand;
+use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Inventory\BrandResource;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Requests\Api\Admin\Inventory\BrandRequest;
 
 class BrandController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_brand", group="brand", desc="List Brand")
      */
@@ -23,9 +27,19 @@ class BrandController extends Controller
     /**
      * @Permissions("create_brand", group="brand", desc="Create Brand")
      */
+    public function nextCode()
+    {
+        return $this->nextCodeResponse(EntityCodeType::Brand);
+    }
+
+    /**
+     * @Permissions("create_brand", group="brand", desc="Create Brand")
+     */
     public function store(BrandRequest $request)
     {
-        $brand = Brand::create($request->validated());
+        $data = $request->validated();
+        $this->assignEntityCode($data, EntityCodeType::Brand);
+        $brand = Brand::create($data);
 
         return response()->json([
             'data' => BrandResource::make($brand),

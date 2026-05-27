@@ -15,13 +15,31 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VInput
-                        id="code"
-                        v-model="form.code"
-                        label="Code"
-                        @validate="validateField('code')"
-                        :error="errors.code"
-                    />
+                    <label class="form-label" for="code">
+                        Code
+                        <VRequiredMark />
+                    </label>
+                    <div class="input-group">
+                        <input
+                            id="code"
+                            v-model="form.code"
+                            type="text"
+                            class="form-control"
+                            :class="{ 'is-invalid': errors.code }"
+                            autocomplete="off"
+                            @blur="validateField('code')"
+                        />
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="codeLoading"
+                            @click="fetchNextCode">
+                            Generate
+                        </button>
+                    </div>
+                    <div v-if="errors.code" class="invalid-feedback d-block">
+                        {{ errors.code }}
+                    </div>
                 </div>
                 <div class="col-12 text-end">
                     <button @click="closeCreateModal" class="btn btn-danger me-2" type="button">
@@ -35,16 +53,23 @@
 </template>
 
 <script setup>
-import {reactive, ref} from 'vue';
+import {reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
+import {useNextCode} from '@/helpers/useNextCode.js';
 import {useBrandStore} from '@/stores/admin/inventory/brand.js';
 
 const brandStore = useBrandStore();
 
 const createModalOpened = defineModel('createModalOpened');
+
+watch(createModalOpened, async (open) => {
+    if (open) {
+        await fetchNextCode();
+    }
+});
 
 const initialState = {
     name: '',
@@ -60,6 +85,7 @@ const validations = object({
 });
 
 const {errors, validateField, validateForm} = useYup(form, validations);
+const {loading: codeLoading, fetchNextCode} = useNextCode(form, 'code', 'brand/next-code', validateField);
 
 const storeBrand = async () => {
     let validated = await validateForm(validations, form);

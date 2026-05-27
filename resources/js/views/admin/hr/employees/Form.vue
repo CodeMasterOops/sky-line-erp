@@ -9,7 +9,32 @@
                     <div class="col-12"><h6 class="text-muted fw-bold">Basic Information</h6></div>
 
                     <div class="col-md-3">
-                        <VInput id="employee_code" v-model="form.employee_code" label="Employee Code *" @validate="validateField('employee_code')" :error="errors.employee_code" />
+                        <label class="form-label" for="employee_code">
+                            Employee Code
+                            <VRequiredMark />
+                        </label>
+                        <div class="input-group">
+                            <input
+                                id="employee_code"
+                                v-model="form.employee_code"
+                                type="text"
+                                class="form-control"
+                                :class="{ 'is-invalid': errors.employee_code }"
+                                autocomplete="off"
+                                @blur="validateField('employee_code')"
+                            />
+                            <button
+                                v-if="!isEdit"
+                                type="button"
+                                class="btn btn-primary"
+                                :disabled="codeLoading"
+                                @click="fetchNextCode">
+                                Generate
+                            </button>
+                        </div>
+                        <div v-if="errors.employee_code" class="invalid-feedback d-block">
+                            {{ errors.employee_code }}
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <VInput id="first_name" v-model="form.first_name" label="First Name *" @validate="validateField('first_name')" :error="errors.first_name" />
@@ -133,6 +158,7 @@ import { storeToRefs } from 'pinia';
 import { useEmployeeStore } from '@/stores/admin/hr/employee.js';
 import { useDepartmentStore } from '@/stores/admin/hr/department.js';
 import { useDesignationStore } from '@/stores/admin/hr/designation.js';
+import { useNextCode } from '@/helpers/useNextCode.js';
 import { apiAdmin } from '@/helpers/api.js';
 
 const route = useRoute();
@@ -162,6 +188,7 @@ const validations = object({
     join_date: string().required('Join date is required.'),
 });
 const { errors, validateField, validateForm } = useYup(form, validations);
+const { loading: codeLoading, fetchNextCode } = useNextCode(form, 'employee_code', 'hr/employee/next-code', validateField);
 
 onMounted(async () => {
     deptStore.getDepartments({ limit: 100 });
@@ -179,6 +206,8 @@ onMounted(async () => {
             form.employment_type = d.employment_type?.value ?? d.employment_type ?? 'full_time';
             form.status = d.status?.value ?? d.status ?? 'active';
         } finally { loading.value = false; }
+    } else {
+        await fetchNextCode();
     }
 });
 

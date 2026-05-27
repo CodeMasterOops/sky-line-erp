@@ -8,17 +8,27 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 readonly class ReceiptService
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     public function createReceipt(array $formData): Receipt
     {
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $receiptNo = $formData['receipt_no'] ?? $this->generateReceiptNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $receiptNo = $formData['receipt_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            Receipt::class,
+            'RC-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
         $allocations = $this->validatedAllocations($formData);
 
         return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $receiptNo, $allocations) {
@@ -225,16 +235,5 @@ readonly class ReceiptService
         }
 
         return $map;
-    }
-
-    private function generateReceiptNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Receipt::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'RC-'.($count + 1).$suffix;
     }
 }

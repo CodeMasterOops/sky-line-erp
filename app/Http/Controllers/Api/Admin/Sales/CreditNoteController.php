@@ -9,6 +9,7 @@ use App\Enums\ChangeTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Admin\Sales\CreditNoteResource;
 use App\Services\Inventory\SalesReturnUnitCostResolver;
@@ -22,6 +23,7 @@ class CreditNoteController extends Controller
         private InventoryLayerReceiptService $inventoryReceipt,
         private SalesReturnUnitCostResolver $salesReturnCostResolver,
         private InventoryDocumentReversalService $documentReversal,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     /**
@@ -47,7 +49,12 @@ class CreditNoteController extends Controller
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $creditNoteNo = $formData['credit_note_no'] ?? $this->generateCreditNoteNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $creditNoteNo = $formData['credit_note_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            CreditNote::class,
+            'CN-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         try {
             $creditNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $creditNoteNo) {
@@ -379,16 +386,5 @@ class CreditNoteController extends Controller
                 null,
             );
         }
-    }
-
-    private function generateCreditNoteNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = CreditNote::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'CN-'.($count + 1).$suffix;
     }
 }

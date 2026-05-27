@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Api\Admin\Accounting;
 
 use App\Models\FixedAsset;
 use Illuminate\Http\Request;
+use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Models\FixedAssetCategory;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 
 class FixedAssetController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_fixed_asset", group="fixed_asset", desc="List Fixed Assets")
      */
@@ -44,7 +48,7 @@ class FixedAssetController extends Controller
         $validated = $this->validateAsset($request);
         $company = auth('admin')->user()->company;
         $validated['company_id'] = $company->id;
-        $validated['asset_code'] = $this->generateAssetCode($company->id);
+        $this->assignEntityCode($validated, EntityCodeType::FixedAsset);
         $validated['status'] = 'active';
 
         $asset = FixedAsset::create($validated);
@@ -166,12 +170,5 @@ class FixedAssetController extends Controller
             'accumulated_depreciation_account_id' => ['nullable', 'integer', 'exists:accounts,id'],
             'notes' => ['nullable', 'string'],
         ]);
-    }
-
-    private function generateAssetCode(int $companyId): string
-    {
-        $count = FixedAsset::where('company_id', $companyId)->withTrashed()->count();
-
-        return 'FA-'.str_pad($count + 1, 4, '0', STR_PAD_LEFT);
     }
 }

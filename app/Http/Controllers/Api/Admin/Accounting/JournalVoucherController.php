@@ -10,11 +10,16 @@ use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\DocumentNumberGenerator;
 use App\Http\Resources\Admin\Accounting\JournalVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\JournalVoucherRequest;
 
 class JournalVoucherController extends Controller
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     /**
      * @Permissions("list_journal_voucher", group="journal_voucher", desc="List Journal Voucher")
      */
@@ -48,8 +53,12 @@ class JournalVoucherController extends Controller
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
 
-        $voucherCount = Journal::where('type', JournalTypeEnum::JOURNAL_VOUCHER->value)->where('fiscal_year_id', $fiscalYearId)->withTrashed()->count();
-        $voucherNo = 'JV-'.($voucherCount + 1).'/'.($setting->fiscalYear->year_code ?? '');
+        $voucherNo = $this->documentNumberGenerator->journalVoucher(
+            JournalTypeEnum::JOURNAL_VOUCHER,
+            'JV-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         $formData['fiscal_year_id'] = $fiscalYearId;
         $formData['type'] = JournalTypeEnum::JOURNAL_VOUCHER->value;

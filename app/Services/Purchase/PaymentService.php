@@ -10,17 +10,27 @@ use App\Enums\TdsCategoryEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 readonly class PaymentService
 {
+    public function __construct(
+        private DocumentNumberGenerator $documentNumberGenerator,
+    ) {}
+
     public function createPayment(array $formData): Payment
     {
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $paymentNo = $formData['payment_no'] ?? $this->generatePaymentNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $paymentNo = $formData['payment_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            Payment::class,
+            'PP-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
         $allocations = $this->validatedAllocations($formData);
         $tdsData = $this->normalizeTdsData($formData, $allocations);
 
@@ -366,16 +376,5 @@ readonly class PaymentService
         }
 
         return $map;
-    }
-
-    private function generatePaymentNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = Payment::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'PP-'.($count + 1).$suffix;
     }
 }

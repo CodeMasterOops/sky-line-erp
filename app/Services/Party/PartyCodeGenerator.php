@@ -4,9 +4,14 @@ namespace App\Services\Party;
 
 use App\Models\Party;
 use App\Enums\PartyTypeEnum;
+use App\Services\EntityCodeGenerator;
 
 class PartyCodeGenerator
 {
+    public function __construct(
+        private EntityCodeGenerator $entityCodeGenerator,
+    ) {}
+
     public function prefixFor(PartyTypeEnum $type): string
     {
         return match ($type) {
@@ -18,12 +23,13 @@ class PartyCodeGenerator
 
     public function generate(PartyTypeEnum $type, int $companyId): string
     {
-        $count = Party::query()
-            ->where('company_id', $companyId)
-            ->where('type', $type->value)
-            ->withTrashed()
-            ->count();
-
-        return $this->prefixFor($type).str_pad((string) ($count + 1), 4, '0', STR_PAD_LEFT);
+        return $this->entityCodeGenerator->generate(
+            Party::class,
+            $companyId,
+            $this->prefixFor($type),
+            'code',
+            4,
+            ['type' => $type->value],
+        );
     }
 }

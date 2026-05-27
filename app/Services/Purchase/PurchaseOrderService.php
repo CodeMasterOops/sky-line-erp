@@ -5,12 +5,14 @@ namespace App\Services\Purchase;
 use App\Enums\StatusEnum;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
 
 readonly class PurchaseOrderService
 {
     public function __construct(
-        private PurchaseOrderTotalsCalculator $totalsCalculator
+        private PurchaseOrderTotalsCalculator $totalsCalculator,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     public function createPurchaseOrder(array $formData)
@@ -19,7 +21,12 @@ readonly class PurchaseOrderService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $orderNo = $formData['order_no'] ?? $this->generateOrderNo($fiscalYearId, $setting->fiscalYear?->year_code);
+        $orderNo = $formData['order_no'] ?? $this->documentNumberGenerator->fiscalYear(
+            PurchaseOrder::class,
+            'PO-',
+            $fiscalYearId,
+            $setting->fiscalYear?->year_code,
+        );
 
         $formData = $this->applyResolvedDiscounts($formData);
 
@@ -120,16 +127,5 @@ readonly class PurchaseOrderService
             'approved_at' => now(),
             'status' => StatusEnum::APPROVED->value,
         ]);
-    }
-
-    private function generateOrderNo(?int $fiscalYearId, ?string $yearCode): string
-    {
-        $count = PurchaseOrder::where('fiscal_year_id', $fiscalYearId)
-            ->withTrashed()
-            ->count();
-
-        $suffix = $yearCode ? '/'.$yearCode : '';
-
-        return 'PO-'.($count + 1).$suffix;
     }
 }

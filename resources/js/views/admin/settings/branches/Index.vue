@@ -55,7 +55,17 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Code <span class="text-danger">*</span></label>
-                    <input v-model="form.code" class="form-control" placeholder="KTM" />
+                    <div class="input-group">
+                        <input v-model="form.code" class="form-control" placeholder="KTM" />
+                        <button
+                            v-if="!editId"
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="codeLoading"
+                            @click="fetchNextCode">
+                            Generate
+                        </button>
+                    </div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">PAN</label>
@@ -102,6 +112,7 @@ import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
 import { useBranchStore } from '@/stores/admin/settings/branch.js';
+import { useNextCode } from '@/helpers/useNextCode.js';
 
 const branchStore = useBranchStore();
 
@@ -111,6 +122,7 @@ const editId = ref(null);
 const { branches } = storeToRefs(branchStore);
 
 const form = ref({ name: '', code: '', address: '', phone: '', email: '', pan: '', is_head_office: false, is_active: true });
+const { loading: codeLoading, fetchNextCode } = useNextCode(form, 'code', 'branch/next-code');
 
 const columns = [
     { title: 'Branch Name', dataIndex: 'name', key: 'name' },
@@ -133,6 +145,7 @@ function openCreate() {
     editId.value = null;
     form.value = { name: '', code: '', address: '', phone: '', email: '', pan: '', is_head_office: false, is_active: true };
     formModal.value = true;
+    fetchNextCode();
 }
 
 function closeFormModal() {

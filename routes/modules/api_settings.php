@@ -16,6 +16,7 @@ Route::apiResource('tax', TaxController::class);
 Route::apiResource('payment-mode', PaymentModeController::class);
 
 // branch
+Route::get('branch/next-code', [BranchController::class, 'nextCode'])->name('branch.next-code');
 Route::get('branch/{branch}/pl-report', [BranchController::class, 'plReport'])->name('branch.pl-report');
 Route::get('branch/consolidated-report', [BranchController::class, 'consolidatedReport'])->name('branch.consolidated-report');
 Route::apiResource('branch', BranchController::class);

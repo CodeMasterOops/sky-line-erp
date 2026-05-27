@@ -33,7 +33,7 @@ class WarehouseRequest extends FormRequest
             'POST' => [
                 'parent_id' => $parentRules,
                 'name' => ['required', 'string', 'max:255', TRule::unique('warehouses')->withoutTrashed()],
-                'code' => ['required', 'string', 'max:255', TRule::unique('warehouses')->withoutTrashed()],
+                'code' => ['nullable', 'string', 'max:255', TRule::unique('warehouses')->withoutTrashed()],
                 'phone' => ['nullable', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:255'],
             ],

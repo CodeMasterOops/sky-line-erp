@@ -11,12 +11,14 @@ use App\Models\SalesOrderItem;
 use App\Models\DeliveryChallan;
 use Illuminate\Support\Facades\DB;
 use App\Models\DeliveryChallanItem;
+use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 
 class DeliveryChallanService
 {
     public function __construct(
         private InventoryLayerIssueService $inventoryIssue,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     /**
@@ -39,7 +41,11 @@ class DeliveryChallanService
                 'reference_type' => $reference['reference_type'],
                 'reference_id' => $reference['reference_id'],
                 'warehouse_id' => $data['warehouse_id'],
-                'challan_no' => $this->generateChallanNo($company->id),
+                'challan_no' => $this->documentNumberGenerator->companyPadded(
+                    DeliveryChallan::class,
+                    'DC-',
+                    $company->id,
+                ),
                 'challan_date' => $data['challan_date'],
                 'delivery_address' => $data['delivery_address'] ?? null,
                 'receiver_name' => $data['receiver_name'] ?? null,
@@ -323,12 +329,5 @@ class DeliveryChallanService
                 ? (int) $data['reference_id']
                 : $challan?->reference_id,
         ];
-    }
-
-    private function generateChallanNo(int $companyId): string
-    {
-        $count = DeliveryChallan::where('company_id', $companyId)->withTrashed()->count();
-
-        return 'DC-'.str_pad($count + 1, 5, '0', STR_PAD_LEFT);
     }
 }

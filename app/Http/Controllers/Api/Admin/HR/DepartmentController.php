@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Api\Admin\HR;
 
 use App\Models\Department;
 use Illuminate\Http\Request;
+use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\HR\DepartmentResource;
 use App\Http\Requests\Api\Admin\HR\DepartmentRequest;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 
 class DepartmentController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_department", group="department", desc="List Department")
      */
@@ -25,9 +29,19 @@ class DepartmentController extends Controller
     /**
      * @Permissions("create_department", group="department", desc="Create Department")
      */
+    public function nextCode()
+    {
+        return $this->nextCodeResponse(EntityCodeType::Department);
+    }
+
+    /**
+     * @Permissions("create_department", group="department", desc="Create Department")
+     */
     public function store(DepartmentRequest $request)
     {
-        $department = Department::create($request->validated());
+        $data = $request->validated();
+        $this->assignEntityCode($data, EntityCodeType::Department);
+        $department = Department::create($data);
 
         return response()->json([
             'data' => DepartmentResource::make($department),

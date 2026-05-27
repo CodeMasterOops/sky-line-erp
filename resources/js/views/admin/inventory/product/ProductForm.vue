@@ -78,7 +78,8 @@
                                         placeholder="e.g. internal or supplier code" class="form-control"
                                         :class="{ 'is-invalid': errors.code }" autocomplete="off"
                                         @blur="validateField('code')">
-                                    <button type="button" class="btn btn-primary" @click="generateProductCode">
+                                    <button type="button" class="btn btn-primary" :disabled="codeLoading"
+                                        @click="fetchNextCode">
                                         Generate
                                     </button>
                                 </div>
@@ -455,6 +456,7 @@ import { storeToRefs } from 'pinia';
 import { useAttributeStore } from '@/stores/admin/inventory/attribute.js';
 import { useSettingStore } from '@/stores/admin/settings/setting.js';
 import { useTaxStore } from '@/stores/admin/settings/tax.js';
+import { useNextCode } from '@/helpers/useNextCode.js';
 
 const props = defineProps({
     mode: {
@@ -976,6 +978,7 @@ const validations = object({
 });
 
 const { errors, validateField, validateForm } = useYup(form, validations);
+const { loading: codeLoading, fetchNextCode } = useNextCode(form, 'code', 'product/next-code', validateField);
 
 function buildPayload() {
     const isService = form.product_type === 'service';
@@ -1053,14 +1056,9 @@ onMounted(async () => {
     } else {
         ready.value = true;
         addVariants();
+        await fetchNextCode();
     }
 });
-
-const generateProductCode = () => {
-    const segment = Math.random().toString(36).substring(2, 10).toUpperCase();
-    form.code = `PC-${segment}`;
-    validateField('code');
-};
 
 const goToList = () => {
     router.push({ name: 'admin.product-list' });

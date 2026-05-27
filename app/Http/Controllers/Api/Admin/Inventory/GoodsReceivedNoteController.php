@@ -8,6 +8,7 @@ use App\Annotation\Permissions;
 use App\Models\GoodsReceivedNote;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\DocumentNumberGenerator;
 use App\Services\Inventory\GoodsReceivedNoteService;
 use App\Http\Resources\Admin\Inventory\GoodsReceivedNoteResource;
 use App\Http\Requests\Api\Admin\Inventory\GoodsReceivedNoteRequest;
@@ -16,6 +17,7 @@ class GoodsReceivedNoteController extends Controller
 {
     public function __construct(
         private GoodsReceivedNoteService $grnService,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     /**
@@ -70,7 +72,11 @@ class GoodsReceivedNoteController extends Controller
     {
         $validated = $request->validated();
         $company = auth('admin')->user()->company;
-        $grnNo = $this->generateGrnNo($company->id);
+        $grnNo = $this->documentNumberGenerator->companyPadded(
+            GoodsReceivedNote::class,
+            'GRN-',
+            $company->id,
+        );
 
         $grn = $this->grnService->createGrn(
             $validated,
@@ -143,12 +149,5 @@ class GoodsReceivedNoteController extends Controller
         });
 
         return response()->json(['message' => 'GRN deleted successfully.']);
-    }
-
-    private function generateGrnNo(int $companyId): string
-    {
-        $count = GoodsReceivedNote::where('company_id', $companyId)->withTrashed()->count();
-
-        return 'GRN-'.str_pad($count + 1, 5, '0', STR_PAD_LEFT);
     }
 }

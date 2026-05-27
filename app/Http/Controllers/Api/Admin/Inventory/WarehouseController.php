@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Warehouse;
+use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Resources\Admin\Inventory\WarehouseResource;
 use App\Http\Requests\Api\Admin\Inventory\WarehouseRequest;
 
 class WarehouseController extends Controller
 {
+    use GeneratesEntityCode;
+
     /**
      * @Permissions("list_warehouse", group="warehouse", desc="List Warehouse")
      */
@@ -27,9 +31,19 @@ class WarehouseController extends Controller
     /**
      * @Permissions("create_warehouse", group="warehouse", desc="Create Warehouse")
      */
+    public function nextCode()
+    {
+        return $this->nextCodeResponse(EntityCodeType::Warehouse);
+    }
+
+    /**
+     * @Permissions("create_warehouse", group="warehouse", desc="Create Warehouse")
+     */
     public function store(WarehouseRequest $request)
     {
-        $warehouse = Warehouse::create($request->validated());
+        $data = $request->validated();
+        $this->assignEntityCode($data, EntityCodeType::Warehouse);
+        $warehouse = Warehouse::create($data);
         $warehouse->load('parent:id,name,code');
 
         return response()->json([

@@ -17,6 +17,7 @@ use App\Models\ProductVariant;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
 use App\Http\Requests\Api\Admin\PosCheckoutRequest;
 use App\Services\Accounting\InvoiceGlPostingService;
@@ -28,6 +29,7 @@ class PosController extends Controller
         private InventoryLayerIssueService $inventoryIssue,
         private InvoiceGlPostingService $invoiceGl,
         private NepaliDateService $nepaliDate,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     /**
@@ -228,10 +230,13 @@ class PosController extends Controller
         $accountSetting = AccountSetting::first();
         $accountId = $this->resolveAccountId($request->payment_method, $accountSetting);
 
-        $invoiceCount = Invoice::withTrashed()->where('fiscal_year_id', $fiscalYearId)->count();
         $yearCode = $company->fiscalYear?->year_code;
-        $suffix = $yearCode ? '/'.$yearCode : '';
-        $invoiceNo = 'INV-'.($invoiceCount + 1).$suffix;
+        $invoiceNo = $this->documentNumberGenerator->fiscalYear(
+            Invoice::class,
+            'INV-',
+            $fiscalYearId,
+            $yearCode,
+        );
 
         try {
             $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $invoiceNo, $accountId) {
@@ -339,10 +344,12 @@ class PosController extends Controller
 
                 // Create receipt if we have an account to credit
                 if ($accountId && $grandTotal > 0) {
-                    $receiptCount = Receipt::withTrashed()->where('fiscal_year_id', $fiscalYearId)->count();
-                    $yearCode = $company->fiscalYear?->year_code;
-                    $suffix = $yearCode ? '/'.$yearCode : '';
-                    $receiptNo = 'RC-'.($receiptCount + 1).$suffix;
+                    $receiptNo = $this->documentNumberGenerator->fiscalYear(
+                        Receipt::class,
+                        'RC-',
+                        $fiscalYearId,
+                        $yearCode,
+                    );
 
                     $receipt = Receipt::create([
                         'company_id' => $company->id,

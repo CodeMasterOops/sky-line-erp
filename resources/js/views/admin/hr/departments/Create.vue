@@ -6,7 +6,23 @@
                     <VInput id="name" v-model="form.name" label="Name" @validate="validateField('name')" :error="errors.name" />
                 </div>
                 <div class="col-md-4">
-                    <VInput id="code" v-model="form.code" label="Code" />
+                    <label class="form-label" for="code">Code</label>
+                    <div class="input-group">
+                        <input
+                            id="code"
+                            v-model="form.code"
+                            type="text"
+                            class="form-control"
+                            autocomplete="off"
+                        />
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            :disabled="codeLoading"
+                            @click="fetchNextCode">
+                            Generate
+                        </button>
+                    </div>
                 </div>
                 <div class="col-12">
                     <label class="form-label">Description</label>
@@ -22,11 +38,12 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { object, string } from 'yup';
 import { useYup } from '@/helpers/yup';
+import { useNextCode } from '@/helpers/useNextCode.js';
 import { useDepartmentStore } from '@/stores/admin/hr/department.js';
 
 const store = useDepartmentStore();
@@ -37,6 +54,13 @@ const form = reactive({ ...initial });
 const isSubmitting = ref(false);
 const validations = object({ name: string().required('Name is required.') });
 const { errors, validateField, validateForm } = useYup(form, validations);
+const { loading: codeLoading, fetchNextCode } = useNextCode(form, 'code', 'hr/department/next-code');
+
+watch(createModalOpened, async (open) => {
+    if (open) {
+        await fetchNextCode();
+    }
+});
 
 const submit = async () => {
     if (await validateForm(validations, form)) {
