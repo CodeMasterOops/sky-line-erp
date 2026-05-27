@@ -10388,6 +10388,7 @@ body {
               }
               &.active {
                 background-color: variables.$primary;
+                color: variables.$white !important;
               }
         }
     }

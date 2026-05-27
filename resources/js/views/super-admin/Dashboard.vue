@@ -196,11 +196,6 @@
             </div>
         </div>
     </template>
-
-    <div class="footer d-sm-flex align-items-center justify-content-between border-top bg-white p-3">
-        <p class="mb-0 text-gray-9">{{ new Date().getFullYear() }} © Sky ERP Pro. All Right Reserved</p>
-        <p>Designed &amp; Developed By <a href="javascript:void(0);" class="text-primary">Redsky</a></p>
-    </div>
 </template>
 
 <script setup>

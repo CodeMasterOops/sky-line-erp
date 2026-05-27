@@ -567,8 +567,9 @@
                 .dropdown-menu {
                     .dropdown-item {
                         color: variables.$gray-500;
-                        &.active{
-                            color: variables.$white;
+                        &.active {
+                            color: variables.$primary;
+                            background-color: variables.$primary-100 !important;
                         }
                         &:hover {
                            background: variables.$gray-900 url(../img/icons/check.svg) no-repeat calc(100% - 12px) center;
@@ -605,7 +606,11 @@
                 &:hover {
                    color: variables.$gray-500; 
                    background: variables.$gray-900;
-                } 
+                }
+                &.active {
+                    color: variables.$primary !important;
+                    background-color: variables.$primary-100 !important;
+                }
             }
         }
     }

@@ -213,9 +213,21 @@
                 margin-right: 10px;
                 width: 18px;
             }
+            &.active {
+                color: variables.$primary !important;
+                background-color: variables.$primary-100 !important;
+
+                i {
+                    color: variables.$primary;
+                }
+            }
         }
         .logout{
             color: variables.$danger;
+
+            &.active {
+                color: variables.$danger !important;
+            }
         }
     }
     .has-arrow{
@@ -1048,10 +1060,8 @@ hr{
                     border-radius: 5px;
                     transition: none;
                     font-weight: variables.$font-weight-medium;
-                    &.active{
-                        color: variables.$white;
-                    }
-                    &.active,&:hover{
+                    &.active,
+                    &:hover {
                         background: variables.$primary-100;
                         color: variables.$primary;
                     }
