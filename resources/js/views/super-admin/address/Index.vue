@@ -1,13 +1,31 @@
 <template>
-    <PageHeader title="Address reference" subtitle="Provinces, districts, palikas, and wards" @refresh="refreshForTab">
-        <template #actions>
-            <button type="button" class="btn btn-primary d-flex align-items-center" @click="openCreate">
-                <i class="ti ti-circle-plus me-2"></i> Add
-            </button>
-        </template>
-    </PageHeader>
+    <div>
+        <PageHeader
+            title="Address reference"
+            subtitle="Provinces, districts, palikas, and wards"
+            @refresh="refreshForTab"
+        >
+            <template #actions>
+                <button
+                    type="button"
+                    class="btn btn-primary d-flex align-items-center"
+                    @click="openCreate"
+                >
+                    <i class="ti ti-circle-plus me-2"></i> Add
+                </button>
+            </template>
+        </PageHeader>
+    </div>
 
-    <section class="section">
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="settings-wrapper d-flex">
+                <super-admin-settings-sidebar></super-admin-settings-sidebar>
+                <div class="card flex-fill mb-0">
+                    <div class="card-header">
+                        <h4 class="fs-18 fw-bold">Address reference</h4>
+                    </div>
+                    <div class="card-body">
         <ul class="nav nav-tabs card-header-tabs mb-3">
             <li v-for="t in tabDefs" :key="t.id" class="nav-item">
                 <a
@@ -173,7 +191,11 @@
                 </div>
             </div>
         </div>
-    </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div v-if="showForm" class="modal d-block" style="background: rgba(0,0,0,0.5)">
         <div class="modal-dialog modal-lg">

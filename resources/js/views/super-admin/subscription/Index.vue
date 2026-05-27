@@ -135,6 +135,7 @@ import {toast} from "@/helpers/toast";
 import showErrors from "@/helpers/showErrors";
 import AssignSubscription from "./Assign.vue";
 import {useSubscriptionStore} from "@/stores/super-admin/subscription";
+import {formatSuperAdminMoney} from '@/helpers/formatSuperAdminMoney.js';
 
 const subscriptionStore = useSubscriptionStore();
 const {subscriptions, summary} = storeToRefs(subscriptionStore);
@@ -181,10 +182,7 @@ const handleTableChange = (pag) => {
     fetchSubscriptions();
 };
 
-const formatPrice = (amount) => new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-}).format(Number(amount || 0));
+const formatPrice = formatSuperAdminMoney;
 
 const statusBadgeClass = (status) => {
     const map = {

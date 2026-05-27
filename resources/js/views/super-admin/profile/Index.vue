@@ -1,53 +1,22 @@
 <template>
-    <PageHeader title="Profile" subtitle="Manage your profile" hide-action-buttons />
+    <div>
+        <PageHeader
+            title="Profile"
+            subtitle="Manage your name, email, and phone"
+            @refresh="refreshProfile"
+        />
+    </div>
 
     <div class="row">
-        <div class="col-xl-4 col-lg-5">
-            <div class="card text-center">
-                <div class="card-body">
-                    <img :src="profile.data.profile_photo_url || userIcon" class="rounded-circle"
-                         height="120"
-                         alt="profile-image">
-
-                    <h4 class="mb-0 mt-2">{{ profile.data.name }}</h4>
-
-                    <div class="text-start mt-3">
-                        <p class="text-muted mb-2 font-13">
-                            <strong>Email :</strong> {{ profile.data.email }}
-                        </p>
-                        <p class="text-muted mb-2 font-13">
-                            <strong>Phone :</strong> {{ profile.data.phone }}
-                        </p>
+        <div class="col-xl-12">
+            <div class="settings-wrapper d-flex">
+                <super-admin-settings-sidebar></super-admin-settings-sidebar>
+                <div class="card flex-fill mb-0">
+                    <div class="card-header">
+                        <h4 class="fs-18 fw-bold">My profile</h4>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-8 col-lg-7">
-            <div class="card">
-                <div class="card-body">
-                    <ul class="nav nav-pills bg-nav-pills nav-justified mb-3">
-                        <li class="nav-item ">
-                            <a href="#edit-profile" data-bs-toggle="tab" aria-expanded="true"
-                               class="nav-link active rounded-0">
-                                Edit Profile
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#change-password" data-bs-toggle="tab" aria-expanded="false"
-                               class="nav-link rounded-0">
-                                Change Password
-                            </a>
-                        </li>
-                    </ul>
-                    <div class="tab-content">
-                        <div class="tab-pane show active" id="edit-profile">
-                            <EditProfile/>
-                        </div>
-
-                        <div class="tab-pane" id="change-password">
-                            <EditPassword></EditPassword>
-                        </div>
+                    <div class="card-body">
+                        <EditProfile ref="editProfileRef" />
                     </div>
                 </div>
             </div>
@@ -56,18 +25,12 @@
 </template>
 
 <script setup>
-import EditProfile from "./EditProfile.vue"
-import EditPassword from "./EditPassword.vue"
-import userIcon from '@/assets/images/user-icon.png';
-import {onMounted} from "vue";
-import {storeToRefs} from "pinia";
-import {useSuperAdminProfileStore} from "@/stores/super-admin/profile.js";
+import { ref } from "vue";
+import EditProfile from "./EditProfile.vue";
 
-const profileStore = useSuperAdminProfileStore();
+const editProfileRef = ref(null);
 
-const {profile} = storeToRefs(profileStore);
-
-onMounted(() => {
-    profileStore.getProfile();
-})
+function refreshProfile() {
+    editProfileRef.value?.loadFromServer?.();
+}
 </script>

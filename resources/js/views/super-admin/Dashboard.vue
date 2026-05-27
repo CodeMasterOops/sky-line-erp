@@ -26,26 +26,6 @@
     </div>
 
     <template v-else>
-        <div class="welcome-wrap mb-4">
-            <div class=" d-flex align-items-center justify-content-between flex-wrap">
-                <div class="mb-3">
-                    <h2 class="mb-1 text-white">Welcome Back, {{ adminName }}</h2>
-                    <p class="text-light">{{ dash.companies_today }} New {{ dash.companies_today === 1 ? 'Company' : 'Companies' }} Registered Today</p>
-                </div>
-                <div class="d-flex align-items-center flex-wrap mb-1">
-                    <router-link :to="{ name: 'super-admin.company-list' }"
-                        class="btn btn-dark btn-md me-2 mb-2">Companies</router-link>
-                    <router-link :to="{ name: 'super-admin.packages' }"
-                        class="btn btn-light btn-md mb-2">All Packages</router-link>
-                </div>
-            </div>
-            <div class="welcome-bg">
-                <img src="@/assets/images/bg/welcome-bg-02.svg" alt="img" class="welcome-bg-01">
-                <img src="@/assets/images/bg/welcome-bg-03.svg" alt="img" class="welcome-bg-02">
-                <img src="@/assets/images/bg/welcome-bg-01.svg" alt="img" class="welcome-bg-03">
-            </div>
-        </div>
-
         <div class="row">
             <div class="col-xl-3 col-sm-6 d-flex">
                 <div class="card flex-fill">
@@ -232,6 +212,7 @@ import 'daterangepicker/daterangepicker.js';
 import {storeToRefs} from 'pinia';
 import {useSuperAdminDashboardStore} from '@/stores/super-admin/dashboard';
 import {useSuperAdminProfileStore} from '@/stores/super-admin/profile';
+import {formatSuperAdminMoney} from '@/helpers/formatSuperAdminMoney.js';
 import {
     companyChart,
     revenueCharts,
@@ -251,14 +232,7 @@ const dateRangeInput = ref(null);
 const dash = computed(() => dashboard.value.data);
 const adminName = computed(() => profileStore.profile.data?.name || 'Super Admin');
 
-const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(Number(value || 0));
-};
+const formatCurrency = formatSuperAdminMoney;
 
 const formatGrowth = (value) => {
     const num = Number(value || 0);

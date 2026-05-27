@@ -12,8 +12,8 @@ export const useSuperAdminSettingStore = defineStore('super-admin-setting', {
         }
     }),
     actions: {
-        getSetting() {
-            if (!Object.keys(this.setting.data).length) {
+        getSetting(refetch = false) {
+            if (!Object.keys(this.setting.data).length || refetch) {
                 this.setting.loading = true;
                 return apiSuperAdmin(`${apiUrl}`)
                     .then((res) => {

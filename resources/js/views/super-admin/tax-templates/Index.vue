@@ -1,14 +1,26 @@
 <template>
-    <PageHeader title="Tax Templates" subtitle="Default tax rates seeded to new companies on registration">
-        <template #actions>
-            <button class="btn btn-primary" @click="openCreate">
-                <i class="ti ti-circle-plus me-2"></i> Add Template
-            </button>
-        </template>
-    </PageHeader>
+    <div>
+        <PageHeader
+            title="Tax Templates"
+            subtitle="Default tax rates seeded to new companies on registration"
+        >
+            <template #actions>
+                <button class="btn btn-primary" @click="openCreate">
+                    <i class="ti ti-circle-plus me-2"></i> Add Template
+                </button>
+            </template>
+        </PageHeader>
+    </div>
 
-    <div class="card">
-        <div class="card-body">
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="settings-wrapper d-flex">
+                <super-admin-settings-sidebar></super-admin-settings-sidebar>
+                <div class="card flex-fill mb-0">
+                    <div class="card-header">
+                        <h4 class="fs-18 fw-bold">Tax templates</h4>
+                    </div>
+                    <div class="card-body">
             <div class="alert alert-info d-flex align-items-start gap-2 mb-3">
                 <i class="ti ti-info-circle fs-5 mt-1"></i>
                 <div>
@@ -54,6 +66,9 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

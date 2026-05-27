@@ -145,6 +145,7 @@ import showErrors from "@/helpers/showErrors";
 import CreatePlan from "./Create.vue";
 import EditPlan from "./Edit.vue";
 import {usePlanStore} from "@/stores/super-admin/plan";
+import {formatSuperAdminMoney} from '@/helpers/formatSuperAdminMoney.js';
 
 const planStore = usePlanStore();
 const {plans, stats} = storeToRefs(planStore);
@@ -190,10 +191,7 @@ const handleTableChange = (pag) => {
     fetchPlans();
 };
 
-const formatPrice = (amount) => new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-}).format(Number(amount || 0));
+const formatPrice = formatSuperAdminMoney;
 
 const deletePlan = async (id) => {
     Swal.fire({

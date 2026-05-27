@@ -1,0 +1,40 @@
+[
+    {
+        "icon": "settings",
+        "title": "Account & platform",
+        "page": "settings",
+        "subMenu": [
+            {
+                "title": "My profile",
+                "routes": "/super-admin/settings/profile"
+            },
+            {
+                "title": "Site settings",
+                "routes": "/super-admin/settings/site-settings"
+            },
+            {
+                "title": "Security",
+                "routes": "/super-admin/settings/security-settings"
+            }
+        ]
+    },
+    {
+        "icon": "file-text",
+        "title": "Finance & reference",
+        "page": "finance-reference",
+        "subMenu": [
+            {
+                "title": "Fiscal year",
+                "routes": "/super-admin/settings/fiscal-year"
+            },
+            {
+                "title": "Tax templates",
+                "routes": "/super-admin/settings/tax-templates"
+            },
+            {
+                "title": "Address reference",
+                "routes": "/super-admin/settings/address"
+            }
+        ]
+    }
+]

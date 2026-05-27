@@ -1,4 +1,5 @@
 import AdminLayout from '@/layouts/super-admin/AppLayout.vue';
+import superAdminSettingsRoutes from '@/router/modules/super-admin-settings.routes.js';
 
 const routes = [
     {
@@ -27,32 +28,25 @@ const routes = [
             },
             {
                 path: 'profile',
-                name: 'super-admin.profile',
-                meta: {
-                    pageTitle: 'Profile Update'
-                },
-                component: () => import('@/views/super-admin/profile/Index.vue')
+                redirect: '/super-admin/settings/profile',
             },
             {
                 path: 'setting',
-                children: [
-                    {
-                        path: 'setting',
-                        name: 'super-admin.setting',
-                        meta: {
-                            pageTitle: 'Site Setting'
-                        },
-                        component: () => import('@/views/super-admin/Setting.vue')
-                    }
-                ]
+                redirect: '/super-admin/settings/site-settings',
+            },
+            {
+                path: 'setting/setting',
+                redirect: '/super-admin/settings/site-settings',
+            },
+            {
+                path: 'settings',
+                component: () =>
+                    import('@/views/super-admin/settings/settings-index.vue'),
+                children: superAdminSettingsRoutes,
             },
             {
                 path: 'fiscal-year',
-                name: 'super-admin.fiscal-year-list',
-                meta: {
-                    pageTitle: 'Fiscal Year'
-                },
-                component: () => import('@/views/super-admin/fiscal-year/Index.vue')
+                redirect: '/super-admin/settings/fiscal-year',
             },
             {
                 path: 'company',
@@ -102,15 +96,11 @@ const routes = [
             },
             {
                 path: 'tax-templates',
-                name: 'super-admin.tax-templates',
-                meta: { pageTitle: 'Tax Templates' },
-                component: () => import('@/views/super-admin/tax-templates/Index.vue')
+                redirect: '/super-admin/settings/tax-templates',
             },
             {
                 path: 'address',
-                name: 'super-admin.address',
-                meta: { pageTitle: 'Address reference' },
-                component: () => import('@/views/super-admin/address/Index.vue')
+                redirect: '/super-admin/settings/address',
             },
         ]
     },

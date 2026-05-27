@@ -12,7 +12,7 @@
                         id="currency_code"
                         v-model="form.code"
                         label="Currency Code"
-                        placeholder="USD"
+                        placeholder="NPR"
                         required
                         @validate="validateField('code')"
                         :error="errors.code"
@@ -23,7 +23,7 @@
                         id="currency_name"
                         v-model="form.name"
                         label="Currency Name"
-                        placeholder="US Dollar"
+                        placeholder="Nepalese Rupee"
                         required
                         @validate="validateField('name')"
                         :error="errors.name"
@@ -34,7 +34,7 @@
                         id="currency_symbol"
                         v-model="form.symbol"
                         label="Symbol"
-                        placeholder="$"
+                        placeholder="Rs."
                     />
                 </div>
                 <div class="col-md-4">

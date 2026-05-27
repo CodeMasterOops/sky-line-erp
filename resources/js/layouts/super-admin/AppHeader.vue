@@ -45,22 +45,6 @@
             </li>
             <!-- /Search -->
 
-            <!-- Flag -->
-            <li class="nav-item dropdown has-arrow flag-nav nav-item-box">
-                <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" href="javascript:void(0);" role="button">
-                    <img src="@/assets/images/flags/us-flag.svg" alt="Language" class="img-fluid">
-                </a>
-                <div class="dropdown-menu dropdown-menu-right">
-                    <a href="javascript:void(0);" class="dropdown-item">
-                        <img src="@/assets/images/flags/english.svg" alt="" height="16">English
-                    </a>
-                    <a href="javascript:void(0);" class="dropdown-item">
-                        <img src="@/assets/images/flags/arabic.svg" alt="" height="16">Arabic
-                    </a>
-                </div>
-            </li>
-            <!-- /Flag -->
-
             <li class="nav-item nav-item-box">
                 <a href="javascript:void(0);" id="btnFullscreen" @click.prevent="initFullScreen">
                     <i class="fa fa-arrows-alt"></i>

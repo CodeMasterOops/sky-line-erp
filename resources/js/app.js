@@ -44,6 +44,7 @@ import PosLoader from "@/layouts/pos-loader.vue";
 import ProductHeader from "@/components/product/product-header.vue";
 import PageHeader from "@/components/shared/PageHeader.vue";
 import SettingsSidebar from "@/layouts/admin/settings-sidebar.vue";
+import SuperAdminSettingsSidebar from "@/layouts/super-admin/settings-sidebar.vue";
 
 //permission check helper
 import { permissionAccess } from "@/helpers/checkPermission";
@@ -89,6 +90,7 @@ createApp(App)
     .component("DatePicker", DatePicker)
     .directive("can", permissionAccess)
     .component("SettingsSidebar", SettingsSidebar)
+    .component("SuperAdminSettingsSidebar", SuperAdminSettingsSidebar)
     .component("VueSelect", VueSelect)
     .use(VueApexCharts)
     .use(Antd)

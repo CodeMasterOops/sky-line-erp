@@ -1,47 +1,67 @@
 <template>
-    <PageHeader title="Fiscal Year" subtitle="Manage fiscal years" @refresh="fetchFiscalYears(true)">
-        <template #actions>
-            <button
-                type="button"
-                @click.prevent="createModalOpened=true"
-                class="btn btn-primary d-flex align-items-center">
-                <i class="ti ti-circle-plus me-2"></i> Add New
-            </button>
-        </template>
-    </PageHeader>
+    <div>
+        <PageHeader
+            title="Fiscal Year"
+            subtitle="Manage fiscal years"
+            @refresh="fetchFiscalYears(true)"
+        >
+            <template #actions>
+                <button
+                    type="button"
+                    @click.prevent="createModalOpened = true"
+                    class="btn btn-primary d-flex align-items-center"
+                >
+                    <i class="ti ti-circle-plus me-2"></i> Add New
+                </button>
+            </template>
+        </PageHeader>
+    </div>
 
-    <section class="section">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <a-table
-                        class="table datanew table-hover table-center mb-0"
-                        :columns="columns"
-                        :data-source="fiscalYears.data"
-                        :loading="fiscalYears.loading"
-                    >
-                        <template #bodyCell="{ column, record, index }">
-                            <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
-                            </template>
-                            <template v-if="column.key === 'action'">
-                                <div class="action-icon d-inline-flex">
-                                    <a class="me-2" href="javascript:void(0);"
-                                       @click="edit_fiscal_year_id=record.id">
-                                        <i class="ti ti-edit"></i>
-                                    </a>
-                                    <a href="javascript:void(0);"
-                                       @click="deleteFiscalYear(record.id)">
-                                        <i class="ti ti-trash"></i>
-                                    </a>
-                                </div>
-                            </template>
-                        </template>
-                    </a-table>
+    <div class="row">
+        <div class="col-xl-12">
+            <div class="settings-wrapper d-flex">
+                <super-admin-settings-sidebar></super-admin-settings-sidebar>
+                <div class="card flex-fill mb-0">
+                    <div class="card-header">
+                        <h4 class="fs-18 fw-bold">Fiscal year</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <a-table
+                                class="table datanew table-hover table-center mb-0"
+                                :columns="columns"
+                                :data-source="fiscalYears.data"
+                                :loading="fiscalYears.loading"
+                            >
+                                <template #bodyCell="{ column, record, index }">
+                                    <template v-if="column.key === 'sn'">
+                                        {{ index + 1 }}
+                                    </template>
+                                    <template v-if="column.key === 'action'">
+                                        <div class="action-icon d-inline-flex">
+                                            <a
+                                                class="me-2"
+                                                href="javascript:void(0);"
+                                                @click="edit_fiscal_year_id = record.id"
+                                            >
+                                                <i class="ti ti-edit"></i>
+                                            </a>
+                                            <a
+                                                href="javascript:void(0);"
+                                                @click="deleteFiscalYear(record.id)"
+                                            >
+                                                <i class="ti ti-trash"></i>
+                                            </a>
+                                        </div>
+                                    </template>
+                                </template>
+                            </a-table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
     <CreateFiscalYear v-model:create-modal-opened="createModalOpened"/>
     <EditFiscalYear v-model:fiscal_year_id="edit_fiscal_year_id"/>
 </template>

@@ -65,33 +65,11 @@
             {
                 "menuValue": "Settings",
                 "icon": "ti ti-settings",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "General Setting",
-                        "route": {
-                            "name": "super-admin.setting"
-                        }
-                    },
-                    {
-                        "menuValue": "Fiscal Year",
-                        "route": {
-                            "name": "super-admin.fiscal-year-list"
-                        }
-                    },
-                    {
-                        "menuValue": "Tax Templates",
-                        "route": {
-                            "name": "super-admin.tax-templates"
-                        }
-                    },
-                    {
-                        "menuValue": "Address reference",
-                        "route": {
-                            "name": "super-admin.address"
-                        }
-                    }
-                ]
+                "active_link": "/super-admin/settings",
+                "route": {
+                    "name": "super-admin.setting"
+                },
+                "hasSubRoute": false
             }
         ]
     }

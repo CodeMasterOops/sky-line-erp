@@ -12,8 +12,8 @@ export const useSuperAdminProfileStore = defineStore('super-admin-profile', {
         }
     },
     actions: {
-        getProfile() {
-            if (!Object.keys(this.profile.data).length) {
+        getProfile(refetch = false) {
+            if (!Object.keys(this.profile.data).length || refetch) {
                 this.profile.loading = true;
                 return apiSuperAdmin(`profile`)
                     .then((res) => {

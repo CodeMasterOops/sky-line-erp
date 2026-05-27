@@ -99,6 +99,14 @@
                                             title="Company login">
                                         <i class="fa fa-sign-in"></i>
                                     </button>
+                                    <button
+                                        type="button"
+                                        class="btn btn-xs btn-outline-success me-2"
+                                        title="Upgrade plan"
+                                        @click="upgrade_company = record"
+                                    >
+                                        <i class="ti ti-arrow-up-circle"></i>
+                                    </button>
                                     <button @click="reset_company_password=record.id" type="button"
                                             class="btn btn-xs btn-outline-warning me-2" title="Password Reset">
                                         <i class="fa fa-refresh"></i>
@@ -117,6 +125,7 @@
         </div>
     </section>
     <RestPassword v-model:reset_password="reset_company_password"/>
+    <UpgradePlan v-model:company="upgrade_company" @upgraded="fetchCompanies"/>
 </template>
 
 <script setup>
@@ -126,7 +135,8 @@ import showErrors from "@/helpers/showErrors";
 import {useCompanyStore} from "@/stores/super-admin/company";
 import {useSuperAdminDashboardStore} from "@/stores/super-admin/dashboard";
 import {storeToRefs} from "pinia";
-import RestPassword from './ResetPassword.vue'
+import RestPassword from './ResetPassword.vue';
+import UpgradePlan from './UpgradePlan.vue';
 import {useRouter} from "vue-router";
 import {useSuperAdminAuthStore} from "@/stores/super-admin/auth.js";
 import Swal from "sweetalert2";
@@ -142,6 +152,7 @@ const filter = reactive({
 });
 
 const reset_company_password = ref('');
+const upgrade_company = ref(null);
 
 const {companies} = storeToRefs(companyStore);
 
