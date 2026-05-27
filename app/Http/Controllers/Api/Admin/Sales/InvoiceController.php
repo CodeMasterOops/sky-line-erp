@@ -24,7 +24,7 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         $invoices = Invoice::filter($request->all())
-            ->with(['party', 'discount', 'invoiceItems.discount'])
+            ->with(['party', 'discount', 'invoiceItems.discount', 'receiptAllocations.receipt'])
             ->latest('invoice_date')
             ->paginate($request->limit ?? 25);
 

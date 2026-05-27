@@ -51,7 +51,10 @@ export function createRowActions({
             key:       'payment',
             icon:      'ti-receipt',
             title:     'Record payment',
-            condition: (record) => record.status === 'approved' && !record.voided_at,
+            condition: (record) =>
+                record.status === 'approved'
+                && !record.voided_at
+                && Number(record.due_amount ?? 0) > 0,
             handler:   (record) => onRecordPayment(record.id),
         },
         {
