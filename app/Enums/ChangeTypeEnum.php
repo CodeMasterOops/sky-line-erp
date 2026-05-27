@@ -5,6 +5,7 @@ namespace App\Enums;
 enum ChangeTypeEnum: string
 {
     case PURCHASE = 'purchase';
+    case GRN_RECEIPT = 'grn-receipt';
     case SALE = 'sale';
     case DELIVERY = 'delivery';
     case DAMAGE = 'damage';
@@ -26,6 +27,7 @@ enum ChangeTypeEnum: string
     {
         return match ($value) {
             self::PURCHASE => 'Purchase',
+            self::GRN_RECEIPT => 'GRN Receipt',
             self::SALE => 'Sale',
             self::DELIVERY => 'Delivery',
             self::DAMAGE => 'Damage',

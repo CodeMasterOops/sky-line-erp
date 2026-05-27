@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GrnItem extends Model
@@ -14,6 +15,7 @@ class GrnItem extends Model
         'unit_id',
         'ordered_qty',
         'received_qty',
+        'billed_qty',
         'unit_cost',
         'batch_no',
         'expiry_date',
@@ -22,6 +24,7 @@ class GrnItem extends Model
     protected $casts = [
         'ordered_qty' => 'float',
         'received_qty' => 'float',
+        'billed_qty' => 'float',
         'unit_cost' => 'float',
         'expiry_date' => 'date',
     ];
@@ -39,5 +42,10 @@ class GrnItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function billItems(): HasMany
+    {
+        return $this->hasMany(BillItem::class);
     }
 }

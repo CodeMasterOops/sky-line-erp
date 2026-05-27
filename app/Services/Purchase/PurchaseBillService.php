@@ -3,13 +3,16 @@
 namespace App\Services\Purchase;
 
 use App\Models\Bill;
+use App\Models\GrnItem;
 use App\Enums\StatusEnum;
 use App\Enums\ChangeTypeEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
+use Illuminate\Validation\ValidationException;
 use App\Services\Inventory\InventoryCostCalculator;
+use App\Services\Inventory\GoodsReceivedNoteService;
 use App\Services\Inventory\InventoryLayerReceiptService;
 use App\Services\Inventory\InventoryDocumentReversalService;
 
@@ -19,6 +22,7 @@ readonly class PurchaseBillService
         private PurchaseOrderTotalsCalculator $totalsCalculator,
         private InventoryLayerReceiptService $inventoryReceipt,
         private InventoryDocumentReversalService $documentReversal,
+        private GoodsReceivedNoteService $grnService,
     ) {}
 
     public function createBill(array $formData)
@@ -33,6 +37,8 @@ readonly class PurchaseBillService
 
         return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $billNo) {
             $items = $formData['items'];
+
+            $this->validateGrnItemQuantities($items);
 
             $bill = Bill::create([
                 'company_id' => $user->company_id,
@@ -58,6 +64,7 @@ readonly class PurchaseBillService
             foreach ($items as $item) {
                 $billItem = $bill->billItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
+                    'grn_item_id' => $item['grn_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_id' => $item['unit_id'] ?? null,
@@ -79,6 +86,7 @@ readonly class PurchaseBillService
                 $bill->refresh();
                 $this->createJournal($bill);
                 $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
+                $this->incrementGrnBilledQuantities($bill);
             }
 
             return $bill;
@@ -112,6 +120,7 @@ readonly class PurchaseBillService
             foreach ($items as $item) {
                 $billItem = $bill->billItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
+                    'grn_item_id' => $item['grn_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_id' => $item['unit_id'] ?? null,
@@ -161,6 +170,12 @@ readonly class PurchaseBillService
         $user = auth('admin')->user();
 
         DB::transaction(function () use ($bill, $user) {
+            $bill->loadMissing('billItems');
+            $this->validateGrnItemQuantities($bill->billItems->map(fn ($item) => [
+                'grn_item_id' => $item->grn_item_id,
+                'quantity' => $item->quantity,
+            ])->all());
+
             $bill->update([
                 'approve_user_id' => $user->id,
                 'approved_at' => now(),
@@ -168,14 +183,14 @@ readonly class PurchaseBillService
             ]);
 
             $this->createJournal($bill);
-
             $this->applyInventoryReceiptsForApprovedBill($bill, $user->company, $user);
+            $this->incrementGrnBilledQuantities($bill);
         });
     }
 
     private function createJournal(Bill $bill): void
     {
-        $bill->loadMissing('billItems', 'party:id,name', 'discount');
+        $bill->loadMissing('billItems.grnItem', 'party:id,name', 'discount');
 
         $accountSetting = AccountSetting::first();
 
@@ -196,26 +211,69 @@ readonly class PurchaseBillService
         $subTotal = 0;
         $lineDiscountTotal = 0;
         $taxTotal = 0;
+        $grniTotal = 0;
+        $directPurchaseTaxable = 0;
+        $priceVariance = 0.0;
+        $taxableBeforeOrder = 0.0;
+        $lineTaxables = [];
 
         foreach ($bill->billItems as $item) {
             $lineSubtotal = (float) $item->quantity * (float) $item->rate;
+            $lineTaxable = $lineSubtotal - (float) $item->discount_amount;
+            $lineTaxables[] = $lineTaxable;
             $subTotal += $lineSubtotal;
             $lineDiscountTotal += (float) $item->discount_amount;
             $taxTotal += (float) $item->tax_amount;
+            $taxableBeforeOrder += $lineTaxable;
         }
 
         $orderDiscountAmount = (float) ($bill->discount?->amount ?? 0);
         $grandTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
-        $taxableTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount;
 
-        // debit for purchase account
-        $journal->journalItems()->create([
-            'account_id' => $accountSetting->purchase_account_id,
-            'dr_amount' => $taxableTotal,
-            'cr_amount' => 0,
-            'remarks' => 'To-'.($bill->party->name ?? ''),
-        ]);
-        // debit for tax amount if included
+        foreach ($bill->billItems as $index => $item) {
+            $lineTaxable = $lineTaxables[$index];
+            $orderShare = $taxableBeforeOrder > 0
+                ? ($lineTaxable / $taxableBeforeOrder) * $orderDiscountAmount
+                : 0.0;
+            $adjustedLineTaxable = $lineTaxable - $orderShare;
+
+            if ($item->grn_item_id && $item->grnItem) {
+                $grniAmount = (float) $item->grnItem->unit_cost * (int) $item->quantity;
+                $grniTotal += $grniAmount;
+                $priceVariance += $adjustedLineTaxable - $grniAmount;
+            } else {
+                $directPurchaseTaxable += $adjustedLineTaxable;
+            }
+        }
+
+        if ($grniTotal > 0) {
+            $journal->journalItems()->create([
+                'account_id' => $accountSetting->grni_account_id ?? $accountSetting->purchase_account_id,
+                'dr_amount' => round($grniTotal, 2),
+                'cr_amount' => 0,
+                'remarks' => 'GRNI clearance',
+            ]);
+        }
+
+        $purchaseDebit = round($directPurchaseTaxable + max(0, $priceVariance), 2);
+        if ($purchaseDebit > 0) {
+            $journal->journalItems()->create([
+                'account_id' => $accountSetting->purchase_account_id,
+                'dr_amount' => $purchaseDebit,
+                'cr_amount' => 0,
+                'remarks' => 'To-'.($bill->party->name ?? ''),
+            ]);
+        }
+
+        if ($priceVariance < 0) {
+            $journal->journalItems()->create([
+                'account_id' => $accountSetting->purchase_account_id,
+                'dr_amount' => 0,
+                'cr_amount' => round(abs($priceVariance), 2),
+                'remarks' => 'Purchase price variance (credit)',
+            ]);
+        }
+
         if ($taxTotal > 0) {
             $journal->journalItems()->create([
                 'account_id' => $accountSetting->vat_account_id,
@@ -225,7 +283,6 @@ readonly class PurchaseBillService
             ]);
         }
 
-        // credit for account payable/supplier
         $journal->journalItems()->create([
             'account_id' => $accountSetting->supplier_account_id,
             'dr_amount' => 0,
@@ -244,6 +301,7 @@ readonly class PurchaseBillService
                 $user->id,
                 $bill->remarks,
             );
+            $this->decrementGrnBilledQuantities($bill);
             $bill->update(['voided_at' => now()]);
         });
     }
@@ -264,6 +322,10 @@ readonly class PurchaseBillService
         $bill->loadMissing('billItems.productVariant.product');
 
         foreach ($bill->billItems as $item) {
+            if ($item->grn_item_id) {
+                continue;
+            }
+
             $qty = (int) $item->quantity;
             if ($qty <= 0) {
                 continue;
@@ -288,6 +350,97 @@ readonly class PurchaseBillService
                 $bill->remarks,
                 $item->id,
             );
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function validateGrnItemQuantities(array $items): void
+    {
+        foreach ($items as $index => $item) {
+            $grnItemId = $item['grn_item_id'] ?? null;
+            if (! $grnItemId) {
+                continue;
+            }
+
+            $grnItem = GrnItem::query()
+                ->with('goodsReceivedNote')
+                ->find($grnItemId);
+
+            if (! $grnItem || $grnItem->goodsReceivedNote?->status !== StatusEnum::APPROVED) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.grn_item_id" => __('Invalid or unapproved GRN line.'),
+                ]);
+            }
+
+            $receivedQty = (float) $grnItem->received_qty;
+            $billedQty = (float) $grnItem->billed_qty;
+            $remainingQty = max(0, $receivedQty - $billedQty);
+            $requestedQty = (float) ($item['quantity'] ?? 0);
+
+            if ($requestedQty > $remainingQty) {
+                throw ValidationException::withMessages([
+                    "items.{$index}.quantity" => __('Quantity exceeds remaining billable GRN quantity (:remaining).', [
+                        'remaining' => $remainingQty,
+                    ]),
+                ]);
+            }
+        }
+    }
+
+    private function incrementGrnBilledQuantities(Bill $bill): void
+    {
+        $bill->loadMissing('billItems.grnItem.goodsReceivedNote');
+
+        $grnIds = [];
+
+        foreach ($bill->billItems as $item) {
+            if (! $item->grn_item_id || ! $item->grnItem) {
+                continue;
+            }
+
+            $item->grnItem->increment('billed_qty', (int) $item->quantity);
+            $grnIds[$item->grnItem->goods_received_note_id] = true;
+        }
+
+        foreach (array_keys($grnIds) as $grnId) {
+            $grn = $bill->billItems
+                ->first(fn ($i) => $i->grnItem?->goods_received_note_id === $grnId)
+                ?->grnItem
+                ?->goodsReceivedNote;
+
+            if ($grn) {
+                $this->grnService->syncGrnBillingStatus($grn->fresh(['grnItems']));
+            }
+        }
+    }
+
+    private function decrementGrnBilledQuantities(Bill $bill): void
+    {
+        $bill->loadMissing('billItems.grnItem.goodsReceivedNote');
+
+        $grnIds = [];
+
+        foreach ($bill->billItems as $item) {
+            if (! $item->grn_item_id || ! $item->grnItem) {
+                continue;
+            }
+
+            $newBilled = max(0, (float) $item->grnItem->billed_qty - (int) $item->quantity);
+            $item->grnItem->update(['billed_qty' => $newBilled]);
+            $grnIds[$item->grnItem->goods_received_note_id] = true;
+        }
+
+        foreach (array_keys($grnIds) as $grnId) {
+            $grn = $bill->billItems
+                ->first(fn ($i) => $i->grnItem?->goods_received_note_id === $grnId)
+                ?->grnItem
+                ?->goodsReceivedNote;
+
+            if ($grn) {
+                $this->grnService->syncGrnBillingStatus($grn->fresh(['grnItems']));
+            }
         }
     }
 }

@@ -20,4 +20,9 @@ class InventoryCostCalculator
 
         return round($net / $qty, 4);
     }
+
+    public static function unitCostFromGrnItem(\App\Models\GrnItem $item): float
+    {
+        return round((float) $item->unit_cost, 4);
+    }
 }

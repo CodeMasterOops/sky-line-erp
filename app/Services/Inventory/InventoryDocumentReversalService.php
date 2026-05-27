@@ -12,6 +12,7 @@ use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
 use App\Models\DeliveryChallan;
 use App\Enums\StockDirectionEnum;
+use App\Models\GoodsReceivedNote;
 use Illuminate\Validation\ValidationException;
 
 class InventoryDocumentReversalService
@@ -84,6 +85,10 @@ class InventoryDocumentReversalService
 
             $item->loadMissing('productVariant.product');
             if ($item->productVariant?->isService()) {
+                continue;
+            }
+
+            if ($item->grn_item_id) {
                 continue;
             }
 
@@ -212,6 +217,79 @@ class InventoryDocumentReversalService
                 $userId,
                 $remarks,
             );
+        }
+    }
+
+    public function reverseApprovedGrn(GoodsReceivedNote $grn, ?int $userId, ?string $remarks = null): void
+    {
+        $grn->loadMissing('grnItems');
+
+        foreach ($grn->grnItems as $item) {
+            if ((float) $item->billed_qty > 0) {
+                throw ValidationException::withMessages([
+                    'grn' => __('Cannot reverse GRN: some quantity has already been billed.'),
+                ]);
+            }
+        }
+
+        $movements = StockMovement::withoutGlobalScopes()
+            ->where('company_id', $grn->company_id)
+            ->where('reference_type', $grn->getMorphClass())
+            ->where('reference_id', $grn->id)
+            ->where('direction', StockDirectionEnum::IN)
+            ->where('type', ChangeTypeEnum::GRN_RECEIPT)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($movements as $movement) {
+            $layers = StockLayer::withoutGlobalScopes()
+                ->where('company_id', $grn->company_id)
+                ->whereNotNull('source_grn_item_id')
+                ->where('product_variant_id', $movement->product_variant_id)
+                ->where('warehouse_id', $movement->warehouse_id)
+                ->where('qty_remaining', '>', 0)
+                ->lockForUpdate()
+                ->orderBy('id')
+                ->get();
+
+            $remainingValued = (int) $layers->sum('qty_remaining');
+            if ($remainingValued < (int) $movement->quantity) {
+                throw ValidationException::withMessages([
+                    'grn' => __('Cannot reverse GRN: some received quantity was already sold or adjusted.'),
+                ]);
+            }
+
+            $toRemove = (int) $movement->quantity;
+            foreach ($layers as $layer) {
+                if ($toRemove <= 0) {
+                    break;
+                }
+                $layerQty = (int) $layer->qty_remaining;
+                $take = min($layerQty, $toRemove);
+                $layer->qty_remaining = $layerQty - $take;
+                $layer->save();
+                $toRemove -= $take;
+            }
+
+            $this->quantities->adjust(
+                $grn->company_id,
+                $movement->product_variant_id,
+                (int) $movement->warehouse_id,
+                -(int) $movement->quantity,
+            );
+
+            $grn->stockMovements()->create([
+                'company_id' => $grn->company_id,
+                'product_variant_id' => $movement->product_variant_id,
+                'warehouse_id' => $movement->warehouse_id,
+                'type' => ChangeTypeEnum::RETURN_OUT,
+                'direction' => StockDirectionEnum::OUT,
+                'quantity' => $movement->quantity,
+                'unit_cost' => $movement->unit_cost,
+                'total_cost' => $movement->total_cost,
+                'user_id' => $userId,
+                'remarks' => $remarks,
+            ]);
         }
     }
 

@@ -44,6 +44,7 @@ class StockLayerLedger
         float $unitCost,
         ?int $sourceBillItemId = null,
         ?\DateTimeInterface $receivedAt = null,
+        ?int $sourceGrnItemId = null,
     ): void {
         $method = $company->inventory_costing_method ?? InventoryCostingMethodEnum::FIFO;
         $at = $receivedAt ?? now();
@@ -56,7 +57,8 @@ class StockLayerLedger
                 $quantity,
                 $unitCost,
                 $sourceBillItemId,
-                $at
+                $at,
+                $sourceGrnItemId,
             );
 
             return;
@@ -69,7 +71,8 @@ class StockLayerLedger
             $quantity,
             $unitCost,
             $sourceBillItemId,
-            $at
+            $at,
+            $sourceGrnItemId,
         );
     }
 
@@ -81,6 +84,7 @@ class StockLayerLedger
         float $unitCost,
         ?int $sourceBillItemId,
         \DateTimeInterface $receivedAt,
+        ?int $sourceGrnItemId = null,
     ): void {
         StockLayer::create([
             'company_id' => $company->id,
@@ -90,6 +94,7 @@ class StockLayerLedger
             'unit_cost' => $unitCost,
             'received_at' => $receivedAt,
             'source_bill_item_id' => $sourceBillItemId,
+            'source_grn_item_id' => $sourceGrnItemId,
         ]);
     }
 
@@ -101,6 +106,7 @@ class StockLayerLedger
         float $unitCost,
         ?int $sourceBillItemId,
         \DateTimeInterface $receivedAt,
+        ?int $sourceGrnItemId = null,
     ): void {
         $layer = StockLayer::withoutGlobalScopes()
             ->where('company_id', $company->id)
@@ -120,6 +126,7 @@ class StockLayerLedger
                 'unit_cost' => $unitCost,
                 'received_at' => $receivedAt,
                 'source_bill_item_id' => $sourceBillItemId,
+                'source_grn_item_id' => $sourceGrnItemId,
             ]);
 
             return;
@@ -135,6 +142,7 @@ class StockLayerLedger
             'unit_cost' => round($newCost, 4),
             'received_at' => $receivedAt,
             'source_bill_item_id' => $sourceBillItemId ?? $layer->source_bill_item_id,
+            'source_grn_item_id' => $sourceGrnItemId ?? $layer->source_grn_item_id,
         ]);
     }
 

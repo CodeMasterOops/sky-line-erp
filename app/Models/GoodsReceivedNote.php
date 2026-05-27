@@ -5,10 +5,12 @@ namespace App\Models;
 use App\Enums\StatusEnum;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
+use App\Enums\GrnBillingStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class GoodsReceivedNote extends Model
 {
@@ -28,6 +30,7 @@ class GoodsReceivedNote extends Model
         'supplier_invoice_no',
         'remarks',
         'status',
+        'billing_status',
         'create_user_id',
         'approve_user_id',
         'approved_at',
@@ -37,6 +40,7 @@ class GoodsReceivedNote extends Model
         'received_date' => 'date',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
+        'billing_status' => GrnBillingStatusEnum::class,
     ];
 
     public function scopeFilter($query, $param = [])
@@ -82,5 +86,10 @@ class GoodsReceivedNote extends Model
     public function approveUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approve_user_id');
+    }
+
+    public function stockMovements(): MorphMany
+    {
+        return $this->morphMany(StockMovement::class, 'reference');
     }
 }

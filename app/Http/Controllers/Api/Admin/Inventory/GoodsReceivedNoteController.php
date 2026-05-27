@@ -8,11 +8,16 @@ use App\Annotation\Permissions;
 use App\Models\GoodsReceivedNote;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Inventory\GoodsReceivedNoteService;
 use App\Http\Resources\Admin\Inventory\GoodsReceivedNoteResource;
 use App\Http\Requests\Api\Admin\Inventory\GoodsReceivedNoteRequest;
 
 class GoodsReceivedNoteController extends Controller
 {
+    public function __construct(
+        private GoodsReceivedNoteService $grnService,
+    ) {}
+
     /**
      * @Permissions("list_grn", group="grn", desc="List GRNs")
      */
@@ -34,10 +39,28 @@ class GoodsReceivedNoteController extends Controller
     {
         $goodsReceivedNote->load([
             'party', 'warehouse', 'purchaseOrder', 'grnItems.productVariant.product', 'grnItems.unit',
-            'fiscalYear', 'createUser', 'approveUser',
+            'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
         ]);
 
         return GoodsReceivedNoteResource::make($goodsReceivedNote);
+    }
+
+    /**
+     * @Permissions("list_grn", group="grn", desc="List billable GRN lines")
+     */
+    public function billableItems(Request $request)
+    {
+        $request->validate([
+            'party_id' => ['required', 'integer', 'exists:parties,id'],
+            'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+        ]);
+
+        $items = $this->grnService->billableItemsForParty(
+            (int) $request->party_id,
+            $request->filled('warehouse_id') ? (int) $request->warehouse_id : null,
+        );
+
+        return response()->json(['data' => $items]);
     }
 
     /**
@@ -46,40 +69,15 @@ class GoodsReceivedNoteController extends Controller
     public function store(GoodsReceivedNoteRequest $request)
     {
         $validated = $request->validated();
-
         $company = auth('admin')->user()->company;
         $grnNo = $this->generateGrnNo($company->id);
 
-        $grn = DB::transaction(function () use ($validated, $company, $grnNo) {
-            $grn = GoodsReceivedNote::create([
-                'company_id' => $company->id,
-                'fiscal_year_id' => $company->fiscal_year_id,
-                'purchase_order_id' => $validated['purchase_order_id'] ?? null,
-                'party_id' => $validated['party_id'],
-                'warehouse_id' => $validated['warehouse_id'],
-                'grn_no' => $grnNo,
-                'received_date' => $validated['received_date'],
-                'supplier_invoice_no' => $validated['supplier_invoice_no'] ?? null,
-                'remarks' => $validated['remarks'] ?? null,
-                'status' => StatusEnum::DRAFT->value,
-                'create_user_id' => auth('admin')->id(),
-            ]);
-
-            foreach ($validated['items'] as $item) {
-                $grn->grnItems()->create([
-                    'product_variant_id' => $item['product_variant_id'],
-                    'purchase_order_item_id' => $item['purchase_order_item_id'] ?? null,
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'ordered_qty' => $item['ordered_qty'] ?? 0,
-                    'received_qty' => $item['received_qty'],
-                    'unit_cost' => $item['unit_cost'],
-                    'batch_no' => $item['batch_no'] ?? null,
-                    'expiry_date' => $item['expiry_date'] ?? null,
-                ]);
-            }
-
-            return $grn;
-        });
+        $grn = $this->grnService->createGrn(
+            $validated,
+            $company,
+            auth('admin')->id(),
+            $grnNo,
+        );
 
         return response()->json([
             'data' => GoodsReceivedNoteResource::make(
@@ -94,39 +92,13 @@ class GoodsReceivedNoteController extends Controller
      */
     public function update(GoodsReceivedNoteRequest $request, GoodsReceivedNote $goodsReceivedNote)
     {
-        if ($goodsReceivedNote->status === StatusEnum::APPROVED) {
-            return response()->json(['message' => 'Approved GRN cannot be edited.'], 422);
-        }
-
         $validated = $request->validated();
 
-        DB::transaction(function () use ($validated, $goodsReceivedNote) {
-            $goodsReceivedNote->update([
-                'party_id' => $validated['party_id'],
-                'warehouse_id' => $validated['warehouse_id'],
-                'received_date' => $validated['received_date'],
-                'supplier_invoice_no' => $validated['supplier_invoice_no'] ?? null,
-                'remarks' => $validated['remarks'] ?? null,
-            ]);
-
-            $goodsReceivedNote->grnItems()->delete();
-
-            foreach ($validated['items'] as $item) {
-                $goodsReceivedNote->grnItems()->create([
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'ordered_qty' => $item['ordered_qty'] ?? 0,
-                    'received_qty' => $item['received_qty'],
-                    'unit_cost' => $item['unit_cost'],
-                    'batch_no' => $item['batch_no'] ?? null,
-                    'expiry_date' => $item['expiry_date'] ?? null,
-                ]);
-            }
-        });
+        $grn = $this->grnService->updateGrn($goodsReceivedNote, $validated);
 
         return response()->json([
             'data' => GoodsReceivedNoteResource::make(
-                $goodsReceivedNote->fresh()->load(['grnItems.productVariant.product', 'grnItems.unit', 'party', 'warehouse', 'purchaseOrder'])
+                $grn->load(['grnItems.productVariant.product', 'grnItems.unit', 'party', 'warehouse', 'purchaseOrder'])
             ),
             'message' => 'GRN updated successfully.',
         ]);
@@ -137,23 +109,19 @@ class GoodsReceivedNoteController extends Controller
      */
     public function approve(GoodsReceivedNote $goodsReceivedNote)
     {
-        if ($goodsReceivedNote->status === StatusEnum::APPROVED) {
-            return response()->json(['message' => 'GRN is already approved.'], 422);
-        }
+        $user = auth('admin')->user();
 
-        DB::transaction(function () use ($goodsReceivedNote) {
-            $goodsReceivedNote->update([
-                'status' => StatusEnum::APPROVED->value,
-                'approve_user_id' => auth('admin')->id(),
-                'approved_at' => now(),
-            ]);
-        });
+        $grn = $this->grnService->approveGrn(
+            $goodsReceivedNote,
+            $user->company,
+            $user->id,
+        );
 
         return response()->json([
             'data' => GoodsReceivedNoteResource::make(
-                $goodsReceivedNote->fresh()->load([
+                $grn->load([
                     'party', 'warehouse', 'purchaseOrder', 'grnItems.productVariant.product', 'grnItems.unit',
-                    'fiscalYear', 'createUser', 'approveUser',
+                    'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
                 ])
             ),
             'message' => 'GRN approved and stock received.',
@@ -169,8 +137,10 @@ class GoodsReceivedNoteController extends Controller
             return response()->json(['message' => 'Approved GRN cannot be deleted.'], 422);
         }
 
-        $goodsReceivedNote->grnItems()->delete();
-        $goodsReceivedNote->delete();
+        DB::transaction(function () use ($goodsReceivedNote) {
+            $goodsReceivedNote->grnItems()->delete();
+            $goodsReceivedNote->delete();
+        });
 
         return response()->json(['message' => 'GRN deleted successfully.']);
     }

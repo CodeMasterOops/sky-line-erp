@@ -11,7 +11,8 @@
       @input="updateInputValue"
       :cols="cols"
       @blur="updateInputValue"
-      :rows="rows"></textarea>
+      :rows="rows"
+      :disabled="disabled"></textarea>
   <div v-if="error" class="invalid-feedback">
     {{ error }}
   </div>
@@ -46,6 +47,10 @@ defineProps({
     default: ''
   },
   required: {
+    type: Boolean,
+    default: false,
+  },
+  disabled: {
     type: Boolean,
     default: false,
   },

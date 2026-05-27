@@ -47,8 +47,9 @@ class StockMovementGlPostingService
         $inventoryId = $settings->inventory_account_id;
         $cogsId = $settings->cogs_account_id;
         $purchaseId = $settings->purchase_account_id;
+        $grniId = $settings->grni_account_id;
 
-        $pair = $this->resolveDebitCreditAccounts($movement, $inventoryId, $cogsId, $purchaseId);
+        $pair = $this->resolveDebitCreditAccounts($movement, $inventoryId, $cogsId, $purchaseId, $grniId);
         if ($pair === null) {
             return;
         }
@@ -121,6 +122,7 @@ class StockMovementGlPostingService
         ?int $inventoryId,
         ?int $cogsId,
         ?int $purchaseId,
+        ?int $grniId,
     ): ?array {
         if (! $inventoryId) {
             return null;
@@ -140,6 +142,14 @@ class StockMovementGlPostingService
             }
 
             return [$inventoryId, $purchaseId];
+        }
+
+        if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::GRN_RECEIPT) {
+            if (! $grniId) {
+                return null;
+            }
+
+            return [$inventoryId, $grniId];
         }
 
         if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::RETURN_IN) {

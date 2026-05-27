@@ -60,6 +60,7 @@ Route::get('inventory/stock-reconciliation', InventoryStockReconciliationControl
 Route::post('inventory/stock-reconciliation/align', InventoryStockReconciliationAlignController::class)->name('inventory.stock-reconciliation.align');
 
 // goods received notes
+Route::get('grn/billable-items', [GoodsReceivedNoteController::class, 'billableItems'])->name('grn.billable-items');
 Route::post('grn/{goodsReceivedNote}/approve', [GoodsReceivedNoteController::class, 'approve'])->name('grn.approve');
 Route::apiResource('grn', GoodsReceivedNoteController::class)->parameters(['grn' => 'goodsReceivedNote']);
 

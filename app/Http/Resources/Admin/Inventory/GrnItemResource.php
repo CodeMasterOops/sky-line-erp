@@ -17,6 +17,8 @@ class GrnItemResource extends JsonResource
             'unit_id' => $this->unit_id ?? '',
             'ordered_qty' => (float) ($this->ordered_qty ?? 0),
             'received_qty' => (float) ($this->received_qty ?? 0),
+            'billed_qty' => (float) ($this->billed_qty ?? 0),
+            'remaining_qty' => max(0, (float) ($this->received_qty ?? 0) - (float) ($this->billed_qty ?? 0)),
             'unit_cost' => (float) ($this->unit_cost ?? 0),
             'batch_no' => $this->batch_no ?? '',
             'expiry_date' => $this->expiry_date ?? null,

@@ -23,6 +23,7 @@ class GoodsReceivedNoteResource extends JsonResource
             'supplier_invoice_no' => $this->supplier_invoice_no ?? '',
             'remarks' => $this->remarks ?? '',
             'status' => $this->status?->value ?? (string) $this->status,
+            'billing_status' => $this->billing_status?->value ?? (string) ($this->billing_status ?? 'open'),
             'create_user_id' => $this->create_user_id ?? '',
             'approve_user_id' => $this->approve_user_id ?? '',
             'approved_at' => $this->approved_at ?? null,

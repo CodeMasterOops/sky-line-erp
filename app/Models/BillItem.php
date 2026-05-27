@@ -16,6 +16,7 @@ class BillItem extends Model
 
     protected $fillable = [
         'bill_id',
+        'grn_item_id',
         'product_variant_id',
         'warehouse_id',
         'quantity',
@@ -29,6 +30,7 @@ class BillItem extends Model
 
     protected $casts = [
         'bill_id' => 'integer',
+        'grn_item_id' => 'integer',
         'product_variant_id' => 'integer',
         'warehouse_id' => 'integer',
         'unit_id' => 'integer',
@@ -43,6 +45,11 @@ class BillItem extends Model
     public function bill(): BelongsTo
     {
         return $this->belongsTo(Bill::class);
+    }
+
+    public function grnItem(): BelongsTo
+    {
+        return $this->belongsTo(GrnItem::class);
     }
 
     public function productVariant(): BelongsTo

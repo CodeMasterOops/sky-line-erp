@@ -21,6 +21,7 @@ class StockLayer extends Model
         'received_at',
         'lot_number',
         'source_bill_item_id',
+        'source_grn_item_id',
     ];
 
     protected $casts = [
@@ -42,5 +43,10 @@ class StockLayer extends Model
     public function sourceBillItem(): BelongsTo
     {
         return $this->belongsTo(BillItem::class, 'source_bill_item_id');
+    }
+
+    public function sourceGrnItem(): BelongsTo
+    {
+        return $this->belongsTo(GrnItem::class, 'source_grn_item_id');
     }
 }
