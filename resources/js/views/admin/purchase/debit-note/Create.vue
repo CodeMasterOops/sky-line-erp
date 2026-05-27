@@ -97,6 +97,7 @@
                             <ProductVariantSearchInput
                                 label="Product (manual)"
                                 required
+                                physical-only
                                 @select="onVariantSelected"
                             />
                             <span class="form-text text-muted small">
@@ -589,6 +590,12 @@ function lineFromBillItem(billItem, billedQty) {
 }
 
 const onVariantSelected = async (variant) => {
+    if (variant.is_service) {
+        useToast().warning('Services cannot be returned on debit notes.');
+
+        return;
+    }
+
     const vid = variant.id;
     const result = await resolveWarehouse(variant.id, variantLabel(variant));
 

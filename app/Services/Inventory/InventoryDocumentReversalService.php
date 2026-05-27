@@ -81,6 +81,11 @@ class InventoryDocumentReversalService
                 continue;
             }
 
+            $item->loadMissing('productVariant.product');
+            if ($item->productVariant?->isService()) {
+                continue;
+            }
+
             $layers = StockLayer::withoutGlobalScopes()
                 ->where('company_id', $bill->company_id)
                 ->where('source_bill_item_id', $item->id)

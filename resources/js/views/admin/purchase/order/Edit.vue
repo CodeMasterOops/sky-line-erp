@@ -41,6 +41,7 @@
                             <ProductVariantSearchInput
                                 label="Product name / code / SKU"
                                 required
+                                physical-only
                                 @select="onVariantSelected"
                             />
                         </div>
@@ -260,6 +261,7 @@
 <script setup>
 import {computed, reactive, ref, watch} from 'vue';
 import debounce from 'lodash/debounce';
+import {useToast} from 'vue-toastification';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -333,6 +335,12 @@ function rateStringFromApiLine(item) {
 }
 
 const onVariantSelected = (variant) => {
+    if (variant.is_service) {
+        useToast().warning('Services cannot be purchased on orders. Use expenses for service payments.');
+
+        return;
+    }
+
     const vid = variant.id;
     const existing = form.items.findIndex((i) => String(i.product_variant_id) === String(vid));
     if (existing !== -1) {

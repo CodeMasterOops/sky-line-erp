@@ -332,6 +332,7 @@ import {useDateHelper} from '@/composables/dateHelper.js';
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
+import {warehouseIdForLineItem} from '@/helpers/productLineValidation.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
@@ -588,7 +589,8 @@ function lineFromInvoiceItem(item, invoicedQty) {
 
 const onVariantSelected = async (variant) => {
     const vid = variant.id;
-    const result = await resolveWarehouse(variant.id, variantLabel(variant));
+    const isService = !!variant.is_service;
+    const result = await resolveWarehouse(variant.id, variantLabel(variant), { isService });
 
     if (!result.success) {
         showWarehouseToast(result.error);
@@ -600,12 +602,12 @@ const onVariantSelected = async (variant) => {
     const mergeIdx = form.items.findIndex(
         (i) => String(i.product_variant_id) === String(vid)
             && !i.invoice_item_id
-            && String(i.warehouse_id) === String(wid),
+            && (isService ? i.is_service : String(i.warehouse_id) === String(wid)),
     );
 
     if (mergeIdx !== -1) {
         const nextQty = Number(form.items[mergeIdx].quantity || 0) + 1;
-        if (result.warehouse.quantity != null && nextQty > result.warehouse.quantity) {
+        if (!isService && result.warehouse.quantity != null && nextQty > result.warehouse.quantity) {
             showWarehouseToast('insufficient_stock', result.warehouse.quantity);
 
             return;
@@ -627,6 +629,7 @@ const onVariantSelected = async (variant) => {
         tax_id: '',
         line_discount_type: 'fixed',
         line_discount_value: '0',
+        is_service: isService,
         ...buildLineWarehouseFields(result.warehouse),
     });
 };
@@ -649,7 +652,7 @@ const validations = object({
         .of(
             object({
                 product_variant_id: string().required('Product is required.'),
-                warehouse_id: string().required('Warehouse is required.'),
+                warehouse_id: warehouseIdForLineItem(),
                 quantity: string().required('Quantity is required.'),
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
@@ -686,7 +689,7 @@ const buildCreditNotePayload = () => {
         items: form.items.map((item, index) => ({
             invoice_item_id: item.invoice_item_id || null,
             product_variant_id: item.product_variant_id,
-            warehouse_id: item.warehouse_id,
+            warehouse_id: item.is_service ? null : (item.warehouse_id || null),
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),

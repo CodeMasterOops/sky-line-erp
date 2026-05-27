@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Enums\ProductTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -62,6 +63,18 @@ class ProductVariant extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function isService(): bool
+    {
+        if ($this->relationLoaded('product') && $this->product !== null) {
+            return $this->product->isService();
+        }
+
+        return Product::query()
+            ->whereKey($this->product_id)
+            ->where('product_type', ProductTypeEnum::SERVICE->value)
+            ->exists();
     }
 
     public function variantOptions(): BelongsToMany

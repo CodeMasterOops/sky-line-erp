@@ -33,7 +33,7 @@
 
                     <h6 class="mb-3">Items</h6>
                     <div class="mb-3">
-                        <ProductVariantSearchInput label="Product" required @select="onVariantSelected" />
+                        <ProductVariantSearchInput label="Product" required physical-only @select="onVariantSelected" />
                     </div>
                     <div class="table-responsive mb-3">
                         <table class="table table-sm">

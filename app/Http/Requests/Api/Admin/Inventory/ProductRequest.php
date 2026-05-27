@@ -15,6 +15,32 @@ class ProductRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('product_type') === ProductTypeEnum::SERVICE->value) {
+            $this->merge([
+                'brand_id' => null,
+                'min_stock_level' => 0,
+                'reorder_quantity' => 0,
+                'has_variants' => false,
+            ]);
+
+            $variants = $this->input('variants', []);
+            if (is_array($variants)) {
+                foreach ($variants as $i => $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $variants[$i]['sku'] = null;
+                    if (! isset($row['purchase_price']) || $row['purchase_price'] === '') {
+                        $variants[$i]['purchase_price'] = 0;
+                    }
+                }
+                $this->merge(['variants' => $variants]);
+            }
+        }
+    }
+
     public function rules(): array
     {
         $validations = [
@@ -22,7 +48,29 @@ class ProductRequest extends FormRequest
             'product_type' => ['required', Rule::enum(ProductTypeEnum::class)],
             'image' => ['nullable', 'image'],
             'unit_id' => ['required', TRule::exists('units', 'id')->withoutTrashed()],
-            'brand_id' => ['nullable', TRule::exists('brands', 'id')->withoutTrashed()],
+            'brand_id' => [
+                'nullable',
+                TRule::exists('brands', 'id')->withoutTrashed(),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($this->input('product_type') === ProductTypeEnum::SERVICE->value && $value !== null && $value !== '') {
+                        $fail(__('Services cannot have a brand.'));
+                    }
+                },
+            ],
+            'hsn_code' => ['nullable', 'string', 'max:255'],
+            'min_stock_level' => [
+                'nullable',
+                'numeric',
+                'min:0',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($this->input('product_type') === ProductTypeEnum::SERVICE->value
+                        && $value !== null
+                        && $value !== ''
+                        && (float) $value > 0) {
+                        $fail(__('Services cannot have a minimum stock level.'));
+                    }
+                },
+            ],
             'tax_id' => [
                 'nullable',
                 TRule::exists('taxes', 'id')->withoutTrashed(),
@@ -70,7 +118,12 @@ class ProductRequest extends FormRequest
             ],
             'variants.*.sku' => ['nullable'],
             'variants.*.sales_price' => ['required', 'numeric'],
-            'variants.*.purchase_price' => ['required', 'numeric'],
+            'variants.*.purchase_price' => [
+                Rule::requiredIf(fn () => $this->input('product_type') !== ProductTypeEnum::SERVICE->value),
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
             'variants.*.is_default' => ['nullable', 'boolean'],
             'variants.*.attribute_values' => ['nullable', 'array'],
             'attribute_values' => ['nullable', 'array'],

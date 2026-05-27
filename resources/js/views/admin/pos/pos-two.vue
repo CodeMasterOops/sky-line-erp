@@ -41,6 +41,7 @@
             <div class="mb-3 position-relative">
               <ProductVariantSearchInput
                 ref="productSearch"
+                physical-only
                 placeholder="Search product by name, SKU or scan barcode — Enter to add"
                 @select="onVariantSelected"
               />
@@ -486,6 +487,7 @@ export default {
           out_of_stock: 'Product is out of stock in all warehouses.',
           insufficient_stock: `Only ${result.stock} unit(s) available in this warehouse.`,
           fetch_failed: 'Could not load warehouse stock.',
+          service_not_allowed: 'Services cannot be sold through POS. Use a sales invoice instead.',
         };
         useToast().warning(messages[result.error] ?? 'Could not add product to cart.');
 

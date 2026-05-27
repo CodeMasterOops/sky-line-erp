@@ -7,6 +7,7 @@ use App\Enums\StatusEnum;
 use App\Enums\TaxTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use Illuminate\Validation\Rule;
+use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class InvoiceRequest extends FormRequest
@@ -33,7 +34,7 @@ class InvoiceRequest extends FormRequest
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
-            'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'items.*.warehouse_id' => ProductLineRules::warehouseId(),
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],

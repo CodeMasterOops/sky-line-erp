@@ -1,10 +1,10 @@
 <template>
-    <PageHeader title="Product List" subtitle="Manage your products" @refresh="fetchProducts">
+    <PageHeader title="Product List" subtitle="Manage products and services" @refresh="fetchProducts">
         <template #actions>
             <router-link :to="{ name: 'admin.product-create' }" v-can="'create_product'"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i>
-                Add Product
+                Add Item
             </router-link>
             <a href="#" class="btn btn-secondary color d-flex align-items-center" data-bs-toggle="modal"
                 data-bs-target="#view-notes">
@@ -18,6 +18,28 @@
         <VTableToolbar v-model="filter.search" placeholder="Search products" :is-filtered="isFiltered"
             @search="onSearchInput" @reset="resetFilters">
             <template #filters>
+                <!-- Type filter -->
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ selectedTypeName || 'Type' }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('product_type', '', 'All types')">All types</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('product_type', 'product', 'Products')">Products</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('product_type', 'service', 'Services')">Services</a>
+                        </li>
+                    </ul>
+                </div>
                 <!-- Category Dropdown -->
                 <div class="dropdown me-2">
                     <a href="javascript:void(0);"
@@ -61,7 +83,7 @@
 
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
-                <a-table class="table datanew table-hover table-center mb-0" :columns="productColumns"
+                <a-table class="table datanew table-hover table-center mb-0" :columns="columns"
                     :data-source="products.data" :row-key="rowKey" :pagination="false"
                     :loading="products.loading" @change="handleTableChange">
                     <template #bodyCell="{ column, record }">
@@ -74,15 +96,24 @@
                             </div>
                         </template>
 
+                        <template v-else-if="column.key === 'product_type'">
+                            <span class="badge"
+                                :class="record.product_type === 'service' ? 'badge-soft-info' : 'badge-soft-primary'">
+                                {{ formatProductType(record.product_type) }}
+                            </span>
+                        </template>
+
                         <template v-else-if="column.key === 'total_stock'">
-                            <button type="button" class="btn btn-link p-0 align-baseline fw-semibold"
+                            <template v-if="record.product_type === 'service'">—</template>
+                            <button v-else type="button" class="btn btn-link p-0 align-baseline fw-semibold"
                                 @click="openStockDetail(record)">
                                 {{ record.total_stock ?? 0 }}
                             </button>
                         </template>
 
                         <template v-else-if="column.key === 'total_inventory_value'">
-                            {{ formatMoney(record.total_inventory_value) }}
+                            <template v-if="record.product_type === 'service'">—</template>
+                            <template v-else>{{ formatMoney(record.total_inventory_value) }}</template>
                         </template>
 
                         <template v-else-if="column.key === 'tax'">
@@ -116,7 +147,7 @@ import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { formatMoney } from '@/helpers/formatMoney.js';
-import { productColumns, createRowActions } from './tableConfig.js';
+import { getProductColumns, createRowActions, formatProductType } from './tableConfig.js';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -132,13 +163,19 @@ const categoryList = computed(() => categories.value.data || []);
 
 const selectedCategoryName = ref('');
 const selectedBrandName = ref('');
+const selectedTypeName = ref('');
 const stockDetailProduct = ref(null);
+
+const columns = computed(() => getProductColumns({
+    showStock: filter.product_type !== 'service',
+}));
 
 const fetchProducts = () => productStore.getProducts({ filter });
 
 const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
     defaults: {
         search: '',
+        product_type: '',
         product_category_id: '',
         brand_id: '',
         page: 1,
@@ -165,6 +202,7 @@ const setFilter = (key, value, name = '') => {
     filter[key] = value;
     if (key === 'product_category_id') selectedCategoryName.value = name;
     if (key === 'brand_id') selectedBrandName.value = name;
+    if (key === 'product_type') selectedTypeName.value = name;
 };
 
 const openStockDetail = (record) => { stockDetailProduct.value = record; };

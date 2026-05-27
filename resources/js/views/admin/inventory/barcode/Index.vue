@@ -11,6 +11,7 @@
                         <ProductVariantSearchInput
                             label="Search Product"
                             placeholder="Search by name, code, or SKU — Enter or click to add"
+                            physical-only
                             @select="onVariantSelected"
                         />
                     </div>

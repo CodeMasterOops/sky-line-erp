@@ -3,7 +3,7 @@ import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 
 export function invoiceLineKey(variantId, warehouseId) {
-    return `${variantId}-${warehouseId}`;
+    return `${variantId}-${warehouseId ?? 'service'}`;
 }
 
 export async function fetchVariantWarehouses(variantId) {
@@ -16,29 +16,40 @@ export function useVariantWarehousePicker() {
     const warehousePickerRef = ref(null);
     let pendingResolve = null;
 
-    const resolveWarehouse = async (variantId, variantName = '') => {
-        let options;
+    const resolveWarehouse = async (variantId, variantName = '', options = {}) => {
+        if (options.isService) {
+            return {
+                success: true,
+                warehouse: {
+                    warehouse_id: null,
+                    warehouse_name: '',
+                    quantity: null,
+                },
+            };
+        }
+
+        let warehouseOptions;
 
         try {
-            options = await fetchVariantWarehouses(variantId);
+            warehouseOptions = await fetchVariantWarehouses(variantId);
         } catch (err) {
             showErrors(err);
 
             return { success: false, error: 'fetch_failed' };
         }
 
-        if (options.length === 0) {
+        if (warehouseOptions.length === 0) {
             return { success: false, error: 'out_of_stock' };
         }
 
-        if (options.length === 1) {
-            return { success: true, warehouse: options[0] };
+        if (warehouseOptions.length === 1) {
+            return { success: true, warehouse: warehouseOptions[0] };
         }
 
         return new Promise((resolve) => {
             pendingResolve = resolve;
             warehousePickerRef.value?.open({
-                options,
+                options: warehouseOptions,
                 variantName,
             });
         });

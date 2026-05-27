@@ -35,6 +35,7 @@ readonly class PurchaseBillService
             $items = $formData['items'];
 
             $bill = Bill::create([
+                'company_id' => $user->company_id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'purchase_order_id' => $formData['purchase_order_id'] ?? null,
@@ -179,6 +180,7 @@ readonly class PurchaseBillService
         $accountSetting = AccountSetting::first();
 
         $journal = $bill->journal()->create([
+            'company_id' => $bill->company_id,
             'fiscal_year_id' => $bill->fiscal_year_id,
             'type' => JournalTypeEnum::PURCHASE_BILL->value,
             'voucher_no' => $bill->bill_no,
@@ -259,11 +261,16 @@ readonly class PurchaseBillService
 
     private function applyInventoryReceiptsForApprovedBill(Bill $bill, \App\Models\Company $company, \App\Models\User $user): void
     {
-        $bill->loadMissing('billItems');
+        $bill->loadMissing('billItems.productVariant.product');
 
         foreach ($bill->billItems as $item) {
             $qty = (int) $item->quantity;
             if ($qty <= 0) {
+                continue;
+            }
+
+            $item->loadMissing('productVariant.product');
+            if ($item->productVariant?->isService()) {
                 continue;
             }
 

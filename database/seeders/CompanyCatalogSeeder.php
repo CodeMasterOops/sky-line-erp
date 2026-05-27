@@ -74,40 +74,60 @@ class CompanyCatalogSeeder
         }
 
         foreach ($cfg['products'] ?? [] as $p) {
-            $catName = $p['category'] ?? 'General';
-            $unitCode = $p['unit_code'] ?? 'PCS';
-            $brandCode = $p['brand_code'] ?? 'HB';
-            $categoryId = $categoriesByName[$catName] ?? $categoriesByName['General'] ?? null;
-            $unitId = $unitsByCode[$unitCode] ?? null;
-            $brandId = $brandsByCode[$brandCode] ?? null;
-            if ($categoryId === null || $unitId === null) {
-                continue;
-            }
-
-            $product = Product::create([
-                'company_id' => $companyId,
-                'product_category_id' => $categoryId,
-                'product_type' => ProductTypeEnum::PRODUCT,
-                'name' => $p['name'] ?? 'Product',
-                'code' => $p['code'] ?? 'ITEM',
-                'hsn_code' => $p['hsn_code'] ?? null,
-                'unit_id' => $unitId,
-                'brand_id' => $brandId,
-                'has_variants' => false,
-                'reorder_quantity' => 0,
-                'min_stock_level' => 0,
-                'description' => $p['description'] ?? null,
-            ]);
-
-            ProductVariant::create([
-                'company_id' => $companyId,
-                'product_id' => $product->id,
-                'sku' => $p['sku'] ?? $product->code,
-                'sales_price' => (float) ($p['sales_price'] ?? 0),
-                'purchase_price' => (float) ($p['purchase_price'] ?? 0),
-                'is_default' => true,
-            ]);
+            self::createCatalogItem($companyId, $p, ProductTypeEnum::PRODUCT, $categoriesByName, $unitsByCode, $brandsByCode);
         }
+
+        foreach ($cfg['services'] ?? [] as $p) {
+            self::createCatalogItem($companyId, $p, ProductTypeEnum::SERVICE, $categoriesByName, $unitsByCode, $brandsByCode);
+        }
+    }
+
+    /**
+     * @param  array<string, int>  $categoriesByName
+     * @param  array<string, int>  $unitsByCode
+     * @param  array<string, int>  $brandsByCode
+     */
+    private static function createCatalogItem(
+        int $companyId,
+        array $p,
+        ProductTypeEnum $productType,
+        array $categoriesByName,
+        array $unitsByCode,
+        array $brandsByCode,
+    ): void {
+        $catName = $p['category'] ?? ($productType === ProductTypeEnum::SERVICE ? 'Services' : 'General');
+        $unitCode = $p['unit_code'] ?? ($productType === ProductTypeEnum::SERVICE ? 'HR' : 'PCS');
+        $brandCode = $p['brand_code'] ?? 'HB';
+        $categoryId = $categoriesByName[$catName] ?? $categoriesByName['General'] ?? null;
+        $unitId = $unitsByCode[$unitCode] ?? null;
+        $brandId = $productType === ProductTypeEnum::SERVICE ? null : ($brandsByCode[$brandCode] ?? null);
+        if ($categoryId === null || $unitId === null) {
+            return;
+        }
+
+        $product = Product::create([
+            'company_id' => $companyId,
+            'product_category_id' => $categoryId,
+            'product_type' => $productType,
+            'name' => $p['name'] ?? 'Product',
+            'code' => $p['code'] ?? 'ITEM',
+            'hsn_code' => $p['hsn_code'] ?? null,
+            'unit_id' => $unitId,
+            'brand_id' => $brandId,
+            'has_variants' => false,
+            'reorder_quantity' => 0,
+            'min_stock_level' => 0,
+            'description' => $p['description'] ?? null,
+        ]);
+
+        ProductVariant::create([
+            'company_id' => $companyId,
+            'product_id' => $product->id,
+            'sku' => $p['sku'] ?? $product->code,
+            'sales_price' => (float) ($p['sales_price'] ?? 0),
+            'purchase_price' => (float) ($p['purchase_price'] ?? 0),
+            'is_default' => true,
+        ]);
     }
 
     /**

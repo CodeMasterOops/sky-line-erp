@@ -51,7 +51,7 @@
                                                 Service
                                             </div>
                                             <div class="small text-muted mt-1 mb-0">
-                                                Labor, time, or fees; one SKU and one price row (no variants).
+                                                Labor, time, or fees; one price row (no variants or stock).
                                             </div>
                                         </button>
                                     </div>
@@ -70,7 +70,7 @@
                             </div>
                             <div class="col">
                                 <label class="form-label" for="code">
-                                    Product code
+                                    {{ isPhysicalProduct ? 'Product code' : 'Service code' }}
                                     <VRequiredMark />
                                 </label>
                                 <div class="input-group product-form-input-group">
@@ -97,13 +97,14 @@
                                     required
                                     @validate="validateField('unit_id')" :error="errors.unit_id" />
                             </div>
-                            <div class="col">
+                            <div v-if="isPhysicalProduct" class="col">
                                 <VMultiselect id="brand_id" v-model="form.brand_id" :options="brands.data" label="Brand"
                                     @validate="validateField('brand_id')" :error="errors.brand_id" />
                             </div>
                             <div class="col">
                                 <VInput id="hsn_code" v-model="form.hsn_code"
-                                    label="HSN / HS Code" placeholder="e.g. 9403"
+                                    :label="isPhysicalProduct ? 'HSN / HS Code' : 'SAC'"
+                                    placeholder="e.g. 9403"
                                     @validate="validateField('hsn_code')"
                                     :error="errors.hsn_code" />
                             </div>
@@ -156,7 +157,7 @@
                     <button class="accordion-button collapsed bg-white" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapsePricing" aria-expanded="true" aria-controls="collapsePricing">
                         <span class="d-flex align-items-center gap-2 text-start">
-                            <span class="fw-semibold">Pricing &amp; inventory</span>
+                            <span class="fw-semibold">{{ isPhysicalProduct ? 'Pricing & inventory' : 'Pricing' }}</span>
                         </span>
                     </button>
                 </h2>
@@ -173,8 +174,11 @@
                             <strong>{{ inventoryCostingMethodName }}</strong> — change under
                             <router-link :to="{ name: 'admin.general-settings' }" class="text-primary">General settings</router-link>).
                         </p>
-                        <p v-else class="text-muted small mb-3">
-                            Set default purchase and selling prices for quoting; services are not held as stock.
+                        <p v-else class="alert alert-light border small mb-3 mb-md-4 text-dark">
+                            <i class="ti ti-info-circle me-1" />
+                            <strong>Default rates.</strong>
+                            Selling price is used on quotes and invoices. Cost is optional—for subcontracted work or
+                            margin reports. Service code and SAC are set above; this item is not held as stock.
                         </p>
                         <div v-if="isPhysicalProduct" class="row g-3 g-lg-4 mb-1">
                             <div class="col-12">
@@ -215,12 +219,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div v-else class="mb-3">
-                            <p class="text-muted small mb-0">
-                                Services use a single SKU and price. Variant options are not available.
-                            </p>
                         </div>
 
                         <template v-if="isVariableProduct">
@@ -398,16 +396,17 @@
 
                         <template v-else-if="form.variants.length">
                             <div
-                                class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 g-lg-4 mt-1 product-form-fields">
-                                <div class="col">
+                                class="row row-cols-1 row-cols-md-2 g-3 g-lg-4 mt-1 product-form-fields">
+                                <div v-if="isPhysicalProduct" class="col">
                                     <VInput id="sku" v-model="form.variants[0].sku" label="SKU"
                                         @validate="validateField(`variants[0].sku`)"
                                         :error="errors[`variants[0].sku`]" />
                                 </div>
                                 <div class="col">
                                     <VInput input-type="number" id="purchase_price"
-                                        v-model="form.variants[0].purchase_price" label="Purchase Price (Default)"
-                                        required
+                                        v-model="form.variants[0].purchase_price"
+                                        :label="isPhysicalProduct ? 'Purchase Price (Default)' : 'Cost / subcontract rate'"
+                                        :required="isPhysicalProduct"
                                         @validate="validateField(`variants[0].purchase_price`)"
                                         :error="errors[`variants[0].purchase_price`]" />
                                 </div>
@@ -862,6 +861,7 @@ watch(
         }
         if (type === 'service') {
             form.has_variants = false;
+            form.brand_id = '';
             resetToSimplePricing();
         }
     }
@@ -880,6 +880,7 @@ const setPricingModel = (variable) => {
 const onProductTypeChange = () => {
     validateField('product_type');
     if (form.product_type === 'service') {
+        form.brand_id = '';
         validateField('reorder_quantity');
     }
 };
@@ -915,7 +916,7 @@ const validations = object({
     product_type: string().required('Product type is required.'),
     product_category_id: string().required('Category is required.'),
     name: string().required('Name is required.'),
-    code: string().required('Product code is required.'),
+    code: string().required('Code is required.'),
     unit_id: string().required('Unit is required.'),
     brand_id: string().nullable(),
     tax_id: string().nullable(),
@@ -932,10 +933,25 @@ const validations = object({
                 id: mixed().nullable(),
                 sku: string().nullable(),
                 sales_price: string().required('Selling price is required.'),
-                purchase_price: string().required('Purchase price is required.'),
+                purchase_price: string().nullable(),
                 attribute_values: array().nullable(),
             })
         )
+        .test('purchase-prices', 'Purchase price is required.', function (variants) {
+            if (this.parent.product_type === 'service') {
+                return true;
+            }
+            for (let i = 0; i < (variants?.length ?? 0); i++) {
+                if (!String(variants[i]?.purchase_price ?? '').trim()) {
+                    return this.createError({
+                        message: 'Purchase price is required.',
+                        path: `variants[${i}].purchase_price`,
+                    });
+                }
+            }
+
+            return true;
+        })
         .test('variable-rules', 'Complete variant options and SKUs.', function (variants) {
             const parent = this.parent;
             const isVar = parent.product_type === 'product' && parent.has_variants === true;
@@ -962,11 +978,12 @@ const validations = object({
 const { errors, validateField, validateForm } = useYup(form, validations);
 
 function buildPayload() {
+    const isService = form.product_type === 'service';
     const variants = form.variants.map((v) => {
         const row = {
-            sku: v.sku,
+            sku: isService ? null : v.sku,
             sales_price: v.sales_price,
-            purchase_price: v.purchase_price,
+            purchase_price: isService && !String(v.purchase_price ?? '').trim() ? 0 : v.purchase_price,
             is_default: v.is_default,
             attribute_values: Array.isArray(v.attribute_values) ? v.attribute_values : [],
         };

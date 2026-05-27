@@ -87,6 +87,7 @@
                             <ProductVariantSearchInput
                                 label="Product name / code / SKU"
                                 required
+                                physical-only
                                 @select="onVariantSelected"
                             />
                         </div>
@@ -289,6 +290,7 @@
 <script setup>
 import {computed, nextTick, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
+import {useToast} from 'vue-toastification';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -376,6 +378,12 @@ function rateStringFromApiLine(item) {
 }
 
 const onVariantSelected = (variant) => {
+    if (variant.is_service) {
+        useToast().warning('Services cannot be purchased on bills. Use expenses for service payments.');
+
+        return;
+    }
+
     const vid = variant.id;
     const existing = form.items.findIndex((i) => String(i.product_variant_id) === String(vid));
     if (existing !== -1) {
@@ -468,11 +476,21 @@ watch(
 
 const isDraft = computed(() => bill.value.data.status === 'draft');
 
+const hasPhysicalBillItems = () => form.items.length > 0;
+
 const validations = object({
     bill_date: string().required('Bill date is required.'),
     due_date: string().nullable(),
     party_id: string().nullable(),
-    warehouse_id: string().required('Warehouse is required.'),
+    warehouse_id: string()
+        .nullable()
+        .test('warehouse-required', 'Warehouse is required when purchasing stock products.', function () {
+            if (!hasPhysicalBillItems()) {
+                return true;
+            }
+            const value = this.parent.warehouse_id;
+            return value != null && String(value).trim() !== '';
+        }),
     order_discount_type: string().nullable(),
     order_discount_value: string().nullable(),
     items: array()
@@ -518,7 +536,7 @@ const buildBillPayload = () => {
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item) => ({
             product_variant_id: item.product_variant_id,
-            warehouse_id: wid,
+            warehouse_id: wid || null,
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),

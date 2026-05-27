@@ -10,6 +10,10 @@ return [
         ['name' => 'Piece', 'code' => 'PCS'],
         ['name' => 'Kilogram', 'code' => 'KG'],
         ['name' => 'Liter', 'code' => 'L'],
+        ['name' => 'Hour', 'code' => 'HR'],
+        ['name' => 'Day', 'code' => 'DAY'],
+        ['name' => 'Job', 'code' => 'JOB'],
+        ['name' => 'Fixed', 'code' => 'FIX'],
     ],
 
     'brands' => [
@@ -20,6 +24,7 @@ return [
         ['name' => 'General', 'description' => 'Miscellaneous items'],
         ['name' => 'Beverages', 'description' => 'Drinks'],
         ['name' => 'Grocery', 'description' => 'Packaged foods'],
+        ['name' => 'Services', 'description' => 'Billable services and labor'],
     ],
 
     /**
@@ -70,6 +75,42 @@ return [
             'sales_price' => 120.0,
             'purchase_price' => 80.0,
             'sku' => 'DEMO-SKU-NOTE-A4',
+        ],
+    ],
+
+    /**
+     * Billable services (no stock, single price row).
+     */
+    'services' => [
+        [
+            'name' => 'Installation Service',
+            'code' => 'DEMO-SVC-INST',
+            'category' => 'Services',
+            'unit_code' => 'JOB',
+            'hsn_code' => null,
+            'sales_price' => 1500.0,
+            'purchase_price' => 800.0,
+            'sku' => 'DEMO-SKU-SVC-INST',
+        ],
+        [
+            'name' => 'Annual Maintenance',
+            'code' => 'DEMO-SVC-MAINT',
+            'category' => 'Services',
+            'unit_code' => 'FIX',
+            'hsn_code' => null,
+            'sales_price' => 5000.0,
+            'purchase_price' => 0.0,
+            'sku' => 'DEMO-SKU-SVC-MAINT',
+        ],
+        [
+            'name' => 'Consulting (Hourly)',
+            'code' => 'DEMO-SVC-CONS',
+            'category' => 'Services',
+            'unit_code' => 'HR',
+            'hsn_code' => null,
+            'sales_price' => 2500.0,
+            'purchase_price' => 1200.0,
+            'sku' => 'DEMO-SKU-SVC-CONS',
         ],
     ],
 

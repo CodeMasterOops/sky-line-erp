@@ -39,13 +39,16 @@ export const useProductStore = defineStore('product', {
         /**
          * Paginated variant search (name, product code, SKU). Does not cache the full catalog.
          */
-        searchProductVariants({ q = '', barcode = '', page = 1, limit = 20 } = {}) {
+        searchProductVariants({ q = '', barcode = '', page = 1, limit = 20, physical_only = 0 } = {}) {
             const params = new URLSearchParams();
             if (barcode) {
                 params.set('barcode', barcode);
             }
             if (q) {
                 params.set('q', q);
+            }
+            if (physical_only) {
+                params.set('physical_only', '1');
             }
             params.set('page', String(page));
             params.set('limit', String(limit));

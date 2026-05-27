@@ -3,15 +3,24 @@
 namespace App\Http\Resources\Admin\Inventory;
 
 use Illuminate\Http\Request;
+use App\Enums\ProductTypeEnum;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ProductVariantResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $productType = $this->relationLoaded('product') && $this->product
+            ? ($this->product->product_type instanceof ProductTypeEnum
+                ? $this->product->product_type->value
+                : (string) ($this->product->product_type ?? ''))
+            : '';
+
         return [
             'id' => $this->id ?? '',
             'name' => $this->variant_name ?? '',
+            'product_type' => $productType,
+            'is_service' => $productType === ProductTypeEnum::SERVICE->value,
             $this->mergeWhen($this->whenLoaded('product'), function () {
                 return [
                     'unit_id' => $this->product->unit_id ?? '',

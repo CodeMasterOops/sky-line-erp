@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin\Inventory;
 use App\Models\Product;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
+use App\Enums\ProductTypeEnum;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class ProductController extends Controller
      */
     public function productVariants(Request $request)
     {
-        $variants = ProductVariant::with(['product:id,name,unit_id', 'variantOptions'])
+        $variants = ProductVariant::with(['product:id,name,unit_id,product_type', 'variantOptions'])
             ->get();
 
         return ProductVariantResource::collection($variants);
@@ -39,9 +40,13 @@ class ProductController extends Controller
 
         $query = ProductVariant::query()
             ->with([
-                'product:id,name,code,unit_id',
+                'product:id,name,code,unit_id,product_type',
                 'variantOptions.attribute',
             ]);
+
+        if ($request->boolean('physical_only')) {
+            $query->whereHas('product', fn ($q) => $q->where('product_type', ProductTypeEnum::PRODUCT->value));
+        }
 
         if ($barcode !== '') {
             $query->where(function ($sub) use ($barcode) {
@@ -73,11 +78,13 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $variantRelations = [
+        $isServiceOnly = $request->input('product_type') === ProductTypeEnum::SERVICE->value;
+
+        $variantRelations = $isServiceOnly ? [] : [
             'stocks' => fn ($sq) => $sq->with('warehouse'),
         ];
 
-        if ($request->boolean('include_inventory_value')) {
+        if (! $isServiceOnly && $request->boolean('include_inventory_value')) {
             $variantRelations['stockLayers'] = fn ($lq) => $lq->where('qty_remaining', '>', 0);
         }
 
@@ -100,16 +107,18 @@ class ProductController extends Controller
      */
     public function store(ProductRequest $request)
     {
-        $formData = $request->validated();
+        $formData = $this->sanitizeProductData($request->validated());
 
         $product = DB::transaction(function () use ($request, $formData) {
             $hasVariants = $request->boolean('has_variants');
+            $productData = Arr::only($formData, $this->productFillableKeys());
+            $productData['company_id'] = auth('admin')->user()->company_id;
 
-            $product = Product::create($formData);
+            $product = Product::create($productData);
 
             foreach ($formData['variants'] ?? [] as $variant) {
                 $productVariant = $product->variants()->create([
-                    'vendor_id' => $product->vendor_id,
+                    'company_id' => $product->company_id,
                     'sku' => $variant['sku'] ?? null,
                     'sales_price' => $variant['sales_price'] ?? 0,
                     'purchase_price' => $variant['purchase_price'] ?? 0,
@@ -149,20 +158,9 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, Product $product)
     {
-        $validated = $request->validated();
+        $validated = $this->sanitizeProductData($request->validated());
 
-        $productData = Arr::only($validated, [
-            'product_category_id',
-            'product_type',
-            'name',
-            'code',
-            'unit_id',
-            'brand_id',
-            'tax_id',
-            'has_variants',
-            'reorder_quantity',
-            'description',
-        ]);
+        $productData = Arr::only($validated, $this->productFillableKeys());
 
         DB::transaction(function () use ($request, $validated, $productData, $product) {
             $product->update($productData);
@@ -190,7 +188,7 @@ class ProductController extends Controller
                     }
                 } else {
                     $productVariant = $product->variants()->create([
-                        'vendor_id' => $product->vendor_id,
+                        'company_id' => $product->company_id,
                         'sku' => $variant['sku'] ?? null,
                         'sales_price' => $variant['sales_price'] ?? 0,
                         'purchase_price' => $variant['purchase_price'] ?? 0,
@@ -225,5 +223,42 @@ class ProductController extends Controller
         return response()->json([
             'message' => 'Product Deleted Successfully',
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeProductData(array $data): array
+    {
+        if (($data['product_type'] ?? '') === ProductTypeEnum::SERVICE->value) {
+            $data['brand_id'] = null;
+            $data['min_stock_level'] = 0;
+            $data['reorder_quantity'] = 0;
+            $data['has_variants'] = false;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function productFillableKeys(): array
+    {
+        return [
+            'product_category_id',
+            'product_type',
+            'name',
+            'code',
+            'hsn_code',
+            'unit_id',
+            'brand_id',
+            'tax_id',
+            'has_variants',
+            'reorder_quantity',
+            'min_stock_level',
+            'description',
+        ];
     }
 }

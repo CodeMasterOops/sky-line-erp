@@ -26,7 +26,7 @@ export function showWarehouseToast(error, stock) {
 
 export function buildLineWarehouseFields(warehouseOption) {
     return {
-        warehouse_id: warehouseOption.warehouse_id,
+        warehouse_id: warehouseOption.warehouse_id ?? null,
         warehouse_name: warehouseOption.warehouse_name ?? '',
         stock_qty: warehouseOption.quantity ?? null,
     };

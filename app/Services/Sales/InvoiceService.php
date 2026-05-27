@@ -68,7 +68,7 @@ readonly class InvoiceService
             foreach ($formData['items'] ?? [] as $item) {
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -132,7 +132,7 @@ readonly class InvoiceService
             foreach ($formData['items'] ?? [] as $item) {
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -187,11 +187,16 @@ readonly class InvoiceService
 
     private function applyInventoryIssuesForApprovedInvoice(Invoice $invoice, \App\Models\Company $company, \App\Models\User $user): void
     {
-        $invoice->loadMissing('invoiceItems');
+        $invoice->loadMissing('invoiceItems.productVariant.product');
 
         foreach ($invoice->invoiceItems as $item) {
             $qty = (int) $item->quantity;
             if ($qty <= 0) {
+                continue;
+            }
+
+            $item->loadMissing('productVariant.product');
+            if ($item->productVariant?->isService()) {
                 continue;
             }
 
@@ -215,6 +220,7 @@ readonly class InvoiceService
         $accountSetting = AccountSetting::first();
 
         $journal = $invoice->journal()->create([
+            'company_id' => $invoice->company_id,
             'fiscal_year_id' => $invoice->fiscal_year_id,
             'type' => JournalTypeEnum::INVOICE->value,
             'voucher_no' => $invoice->invoice_no,

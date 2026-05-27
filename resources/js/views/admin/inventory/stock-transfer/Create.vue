@@ -67,6 +67,7 @@
                             <ProductVariantSearchInput
                                 label="Product"
                                 required
+                                physical-only
                                 @select="onVariantSelected"
                             />
                         </div>

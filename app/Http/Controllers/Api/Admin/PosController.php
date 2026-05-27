@@ -39,14 +39,16 @@ class PosController extends Controller
         $categoryId = $request->integer('category_id');
         $search = trim((string) $request->get('search', ''));
 
-        $query = Product::with([
-            'productCategory:id,name',
-            'variants' => function ($q) use ($warehouseId) {
-                $q->with([
-                    'stocks' => fn ($sq) => $sq->when($warehouseId, fn ($s) => $s->where('warehouse_id', $warehouseId)),
-                ]);
-            },
-        ]);
+        $query = Product::query()
+            ->physical()
+            ->with([
+                'productCategory:id,name',
+                'variants' => function ($q) use ($warehouseId) {
+                    $q->with([
+                        'stocks' => fn ($sq) => $sq->when($warehouseId, fn ($s) => $s->where('warehouse_id', $warehouseId)),
+                    ]);
+                },
+            ]);
 
         if ($categoryId) {
             $query->where('product_category_id', $categoryId);
@@ -282,7 +284,7 @@ class PosController extends Controller
                 $invoiceItems = collect($request->items)->map(fn ($item) => [
                     'company_id' => $company->id,
                     'product_variant_id' => $item['product_variant_id'],
-                    'warehouse_id' => $item['warehouse_id'],
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
@@ -307,19 +309,26 @@ class PosController extends Controller
                 }
 
                 // Deduct inventory
+                $invoice->loadMissing('invoiceItems.productVariant.product');
                 foreach ($invoice->invoiceItems as $item) {
-                    if ((int) $item->quantity > 0) {
-                        $this->inventoryIssue->issue(
-                            $company,
-                            $invoice,
-                            $item->product_variant_id,
-                            $item->warehouse_id,
-                            (int) $item->quantity,
-                            ChangeTypeEnum::SALE,
-                            $user->id,
-                            $invoice->remarks,
-                        );
+                    if ((int) $item->quantity <= 0) {
+                        continue;
                     }
+
+                    if ($item->productVariant?->isService()) {
+                        continue;
+                    }
+
+                    $this->inventoryIssue->issue(
+                        $company,
+                        $invoice,
+                        $item->product_variant_id,
+                        $item->warehouse_id,
+                        (int) $item->quantity,
+                        ChangeTypeEnum::SALE,
+                        $user->id,
+                        $invoice->remarks,
+                    );
                 }
 
                 $subtotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->quantity * (float) $item->rate);

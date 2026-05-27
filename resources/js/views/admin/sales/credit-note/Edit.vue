@@ -339,6 +339,7 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
+import {warehouseIdForLineItem} from '@/helpers/productLineValidation.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
@@ -555,6 +556,7 @@ function lineFromInvoiceItem(item, invoicedQty) {
         tax_id: item.tax_id || '',
         line_discount_type: item.line_discount_type || 'fixed',
         line_discount_value: ldv,
+        is_service: !!item.product_variant?.is_service,
         warehouse_id: item.warehouse_id || '',
         warehouse_name: item.warehouse?.name ?? '',
         stock_qty: null,
@@ -593,7 +595,8 @@ watch(invoiceLinePickSelection, async (pickId) => {
 
 const onVariantSelected = async (variant) => {
     const vid = variant.id;
-    const result = await resolveWarehouse(variant.id, variantLabel(variant));
+    const isService = !!variant.is_service;
+    const result = await resolveWarehouse(variant.id, variantLabel(variant), { isService });
 
     if (!result.success) {
         showWarehouseToast(result.error);
@@ -605,12 +608,12 @@ const onVariantSelected = async (variant) => {
     const mergeIdx = form.items.findIndex(
         (i) => String(i.product_variant_id) === String(vid)
             && !i.invoice_item_id
-            && String(i.warehouse_id) === String(wid),
+            && (isService ? i.is_service : String(i.warehouse_id) === String(wid)),
     );
 
     if (mergeIdx !== -1) {
         const nextQty = Number(form.items[mergeIdx].quantity || 0) + 1;
-        if (result.warehouse.quantity != null && nextQty > result.warehouse.quantity) {
+        if (!isService && result.warehouse.quantity != null && nextQty > result.warehouse.quantity) {
             showWarehouseToast('insufficient_stock', result.warehouse.quantity);
 
             return;
@@ -633,6 +636,7 @@ const onVariantSelected = async (variant) => {
         tax_id: '',
         line_discount_type: 'fixed',
         line_discount_value: '0',
+        is_service: isService,
         ...buildLineWarehouseFields(result.warehouse),
     });
 };
@@ -723,7 +727,8 @@ watch(
                 item.line_discount_value != null && item.line_discount_value !== ''
                     ? String(item.line_discount_value)
                     : '0',
-            warehouse_id: item.warehouse_id || '',
+            is_service: !!item.product_variant?.is_service,
+        warehouse_id: item.warehouse_id || '',
             warehouse_name: item.warehouse?.name ?? whName ?? '',
             stock_qty: null,
         }));
@@ -744,7 +749,7 @@ const validations = object({
         .of(
             object({
                 product_variant_id: string().required('Product is required.'),
-                warehouse_id: string().required('Warehouse is required.'),
+                warehouse_id: warehouseIdForLineItem(),
                 quantity: string().required('Quantity is required.'),
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
@@ -788,7 +793,7 @@ const buildCreditNotePayload = () => {
         items: form.items.map((item, index) => ({
             invoice_item_id: item.invoice_item_id || null,
             product_variant_id: item.product_variant_id,
-            warehouse_id: item.warehouse_id,
+            warehouse_id: item.is_service ? null : (item.warehouse_id || null),
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),

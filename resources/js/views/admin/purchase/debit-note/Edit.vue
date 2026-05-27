@@ -101,6 +101,7 @@
                             <ProductVariantSearchInput
                                 label="Product (manual)"
                                 required
+                                physical-only
                                 @select="onVariantSelected"
                             />
                             <span class="form-text text-muted small">
@@ -550,6 +551,12 @@ watch(billLinePickSelection, async (id) => {
 });
 
 const onVariantSelected = async (variant) => {
+    if (variant.is_service) {
+        notifier.warning('Services cannot be returned on debit notes.');
+
+        return;
+    }
+
     const vid = variant.id;
     const result = await resolveWarehouse(variant.id, productLabelFromBillLine({product_variant: variant}));
 

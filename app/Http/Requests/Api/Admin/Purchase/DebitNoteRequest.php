@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Purchase;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
+use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DebitNoteRequest extends FormRequest
@@ -26,7 +27,11 @@ class DebitNoteRequest extends FormRequest
             'order_discount_value' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
+            'items.*.product_variant_id' => [
+                'required',
+                TRule::exists('product_variants', 'id')->withoutTrashed(),
+                ...ProductLineRules::physicalProductVariantId(__('Services cannot be returned on debit notes.')),
+            ],
             'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],

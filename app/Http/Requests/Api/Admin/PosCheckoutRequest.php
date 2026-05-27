@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin;
 
 use App\Tenancy\TRule;
 use Illuminate\Validation\Rule;
+use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PosCheckoutRequest extends FormRequest
@@ -19,8 +20,17 @@ class PosCheckoutRequest extends FormRequest
             'warehouse_id' => ['nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'payment_method' => ['required', 'string', 'max:255'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_variant_id' => ['required', 'integer', TRule::exists('product_variants', 'id')->withoutTrashed()],
-            'items.*.warehouse_id' => ['required', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'items.*.product_variant_id' => [
+                'required',
+                'integer',
+                TRule::exists('product_variants', 'id')->withoutTrashed(),
+                ...ProductLineRules::physicalProductVariantId(__('Services cannot be sold through POS.')),
+            ],
+            'items.*.warehouse_id' => [
+                'required',
+                'integer',
+                TRule::exists('warehouses', 'id')->withoutTrashed(),
+            ],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.unit_id' => ['nullable', 'integer', TRule::exists('units', 'id')->withoutTrashed()],

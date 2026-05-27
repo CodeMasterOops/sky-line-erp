@@ -301,6 +301,7 @@ import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
+import {warehouseIdForLineItem} from '@/helpers/productLineValidation.js';
 
 const invoiceStore = useInvoiceStore();
 const quotationStore = useQuotationStore();
@@ -494,13 +495,15 @@ async function commitPrefillLine(line) {
 function commitVariantLine(variant, warehouse) {
     const vid = variant.id;
     const wid = warehouse.warehouse_id;
+    const isService = !!variant.is_service;
     const existing = form.items.findIndex(
-        (i) => String(i.product_variant_id) === String(vid) && String(i.warehouse_id) === String(wid),
+        (i) => String(i.product_variant_id) === String(vid)
+            && (isService ? i.is_service : String(i.warehouse_id) === String(wid)),
     );
 
     if (existing !== -1) {
         const nextQty = Number(form.items[existing].quantity || 0) + 1;
-        if (warehouse.quantity != null && nextQty > warehouse.quantity) {
+        if (!isService && warehouse.quantity != null && nextQty > warehouse.quantity) {
             showWarehouseToast('insufficient_stock', warehouse.quantity);
 
             return false;
@@ -521,16 +524,19 @@ function commitVariantLine(variant, warehouse) {
         tax_id: '',
         line_discount_type: 'fixed',
         line_discount_value: '0',
-        warehouse_id: wid,
+        is_service: isService,
+        warehouse_id: wid ?? '',
         warehouse_name: warehouse.warehouse_name ?? '',
-        stock_qty: warehouse.quantity ?? null,
+        stock_qty: isService ? null : (warehouse.quantity ?? null),
     });
 
     return true;
 }
 
 const onVariantSelected = async (variant) => {
-    const result = await resolveWarehouse(variant.id, variantLabel(variant));
+    const result = await resolveWarehouse(variant.id, variantLabel(variant), {
+        isService: !!variant.is_service,
+    });
 
     if (!result.success) {
         showWarehouseToast(result.error);
@@ -566,7 +572,7 @@ const validations = object({
         .of(
             object({
                 product_variant_id: string().required('Product is required.'),
-                warehouse_id: string().required('Warehouse is required.'),
+                warehouse_id: warehouseIdForLineItem(),
                 quantity: string().required('Quantity is required.'),
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
@@ -616,7 +622,7 @@ const buildInvoicePayload = () => {
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
-            warehouse_id: item.warehouse_id,
+            warehouse_id: item.is_service ? null : (item.warehouse_id || null),
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,

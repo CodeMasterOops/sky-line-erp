@@ -17,6 +17,7 @@ use App\Enums\PartyTypeEnum;
 use App\Models\PosHeldOrder;
 use Laravel\Sanctum\Sanctum;
 use App\Enums\ChangeTypeEnum;
+use App\Enums\ProductTypeEnum;
 use App\Models\AccountSetting;
 use App\Models\ProductVariant;
 use App\Services\TenantService;
@@ -157,6 +158,39 @@ function posCheckoutPayload(object $test, array $overrides = []): array
         ],
     ], $overrides);
 }
+
+it('rejects checkout with a service line item', function () {
+    $serviceProduct = Product::create([
+        'company_id' => $this->company->id,
+        'product_type' => ProductTypeEnum::SERVICE,
+        'name' => 'Consulting',
+        'code' => 'SVC-POS-'.uniqid(),
+    ]);
+
+    $serviceVariant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $serviceProduct->id,
+        'sales_price' => 500,
+        'purchase_price' => 0,
+        'is_default' => true,
+    ]);
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'items' => [
+            [
+                'product_variant_id' => $serviceVariant->id,
+                'warehouse_id' => null,
+                'quantity' => 1,
+                'rate' => 500,
+                'tax_amount' => 0,
+                'discount_amount' => 0,
+            ],
+        ],
+    ]));
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['items.0.product_variant_id']);
+});
 
 it('returns warehouses with stock for a variant', function () {
     seedVariantStock($this, $this->warehouse->id, 5);

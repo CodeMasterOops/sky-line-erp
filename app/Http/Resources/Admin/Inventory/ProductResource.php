@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\Inventory;
 
 use Illuminate\Http\Request;
+use App\Enums\ProductTypeEnum;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\Admin\Settings\TaxResource;
 
@@ -18,6 +19,7 @@ class ProductResource extends JsonResource
             'product_type' => $this->product_type ?? '',
             'name' => $this->name ?? '',
             'code' => $this->code ?? '',
+            'hsn_code' => $this->hsn_code ?? '',
             'image' => $this->image ?? '',
             'unit_id' => $this->unit_id ?? '',
             'brand_id' => $this->brand_id ?? '',
@@ -28,18 +30,21 @@ class ProductResource extends JsonResource
             ),
             'has_variants' => (bool) ($this->has_variants ?? false),
             'reorder_quantity' => $this->reorder_quantity ?? 0,
+            'min_stock_level' => $this->min_stock_level ?? 0,
             'description' => $this->description ?? '',
             'category' => $this->productCategory ? $this->productCategory->name : '',
             'brand' => $this->brand ? $this->brand->name : '',
             'unit' => $this->unit ? $this->unit->name : '',
-            'total_stock' => $stock['total_stock'],
+            'total_stock' => $this->product_type === ProductTypeEnum::SERVICE ? null : $stock['total_stock'],
             'stock_by_warehouse' => $stock['stock_by_warehouse'],
             'defaultVariant' => ProductVariantResource::make($this->defaultVariant),
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
         ];
 
         if ($request->boolean('include_inventory_value')) {
-            $row['total_inventory_value'] = $stock['total_inventory_value'];
+            $row['total_inventory_value'] = $this->product_type === ProductTypeEnum::SERVICE
+                ? null
+                : $stock['total_inventory_value'];
         }
 
         return $row;

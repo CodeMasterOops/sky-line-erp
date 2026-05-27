@@ -345,11 +345,16 @@ class CreditNoteController extends Controller
 
     private function applyInventoryForApprovedCreditNote(CreditNote $creditNote, \App\Models\Company $company, \App\Models\User $user): void
     {
-        $creditNote->loadMissing('creditNoteItems');
+        $creditNote->loadMissing('creditNoteItems.productVariant.product');
 
         foreach ($creditNote->creditNoteItems as $item) {
             $qty = (int) $item->quantity;
             if ($qty <= 0) {
+                continue;
+            }
+
+            $item->loadMissing('productVariant.product');
+            if ($item->productVariant?->isService()) {
                 continue;
             }
 

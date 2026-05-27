@@ -41,6 +41,26 @@ class Product extends Model
         'has_variants' => 'boolean',
     ];
 
+    public function isService(): bool
+    {
+        return $this->product_type === ProductTypeEnum::SERVICE;
+    }
+
+    public function isPhysicalProduct(): bool
+    {
+        return $this->product_type === ProductTypeEnum::PRODUCT;
+    }
+
+    public function scopeService($query)
+    {
+        return $query->where('product_type', ProductTypeEnum::SERVICE->value);
+    }
+
+    public function scopePhysical($query)
+    {
+        return $query->where('product_type', ProductTypeEnum::PRODUCT->value);
+    }
+
     public function scopeFilter($query, $param = [])
     {
         if (! empty($param['search'])) {
@@ -57,6 +77,10 @@ class Product extends Model
 
         if (! empty($param['brand_id'])) {
             $query->where('brand_id', $param['brand_id']);
+        }
+
+        if (! empty($param['product_type'])) {
+            $query->where('product_type', $param['product_type']);
         }
 
         return $query;

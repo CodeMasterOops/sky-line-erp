@@ -19,7 +19,7 @@ function itemForCalc(item) {
 }
 
 export function cartLineKey(variantId, warehouseId) {
-    return `${variantId}-${warehouseId}`;
+    return `${variantId}-${warehouseId ?? 'service'}`;
 }
 
 export const usePosStore = defineStore('pos', {
@@ -258,6 +258,10 @@ export const usePosStore = defineStore('pos', {
         },
 
         async addVariantToCart(variant) {
+            if (variant.is_service) {
+                return { success: false, error: 'service_not_allowed' };
+            }
+
             let warehouseOptions;
 
             try {
@@ -299,7 +303,7 @@ export const usePosStore = defineStore('pos', {
             const existing = this.findCartLine(lineKey);
 
             if (existing) {
-                if (existing.quantity + 1 > stockQty) {
+                if (existing.stock !== null && existing.quantity + 1 > existing.stock) {
                     return { success: false, error: 'insufficient_stock', stock: stockQty };
                 }
                 existing.quantity += 1;
@@ -325,6 +329,7 @@ export const usePosStore = defineStore('pos', {
                 line_discount_value: '0',
                 discountAmount: 0,
                 quantity: 1,
+                isService: variant.is_service ?? false,
                 stock: stockQty,
                 image: variant.image ?? null,
             };
@@ -407,7 +412,7 @@ export const usePosStore = defineStore('pos', {
         buildCheckoutItems() {
             return this.cart.map((item) => ({
                 product_variant_id: item.variantId,
-                warehouse_id: item.warehouseId,
+                warehouse_id: item.warehouseId ?? null,
                 unit_id: item.unitId,
                 quantity: item.quantity,
                 rate: item.rate,

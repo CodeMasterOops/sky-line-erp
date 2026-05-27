@@ -289,6 +289,7 @@ import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
+import {warehouseIdForLineItem} from '@/helpers/productLineValidation.js';
 
 const invoiceStore = useInvoiceStore();
 const productStore = useProductStore();
@@ -446,6 +447,7 @@ watch(() => edit_invoice_id.value, async (id) => {
                 item.line_discount_value != null && item.line_discount_value !== ''
                     ? String(item.line_discount_value)
                     : '0',
+            is_service: !!item.product_variant?.is_service,
             warehouse_id: item.warehouse_id || '',
             warehouse_name: item.warehouse?.name || '',
             stock_qty: null,
@@ -465,7 +467,7 @@ const validations = object({
         .of(
             object({
                 product_variant_id: string().required('Product is required.'),
-                warehouse_id: string().required('Warehouse is required.'),
+                warehouse_id: warehouseIdForLineItem(),
                 quantity: string().required('Quantity is required.'),
                 rate: string().required('Rate is required.'),
                 unit_id: string().nullable(),
@@ -500,7 +502,9 @@ const onVariantChange = async (index, variantId) => {
     form.items[index].product_label = variantLabel(variant);
     form.items[index].sku = variant.sku ?? '';
 
-    const result = await resolveWarehouse(variant.id, variantLabel(variant));
+    const result = await resolveWarehouse(variant.id, variantLabel(variant), {
+        isService: !!variant.is_service,
+    });
 
     if (!result.success) {
         form.items[index].warehouse_id = '';
@@ -539,7 +543,7 @@ const buildUpdatePayload = () => {
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
-            warehouse_id: item.warehouse_id,
+            warehouse_id: item.is_service ? null : (item.warehouse_id || null),
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,
