@@ -43,6 +43,18 @@ const routes = [
         component: () => import("@/views/admin/auth/ForgotPassword.vue"),
     },
     {
+        path: "/admin/onboarding",
+        name: "admin.onboarding",
+        meta: {
+            requiresAuth: true,
+            isAdmin: true,
+            allowWithoutBranch: true,
+            isOnboarding: true,
+            pageTitle: "Setup",
+        },
+        component: () => import("@/views/admin/onboarding/Index.vue"),
+    },
+    {
         path: "/admin",
         component: AdminLayout,
         redirect: "/admin/dashboard",

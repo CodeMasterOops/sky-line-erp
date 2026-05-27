@@ -29,42 +29,93 @@
                                             </div>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label">Name <span class="text-danger"> *</span></label>
+                                            <label class="form-label">Company Name <span class="text-danger"> *</span></label>
                                             <div class="input-group">
-                                                <input type="text" v-model="form.name" class="form-control border-end-0" />
+                                                <input
+                                                    type="text"
+                                                    v-model="form.company_name"
+                                                    class="form-control border-end-0"
+                                                    :class="{ 'is-invalid': fieldErrors.company_name }"
+                                                    placeholder="Your company name"
+                                                />
+                                                <span class="input-group-text border-start-0">
+                                                    <i class="ti ti-building"></i>
+                                                </span>
+                                            </div>
+                                            <div v-if="fieldErrors.company_name" class="invalid-feedback d-block">
+                                                {{ fieldErrors.company_name[0] }}
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Your Name <span class="text-danger"> *</span></label>
+                                            <div class="input-group">
+                                                <input
+                                                    type="text"
+                                                    v-model="form.name"
+                                                    class="form-control border-end-0"
+                                                    :class="{ 'is-invalid': fieldErrors.name }"
+                                                    placeholder="Full name"
+                                                />
                                                 <span class="input-group-text border-start-0">
                                                     <i class="ti ti-user"></i>
                                                 </span>
+                                            </div>
+                                            <div v-if="fieldErrors.name" class="invalid-feedback d-block">
+                                                {{ fieldErrors.name[0] }}
                                             </div>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Email <span class="text-danger"> *</span></label>
                                             <div class="input-group">
-                                                <input type="text" v-model="form.email" class="form-control border-end-0" />
+                                                <input
+                                                    type="email"
+                                                    v-model="form.email"
+                                                    class="form-control border-end-0"
+                                                    :class="{ 'is-invalid': fieldErrors.email }"
+                                                    placeholder="you@company.com"
+                                                />
                                                 <span class="input-group-text border-start-0">
                                                     <i class="ti ti-mail"></i>
                                                 </span>
+                                            </div>
+                                            <div v-if="fieldErrors.email" class="invalid-feedback d-block">
+                                                {{ fieldErrors.email[0] }}
                                             </div>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Password <span class="text-danger"> *</span></label>
                                             <div class="pass-group">
-                                                <input :type="showPassword ? 'text' : 'password'" v-model="form.password"
-                                                    class="pass-input form-control" />
-                                                <span class="ti toggle-password"
+                                                <input
+                                                    :type="showPassword ? 'text' : 'password'"
+                                                    v-model="form.password"
+                                                    class="pass-input form-control"
+                                                    :class="{ 'is-invalid': fieldErrors.password }"
+                                                    placeholder="Min. 8 characters"
+                                                />
+                                                <span
+                                                    class="ti toggle-password"
                                                     :class="showPassword ? 'ti-eye text-gray-9' : 'ti-eye-off text-gray-9'"
-                                                    @click="togglePassword"></span>
+                                                    @click="togglePassword"
+                                                ></span>
+                                            </div>
+                                            <div v-if="fieldErrors.password" class="invalid-feedback d-block">
+                                                {{ fieldErrors.password[0] }}
                                             </div>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label">Confirm Password <span class="text-danger">
-                                                    *</span></label>
+                                            <label class="form-label">Confirm Password <span class="text-danger"> *</span></label>
                                             <div class="pass-group">
-                                                <input :type="showConfirmPassword ? 'text' : 'password'"
-                                                    v-model="form.confirmPassword" class="pass-inputs form-control" />
-                                                <span class="ti toggle-passwords"
+                                                <input
+                                                    :type="showConfirmPassword ? 'text' : 'password'"
+                                                    v-model="form.password_confirmation"
+                                                    class="pass-inputs form-control"
+                                                    placeholder="Repeat password"
+                                                />
+                                                <span
+                                                    class="ti toggle-passwords"
                                                     :class="showConfirmPassword ? 'ti-eye text-gray-9' : 'ti-eye-off text-gray-9'"
-                                                    @click="toggleConfirmPassword"></span>
+                                                    @click="toggleConfirmPassword"
+                                                ></span>
                                             </div>
                                         </div>
                                         <div class="form-login authentication-check">
@@ -95,26 +146,6 @@
                                                     Instead</router-link>
                                             </h4>
                                         </div>
-                                        <div class="form-setlogin or-text">
-                                            <h4>OR</h4>
-                                        </div>
-                                        <div class="mt-2">
-                                            <div class="d-flex align-items-center justify-content-center flex-wrap">
-                                                <div class="text-center me-2 flex-fill">
-                                                    <a href="javascript:void(0);"
-                                                        class="br-10 p-2 btn btn-info d-flex align-items-center justify-content-center">
-                                                        <img class="img-fluid m-1" :src="facebookLogo" alt="Facebook" />
-                                                    </a>
-                                                </div>
-                                                <div class="text-center me-2 flex-fill">
-                                                    <a href="javascript:void(0);"
-                                                        class="btn btn-white br-10 p-2 border d-flex align-items-center justify-content-center">
-                                                        <img class="img-fluid m-1" :src="googleLogo" alt="Google" />
-                                                    </a>
-                                                </div>
-
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -132,25 +163,26 @@
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useAdminAuthStore } from "@/stores/admin/auth";
 import appLogo from "@/assets/images/logo.svg";
 import appLogoWhite from "@/assets/images/logo-white.svg";
-import facebookLogo from "@/assets/images/icons/facebook-logo.svg";
-import googleLogo from "@/assets/images/icons/google-logo.svg";
- 
 
 const router = useRouter();
+const authStore = useAdminAuthStore();
 
 const isAccountPage = ref(true);
 const form = reactive({
+    company_name: '',
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    agreeToTerms: false
+    password_confirmation: '',
+    agreeToTerms: false,
 });
 
 const errorMessage = ref('');
 const successMessage = ref('');
+const fieldErrors = ref({});
 const isLoading = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
@@ -183,81 +215,42 @@ const toggleConfirmPassword = () => {
     showConfirmPassword.value = !showConfirmPassword.value;
 };
 
-const submitForm = () => {
+const submitForm = async () => {
     errorMessage.value = '';
     successMessage.value = '';
-    isLoading.value = true;
-
-    if (!form.name.trim()) {
-        errorMessage.value = 'Name is required.';
-        isLoading.value = false;
-        return;
-    }
-
-    if (!form.email.trim()) {
-        errorMessage.value = 'Email is required.';
-        isLoading.value = false;
-        return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-        errorMessage.value = 'Please enter a valid email address.';
-        isLoading.value = false;
-        return;
-    }
-
-    if (!form.password) {
-        errorMessage.value = 'Password is required.';
-        isLoading.value = false;
-        return;
-    }
-
-    if (form.password.length < 6) {
-        errorMessage.value = 'Password must be at least 6 characters long.';
-        isLoading.value = false;
-        return;
-    }
-
-    if (form.password !== form.confirmPassword) {
-        errorMessage.value = 'Passwords do not match.';
-        isLoading.value = false;
-        return;
-    }
+    fieldErrors.value = {};
 
     if (!form.agreeToTerms) {
         errorMessage.value = 'You must agree to the Terms & Privacy.';
-        isLoading.value = false;
         return;
     }
 
-    setTimeout(() => {
-        const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    isLoading.value = true;
 
-        const emailExists = registeredUsers.some(user => user.email === form.email.trim());
-        if (emailExists) {
-            errorMessage.value = 'This email is already registered. Please use a different email.';
-            isLoading.value = false;
-            return;
-        }
-
-        registeredUsers.push({
-            email: form.email.trim(),
+    try {
+        await authStore.register({
+            company_name: form.company_name,
+            name: form.name,
+            email: form.email,
             password: form.password,
-            name: form.name.trim()
+            password_confirmation: form.password_confirmation,
         });
 
-        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-
-        successMessage.value = 'Account created successfully! Redirecting to sign in...';
-        isLoading.value = false;
+        successMessage.value = 'Account created! Setting up your workspace...';
 
         setTimeout(() => {
-            router.push({
-                name: 'admin.login',
-                query: { email: form.email.trim() }
-            });
-        }, 2000);
-    }, 1000);
+            router.push({ name: 'admin.onboarding' });
+        }, 800);
+    } catch (err) {
+        const response = err?.response;
+        if (response?.status === 422 && response.data?.errors) {
+            fieldErrors.value = response.data.errors;
+            errorMessage.value = response.data.message || 'Please fix the errors below.';
+        } else {
+            errorMessage.value = response?.data?.message || 'Something went wrong. Please try again.';
+        }
+    } finally {
+        isLoading.value = false;
+    }
 };
 </script>

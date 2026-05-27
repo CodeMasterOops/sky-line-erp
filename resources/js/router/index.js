@@ -49,6 +49,25 @@ router.beforeEach(async (to, from, next) => {
 
         if (
             adminAuth.authUser.access_token &&
+            adminAuth.authUser.needsOnboarding &&
+            !to.meta.isGuest &&
+            !to.meta.isOnboarding
+        ) {
+            next({ name: 'admin.onboarding' });
+            return;
+        }
+
+        if (
+            adminAuth.authUser.access_token &&
+            !adminAuth.authUser.needsOnboarding &&
+            to.meta.isOnboarding
+        ) {
+            next({ name: 'admin.dashboard' });
+            return;
+        }
+
+        if (
+            adminAuth.authUser.access_token &&
             !to.meta.isGuest &&
             !to.meta.allowWithoutBranch
         ) {

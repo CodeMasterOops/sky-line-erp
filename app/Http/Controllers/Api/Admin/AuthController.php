@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\User;
+use App\Models\Company;
+use App\Enums\UserTypeEnum;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\Api\Admin\LoginRequest;
 use App\Http\Resources\Admin\ProfileResource;
+use App\Services\SetCompanyDefaultDataService;
+use App\Http\Requests\Api\Admin\RegisterRequest;
 
 class AuthController extends Controller
 {
@@ -41,6 +46,7 @@ class AuthController extends Controller
                 'expires_at' => $tokenData->accessToken->expires_at,
                 'user' => ProfileResource::make($authUser),
                 'permissions' => base64_encode(json_encode(userPermissions($authUser))),
+                'needs_onboarding' => $user->company->onboarding_completed_at === null,
                 'message' => 'Signed In Successfully.',
             ]);
         } else {
@@ -53,6 +59,64 @@ class AuthController extends Controller
                 ],
             ], 422);
         }
+    }
+
+    public function register(RegisterRequest $request)
+    {
+        [$company, $user] = DB::transaction(function () use ($request) {
+            $company = Company::create([
+                'company_name' => $request->validated('company_name'),
+                'code' => $this->generateCompanyCode($request->validated('company_name')),
+                'email' => $request->validated('email'),
+                'is_active' => true,
+            ]);
+
+            $user = User::create([
+                'company_id' => $company->id,
+                'name' => $request->validated('name'),
+                'email' => $request->validated('email'),
+                'password' => $request->validated('password'),
+                'user_type' => UserTypeEnum::ADMIN->value,
+            ]);
+
+            SetCompanyDefaultDataService::setData($company);
+
+            return [$company, $user];
+        });
+
+        Auth::guard('admin')->setUser($user);
+
+        $tokenData = $user->createToken('auth-token', ['*'], now()->addWeek());
+
+        return response()->json([
+            'access_token' => $tokenData->plainTextToken,
+            'expires_at' => $tokenData->accessToken->expires_at,
+            'user' => ProfileResource::make($user),
+            'permissions' => base64_encode(json_encode(userPermissions($user))),
+            'needs_onboarding' => true,
+            'message' => 'Account created successfully.',
+        ], 201);
+    }
+
+    private function generateCompanyCode(string $companyName): string
+    {
+        $base = strtoupper(
+            substr(preg_replace('/[^a-zA-Z0-9]/', '', $companyName), 0, 5)
+        );
+
+        if (empty($base)) {
+            $base = 'CO';
+        }
+
+        $code = $base;
+        $suffix = 1;
+
+        while (Company::where('code', $code)->withTrashed()->exists()) {
+            $code = $base.$suffix;
+            $suffix++;
+        }
+
+        return $code;
     }
 
     public function logout()

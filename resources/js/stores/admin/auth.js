@@ -9,7 +9,8 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             authUser: {
                 access_token: Cookies.get("access_token"),
                 user_type: localStorage.getItem('user_type'),
-                permissions: storedPermissions()
+                permissions: storedPermissions(),
+                needsOnboarding: localStorage.getItem('needs_onboarding') === 'true',
             }
         }
     },
@@ -19,15 +20,36 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                 .then((res) => {
                     this.setAuthToken(res.data.access_token, res.data.expires_at);
                     this.setPermissions(res.data.user?.user_type, res.data.permissions);
+                    this.setNeedsOnboarding(res.data.needs_onboarding ?? false);
                     return res;
                 }).catch((err) => {
                     throw err;
                 })
         },
+        register(form) {
+            return apiFront('admin/register', 'post', form)
+                .then((res) => {
+                    this.setAuthToken(res.data.access_token, res.data.expires_at);
+                    this.setPermissions(res.data.user?.user_type, res.data.permissions);
+                    this.setNeedsOnboarding(res.data.needs_onboarding ?? true);
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
         logout() {
             return apiAdmin('logout', 'post')
                 .then((res) => {
                     this.removeAuthToken();
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
+        completeOnboarding() {
+            return apiAdmin('onboarding/complete', 'post')
+                .then((res) => {
+                    this.setNeedsOnboarding(false);
                     return res;
                 }).catch((err) => {
                     throw err;
@@ -54,12 +76,18 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             }
             this.authUser.user_type = user_type;
         },
+        setNeedsOnboarding(value) {
+            this.authUser.needsOnboarding = value;
+            localStorage.setItem('needs_onboarding', value ? 'true' : 'false');
+        },
         removeAuthToken() {
             this.authUser.access_token = '';
             this.authUser.user_type = '';
             this.authUser.permissions = [];
+            this.authUser.needsOnboarding = false;
             localStorage.removeItem('user_type');
             localStorage.removeItem('permissions');
+            localStorage.removeItem('needs_onboarding');
             Cookies.remove('access_token', {
                 secure: false,
                 sameSite: "Strict",

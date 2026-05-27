@@ -38,6 +38,7 @@ class Company extends Model
         'ird_unit_name',
         'ird_fiscal_device',
         'ird_ebs_enabled',
+        'onboarding_completed_at',
     ];
 
     protected function casts(): array
@@ -46,6 +47,7 @@ class Company extends Model
             'is_active' => 'boolean',
             'ird_ebs_enabled' => 'boolean',
             'inventory_costing_method' => InventoryCostingMethodEnum::class,
+            'onboarding_completed_at' => 'datetime',
         ];
     }
 

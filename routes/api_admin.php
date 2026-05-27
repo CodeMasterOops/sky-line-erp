@@ -4,6 +4,7 @@ use App\Http\Middleware\SetTenantContext;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\PosController;
 use App\Http\Controllers\Api\Admin\AuthController;
+use App\Http\Controllers\Api\Admin\OnboardingController;
 use App\Http\Controllers\Api\Admin\EnumController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\ProfileController;
@@ -22,7 +23,13 @@ use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->name('login');
+    Route::post('register', 'register')->name('register');
     Route::post('logout', 'logout')->middleware('auth:admin');
+});
+
+Route::middleware('auth:admin')->prefix('onboarding')->as('onboarding.')->group(function () {
+    Route::put('company', [OnboardingController::class, 'updateCompany'])->name('company');
+    Route::post('complete', [OnboardingController::class, 'complete'])->name('complete');
 });
 
 Route::middleware('auth:admin')->middleware(SetTenantContext::class)->group(function () {
