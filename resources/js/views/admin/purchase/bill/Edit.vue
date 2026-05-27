@@ -92,9 +92,7 @@
                         </div>
 
                         <div class="col-12">
-                            <div
-                                class="table-responsive no-pagination"
-                                :class="{'po-purchase-order-lines-wrap': isDraft}">
+                            <div class="table-responsive no-pagination">
                                 <table class="table datanew table-bordered mb-0 order-lines-table">
                                     <thead>
                                     <tr>
@@ -156,7 +154,7 @@
                                         </td>
                                         <td class="text-end" :class="{'po-discount-cell': isDraft}">
                                             <template v-if="isDraft">
-                                                <VDiscountAmountTypeGroup
+                                                <VDiscountAmountTypeGroup selector-mode="toggle"
                                                     :input-id="`bill_edit_line_disc_${index}`"
                                                     :input-aria-label="`Line ${index + 1} discount`"
                                                     v-model="form.items[index].line_discount_value"
@@ -214,7 +212,7 @@
                                     <li v-else class="po-total-order-discount">
                                         <h4>Discount</h4>
                                         <div class="po-total-order-discount__controls">
-                                            <VDiscountAmountTypeGroup
+                                            <VDiscountAmountTypeGroup selector-mode="toggle"
                                                 v-model="form.order_discount_value"
                                                 v-model:discount-type="form.order_discount_type"
                                                 :error="errors.order_discount_value"
@@ -589,14 +587,7 @@ function resetForm() {
 }
 
 .order-lines-table .po-discount-cell {
-    min-width: 9rem;
-    position: relative;
-    z-index: 2;
-    overflow: visible;
-}
-
-.po-purchase-order-lines-wrap {
-    overflow: visible;
+    min-width: 8.25rem;
 }
 
 .total-order :deep(ul li.po-total-order-discount) {

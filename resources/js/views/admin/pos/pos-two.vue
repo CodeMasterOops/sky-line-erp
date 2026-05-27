@@ -116,6 +116,7 @@
                           :input-id="`pos_line_disc_${item.lineKey}`"
                           :model-value="item.line_discount_value"
                           :discount-type="item.line_discount_type || 'fixed'"
+                          selector-mode="toggle"
                           compact-toggle
                           extra-group-class="pos-line-discount-group"
                           @update:model-value="v => onLineDiscountValue(item.lineKey, v)"
@@ -214,6 +215,7 @@
                 input-id="pos_order_discount"
                 :model-value="posStore.order_discount_value"
                 :discount-type="posStore.order_discount_type"
+                selector-mode="toggle"
                 @update:model-value="onOrderDiscountValue"
                 @update:discount-type="onOrderDiscountType"
               />
@@ -738,7 +740,7 @@ export default {
 }
 
 .pos-col-discount {
-  min-width: 8.5rem;
+  min-width: 8.25rem;
 }
 
 .pos-col-tax {
@@ -894,16 +896,20 @@ export default {
 }
 
 :deep(.pos-line-discount-group) {
-  max-width: 8.5rem;
+  max-width: 8.25rem;
 }
 
 :deep(.pos-line-discount-group .form-control) {
-  min-width: 3rem;
+  min-width: 2.75rem;
   padding-left: 0.35rem;
   padding-right: 0.35rem;
 }
 
 :deep(.pos-line-discount-group .input-group) {
   flex-wrap: nowrap;
+}
+
+:deep(.pos-line-discount-group .v-discount-type-toggle) {
+  flex-shrink: 0;
 }
 </style>

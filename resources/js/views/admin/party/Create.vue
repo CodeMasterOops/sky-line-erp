@@ -101,7 +101,7 @@
                         <label class="form-label" for="party_create_discount_value">
                             Default order discount
                         </label>
-                        <VDiscountAmountTypeGroup
+                        <VDiscountAmountTypeGroup selector-mode="toggle"
                             id="party_create_discount_value"
                             v-model="form.discount_value"
                             v-model:discount-type="form.discount_type"

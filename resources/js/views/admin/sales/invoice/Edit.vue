@@ -125,7 +125,7 @@
                                     </select>
                                 </td>
                                 <td class="inv-edit-discount-cell">
-                                    <VDiscountAmountTypeGroup
+                                    <VDiscountAmountTypeGroup selector-mode="toggle"
                                         :input-id="`inv_edit_line_disc_${item.id ?? index}`"
                                         :input-aria-label="`Line ${index + 1} discount`"
                                         v-model="form.items[index].line_discount_value"
@@ -173,7 +173,7 @@
                                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
                                     <span class="mb-0">Order discount</span>
                                     <div class="inv-edit-order-disc">
-                                        <VDiscountAmountTypeGroup
+                                        <VDiscountAmountTypeGroup selector-mode="toggle"
                                             v-model="form.order_discount_value"
                                             v-model:discount-type="form.order_discount_type"
                                             :error="errors.order_discount_value"

@@ -184,7 +184,7 @@
                                         </td>
                                         <td :class="{'so-discount-cell': isDraft}">
                                             <template v-if="isDraft">
-                                                <VDiscountAmountTypeGroup
+                                                <VDiscountAmountTypeGroup selector-mode="toggle"
                                                     :input-id="`cn_edit_line_disc_${item.id ?? index}`"
                                                     :input-aria-label="`Line ${index + 1} discount`"
                                                     v-model="form.items[index].line_discount_value"
@@ -240,7 +240,7 @@
                                             class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
                                             <span>Discount</span>
                                             <div class="flex-grow-1" style="max-width: 14rem; min-width: 0">
-                                                <VDiscountAmountTypeGroup
+                                                <VDiscountAmountTypeGroup selector-mode="toggle"
                                                     v-model="form.order_discount_value"
                                                     v-model:discount-type="form.order_discount_type"
                                                     :error="errors.order_discount_value"

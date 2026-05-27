@@ -3,7 +3,7 @@
  * Mirrors server rules in App\Services\Purchase\PurchaseOrderTotalsCalculator.
  */
 
-/** Short label for discount-type toggle buttons (input-group dropdowns). */
+/** Short label for discount-type controls (toggle buttons or dropdowns). */
 export function lineDiscountTypeLabel(type) {
     return type === 'percent' ? '%' : 'Fixed';
 }
