@@ -9,6 +9,7 @@ class DeliveryChallanItem extends Model
 {
     protected $fillable = [
         'delivery_challan_id',
+        'sales_order_item_id',
         'product_variant_id',
         'unit_id',
         'quantity',
@@ -24,6 +25,11 @@ class DeliveryChallanItem extends Model
     public function deliveryChallan(): BelongsTo
     {
         return $this->belongsTo(DeliveryChallan::class);
+    }
+
+    public function salesOrderItem(): BelongsTo
+    {
+        return $this->belongsTo(SalesOrderItem::class);
     }
 
     public function productVariant(): BelongsTo

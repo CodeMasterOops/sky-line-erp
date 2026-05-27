@@ -12,6 +12,7 @@ class DeliveryChallanItemResource extends JsonResource
         return [
             'id' => $this->id ?? '',
             'delivery_challan_id' => $this->delivery_challan_id ?? '',
+            'sales_order_item_id' => $this->sales_order_item_id ?? '',
             'product_variant_id' => $this->product_variant_id ?? '',
             'unit_id' => $this->unit_id ?? '',
             'quantity' => (float) ($this->quantity ?? 0),

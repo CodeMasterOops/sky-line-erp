@@ -8,13 +8,15 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Services\Sales\SalesOrderService;
+use App\Services\Inventory\DeliveryChallanService;
 use App\Http\Resources\Admin\Sales\SalesOrderResource;
 use App\Http\Requests\Api\Admin\Sales\SalesOrderRequest;
 
 class SalesOrderController extends Controller
 {
     public function __construct(
-        private readonly SalesOrderService $salesOrderService
+        private readonly SalesOrderService $salesOrderService,
+        private readonly DeliveryChallanService $deliveryChallanService,
     ) {}
 
     /**
@@ -51,6 +53,28 @@ class SalesOrderController extends Controller
             'data' => SalesOrderResource::make($order),
             'message' => 'Sales Order Added Successfully',
         ], 201);
+    }
+
+    /**
+     * @Permissions("show_sales_order", group="sales_order", desc="Show Sales Order")
+     */
+    public function deliverableItems(SalesOrder $salesOrder)
+    {
+        if ($salesOrder->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved sales orders can be fulfilled.',
+            ], 422);
+        }
+
+        $items = $this->deliveryChallanService->deliverableItemsForSalesOrder($salesOrder);
+
+        return response()->json([
+            'data' => [
+                'sales_order_id' => $salesOrder->id,
+                'party_id' => $salesOrder->party_id,
+                'items' => $items,
+            ],
+        ]);
     }
 
     /**

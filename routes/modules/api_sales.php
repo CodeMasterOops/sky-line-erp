@@ -13,6 +13,7 @@ Route::post('quotation/{quotation}/approve', [QuotationController::class, 'appro
 Route::apiResource('quotation', QuotationController::class);
 
 // sales order
+Route::get('sales-order/{salesOrder}/deliverable-items', [SalesOrderController::class, 'deliverableItems'])->name('sales-order.deliverable-items');
 Route::post('sales-order/{salesOrder}/approve', [SalesOrderController::class, 'approve'])->name('sales-order.approve');
 Route::apiResource('sales-order', SalesOrderController::class);
 

@@ -67,6 +67,11 @@
         v-model:sales-order-id="invoiceSalesOrderId"
         @created="fetchOrders"
     />
+    <CreateDeliveryChallan
+        v-model:create-modal-opened="challanModalOpened"
+        v-model:sales-order-id="challanSalesOrderId"
+        @saved="fetchOrders"
+    />
     <EditSalesOrder v-model:order_id="edit_order_id" />
     <SalesOrderDetailModal v-model:detail-order-id="detail_order_id" />
 </template>
@@ -78,6 +83,7 @@ import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import CreateSalesOrder from './Create.vue';
 import CreateInvoice from '@/views/admin/sales/invoice/Create.vue';
+import CreateDeliveryChallan from '@/views/admin/inventory/delivery-challan/Create.vue';
 import EditSalesOrder from './Edit.vue';
 import SalesOrderDetailModal from './DetailModal.vue';
 import { useSalesOrderStore } from '@/stores/admin/sales/sales-order.js';
@@ -94,6 +100,8 @@ const edit_order_id = ref('');
 const detail_order_id = ref('');
 const invoiceModalOpened = ref(false);
 const invoiceSalesOrderId = ref('');
+const challanModalOpened = ref(false);
+const challanSalesOrderId = ref('');
 
 const fetchOrders = () => salesOrderStore.getOrders({ filter });
 
@@ -148,11 +156,17 @@ const convertToInvoice = (id) => {
     invoiceModalOpened.value = true;
 };
 
+const createDeliveryChallan = (id) => {
+    challanSalesOrderId.value = id;
+    challanModalOpened.value = true;
+};
+
 const rowActions = createRowActions({
     onView:    openDetail,
     onEdit:    editOrder,
     onApprove: handleApprove,
     onConvert: convertToInvoice,
+    onDeliver: createDeliveryChallan,
     onDelete:  handleDelete,
 });
 </script>

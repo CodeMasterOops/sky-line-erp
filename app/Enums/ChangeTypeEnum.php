@@ -6,6 +6,7 @@ enum ChangeTypeEnum: string
 {
     case PURCHASE = 'purchase';
     case SALE = 'sale';
+    case DELIVERY = 'delivery';
     case DAMAGE = 'damage';
     case LOST = 'lost';
     case TRANSFER_IN = 'transfer-in';
@@ -26,6 +27,7 @@ enum ChangeTypeEnum: string
         return match ($value) {
             self::PURCHASE => 'Purchase',
             self::SALE => 'Sale',
+            self::DELIVERY => 'Delivery',
             self::DAMAGE => 'Damage',
             self::LOST => 'Lost',
             self::TRANSFER_IN => 'Transfer In',

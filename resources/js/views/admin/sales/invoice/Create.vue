@@ -285,6 +285,7 @@ import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import {useDeliveryChallanStore} from '@/stores/admin/inventory/delivery-challan.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {
     buildOrderAllocations,
@@ -306,6 +307,7 @@ import {warehouseIdForLineItem} from '@/helpers/productLineValidation.js';
 const invoiceStore = useInvoiceStore();
 const quotationStore = useQuotationStore();
 const salesOrderStore = useSalesOrderStore();
+const deliveryChallanStore = useDeliveryChallanStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 
@@ -322,6 +324,7 @@ const {
 const createModalOpened = defineModel('createModalOpened');
 const quotationId = defineModel('quotationId');
 const salesOrderId = defineModel('salesOrderId');
+const deliveryChallanId = defineModel('deliveryChallanId');
 const emit = defineEmits(['created']);
 
 const {currentAdDate} = useDateHelper();
@@ -360,6 +363,8 @@ watch(
                 loadFromSalesOrder();
             } else if (quotationId.value) {
                 loadFromQuotation();
+            } else if (deliveryChallanId.value) {
+                loadFromDeliveryChallan();
             }
         }
     },
@@ -419,6 +424,32 @@ const loadFromSalesOrder = async () => {
         quotation_id: order.value.data?.quotation_id || '',
         sales_order_id: salesOrderId.value,
     });
+};
+
+const loadFromDeliveryChallan = async () => {
+    await deliveryChallanStore.getChallan(deliveryChallanId.value);
+    const data = deliveryChallanStore.challan.data;
+
+    form.party_id = data.party_id || '';
+    form.sales_order_id = data.sales_order_id ? String(data.sales_order_id) : '';
+    form.remarks = data.remarks || '';
+    form.items = (data.challan_items || []).map((item) => ({
+        product_variant_id: item.product_variant_id,
+        product_label: variantLabel(item.product_variant ?? {}),
+        sku: item.product_variant?.sku ?? '',
+        purchase_snapshot: item.product_variant?.purchase_price || 0,
+        unit_id: item.unit_id ?? item.product_variant?.unit_id ?? '',
+        quantity: String(item.quantity),
+        rate: String(item.rate),
+        tax_id: '',
+        line_discount_type: 'fixed',
+        line_discount_value: '0',
+        delivery_challan_item_id: item.id,
+        warehouse_id: data.warehouse_id ? String(data.warehouse_id) : '',
+        warehouse_name: data.warehouse?.name ?? '',
+        stock_qty: null,
+        is_service: false,
+    }));
 };
 
 function buildPrefillLine(item) {
@@ -622,6 +653,7 @@ const buildInvoicePayload = () => {
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item, index) => ({
             product_variant_id: item.product_variant_id,
+            delivery_challan_item_id: item.delivery_challan_item_id || null,
             warehouse_id: item.is_service ? null : (item.warehouse_id || null),
             unit_id: item.unit_id || null,
             quantity: item.quantity,
@@ -658,6 +690,7 @@ const closeCreateModal = () => {
     resetForm();
     quotationId.value = '';
     salesOrderId.value = '';
+    deliveryChallanId.value = '';
     createModalOpened.value = false;
 };
 

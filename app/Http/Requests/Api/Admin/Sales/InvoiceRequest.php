@@ -34,6 +34,7 @@ class InvoiceRequest extends FormRequest
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
+            'items.*.delivery_challan_item_id' => ['nullable', Rule::exists('delivery_challan_items', 'id')],
             'items.*.warehouse_id' => ProductLineRules::warehouseId(),
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],

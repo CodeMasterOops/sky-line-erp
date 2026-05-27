@@ -84,6 +84,11 @@ class SalesOrder extends Model
         return $this->morphMany(Invoice::class, 'reference');
     }
 
+    public function deliveryChallans(): MorphMany
+    {
+        return $this->morphMany(DeliveryChallan::class, 'reference');
+    }
+
     public function fiscalYear(): BelongsTo
     {
         return $this->belongsTo(FiscalYear::class);

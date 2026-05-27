@@ -9,9 +9,9 @@ export const salesOrderColumns = [
 ];
 
 /**
- * @param {{ onView: Function, onEdit: Function, onApprove: Function, onConvert: Function, onDelete: Function }} handlers
+ * @param {{ onView: Function, onEdit: Function, onApprove: Function, onConvert: Function, onDeliver: Function, onDelete: Function }} handlers
  */
-export function createRowActions({ onView, onEdit, onApprove, onConvert, onDelete }) {
+export function createRowActions({ onView, onEdit, onApprove, onConvert, onDeliver, onDelete }) {
     return [
         {
             key:     'view',
@@ -40,6 +40,13 @@ export function createRowActions({ onView, onEdit, onApprove, onConvert, onDelet
             title:     'Convert to Invoice',
             condition: (record) => record.status === 'approved' && !record.invoice_count,
             handler:   (record) => onConvert(record.id),
+        },
+        {
+            key:       'deliver',
+            icon:      'ti-truck-delivery',
+            title:     'Create Delivery Challan',
+            condition: (record) => record.status === 'approved',
+            handler:   (record) => onDeliver(record.id),
         },
         {
             key:     'delete',

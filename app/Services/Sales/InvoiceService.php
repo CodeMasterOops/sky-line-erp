@@ -68,6 +68,7 @@ readonly class InvoiceService
             foreach ($formData['items'] ?? [] as $item) {
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
+                    'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -132,6 +133,7 @@ readonly class InvoiceService
             foreach ($formData['items'] ?? [] as $item) {
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
+                    'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -197,6 +199,10 @@ readonly class InvoiceService
 
             $item->loadMissing('productVariant.product');
             if ($item->productVariant?->isService()) {
+                continue;
+            }
+
+            if ($item->delivery_challan_item_id) {
                 continue;
             }
 

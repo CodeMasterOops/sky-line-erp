@@ -9,6 +9,7 @@ export function warehouseErrorMessage(error, stock) {
     const messages = {
         out_of_stock: 'Product is out of stock in all warehouses.',
         insufficient_stock: `Only ${stock} unit(s) available in this warehouse.`,
+        not_in_dispatch_warehouse: 'Product is not available in the selected dispatch warehouse.',
         fetch_failed: 'Could not load warehouse stock.',
         cancelled: '',
     };

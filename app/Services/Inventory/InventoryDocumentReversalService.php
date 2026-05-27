@@ -10,6 +10,7 @@ use App\Models\CreditNote;
 use App\Models\StockLayer;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
+use App\Models\DeliveryChallan;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Validation\ValidationException;
 
@@ -211,6 +212,57 @@ class InventoryDocumentReversalService
                 $userId,
                 $remarks,
             );
+        }
+    }
+
+    public function reverseApprovedDeliveryChallan(DeliveryChallan $challan, ?int $userId, ?string $remarks = null): void
+    {
+        $movements = StockMovement::withoutGlobalScopes()
+            ->where('company_id', $challan->company_id)
+            ->where('reference_type', $challan->getMorphClass())
+            ->where('reference_id', $challan->id)
+            ->where('direction', StockDirectionEnum::OUT)
+            ->where('type', ChangeTypeEnum::DELIVERY)
+            ->with('movementLayers')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($movements as $movement) {
+            foreach ($movement->movementLayers as $ml) {
+                $layer = StockLayer::withoutGlobalScopes()
+                    ->where('id', $ml->stock_layer_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $layer) {
+                    throw ValidationException::withMessages([
+                        'challan' => __('Cannot reverse delivery challan: a cost layer referenced by this delivery is missing.'),
+                    ]);
+                }
+
+                $layer->qty_remaining = (int) $layer->qty_remaining + (int) $ml->quantity;
+                $layer->save();
+            }
+
+            $this->quantities->adjust(
+                $challan->company_id,
+                $movement->product_variant_id,
+                (int) $movement->warehouse_id,
+                (int) $movement->quantity,
+            );
+
+            $challan->stockMovements()->create([
+                'company_id' => $challan->company_id,
+                'product_variant_id' => $movement->product_variant_id,
+                'warehouse_id' => $movement->warehouse_id,
+                'type' => ChangeTypeEnum::RETURN_IN,
+                'direction' => StockDirectionEnum::IN,
+                'quantity' => $movement->quantity,
+                'unit_cost' => $movement->unit_cost,
+                'total_cost' => $movement->total_cost,
+                'user_id' => $userId,
+                'remarks' => $remarks,
+            ]);
         }
     }
 }

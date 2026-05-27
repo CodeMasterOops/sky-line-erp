@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class DeliveryChallan extends Model
 {
@@ -49,6 +50,14 @@ class DeliveryChallan extends Model
             $query->where('challan_no', 'like', $key);
         }
 
+        if (! empty($param['status'])) {
+            $query->where('status', $param['status']);
+        }
+
+        if (! empty($param['party_id'])) {
+            $query->where('party_id', $param['party_id']);
+        }
+
         return $query;
     }
 
@@ -70,6 +79,11 @@ class DeliveryChallan extends Model
     public function reference(): MorphTo
     {
         return $this->morphTo();
+    }
+
+    public function stockMovements(): MorphMany
+    {
+        return $this->morphMany(StockMovement::class, 'reference');
     }
 
     public function fiscalYear(): BelongsTo
