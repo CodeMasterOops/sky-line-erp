@@ -147,11 +147,13 @@
                 <h4>{{ fmt(dash.total_sales) }}</h4>
               </div>
             </div>
-            <apexchart v-if="salesChartOptions.series[0].data.length"
-              type="bar" height="245"
-              :options="salesChartOptions.chart"
-              :series="salesChartOptions.series">
-            </apexchart>
+            <apexchart
+              v-if="chartsReady && hasSalesChartData"
+              type="bar"
+              height="245"
+              :options="salesChartOptions"
+              :series="salesChartSeries"
+            />
           </div>
         </div>
       </div>
@@ -309,11 +311,13 @@
             </div>
           </div>
           <div class="card-body pb-0">
-            <apexchart v-if="expensesChartOptions.series[0].data.length"
-              type="bar" height="290"
-              :options="expensesChartOptions.chart"
-              :series="expensesChartOptions.series">
-            </apexchart>
+            <apexchart
+              v-if="chartsReady && hasExpensesChartData"
+              type="bar"
+              height="290"
+              :options="expensesChartOptions"
+              :series="expensesChartSeries"
+            />
           </div>
         </div>
       </div>
@@ -470,7 +474,7 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted} from 'vue';
+import {ref, computed, onMounted, watch, nextTick} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
@@ -478,6 +482,7 @@ import {useAdminDashboardStore} from '@/stores/admin/dashboard';
 
 const dashboardStore = useAdminDashboardStore();
 const dateRangeInput = ref(null);
+const chartsReady = ref(false);
 
 const dash = computed(() => dashboardStore.dashboard.data);
 const summaryCards = computed(() => dashboardStore.summaryCards);
@@ -507,46 +512,64 @@ const statusBadge = (status) => {
     return map[status?.toLowerCase()] ?? 'bg-secondary';
 };
 
+const chartData = computed(() => dashboardStore.dashboard.data.chart_data ?? {});
+
 /** Sales & Purchase chart built from API chart_data */
-const salesChartOptions = computed(() => {
-    const cd = dashboardStore.dashboard.data.chart_data;
-    return {
-        chart: {
-            toolbar: {show: false},
-            xaxis: {categories: cd.labels || []},
-            colors: ['#1b84ff', '#17c653'],
-            plotOptions: {bar: {borderRadius: 4, columnWidth: '55%'}},
-            dataLabels: {enabled: false},
-            legend: {position: 'top'},
-        },
-        series: [
-            {name: 'Sales',    data: cd.sales     || []},
-            {name: 'Purchase', data: cd.purchases  || []},
-        ],
-    };
-});
+const salesChartOptions = computed(() => ({
+    chart: {
+        type: 'bar',
+        toolbar: {show: false},
+    },
+    colors: ['#1b84ff', '#17c653'],
+    plotOptions: {bar: {borderRadius: 4, columnWidth: '55%'}},
+    dataLabels: {enabled: false},
+    legend: {position: 'top'},
+    xaxis: {categories: chartData.value.labels || []},
+}));
+
+const salesChartSeries = computed(() => [
+    {name: 'Sales', data: chartData.value.sales || []},
+    {name: 'Purchase', data: chartData.value.purchases || []},
+]);
 
 /** Sales vs Expenses chart */
-const expensesChartOptions = computed(() => {
-    const cd = dashboardStore.dashboard.data.chart_data;
-    return {
-        chart: {
-            toolbar: {show: false},
-            xaxis: {categories: cd.labels || []},
-            colors: ['#1b84ff', '#f6820d'],
-            plotOptions: {bar: {borderRadius: 4, columnWidth: '55%'}},
-            dataLabels: {enabled: false},
-            legend: {position: 'top'},
-        },
-        series: [
-            {name: 'Revenue',  data: cd.sales    || []},
-            {name: 'Expenses', data: cd.expenses  || []},
-        ],
-    };
-});
+const expensesChartOptions = computed(() => ({
+    chart: {
+        type: 'bar',
+        toolbar: {show: false},
+    },
+    colors: ['#1b84ff', '#f6820d'],
+    plotOptions: {bar: {borderRadius: 4, columnWidth: '55%'}},
+    dataLabels: {enabled: false},
+    legend: {position: 'top'},
+    xaxis: {categories: chartData.value.labels || []},
+}));
 
-onMounted(() => {
+const expensesChartSeries = computed(() => [
+    {name: 'Revenue', data: chartData.value.sales || []},
+    {name: 'Expenses', data: chartData.value.expenses || []},
+]);
+
+const hasSalesChartData = computed(() => salesChartSeries.value.some((series) => series.data.length > 0));
+const hasExpensesChartData = computed(() => expensesChartSeries.value.some((series) => series.data.length > 0));
+
+watch(
+    () => dashboardStore.isLoading,
+    async (loading) => {
+        chartsReady.value = false;
+
+        if (!loading) {
+            await nextTick();
+            chartsReady.value = true;
+        }
+    },
+    {immediate: true},
+);
+
+onMounted(async () => {
     dashboardStore.getDashboardData();
+
+    await nextTick();
 
     if (dateRangeInput.value) {
         const start = moment().subtract(6, 'days');
@@ -565,8 +588,14 @@ onMounted(() => {
                     'Last Month':  [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
                 },
             },
-            (s, e) => dateRangeInput.value && (dateRangeInput.value.value = `${s.format('M/D/YYYY')} - ${e.format('M/D/YYYY')}`)
+            (s, e) => {
+                if (dateRangeInput.value) {
+                    dateRangeInput.value.value = `${s.format('M/D/YYYY')} - ${e.format('M/D/YYYY')}`;
+                }
+            },
         );
+
+        dateRangeInput.value.value = `${start.format('M/D/YYYY')} - ${end.format('M/D/YYYY')}`;
     }
 });
 </script>

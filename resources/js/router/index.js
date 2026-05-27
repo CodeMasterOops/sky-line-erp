@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { getActivePinia } from 'pinia';
 import adminRoutes from '@/router/admin';
 import superAdminRoutes from '@/router/super-admin.js';
 import { useAdminAuthStore } from '@/stores/admin/auth';
@@ -6,6 +7,12 @@ import { useBranchStore } from '@/stores/admin/settings/branch.js';
 import { useSuperAdminAuthStore } from '@/stores/super-admin/auth.js';
 import { satisfiesAdminRoutePermission } from '@/helpers/checkPermission';
 import { getAdminRoutePermission } from '@/router/adminRoutePermissions';
+
+function piniaStore(useStore) {
+    const pinia = getActivePinia();
+
+    return pinia ? useStore(pinia) : null;
+}
 
 const routes = [
     ...superAdminRoutes,
@@ -26,8 +33,14 @@ router.beforeEach(async (to, from, next) => {
     document.title = `${to.meta.pageTitle ?? ''}`;
 
     if (to.meta.isAdmin) {
-        const adminAuth = useAdminAuthStore();
-        const branchStore = useBranchStore();
+        const adminAuth = piniaStore(useAdminAuthStore);
+        const branchStore = piniaStore(useBranchStore);
+
+        if (!adminAuth) {
+            next();
+            return;
+        }
+
         if (to.meta.requiresAuth && !adminAuth.authUser.access_token) {
             next({ name: 'admin.login' });
             return;
@@ -69,7 +82,8 @@ router.beforeEach(async (to, from, next) => {
         if (
             adminAuth.authUser.access_token &&
             !to.meta.isGuest &&
-            !to.meta.allowWithoutBranch
+            !to.meta.allowWithoutBranch &&
+            branchStore
         ) {
             const selectedBranch = await branchStore.ensureSelectedBranchLoaded();
             if (!branchStore.selectedBranchId || !selectedBranch) {
@@ -83,9 +97,16 @@ router.beforeEach(async (to, from, next) => {
 
         next();
     } else if (to.meta.isSuperAdmin) {
-        if (to.meta.requiresAuth && !useSuperAdminAuthStore().authUser.access_token) {
+        const superAdminAuth = piniaStore(useSuperAdminAuthStore);
+
+        if (!superAdminAuth) {
+            next();
+            return;
+        }
+
+        if (to.meta.requiresAuth && !superAdminAuth.authUser.access_token) {
             next({ name: 'super-admin.login' });
-        } else if (useSuperAdminAuthStore().authUser.access_token && to.meta.isGuest) {
+        } else if (superAdminAuth.authUser.access_token && to.meta.isGuest) {
             next({ name: 'super-admin.dashboard' });
         } else {
             next();

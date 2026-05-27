@@ -1,91 +1,82 @@
-import axios from "axios";
-import {useAdminAuthStore} from "@/stores/admin/auth";
-import {useRouter} from "vue-router";
-import {useSuperAdminAuthStore} from "@/stores/super-admin/auth.js";
-import {storeToRefs} from "pinia";
-import {useBranchStore} from "@/stores/admin/settings/branch.js";
+import axios from 'axios';
+import {getActivePinia} from 'pinia';
+import {useAdminAuthStore} from '@/stores/admin/auth';
+import {useSuperAdminAuthStore} from '@/stores/super-admin/auth.js';
+import {useBranchStore} from '@/stores/admin/settings/branch.js';
+import {formattedRequest} from '@/helpers/apiRequest.js';
 
-const router = useRouter();
+function piniaStore(useStore) {
+    const pinia = getActivePinia();
+
+    return pinia ? useStore(pinia) : null;
+}
 
 const baseUrl = `${window.location.origin}/api`;
 
-const apiFront = (url, method = 'get', body = {}, options = {}) => {
-    const axiosBase = axios.create({
-        baseURL: baseUrl,
-        ...options
-    });
+const frontClient = axios.create({
+    baseURL: baseUrl,
+});
 
-    return formattedRequest(axiosBase, method, url, body)
-}
+const adminClient = axios.create({
+    baseURL: `${baseUrl}/admin/`,
+});
 
-const apiAdmin = (url, method = 'get', body = {}, options = {}) => {
-    const axiosBase = axios.create({
-        baseURL: `${baseUrl}/admin/`,
-        ...options
-    });
+adminClient.interceptors.request.use((config) => {
+    const token = piniaStore(useAdminAuthStore)?.authUser.access_token;
 
-    const branchId = useBranchStore().selectedBranchId;
-
-    axiosBase.interceptors.request.use(config => {
-        config.headers.Authorization = `Bearer ${useAdminAuthStore().authUser.access_token}`;
-        if (branchId) {
-            config.headers['X-Branch-Id'] = branchId;
-        }
-        return config;
-    })
-
-    axiosBase.interceptors.response.use(response => {
-        return response;
-    }, async error => {
-        if (error.response.status === 401) {
-            useAdminAuthStore().removeAuthToken();
-            await router.push({name: 'admin.login'});
-        }
-        throw error;
-    })
-
-    return formattedRequest(axiosBase, method, url, body)
-}
-
-const apiSuperAdmin = (url, method = 'get', body = {}, options = {}) => {
-    const axiosBase = axios.create({
-        baseURL: `${baseUrl}/super-admin/`,
-        ...options
-    });
-
-    axiosBase.interceptors.request.use(config => {
-        config.headers.Authorization = `Bearer ${useSuperAdminAuthStore().authUser.access_token}`
-        return config;
-    })
-
-    axiosBase.interceptors.response.use(response => {
-        return response;
-    }, async error => {
-        if (error.response.status === 401) {
-            useSuperAdminAuthStore().removeAuthToken();
-            await router.push({name: 'super-admin.login'});
-        }
-        throw error;
-    })
-
-    return formattedRequest(axiosBase, method, url, body)
-}
-
-const formattedRequest = (base, method, url, body = null) => {
-    switch (method) {
-        case 'post': {
-            return body ? base.post(url, body) : base.post(url);
-        }
-        case 'put': {
-            return body ? base.put(url, body) : base.put(url);
-        }
-        case 'delete': {
-            return base.delete(url);
-        }
-        default:
-            return body ? base.get(url, {params: body}) : base.get(url);
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
-}
+
+    const branchId = piniaStore(useBranchStore)?.selectedBranchId;
+
+    if (branchId) {
+        config.headers['X-Branch-Id'] = branchId;
+    }
+
+    return config;
+});
+
+adminClient.interceptors.response.use((response) => response, async (error) => {
+    if (error.response?.status === 401) {
+        piniaStore(useAdminAuthStore)?.removeAuthToken();
+        window.location.href = '/admin/login';
+    }
+
+    throw error;
+});
+
+const superAdminClient = axios.create({
+    baseURL: `${baseUrl}/super-admin/`,
+});
+
+superAdminClient.interceptors.request.use((config) => {
+    const token = piniaStore(useSuperAdminAuthStore)?.authUser.access_token;
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+});
+
+superAdminClient.interceptors.response.use((response) => response, async (error) => {
+    if (error.response?.status === 401) {
+        piniaStore(useSuperAdminAuthStore)?.removeAuthToken();
+        window.location.href = '/super-admin/login';
+    }
+
+    throw error;
+});
+
+const apiFront = (url, method = 'get', body = {}, options = {}) =>
+    formattedRequest(frontClient, method, url, body, options);
+
+const apiAdmin = (url, method = 'get', body = {}, options = {}) =>
+    formattedRequest(adminClient, method, url, body, options);
+
+const apiSuperAdmin = (url, method = 'get', body = {}, options = {}) =>
+    formattedRequest(superAdminClient, method, url, body, options);
 
 /**
  * Download a file (PDF, CSV, etc.) from an authenticated admin endpoint.
@@ -96,9 +87,7 @@ const formattedRequest = (base, method, url, body = null) => {
  * @param {object} params   - query params (GET request)
  */
 const downloadAdminFile = async (url, filename, params = {}) => {
-    const token = useAdminAuthStore().authUser.access_token;
-    const response = await axios.get(`${baseUrl}/admin/${url}`, {
-        headers: {Authorization: `Bearer ${token}`},
+    const response = await adminClient.get(url, {
         params,
         responseType: 'blob',
     });
@@ -112,4 +101,4 @@ const downloadAdminFile = async (url, filename, params = {}) => {
     URL.revokeObjectURL(link.href);
 };
 
-export {apiFront, apiAdmin, apiSuperAdmin, downloadAdminFile}
+export {apiFront, apiAdmin, apiSuperAdmin, downloadAdminFile};

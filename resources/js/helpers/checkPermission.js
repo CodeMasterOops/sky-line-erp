@@ -1,7 +1,18 @@
-import {useAdminAuthStore} from "@/stores/admin/auth";
+import {getActivePinia} from 'pinia';
+import {useAdminAuthStore} from '@/stores/admin/auth';
+
+function resolveAuthStore() {
+    const pinia = getActivePinia();
+
+    return pinia ? useAdminAuthStore(pinia) : null;
+}
 
 export const hasPermission = (permission) => {
-    const authStore = useAdminAuthStore();
+    const authStore = resolveAuthStore();
+
+    if (!authStore) {
+        return false;
+    }
 
     if (authStore.authUser.user_type === 'admin') {
         return true;
@@ -14,7 +25,12 @@ export const hasPermission = (permission) => {
 
 /** User must have at least one of the given permissions (OR). */
 export const hasAnyPermission = (permissions) => {
-    const authStore = useAdminAuthStore();
+    const authStore = resolveAuthStore();
+
+    if (!authStore) {
+        return false;
+    }
+
     if (authStore.authUser.user_type === 'admin') {
         return true;
     }

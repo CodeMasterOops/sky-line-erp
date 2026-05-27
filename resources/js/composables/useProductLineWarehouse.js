@@ -1,4 +1,4 @@
-import {useToast} from 'vue-toastification';
+import {toastInterface} from '@/plugins/my-plugins.js';
 import {
     fetchVariantWarehouses,
     invoiceLineKey,
@@ -22,7 +22,7 @@ export function showWarehouseToast(error, stock) {
         return;
     }
 
-    useToast().warning(warehouseErrorMessage(error, stock));
+    toastInterface.warning(warehouseErrorMessage(error, stock));
 }
 
 export function buildLineWarehouseFields(warehouseOption) {

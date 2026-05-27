@@ -60,8 +60,8 @@ import myPlugins from "./plugins/my-plugins";
 import Multiselect from "@vueform/multiselect";
 
 createApp(App)
-    .use(router)
     .use(createPinia())
+    .use(router)
     .use(myPlugins)
     .component("vue-feather", VueFeather)
     .component("vertical-sidebar", verticalSidebar)

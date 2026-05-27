@@ -1,14 +1,16 @@
-import Toast from 'vue-toastification'
+import Toast, {createToastInterface} from 'vue-toastification';
 
-const toastOptions = {
-    transition: "my-custom-fade",
+export const toastOptions = {
+    transition: 'my-custom-fade',
     timeout: 3000,
     maxToasts: 20,
-    newestOnTop: true
+    newestOnTop: true,
 };
 
+export const toastInterface = createToastInterface(toastOptions);
+
 export default {
-    install: (app => {
-        app.use(Toast, toastOptions)
-    })
-}
+    install: (app) => {
+        app.use(Toast, toastOptions);
+    },
+};
