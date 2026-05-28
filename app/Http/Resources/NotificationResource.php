@@ -13,7 +13,10 @@ class NotificationResource extends JsonResource
         return [
             'id' => $this->id ?? '',
             'type' => $this->type,
-            'notification_type' => NotificationTypeEnum::tryFrom($this->type)?->label(),
+            'notification_type' => (
+                NotificationTypeEnum::tryFrom($this->data['type'] ?? '')
+                ?? NotificationTypeEnum::fromNotificationClass($this->type)
+            )?->label(),
             'time' => $this->created_at->diffForHumans(),
             'data' => $this->data ?? [],
             'read_at' => $this->read_at?->diffForHumans(),
