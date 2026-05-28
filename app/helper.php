@@ -180,6 +180,25 @@ if (! function_exists('sanitizeDownloadFilename')) {
     }
 }
 
+if (! function_exists('format_money')) {
+    function format_money(float|int|string|null $amount, ?string $symbol = null): string
+    {
+        if ($amount === null || $amount === '') {
+            return '—';
+        }
+
+        $numeric = is_numeric($amount) ? (float) $amount : null;
+
+        if ($numeric === null) {
+            return '—';
+        }
+
+        $symbol ??= config('currency.symbol', 'Rs.');
+
+        return $symbol.' '.number_format($numeric, 2);
+    }
+}
+
 if (! function_exists('adToBsDateTime')) {
     function adToBsDateTime($adDate, $format = 'en'): string
     {

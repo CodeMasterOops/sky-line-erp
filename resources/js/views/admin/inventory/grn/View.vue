@@ -116,8 +116,8 @@
                                 <td class="text-end">{{ item.received_qty }}</td>
                                 <td class="text-end">{{ item.billed_qty ?? 0 }}</td>
                                 <td class="text-end">{{ remainingQty(item) }}</td>
-                                <td class="text-end">{{ fmt(item.unit_cost) }}</td>
-                                <td class="text-end fw-semibold">{{ fmt(item.received_qty * item.unit_cost) }}</td>
+                                <td class="text-end">{{ formatMoney(item.unit_cost) }}</td>
+                                <td class="text-end fw-semibold">{{ formatMoney(item.received_qty * item.unit_cost) }}</td>
                                 <td>{{ item.batch_no || '-' }}</td>
                                 <td>{{ formatDate(item.expiry_date) }}</td>
                             </tr>
@@ -125,7 +125,7 @@
                         <tfoot class="table-secondary fw-bold">
                             <tr>
                                 <td colspan="8" class="text-end">Grand Total</td>
-                                <td class="text-end">{{ fmt(grandTotal) }}</td>
+                                <td class="text-end">{{ formatMoney(grandTotal) }}</td>
                                 <td colspan="2"></td>
                             </tr>
                         </tfoot>
@@ -171,20 +171,20 @@
                                 <td class="text-capitalize">{{ cost.treatment }}</td>
                                 <td>{{ cost.treatment === 'expense' ? '-' : allocationLabel(cost.allocation_method) }}</td>
                                 <td>{{ cost.account?.name || (cost.account_id ? `#${cost.account_id}` : '-') }}</td>
-                                <td class="text-end">{{ fmt(cost.amount) }}</td>
-                                <td class="text-end">{{ fmt(cost.vat_amount) }}</td>
-                                <td class="text-end">{{ fmt(cost.vat_claimable_amount) }}</td>
-                                <td class="text-end">{{ fmt(allocatedTotal(cost)) }}</td>
+                                <td class="text-end">{{ formatMoney(cost.amount) }}</td>
+                                <td class="text-end">{{ formatMoney(cost.vat_amount) }}</td>
+                                <td class="text-end">{{ formatMoney(cost.vat_claimable_amount) }}</td>
+                                <td class="text-end">{{ formatMoney(allocatedTotal(cost)) }}</td>
                                 <td>{{ cost.journal_id ? `JV #${cost.journal_id}` : '-' }}</td>
                             </tr>
                         </tbody>
                         <tfoot v-if="grn.landed_costs?.length" class="table-secondary fw-bold">
                             <tr>
                                 <td colspan="5" class="text-end">Charge Total</td>
-                                <td class="text-end">{{ fmt(landedCostSummary.amount) }}</td>
-                                <td class="text-end">{{ fmt(landedCostSummary.vat) }}</td>
-                                <td class="text-end">{{ fmt(landedCostSummary.claimableVat) }}</td>
-                                <td class="text-end">{{ fmt(landedCostSummary.allocated) }}</td>
+                                <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
+                                <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
+                                <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
+                                <td class="text-end">{{ formatMoney(landedCostSummary.allocated) }}</td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -198,6 +198,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, ref, onMounted} from 'vue';
 import {useRoute} from 'vue-router';
 import {apiAdmin} from '@/helpers/api.js';
@@ -269,7 +270,6 @@ const approve = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', {minimumFractionDigits: 2});
 
 onMounted(() => {
     loadGrn();

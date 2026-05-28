@@ -193,6 +193,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
@@ -208,7 +209,6 @@ import {useReceiptStore} from '@/stores/admin/sales/receipt.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
-import {formatMoney} from '@/helpers/formatMoney';
 
 const emit = defineEmits(['saved']);
 

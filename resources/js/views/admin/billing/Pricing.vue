@@ -143,16 +143,10 @@ onMounted(async () => {
     }
 });
 
+import {formatMoney} from '@/helpers/formatMoney.js';
+
 function isCurrentPlan(plan) {
     return currentSubscription.value?.plan?.id === plan.id;
-}
-
-function formatMoney(amount) {
-    return new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 0,
-    }).format(Number(amount || 0));
 }
 
 function formatDate(value) {

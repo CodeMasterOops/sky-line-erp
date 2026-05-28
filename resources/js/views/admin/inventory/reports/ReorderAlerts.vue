@@ -55,10 +55,10 @@
                             <td>{{ row.sku }}</td>
                             <td>{{ row.warehouse_name }}</td>
                             <td class="text-end fw-semibold" :class="row.current_stock <= 0 ? 'text-danger' : 'text-warning'">
-                                {{ fmt(row.current_stock) }}
+                                {{ formatMoneyPlain(row.current_stock) }}
                             </td>
-                            <td class="text-end">{{ fmt(row.min_stock_level) }}</td>
-                            <td class="text-end">{{ fmt(row.reorder_quantity) }}</td>
+                            <td class="text-end">{{ formatMoneyPlain(row.min_stock_level) }}</td>
+                            <td class="text-end">{{ formatMoneyPlain(row.reorder_quantity) }}</td>
                             <td>
                                 <span class="badge" :class="row.current_stock <= 0 ? 'bg-danger' : 'bg-warning text-dark'">
                                     {{ row.current_stock <= 0 ? 'Out of Stock' : 'Low Stock' }}
@@ -85,6 +85,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -150,7 +151,6 @@ const generateAllPos = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 onMounted(() => { loadReport(); });
 </script>

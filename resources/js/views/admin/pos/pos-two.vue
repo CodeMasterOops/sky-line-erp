@@ -135,10 +135,10 @@
                             {{ t.name }} ({{ t.rate }}%)
                           </option>
                         </select>
-                        <span v-if="item.taxAmount > 0" class="pos-cart-tax-amt">{{ fmt(item.taxAmount) }}</span>
+                        <span v-if="item.taxAmount > 0" class="pos-cart-tax-amt">{{ formatMoney(item.taxAmount) }}</span>
                       </td>
                       <td class="pos-col-total text-end">
-                        <span class="pos-cart-line-total">{{ fmt(calcLineTotal(item, index)) }}</span>
+                        <span class="pos-cart-line-total">{{ formatMoney(calcLineTotal(item, index)) }}</span>
                       </td>
                       <td class="pos-col-action text-center">
                         <button
@@ -158,23 +158,23 @@
               <div v-if="posStore.cart.length" class="pos-cart-summary">
                 <div class="pos-cart-summary__row">
                   <span>Subtotal</span>
-                  <span>{{ fmt(posStore.subtotal) }}</span>
+                  <span>{{ formatMoney(posStore.subtotal) }}</span>
                 </div>
                 <div v-if="posStore.lineDiscountTotal > 0" class="pos-cart-summary__row is-discount">
                   <span>Line discount</span>
-                  <span>-{{ fmt(posStore.lineDiscountTotal) }}</span>
+                  <span>-{{ formatMoney(posStore.lineDiscountTotal) }}</span>
                 </div>
                 <div v-if="posStore.orderDiscountTotal > 0" class="pos-cart-summary__row is-discount">
                   <span>Order discount</span>
-                  <span>-{{ fmt(posStore.orderDiscountTotal) }}</span>
+                  <span>-{{ formatMoney(posStore.orderDiscountTotal) }}</span>
                 </div>
                 <div v-if="posStore.taxTotal > 0" class="pos-cart-summary__row">
                   <span>Tax</span>
-                  <span>{{ fmt(posStore.taxTotal) }}</span>
+                  <span>{{ formatMoney(posStore.taxTotal) }}</span>
                 </div>
                 <div class="pos-cart-summary__row is-total">
                   <span>Grand total</span>
-                  <span>{{ fmt(posStore.grandTotal) }}</span>
+                  <span>{{ formatMoney(posStore.grandTotal) }}</span>
                 </div>
               </div>
             </div>
@@ -229,27 +229,27 @@
                 <tbody>
                   <tr>
                     <td class="ps-0 text-muted py-1">Subtotal</td>
-                    <td class="pe-0 text-end py-1">{{ fmt(posStore.subtotal) }}</td>
+                    <td class="pe-0 text-end py-1">{{ formatMoney(posStore.subtotal) }}</td>
                   </tr>
                   <tr v-if="posStore.lineDiscountTotal > 0">
                     <td class="ps-0 text-danger py-1">Line Discount</td>
-                    <td class="pe-0 text-danger text-end py-1">-{{ fmt(posStore.lineDiscountTotal) }}</td>
+                    <td class="pe-0 text-danger text-end py-1">-{{ formatMoney(posStore.lineDiscountTotal) }}</td>
                   </tr>
                   <tr v-if="posStore.orderDiscountTotal > 0">
                     <td class="ps-0 text-danger py-1">Order Discount</td>
-                    <td class="pe-0 text-danger text-end py-1">-{{ fmt(posStore.orderDiscountTotal) }}</td>
+                    <td class="pe-0 text-danger text-end py-1">-{{ formatMoney(posStore.orderDiscountTotal) }}</td>
                   </tr>
                   <tr v-if="posStore.discountTotal > 0">
                     <td class="ps-0 text-danger py-1 fw-medium">Total Discount</td>
-                    <td class="pe-0 text-danger text-end py-1 fw-medium">-{{ fmt(posStore.discountTotal) }}</td>
+                    <td class="pe-0 text-danger text-end py-1 fw-medium">-{{ formatMoney(posStore.discountTotal) }}</td>
                   </tr>
                   <tr v-if="posStore.taxTotal > 0">
                     <td class="ps-0 text-muted py-1">Tax</td>
-                    <td class="pe-0 text-end py-1">{{ fmt(posStore.taxTotal) }}</td>
+                    <td class="pe-0 text-end py-1">{{ formatMoney(posStore.taxTotal) }}</td>
                   </tr>
                   <tr class="border-top">
                     <td class="ps-0 fw-bold pt-2">Total</td>
-                    <td class="pe-0 fw-bold text-end text-primary fs-16 pt-2">{{ fmt(posStore.grandTotal) }}</td>
+                    <td class="pe-0 fw-bold text-end text-primary fs-16 pt-2">{{ formatMoney(posStore.grandTotal) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -328,7 +328,7 @@
               >
                 <span v-if="posStore.checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
                 <i v-else class="ti ti-cash-banknote me-1"></i>
-                {{ posStore.checkoutLoading ? 'Processing...' : `Pay  ${fmt(posStore.grandTotal)}` }}
+                {{ posStore.checkoutLoading ? 'Processing...' : `Pay  ${formatMoney(posStore.grandTotal)}` }}
               </button>
               <div class="d-flex gap-2">
                 <button
@@ -386,6 +386,7 @@
 
 <script>
 import { Modal } from 'bootstrap';
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import PosHeader from '@/layouts/pos-header.vue';
@@ -439,9 +440,7 @@ export default {
   },
 
   methods: {
-    fmt(val) {
-      return Number(val ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    },
+    formatMoney,
 
     calcLineTotal(item, index) {
       const calcItem = {

@@ -37,10 +37,10 @@
                             <td>{{ row.name }}</td>
                             <td>{{ row.category }}</td>
                             <td>{{ formatDate(row.purchase_date) }}</td>
-                            <td class="text-end">{{ fmt(row.purchase_cost) }}</td>
-                            <td class="text-end text-danger">{{ fmt(row.accumulated_depreciation) }}</td>
-                            <td class="text-end fw-semibold">{{ fmt(row.net_book_value) }}</td>
-                            <td class="text-end">{{ fmt(row.annual_depreciation) }}</td>
+                            <td class="text-end">{{ formatMoney(row.purchase_cost) }}</td>
+                            <td class="text-end text-danger">{{ formatMoney(row.accumulated_depreciation) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(row.net_book_value) }}</td>
+                            <td class="text-end">{{ formatMoney(row.annual_depreciation) }}</td>
                             <td>{{ row.depreciation_method }}</td>
                         </tr>
                         <tr v-if="!schedule.length">
@@ -50,9 +50,9 @@
                     <tfoot v-if="scheduleTotal.total_cost" class="table-secondary fw-bold">
                         <tr>
                             <td colspan="4">Total</td>
-                            <td class="text-end">{{ fmt(scheduleTotal.total_cost) }}</td>
-                            <td class="text-end text-danger">{{ fmt(scheduleTotal.total_accumulated_depreciation) }}</td>
-                            <td class="text-end">{{ fmt(scheduleTotal.total_net_book_value) }}</td>
+                            <td class="text-end">{{ formatMoney(scheduleTotal.total_cost) }}</td>
+                            <td class="text-end text-danger">{{ formatMoney(scheduleTotal.total_accumulated_depreciation) }}</td>
+                            <td class="text-end">{{ formatMoney(scheduleTotal.total_net_book_value) }}</td>
                             <td colspan="2"></td>
                         </tr>
                     </tfoot>
@@ -85,8 +85,8 @@
                             <td>{{ asset.name }}</td>
                             <td>{{ asset.category?.name || '-' }}</td>
                             <td>{{ formatDate(asset.purchase_date) }}</td>
-                            <td class="text-end">NPR {{ fmt(asset.purchase_cost) }}</td>
-                            <td class="text-end">NPR {{ fmt(asset.purchase_cost - asset.accumulated_depreciation) }}</td>
+                            <td class="text-end">{{ formatMoney(asset.purchase_cost) }}</td>
+                            <td class="text-end">{{ formatMoney(asset.purchase_cost - asset.accumulated_depreciation) }}</td>
                             <td><span class="badge" :class="asset.status === 'active' ? 'bg-success' : 'bg-secondary'">{{ asset.status }}</span></td>
                             <td>
                                 <div class="d-flex gap-1">
@@ -157,6 +157,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -249,7 +250,6 @@ const deleteAsset = async (id) => {
     } catch (e) { showErrors(e); }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 onMounted(() => {
     loadAssets();

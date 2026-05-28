@@ -44,17 +44,17 @@
                         <tbody>
                             <tr v-for="row in consolidatedData" :key="row.branch.id">
                                 <td><strong>{{ row.branch.name }}</strong> <small class="text-muted">({{ row.branch.code }})</small></td>
-                                <td class="text-end text-success">{{ fmtNum(row.total_revenue) }}</td>
-                                <td class="text-end text-danger">{{ fmtNum(row.total_expenses) }}</td>
+                                <td class="text-end text-success">{{ formatMoney(row.total_revenue) }}</td>
+                                <td class="text-end text-danger">{{ formatMoney(row.total_expenses) }}</td>
                                 <td class="text-end fw-bold" :class="row.net_profit >= 0 ? 'text-primary' : 'text-danger'">
-                                    {{ fmtNum(row.net_profit) }}
+                                    {{ formatMoney(row.net_profit) }}
                                 </td>
                             </tr>
                             <tr class="table-dark fw-bold">
                                 <td>TOTAL</td>
-                                <td class="text-end">{{ fmtNum(consolidatedData.reduce((s,r) => s+r.total_revenue, 0)) }}</td>
-                                <td class="text-end">{{ fmtNum(consolidatedData.reduce((s,r) => s+r.total_expenses, 0)) }}</td>
-                                <td class="text-end">{{ fmtNum(consolidatedData.reduce((s,r) => s+r.net_profit, 0)) }}</td>
+                                <td class="text-end">{{ formatMoney(consolidatedData.reduce((s,r) => s+r.total_revenue, 0)) }}</td>
+                                <td class="text-end">{{ formatMoney(consolidatedData.reduce((s,r) => s+r.total_expenses, 0)) }}</td>
+                                <td class="text-end">{{ formatMoney(consolidatedData.reduce((s,r) => s+r.net_profit, 0)) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -76,16 +76,16 @@
                         <div class="row text-center g-2">
                             <div class="col-4">
                                 <div class="text-muted small">Revenue</div>
-                                <div class="text-success fw-bold">{{ fmtNum(report.total_revenue) }}</div>
+                                <div class="text-success fw-bold">{{ formatMoney(report.total_revenue) }}</div>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted small">Expenses</div>
-                                <div class="text-danger fw-bold">{{ fmtNum(report.total_expenses) }}</div>
+                                <div class="text-danger fw-bold">{{ formatMoney(report.total_expenses) }}</div>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted small">Net Profit</div>
                                 <div :class="['fw-bold', report.net_profit >= 0 ? 'text-primary' : 'text-danger']">
-                                    {{ fmtNum(report.net_profit) }}
+                                    {{ formatMoney(report.net_profit) }}
                                 </div>
                             </div>
                         </div>
@@ -118,6 +118,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { ref, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api';
 import showErrors from '@/helpers/showErrors';
@@ -158,7 +159,4 @@ async function loadConsolidated() {
     } catch (e) { showErrors(e); }
 }
 
-function fmtNum(n) {
-    return (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 </script>

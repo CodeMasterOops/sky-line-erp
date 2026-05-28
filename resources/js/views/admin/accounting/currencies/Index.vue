@@ -86,7 +86,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Symbol</label>
-                        <input type="text" class="form-control" v-model="form.symbol" placeholder="$" maxlength="10" />
+                        <input type="text" class="form-control" v-model="form.symbol" placeholder="Rs." maxlength="10" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Exchange Rate (1 unit = ? NPR) *</label>

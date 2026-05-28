@@ -141,7 +141,7 @@
                                                 :disabled="!isDraft"
                                             />
                                         </td>
-                                        <td class="text-end fw-semibold">{{ fmt(lineTotalMoney(item)) }}</td>
+                                        <td class="text-end fw-semibold">{{ formatMoney(lineTotalMoney(item)) }}</td>
                                         <td>
                                             <VInput
                                                 input-class="form-control form-control-sm"
@@ -162,7 +162,7 @@
                                     <tfoot v-if="form.items.length" class="table-secondary fw-bold">
                                     <tr>
                                         <td :colspan="isDraft ? 4 : 4" class="text-end">Grand Total</td>
-                                        <td class="text-end">{{ fmt(grandTotal) }}</td>
+                                        <td class="text-end">{{ formatMoney(grandTotal) }}</td>
                                         <td :colspan="isDraft ? 2 : 1"></td>
                                     </tr>
                                     </tfoot>
@@ -192,6 +192,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, reactive, ref, watch} from 'vue';
 import {storeToRefs} from 'pinia';
 import moment from 'moment';
@@ -362,10 +363,6 @@ const closeEditModal = () => {
     errors.value = {};
 };
 
-const fmt = (val) => Number(val ?? 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-});
 </script>
 
 <style scoped>

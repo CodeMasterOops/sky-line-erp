@@ -382,11 +382,11 @@
                                 <ul>
                                     <li>
                                         <h4>Sub total</h4>
-                                        <h5>{{ summary.subtotal }}</h5>
+                                        <h5>{{ formatMoney(summary.subtotal) }}</h5>
                                     </li>
                                     <li v-if="!isDraft">
                                         <h4>Discount</h4>
-                                        <h5>{{ summary.totalDiscount }}</h5>
+                                        <h5>{{ formatMoney(summary.totalDiscount) }}</h5>
                                     </li>
                                     <li v-else class="po-total-order-discount">
                                         <h4>Discount</h4>
@@ -409,23 +409,23 @@
                                                 "
                                             />
                                         </div>
-                                        <h5>{{ summary.totalDiscount }}</h5>
+                                        <h5>{{ formatMoney(summary.totalDiscount) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Non-taxable (net)</h4>
-                                        <h5>{{ summary.nonTaxableBase }}</h5>
+                                        <h5>{{ formatMoney(summary.nonTaxableBase) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Taxable (net)</h4>
-                                        <h5>{{ summary.taxableBase }}</h5>
+                                        <h5>{{ formatMoney(summary.taxableBase) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Tax</h4>
-                                        <h5>{{ summary.tax }}</h5>
+                                        <h5>{{ formatMoney(summary.tax) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Grand total</h4>
-                                        <h5>{{ summary.grandTotal }}</h5>
+                                        <h5>{{ formatMoney(summary.grandTotal) }}</h5>
                                     </li>
                                 </ul>
                             </div>
@@ -502,6 +502,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, nextTick, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {useToast} from 'vue-toastification';
@@ -855,12 +856,6 @@ const {errors, validateField, validateForm} = useYup(form, validations);
 
 const {summary, syncTaxAmounts} = useLineOrderDiscountTotals({form, taxes});
 
-const formatMoney = (value) => {
-    if (value === '' || value === null || value === undefined) {
-        return '—';
-    }
-    return Number(value).toFixed(2);
-};
 
 const lineQtyInt = (q) => {
     const n = parseInt(String(q ?? '0'), 10);

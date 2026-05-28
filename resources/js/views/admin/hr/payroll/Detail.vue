@@ -76,7 +76,7 @@
                                     <td>{{ p.working_days }}</td>
                                     <td>{{ p.present_days }}</td>
                                     <td>{{ p.gross_salary }}</td>
-                                    <td>{{ p.total_deductions }}</td>
+                                    <td>{{ formatMoney(p.total_deductions) }}</td>
                                     <td>{{ p.tds_amount ?? 0 }}</td>
                                     <td>{{ p.net_salary }}</td>
                                     <td class="text-center">
@@ -121,6 +121,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { toast } from '@/helpers/toast';

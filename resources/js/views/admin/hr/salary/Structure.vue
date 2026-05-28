@@ -100,7 +100,7 @@
                         <tr v-for="item in viewItem.items" :key="item.id">
                             <td>{{ item.component?.name }}</td>
                             <td>{{ item.component?.type_label }}</td>
-                            <td class="text-end">{{ item.amount }}</td>
+                            <td class="text-end">{{ formatMoney(item.amount) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -110,6 +110,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { ref, reactive, onMounted } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';

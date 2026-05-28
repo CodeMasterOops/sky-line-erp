@@ -134,6 +134,7 @@ import EditExpense from './Edit.vue';
 import PaymentModal from '@/views/admin/purchase/payment/PaymentModal.vue';
 import {useExpenseStore} from '@/stores/admin/purchase/expense.js';
 import {usePartyStore} from '@/stores/admin/party.js';
+import {formatMoney} from '@/helpers/formatMoney.js';
 
 const expenseStore = useExpenseStore();
 const partyStore = usePartyStore();
@@ -197,6 +198,8 @@ const columns = [
     {
         title: 'Grand Total',
         dataIndex: 'grand_total',
+        key: 'grand_total',
+        customRender: ({ text }) => formatMoney(text),
         sorter: true,
     },
     {

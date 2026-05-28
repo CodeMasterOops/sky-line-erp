@@ -37,7 +37,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Opening Balance</div>
-                            <div class="fs-5 fw-bold text-secondary">NPR {{ fmtNum(forecast.opening_balance) }}</div>
+                            <div class="fs-5 fw-bold text-secondary">{{ formatMoney(forecast.opening_balance) }}</div>
                         </div>
                     </div>
                 </div>
@@ -45,7 +45,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Expected Inflows</div>
-                            <div class="fs-5 fw-bold text-success">NPR {{ fmtNum(forecast.summary.total_inflow) }}</div>
+                            <div class="fs-5 fw-bold text-success">{{ formatMoney(forecast.summary.total_inflow) }}</div>
                         </div>
                     </div>
                 </div>
@@ -53,7 +53,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Expected Outflows</div>
-                            <div class="fs-5 fw-bold text-danger">NPR {{ fmtNum(forecast.summary.total_outflow) }}</div>
+                            <div class="fs-5 fw-bold text-danger">{{ formatMoney(forecast.summary.total_outflow) }}</div>
                         </div>
                     </div>
                 </div>
@@ -62,7 +62,7 @@
                         <div class="card-body text-center">
                             <div class="text-muted small">Projected Closing Balance</div>
                             <div :class="['fs-5 fw-bold', forecast.summary.closing_balance >= 0 ? 'text-primary' : 'text-danger']">
-                                NPR {{ fmtNum(forecast.summary.closing_balance) }}
+                                {{ formatMoney(forecast.summary.closing_balance) }}
                             </div>
                         </div>
                     </div>
@@ -92,12 +92,12 @@
                                 <tr v-for="row in forecast.daily" :key="row.date"
                                     :class="row.running_balance < 0 ? 'table-danger' : ''">
                                     <td>{{ row.date }}</td>
-                                    <td class="text-end text-success">{{ row.inflow > 0 ? fmtNum(row.inflow) : '—' }}</td>
-                                    <td class="text-end text-danger">{{ row.outflow > 0 ? fmtNum(row.outflow) : '—' }}</td>
+                                    <td class="text-end text-success">{{ row.inflow > 0 ? formatMoney(row.inflow) : '—' }}</td>
+                                    <td class="text-end text-danger">{{ row.outflow > 0 ? formatMoney(row.outflow) : '—' }}</td>
                                     <td class="text-end" :class="row.net >= 0 ? 'text-success' : 'text-danger'">
-                                        {{ fmtNum(row.net) }}
+                                        {{ formatMoney(row.net) }}
                                     </td>
-                                    <td class="text-end fw-bold">NPR {{ fmtNum(row.running_balance) }}</td>
+                                    <td class="text-end fw-bold">{{ formatMoney(row.running_balance) }}</td>
                                     <td>
                                         <div class="progress" style="height:6px">
                                             <div class="progress-bar"
@@ -132,6 +132,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { ref, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api';
 import showErrors from '@/helpers/showErrors';
@@ -155,7 +156,4 @@ async function loadForecast() {
     }
 }
 
-function fmtNum(n) {
-    return (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 </script>

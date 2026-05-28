@@ -1,9 +1,11 @@
+import { formatMoney } from '@/helpers/formatMoney.js';
+
 export const debitNoteColumns = [
     { title: 'SN',               key: 'sn',                width: 60 },
     { title: 'Debit Note No',    dataIndex: 'debit_note_no',   sorter: true },
     { title: 'Debit Note Date',  dataIndex: 'debit_note_date', sorter: true },
     { title: 'Supplier',         dataIndex: 'party_name',      sorter: true },
-    { title: 'Grand Total',      dataIndex: 'grand_total',     sorter: true },
+    { title: 'Grand Total',      dataIndex: 'grand_total',     key: 'grand_total', customRender: ({ text }) => formatMoney(text), sorter: true },
     { title: 'Status',           key: 'status' },
     { title: 'Action',           key: 'action' },
 ];

@@ -63,7 +63,7 @@
                     :aria-label="fixedLabel"
                     :title="fixedLabel"
                     @click="setType('fixed')">
-                    <i class="ti ti-currency-dollar v-discount-type-toggle__icon" aria-hidden="true"></i>
+                    <i class="ti ti-currency-rupee v-discount-type-toggle__icon" aria-hidden="true"></i>
                 </button>
                 <button
                     type="button"

@@ -130,7 +130,7 @@
                                 <ul>
                                     <li>
                                         <h4>Sub total</h4>
-                                        <h5>{{ summary.subtotal }}</h5>
+                                        <h5>{{ formatMoney(summary.subtotal) }}</h5>
                                     </li>
                                     <li class="po-total-order-discount">
                                         <h4>Discount</h4>
@@ -153,23 +153,23 @@
                                                 "
                                             />
                                         </div>
-                                        <h5>{{ summary.totalDiscount }}</h5>
+                                        <h5>{{ formatMoney(summary.totalDiscount) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Non-taxable (net)</h4>
-                                        <h5>{{ summary.nonTaxableBase }}</h5>
+                                        <h5>{{ formatMoney(summary.nonTaxableBase) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Taxable (net)</h4>
-                                        <h5>{{ summary.taxableBase }}</h5>
+                                        <h5>{{ formatMoney(summary.taxableBase) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Tax</h4>
-                                        <h5>{{ summary.tax }}</h5>
+                                        <h5>{{ formatMoney(summary.tax) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Grand total</h4>
-                                        <h5>{{ summary.grandTotal }}</h5>
+                                        <h5>{{ formatMoney(summary.grandTotal) }}</h5>
                                     </li>
                                 </ul>
                             </div>
@@ -204,6 +204,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { reactive, ref, watch } from 'vue';
 import debounce from 'lodash/debounce';
 import { useToast } from 'vue-toastification';

@@ -48,19 +48,19 @@
         <div class="col-md-4">
             <div class="card border-0 bg-primary-subtle text-center p-3">
                 <h6 class="text-muted mb-1">Total Base Amount</h6>
-                <h4 class="fw-bold mb-0">NPR {{ fmt(summary.total_base) }}</h4>
+                <h4 class="fw-bold mb-0">{{ formatMoney(summary.total_base) }}</h4>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 bg-danger-subtle text-center p-3">
                 <h6 class="text-muted mb-1">Total TDS Payable</h6>
-                <h4 class="fw-bold text-danger mb-0">NPR {{ fmt(summary.total_tds) }}</h4>
+                <h4 class="fw-bold text-danger mb-0">{{ formatMoney(summary.total_tds) }}</h4>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 bg-success-subtle text-center p-3">
                 <h6 class="text-muted mb-1">Net Amount After TDS</h6>
-                <h4 class="fw-bold text-success mb-0">NPR {{ fmt((summary.total_base || 0) - (summary.total_tds || 0)) }}</h4>
+                <h4 class="fw-bold text-success mb-0">{{ formatMoney((summary.total_base || 0) - (summary.total_tds || 0)) }}</h4>
             </div>
         </div>
     </div>
@@ -98,8 +98,8 @@
                             <td><code>{{ row.party_pan || '—' }}</code></td>
                             <td>{{ row.tds_category }}</td>
                             <td class="text-end">{{ row.tds_rate }}%</td>
-                            <td class="text-end">NPR {{ fmt(row.base_amount) }}</td>
-                            <td class="text-end text-danger fw-semibold">NPR {{ fmt(row.tds_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(row.base_amount) }}</td>
+                            <td class="text-end text-danger fw-semibold">{{ formatMoney(row.tds_amount) }}</td>
                             <td>{{ row.period_month || '—' }}</td>
                             <td>
                                 <button
@@ -119,8 +119,8 @@
                     <tfoot v-if="rows.length">
                         <tr class="table-light fw-bold">
                             <td colspan="5" class="text-end">TOTAL</td>
-                            <td class="text-end">NPR {{ fmt(summary?.total_base) }}</td>
-                            <td class="text-end text-danger">NPR {{ fmt(summary?.total_tds) }}</td>
+                            <td class="text-end">{{ formatMoney(summary?.total_base) }}</td>
+                            <td class="text-end text-danger">{{ formatMoney(summary?.total_tds) }}</td>
                             <td colspan="2"></td>
                         </tr>
                     </tfoot>
@@ -165,6 +165,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { ref, computed } from 'vue';
 import { apiAdmin, downloadAdminFile } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -184,7 +185,6 @@ const partyOptions = computed(() => {
         .map(r => ({ label: `${r.party_name} (${r.party_pan || 'No PAN'})`, value: r.party_id }));
 });
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 const loadSummary = async () => {
     loading.value = true;

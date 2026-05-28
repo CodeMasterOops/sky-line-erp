@@ -104,6 +104,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, onMounted, reactive, ref} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
@@ -207,10 +208,7 @@ const formatAmount = (value, dashOnZero = false) => {
         return '-';
     }
 
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-    }).format(amount);
+    return formatMoney(amount);
 };
 
 const formatQuantity = (value) => {

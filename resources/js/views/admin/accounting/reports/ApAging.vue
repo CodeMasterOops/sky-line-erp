@@ -27,7 +27,7 @@
             <div class="card border-0" :class="b.bg">
                 <div class="card-body text-center p-3">
                     <div class="text-muted small">{{ b.label }}</div>
-                    <div class="fw-bold">NPR {{ fmt(buckets[key]) }}</div>
+                    <div class="fw-bold">{{ formatMoney(buckets[key]) }}</div>
                 </div>
             </div>
         </div>
@@ -61,7 +61,7 @@
                             <td>{{ row.bill_date }}</td>
                             <td>{{ row.due_date }}</td>
                             <td class="text-end" :class="row.days_overdue > 0 ? 'text-danger' : ''">{{ row.days_overdue }}</td>
-                            <td class="text-end fw-semibold">{{ fmt(row.outstanding) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(row.outstanding) }}</td>
                             <td><span class="badge" :class="bucketBadge(row.bucket)">{{ bucketDisplay(row.bucket) }}</span></td>
                         </tr>
                     </tbody>
@@ -72,6 +72,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -105,7 +106,6 @@ const loadReport = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 const bucketDisplay = (key) => ({ current: 'Current', '1_30': '1-30d', '31_60': '31-60d', '61_90': '61-90d', over_90: '90+d' })[key] || key;
 const bucketBadge = (key) => ({ current: 'bg-success', '1_30': 'bg-warning text-dark', '31_60': 'bg-warning text-dark', '61_90': 'bg-danger', over_90: 'bg-danger' })[key] || 'bg-secondary';
 </script>

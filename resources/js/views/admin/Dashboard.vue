@@ -32,7 +32,7 @@
             </span>
             <div class="ms-2">
               <p class="text-white mb-1">{{ card.label }}</p>
-              <h4 class="text-white">{{ fmt(card.value) }}</h4>
+              <h4 class="text-white">{{ formatMoney(card.value) }}</h4>
             </div>
           </div>
         </div>
@@ -46,7 +46,7 @@
           <div class="card-body">
             <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
               <div>
-                <h4 class="mb-1">{{ fmt(profit) }}</h4>
+                <h4 class="mb-1">{{ formatMoney(profit) }}</h4>
                 <p>Profit</p>
               </div>
               <span class="revenue-icon bg-cyan-transparent text-cyan">
@@ -138,13 +138,13 @@
                 <p class="d-inline-flex align-items-center mb-1">
                   <i class="ti ti-circle-filled fs-8 text-primary-300 me-1"></i>Total Purchase
                 </p>
-                <h4>{{ fmt(dash.total_purchase) }}</h4>
+                <h4>{{ formatMoney(dash.total_purchase) }}</h4>
               </div>
               <div class="border p-2 br-8">
                 <p class="d-inline-flex align-items-center mb-1">
                   <i class="ti ti-circle-filled fs-8 text-primary me-1"></i>Total Sales
                 </p>
-                <h4>{{ fmt(dash.total_sales) }}</h4>
+                <h4>{{ formatMoney(dash.total_sales) }}</h4>
               </div>
             </div>
             <apexchart
@@ -224,7 +224,7 @@
                   </div>
                 </div>
               </div>
-              <span class="badge bg-outline-success badge-xs d-inline-flex align-items-center">{{ fmt(product.sold_amount) }}</span>
+              <span class="badge bg-outline-success badge-xs d-inline-flex align-items-center">{{ formatMoney(product.sold_amount) }}</span>
             </div>
           </div>
         </div>
@@ -283,7 +283,7 @@
                   <h6 class="fw-bold mb-1">{{ inv.party_name || '–' }}</h6>
                   <div class="d-flex align-items-center item-list">
                     <p>{{ inv.invoice_no }}</p>
-                    <p class="text-gray-9">{{ fmt(inv.total) }}</p>
+                    <p class="text-gray-9">{{ formatMoney(inv.total) }}</p>
                   </div>
                 </div>
               </div>
@@ -354,7 +354,7 @@
                         <td>{{ row.invoice_date }}</td>
                         <td><span class="fw-semibold">{{ row.party_name || '–' }}</span><br><small class="text-orange">{{ row.invoice_no }}</small></td>
                         <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ fmt(row.total) }}</td>
+                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -376,7 +376,7 @@
                         <td>{{ row.bill_date }}</td>
                         <td><span class="fw-semibold">{{ row.party_name || '–' }}</span><br><small class="text-orange">{{ row.bill_no }}</small></td>
                         <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ fmt(row.total) }}</td>
+                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -398,7 +398,7 @@
                         <td>{{ row.quotation_date }}</td>
                         <td><span class="fw-semibold">{{ row.party_name || '–' }}</span><br><small class="text-orange">{{ row.quotation_no }}</small></td>
                         <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ fmt(row.total) }}</td>
+                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -420,7 +420,7 @@
                         <td>{{ row.date }}</td>
                         <td><span class="fw-semibold">{{ row.expense_no }}</span><br><small class="text-orange">{{ row.party_name || '–' }}</small></td>
                         <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ fmt(row.total) }}</td>
+                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -462,7 +462,7 @@
                 </div>
               </div>
               <div class="text-end">
-                <h5>{{ fmt(customer.total_amount) }}</h5>
+                <h5>{{ formatMoney(customer.total_amount) }}</h5>
               </div>
             </div>
           </div>
@@ -474,6 +474,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, computed, onMounted, watch, nextTick} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
@@ -491,12 +492,6 @@ const profit = computed(() => {
     const d = dashboardStore.dashboard.data;
     return Math.max(0, (d.total_sales - d.total_sales_return) - (d.total_purchase - d.total_purchase_return));
 });
-
-/** Format numbers as currency */
-const fmt = (val) => {
-    const n = Number(val || 0);
-    return n.toLocaleString('en', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-};
 
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : '–';
 

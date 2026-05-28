@@ -1,9 +1,11 @@
+import { formatMoney } from '@/helpers/formatMoney.js';
+
 export const purchaseOrderColumns = [
     { title: 'SN',           key: 'sn',           width: 60 },
     { title: 'Order No',     dataIndex: 'order_no',    sorter: true },
     { title: 'Date',         dataIndex: 'order_date',  sorter: true },
     { title: 'Supplier',     dataIndex: 'party_name',  sorter: true },
-    { title: 'Amount',       dataIndex: 'grand_total', sorter: true },
+    { title: 'Amount',       dataIndex: 'grand_total', key: 'grand_total', customRender: ({ text }) => formatMoney(text), sorter: true },
     { title: 'Status',       key: 'status' },
     { title: 'Action',       key: 'action' },
 ];

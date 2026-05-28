@@ -38,18 +38,18 @@
                                 <td>{{ row.month_label }}</td>
                                 <td>{{ row.employee_count }}</td>
                                 <td>{{ row.status }}</td>
-                                <td>{{ row.total_gross }}</td>
-                                <td>{{ row.total_deductions }}</td>
-                                <td>{{ row.total_net }}</td>
+                                <td>{{ formatMoney(row.total_gross) }}</td>
+                                <td>{{ formatMoney(row.total_deductions) }}</td>
+                                <td>{{ formatMoney(row.total_net) }}</td>
                             </tr>
                             <tr v-if="!data.length"><td colspan="6" class="text-center">No data found.</td></tr>
                         </tbody>
                         <tfoot v-if="data.length" class="fw-bold">
                             <tr>
                                 <td colspan="3">Total</td>
-                                <td>{{ totalGross }}</td>
-                                <td>{{ totalDed }}</td>
-                                <td>{{ totalNet }}</td>
+                                <td>{{ formatMoney(totalGross) }}</td>
+                                <td>{{ formatMoney(totalDed) }}</td>
+                                <td>{{ formatMoney(totalNet) }}</td>
                             </tr>
                         </tfoot>
                     </table>
@@ -60,6 +60,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { ref, computed, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors';

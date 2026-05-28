@@ -16,7 +16,7 @@
                         <h4>{{ stats.total }}</h4>
                     </div>
                     <span class="avatar avatar-lg bg-primary flex-shrink-0">
-                        <i class="ti ti-currency-dollar fs-16"></i>
+                        <i class="ti ti-currency-rupee fs-16"></i>
                     </span>
                 </div>
             </div>

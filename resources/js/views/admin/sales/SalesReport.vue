@@ -7,7 +7,7 @@
                 <div class="card border-0 shadow-sm sale-widget widget-success flex-fill">
                     <div class="card-body d-flex align-items-center">
                         <span class="sale-icon bg-success-subtle text-success">
-                            <i class="ti ti-currency-dollar fs-24"></i>
+                            <i class="ti ti-currency-rupee fs-24"></i>
                         </span>
                         <div class="ms-3">
                             <p class="fw-medium mb-1">Total Amount</p>

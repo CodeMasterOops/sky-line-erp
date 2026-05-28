@@ -116,7 +116,7 @@
                                     <td>
                                         <h6 class="mb-0">{{ lineDescription(item) }}</h6>
                                     </td>
-                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.quantity) }}</td>
+                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoneyPlain(item.quantity) }}</td>
                                     <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.rate) }}</td>
                                     <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.discount_amount) }}</td>
                                     <td class="text-gray-9 fw-medium text-end">{{ formatMoney(lineTotal(item)) }}</td>
@@ -132,23 +132,23 @@
                     <div class="col-md-5 ms-auto mb-3">
                         <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pe-3">
                             <p class="mb-0">Sub Total</p>
-                            <p class="text-dark fw-medium mb-2">${{ formatMoney(inv.subtotal) }}</p>
+                            <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.subtotal) }}</p>
                         </div>
                         <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pe-3">
                             <p class="mb-0">Discount ({{ discountPercentLabel }})</p>
-                            <p class="text-dark fw-medium mb-2">${{ formatMoney(inv.discount_total) }}</p>
+                            <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.discount_total) }}</p>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
                             <p class="mb-0">{{ taxSummaryLabel }}</p>
-                            <p class="text-dark fw-medium mb-2">${{ formatMoney(inv.tax_total) }}</p>
+                            <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.tax_total) }}</p>
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
                             <h5>Total Amount</h5>
-                            <h5>${{ formatMoney(inv.grand_total) }}</h5>
+                            <h5>{{ formatMoney(inv.grand_total) }}</h5>
                         </div>
                         <p v-if="inv.paid_total != null && inv.status === 'approved'" class="fs-12 mb-1">
-                            Paid : ${{ formatMoney(inv.paid_total) }}
-                            <span v-if="inv.due_amount != null"> · Due : ${{ formatMoney(inv.due_amount) }}</span>
+                            Paid : {{ formatMoney(inv.paid_total) }}
+                            <span v-if="inv.due_amount != null"> · Due : {{ formatMoney(inv.due_amount) }}</span>
                         </p>
                     </div>
                 </div>
@@ -236,6 +236,7 @@ import showErrors from '@/helpers/showErrors';
 import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useSettingStore} from '@/stores/admin/settings/setting.js';
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -366,13 +367,6 @@ const formatDate = (value) => {
         return '—';
     }
     return moment(value).format('MMM D, YYYY');
-};
-
-const formatMoney = (value) => {
-    if (value === '' || value === null || value === undefined) {
-        return '—';
-    }
-    return Number(value).toFixed(2);
 };
 
 const lineDescription = (item) => item.product_variant?.name || 'Item';

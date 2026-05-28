@@ -312,6 +312,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, nextTick, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {useToast} from 'vue-toastification';
@@ -335,7 +336,6 @@ import ProductVariantSearchInput from '@/components/inventory/ProductVariantSear
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
-import {formatMoney} from '@/helpers/formatMoney';
 
 function lineQtyInt(q) {
     const n = parseInt(String(q ?? '0'), 10);

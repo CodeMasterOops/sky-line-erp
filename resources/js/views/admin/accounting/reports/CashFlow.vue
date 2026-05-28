@@ -52,7 +52,7 @@
                     <tr>
                         <td class="ps-4">Net cash from operating activities</td>
                         <td class="text-end fw-semibold" :class="data.operating >= 0 ? 'text-success' : 'text-danger'">
-                            NPR {{ fmt(data.operating) }}
+                            {{ formatMoney(data.operating) }}
                         </td>
                     </tr>
                     <tr class="table-secondary">
@@ -61,7 +61,7 @@
                     <tr>
                         <td class="ps-4">Net cash from investing activities</td>
                         <td class="text-end fw-semibold" :class="data.investing >= 0 ? 'text-success' : 'text-danger'">
-                            NPR {{ fmt(data.investing) }}
+                            {{ formatMoney(data.investing) }}
                         </td>
                     </tr>
                     <tr class="table-secondary">
@@ -70,13 +70,13 @@
                     <tr>
                         <td class="ps-4">Net cash from financing activities</td>
                         <td class="text-end fw-semibold" :class="data.financing >= 0 ? 'text-success' : 'text-danger'">
-                            NPR {{ fmt(data.financing) }}
+                            {{ formatMoney(data.financing) }}
                         </td>
                     </tr>
                     <tr class="table-primary">
                         <td><strong>Net Increase / (Decrease) in Cash</strong></td>
                         <td class="text-end fw-bold fs-6" :class="data.net_change >= 0 ? 'text-success' : 'text-danger'">
-                            NPR {{ fmt(data.net_change) }}
+                            {{ formatMoney(data.net_change) }}
                         </td>
                     </tr>
                 </tbody>
@@ -96,6 +96,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -124,7 +125,6 @@ const loadReport = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 onMounted(() => { loadFiscalYears(); });
 </script>

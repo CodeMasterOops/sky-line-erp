@@ -53,23 +53,23 @@
                                 <tbody>
                                     <tr>
                                         <td>Taxable Sales (Kar Laagne Bikri)</td>
-                                        <td class="text-end fw-semibold">NPR {{ fmt(data.sales?.taxable_amount) }}</td>
+                                        <td class="text-end fw-semibold">{{ formatMoney(data.sales?.taxable_amount) }}</td>
                                     </tr>
                                     <tr>
                                         <td>Output VAT @ 13%</td>
-                                        <td class="text-end fw-semibold text-danger">NPR {{ fmt(data.sales?.output_vat) }}</td>
+                                        <td class="text-end fw-semibold text-danger">{{ formatMoney(data.sales?.output_vat) }}</td>
                                     </tr>
                                     <tr>
                                         <td>Exempt Sales (Kar Mukta Bikri)</td>
-                                        <td class="text-end">NPR {{ fmt(data.sales?.exempt_amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(data.sales?.exempt_amount) }}</td>
                                     </tr>
                                     <tr>
                                         <td>Zero-Rated Sales (Export)</td>
-                                        <td class="text-end">NPR {{ fmt(data.sales?.zero_rated_amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(data.sales?.zero_rated_amount) }}</td>
                                     </tr>
                                     <tr class="table-light fw-bold">
                                         <td>Total Sales</td>
-                                        <td class="text-end">NPR {{ fmt(data.sales?.total_sales) }}</td>
+                                        <td class="text-end">{{ formatMoney(data.sales?.total_sales) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -80,19 +80,19 @@
                                 <tbody>
                                     <tr>
                                         <td>Taxable Purchases</td>
-                                        <td class="text-end fw-semibold">NPR {{ fmt(data.purchases?.taxable_amount) }}</td>
+                                        <td class="text-end fw-semibold">{{ formatMoney(data.purchases?.taxable_amount) }}</td>
                                     </tr>
                                     <tr>
                                         <td>Input VAT Claimed @ 13%</td>
-                                        <td class="text-end fw-semibold text-success">NPR {{ fmt(data.purchases?.input_vat) }}</td>
+                                        <td class="text-end fw-semibold text-success">{{ formatMoney(data.purchases?.input_vat) }}</td>
                                     </tr>
                                     <tr>
                                         <td>Exempt Purchases</td>
-                                        <td class="text-end">NPR {{ fmt(data.purchases?.exempt_amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(data.purchases?.exempt_amount) }}</td>
                                     </tr>
                                     <tr class="table-light fw-bold">
                                         <td>Total Purchases</td>
-                                        <td class="text-end">NPR {{ fmt(data.purchases?.total_purchases) }}</td>
+                                        <td class="text-end">{{ formatMoney(data.purchases?.total_purchases) }}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -104,7 +104,7 @@
                             <div :class="['alert', data.net_vat_payable >= 0 ? 'alert-danger' : 'alert-success']">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <strong>{{ data.net_vat_payable >= 0 ? 'NET VAT PAYABLE (IRD)' : 'VAT CREDIT CARRY FORWARD' }}</strong>
-                                    <strong class="fs-5">NPR {{ fmt(Math.abs(data.net_vat_payable)) }}</strong>
+                                    <strong class="fs-5">{{ formatMoney(Math.abs(data.net_vat_payable)) }}</strong>
                                 </div>
                             </div>
                         </div>
@@ -155,10 +155,10 @@
                             <td>{{ row.bijak_no }}</td>
                             <td>{{ row.buyer_name }}</td>
                             <td>{{ row.buyer_pan }}</td>
-                            <td class="text-end">{{ fmt(row.taxable_amount) }}</td>
-                            <td class="text-end">{{ fmt(row.vat_amount) }}</td>
-                            <td class="text-end">{{ fmt(row.exempt_amount) }}</td>
-                            <td class="text-end fw-semibold">{{ fmt(row.total_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(row.taxable_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(row.vat_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(row.exempt_amount) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(row.total_amount) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -207,10 +207,10 @@
                             <td>{{ row.bill_no }}</td>
                             <td>{{ row.supplier_name }}</td>
                             <td>{{ row.supplier_pan }}</td>
-                            <td class="text-end">{{ fmt(row.taxable_amount) }}</td>
-                            <td class="text-end text-success">{{ fmt(row.input_vat) }}</td>
-                            <td class="text-end">{{ fmt(row.exempt_amount) }}</td>
-                            <td class="text-end fw-semibold">{{ fmt(row.total_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(row.taxable_amount) }}</td>
+                            <td class="text-end text-success">{{ formatMoney(row.input_vat) }}</td>
+                            <td class="text-end">{{ formatMoney(row.exempt_amount) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(row.total_amount) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -232,6 +232,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, onMounted} from 'vue';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
 import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
@@ -264,11 +265,6 @@ const loadReport = async () => {
     } finally {
         loading.value = false;
     }
-};
-
-const fmt = (val) => {
-    if (val === null || val === undefined) return '0.00';
-    return Number(val).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 };
 
 const exportingD3 = ref(null);

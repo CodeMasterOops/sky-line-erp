@@ -18,7 +18,7 @@
                             <div :class="['fs-2 me-3', card.color]"><i :class="card.icon"></i></div>
                             <div>
                                 <div class="text-muted small">{{ card.label }}</div>
-                                <div class="fw-bold">NPR {{ card.total.toLocaleString() }}</div>
+                                <div class="fw-bold">{{ formatMoney(card.total) }}</div>
                                 <div class="small text-muted">{{ card.count }} cheques</div>
                             </div>
                         </div>
@@ -94,7 +94,7 @@
                                 <span :class="statusClass(record.status)" class="badge">{{ record.status }}</span>
                             </template>
                             <template v-if="column.key === 'amount'">
-                                NPR {{ record.amount?.toLocaleString() }}
+                                {{ formatMoney(record.amount) }}
                             </template>
                             <template v-if="column.key === 'bank'">
                                 {{ record.bank_name || record.bank_account?.bank_name || '-' }}
@@ -237,6 +237,7 @@ import {apiAdmin} from '@/helpers/api';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {adToBsDate} from "@/helpers/helper.js";
+import {formatMoney} from '@/helpers/formatMoney.js';
 
 const loading = ref(false);
 const saving = ref(false);

@@ -65,19 +65,19 @@
                             <td>{{ row.bijak_no }}</td>
                             <td>{{ row.buyer_name }}</td>
                             <td>{{ row.buyer_pan }}</td>
-                            <td class="text-end">{{ fmt(row.taxable_amount) }}</td>
-                            <td class="text-end text-danger">{{ fmt(row.vat_amount) }}</td>
-                            <td class="text-end">{{ fmt(row.exempt_amount) }}</td>
-                            <td class="text-end fw-semibold">{{ fmt(row.total_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(row.taxable_amount) }}</td>
+                            <td class="text-end text-danger">{{ formatMoney(row.vat_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(row.exempt_amount) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(row.total_amount) }}</td>
                         </tr>
                     </tbody>
                     <tfoot v-if="summary" class="table-secondary fw-bold">
                         <tr>
                             <td colspan="5">Total</td>
-                            <td class="text-end">{{ fmt(summary.taxable_amount) }}</td>
-                            <td class="text-end text-danger">{{ fmt(summary.vat_amount) }}</td>
-                            <td class="text-end">{{ fmt(summary.exempt_amount) }}</td>
-                            <td class="text-end">{{ fmt(summary.total_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(summary.taxable_amount) }}</td>
+                            <td class="text-end text-danger">{{ formatMoney(summary.vat_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(summary.exempt_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(summary.total_amount) }}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -87,6 +87,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -112,7 +113,6 @@ const loadReport = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 const exportCsv = () => {
     if (!rows.value.length) return;

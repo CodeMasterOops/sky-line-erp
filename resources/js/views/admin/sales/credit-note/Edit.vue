@@ -235,7 +235,7 @@
                                 <div class="card-body py-2">
                                     <div class="d-flex justify-content-between">
                                         <span>Sub total</span>
-                                        <strong>{{ summary.subtotal }}</strong>
+                                        <strong>{{ formatMoney(summary.subtotal) }}</strong>
                                     </div>
                                     <template v-if="isDraft">
                                         <div
@@ -260,20 +260,20 @@
                                                     "
                                                 />
                                             </div>
-                                            <strong class="ms-auto">{{ summary.totalDiscount }}</strong>
+                                            <strong class="ms-auto">{{ formatMoney(summary.totalDiscount) }}</strong>
                                         </div>
                                     </template>
                                     <div v-else class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Discount</span>
-                                        <strong>{{ summary.totalDiscount }}</strong>
+                                        <strong>{{ formatMoney(summary.totalDiscount) }}</strong>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span>Tax</span>
-                                        <strong>{{ summary.tax }}</strong>
+                                        <strong>{{ formatMoney(summary.tax) }}</strong>
                                     </div>
                                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Grand total</span>
-                                        <strong>{{ summary.grandTotal }}</strong>
+                                        <strong>{{ formatMoney(summary.grandTotal) }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -322,6 +322,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, nextTick, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
@@ -769,12 +770,6 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     taxes,
 });
 
-const formatMoney = (value) => {
-    if (value === '' || value === null || value === undefined) {
-        return '—';
-    }
-    return Number(value).toFixed(2);
-};
 
 const lineQtyInt = (q) => {
     const n = parseInt(String(q ?? '0'), 10);

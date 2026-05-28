@@ -1,9 +1,11 @@
+import { formatMoney } from '@/helpers/formatMoney.js';
+
 export const creditNoteColumns = [
     { title: "SN", key: "sn", width: 60 },
     { title: "Credit Note No", dataIndex: "credit_note_no", sorter: true },
     { title: "Credit Note Date", dataIndex: "credit_note_date", sorter: true },
     { title: "Customer", dataIndex: "party_name", sorter: true },
-    { title: "Grand Total", dataIndex: "grand_total", sorter: true },
+    { title: "Grand Total", dataIndex: "grand_total", key: 'grand_total', customRender: ({ text }) => formatMoney(text), sorter: true },
     { title: "Status", key: "status" },
     { title: "Action", key: "action" },
 ];

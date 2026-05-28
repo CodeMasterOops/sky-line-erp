@@ -1,10 +1,12 @@
+import { formatMoney } from '@/helpers/formatMoney.js';
+
 export const invoiceColumns = [
     { title: 'SN',           key: 'sn',              width: 60 },
     { title: 'Invoice No',   dataIndex: 'invoice_no',   sorter: true },
     { title: 'Invoice Date', dataIndex: 'invoice_date', sorter: true },
     { title: 'Due Date',     dataIndex: 'due_date',     sorter: true },
     { title: 'Customer',     dataIndex: 'party_name',   sorter: true },
-    { title: 'Grand Total',  dataIndex: 'grand_total',  sorter: true },
+    { title: 'Grand Total',  dataIndex: 'grand_total',  key: 'grand_total', customRender: ({ text }) => formatMoney(text), sorter: true },
     { title: 'Status',       key: 'status' },
     { title: 'Action',       key: 'action' },
 ];

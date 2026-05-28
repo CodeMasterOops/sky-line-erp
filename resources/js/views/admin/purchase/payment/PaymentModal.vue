@@ -294,6 +294,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {useToast} from 'vue-toastification';
@@ -311,7 +312,6 @@ import {useDateHelper} from '@/composables/dateHelper.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
-import {formatMoney} from '@/helpers/formatMoney';
 
 const emit = defineEmits(['saved']);
 

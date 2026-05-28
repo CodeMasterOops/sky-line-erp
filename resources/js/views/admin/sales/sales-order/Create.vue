@@ -141,7 +141,7 @@
                                 <div class="card-body py-2">
                                     <div class="d-flex justify-content-between">
                                         <span>Sub total</span>
-                                        <strong>{{ summary.subtotal }}</strong>
+                                        <strong>{{ formatMoney(summary.subtotal) }}</strong>
                                     </div>
                                     <div
                                         class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top pt-2 mt-2">
@@ -165,15 +165,15 @@
                                                 "
                                             />
                                         </div>
-                                        <strong class="ms-auto">{{ summary.totalDiscount }}</strong>
+                                        <strong class="ms-auto">{{ formatMoney(summary.totalDiscount) }}</strong>
                                     </div>
                                     <div class="d-flex justify-content-between">
                                         <span>Tax</span>
-                                        <strong>{{ summary.tax }}</strong>
+                                        <strong>{{ formatMoney(summary.tax) }}</strong>
                                     </div>
                                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Grand total</span>
-                                        <strong>{{ summary.grandTotal }}</strong>
+                                        <strong>{{ formatMoney(summary.grandTotal) }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -218,6 +218,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';

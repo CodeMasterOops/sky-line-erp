@@ -139,7 +139,7 @@
                                                 :error="errors[`items[${index}].rate`]"
                                             />
                                         </td>
-                                        <td class="text-end fw-semibold">{{ fmt(lineTotalMoney(item)) }}</td>
+                                        <td class="text-end fw-semibold">{{ formatMoney(lineTotalMoney(item)) }}</td>
                                         <td>
                                             <VInput
                                                 input-class="form-control form-control-sm"
@@ -159,7 +159,7 @@
                                     <tfoot v-if="form.items.length" class="table-secondary fw-bold">
                                     <tr>
                                         <td colspan="4" class="text-end">Grand Total</td>
-                                        <td class="text-end">{{ fmt(grandTotal) }}</td>
+                                        <td class="text-end">{{ formatMoney(grandTotal) }}</td>
                                         <td colspan="2"></td>
                                     </tr>
                                     </tfoot>
@@ -202,6 +202,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, reactive, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
@@ -406,10 +407,6 @@ const closeCreateModal = async () => {
     createModalOpened.value = false;
 };
 
-const fmt = (val) => Number(val ?? 0).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-});
 </script>
 
 <style scoped>

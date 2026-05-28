@@ -1,3 +1,5 @@
+import { formatMoney } from '@/helpers/formatMoney.js';
+
 function sortByString(getter) {
     return (a, b) =>
         (getter(a) ?? "")
@@ -39,7 +41,7 @@ const baseColumns = [
     { title: "Brand", dataIndex: "brand", sorter: true },
     {
         title: "Price",
-        customRender: ({ record }) => record.defaultVariant?.sales_price,
+        customRender: ({ record }) => formatMoney(record.defaultVariant?.sales_price),
         sorter: true,
     },
     {

@@ -78,13 +78,6 @@ export const adToBsDate = (adDate, format = 'en', separator = '-') => {
     return bsDate;
 };
 
-export const formatAmount = (value) => {
-    const amount = Number(value || 0);
-
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount);
-};
+export { formatMoney as formatAmount } from '@/helpers/formatMoney.js';
 
 export const sanitizeDownloadFilename = (filename) => String(filename ?? '').replace(/[\\/]/g, '-');

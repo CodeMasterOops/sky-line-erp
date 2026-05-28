@@ -55,20 +55,20 @@
                     <div class="col-md-4">
                         <div class="card border-0 bg-info-subtle p-3 text-center">
                             <div class="text-muted small">GL Balance</div>
-                            <div class="fw-bold">NPR {{ fmt(summary.gl_balance) }}</div>
+                            <div class="fw-bold">{{ formatMoney(summary.gl_balance) }}</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card border-0 bg-primary-subtle p-3 text-center">
                             <div class="text-muted small">Statement Balance</div>
-                            <div class="fw-bold">NPR {{ fmt(summary.statement_balance) }}</div>
+                            <div class="fw-bold">{{ formatMoney(summary.statement_balance) }}</div>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="card border-0 p-3 text-center" :class="Math.abs(summary.difference) < 0.01 ? 'bg-success-subtle' : 'bg-danger-subtle'">
                             <div class="text-muted small">Difference</div>
                             <div class="fw-bold" :class="Math.abs(summary.difference) < 0.01 ? 'text-success' : 'text-danger'">
-                                NPR {{ fmt(summary.difference) }}
+                                {{ formatMoney(summary.difference) }}
                             </div>
                         </div>
                     </div>
@@ -101,8 +101,8 @@
                                         <td>{{ formatDate(line.transaction_date) }}</td>
                                         <td>{{ line.description }}</td>
                                         <td>{{ line.reference }}</td>
-                                        <td class="text-end">{{ fmt(line.debit) }}</td>
-                                        <td class="text-end">{{ fmt(line.credit) }}</td>
+                                        <td class="text-end">{{ formatMoney(line.debit) }}</td>
+                                        <td class="text-end">{{ formatMoney(line.credit) }}</td>
                                         <td>
                                             <span class="badge" :class="line.status === 'matched' ? 'bg-success' : 'bg-warning text-dark'">
                                                 {{ line.status }}
@@ -217,6 +217,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -335,7 +336,6 @@ const saveBankAccount = async () => {
     } catch (e) { showErrors(e); }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 onMounted(() => {
     loadBankAccounts();

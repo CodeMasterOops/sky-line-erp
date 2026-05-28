@@ -267,19 +267,19 @@
                     <table>
                         <tr>
                             <td>Taxable Amount</td>
-                            <td class="r">NPR {{ number_format($vatTaxableAmount, 2) }}</td>
+                            <td class="r">{{ format_money($vatTaxableAmount) }}</td>
                         </tr>
                         <tr>
                             <td>Exempt Amount</td>
-                            <td class="r">NPR {{ number_format($exemptAmount, 2) }}</td>
+                            <td class="r">{{ format_money($exemptAmount) }}</td>
                         </tr>
                         <tr>
                             <td>Zero-Rated Amount</td>
-                            <td class="r">NPR {{ number_format($zeroRatedAmount, 2) }}</td>
+                            <td class="r">{{ format_money($zeroRatedAmount) }}</td>
                         </tr>
                         <tr>
                             <td>Total VAT</td>
-                            <td class="r"><strong>NPR {{ number_format($vatAmount, 2) }}</strong></td>
+                            <td class="r"><strong>{{ format_money($vatAmount) }}</strong></td>
                         </tr>
                     </table>
                 </div>
@@ -291,23 +291,23 @@
                 <table class="totals-box">
                     <tr>
                         <td class="lbl">Sub Total</td>
-                        <td class="amt">NPR {{ number_format($subtotal, 2) }}</td>
+                        <td class="amt">{{ format_money($subtotal) }}</td>
                     </tr>
                     <tr>
                         <td class="lbl">Total Discount</td>
-                        <td class="amt">NPR {{ number_format($totalDiscount, 2) }}</td>
+                        <td class="amt">{{ format_money($totalDiscount) }}</td>
                     </tr>
                     <tr>
                         <td class="lbl">Taxable Amount</td>
-                        <td class="amt">NPR {{ number_format($vatTaxableAmount, 2) }}</td>
+                        <td class="amt">{{ format_money($vatTaxableAmount) }}</td>
                     </tr>
                     <tr>
                         <td class="lbl">VAT</td>
-                        <td class="amt">NPR {{ number_format($vatAmount, 2) }}</td>
+                        <td class="amt">{{ format_money($vatAmount) }}</td>
                     </tr>
                     <tr class="grand">
                         <td class="lbl">Grand Total</td>
-                        <td class="amt">NPR {{ number_format($grandTotal, 2) }}</td>
+                        <td class="amt">{{ format_money($grandTotal) }}</td>
                     </tr>
                 </table>
             </td>

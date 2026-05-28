@@ -29,13 +29,13 @@
         <div class="col-md-4">
             <div class="card border-0 bg-info-subtle text-center p-3">
                 <div class="text-muted small">Total Quantity</div>
-                <div class="fw-bold fs-5">{{ fmt(summary.total_quantity) }}</div>
+                <div class="fw-bold fs-5">{{ formatMoneyPlain(summary.total_quantity) }}</div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 bg-success-subtle text-center p-3">
                 <div class="text-muted small">Total Inventory Value</div>
-                <div class="fw-bold fs-5 text-success">NPR {{ fmt(summary.total_value) }}</div>
+                <div class="fw-bold fs-5 text-success">{{ formatMoney(summary.total_value) }}</div>
             </div>
         </div>
     </div>
@@ -69,9 +69,9 @@
                             <td>{{ row.sku }}</td>
                             <td>{{ row.category }}</td>
                             <td>{{ row.warehouse }}</td>
-                            <td class="text-end">{{ fmt(row.quantity) }}</td>
-                            <td class="text-end">{{ fmt(row.unit_cost) }}</td>
-                            <td class="text-end fw-semibold">NPR {{ fmt(row.total_value) }}</td>
+                            <td class="text-end">{{ formatMoneyPlain(row.quantity) }}</td>
+                            <td class="text-end">{{ formatMoney(row.unit_cost) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(row.total_value) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -81,6 +81,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, computed} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -113,7 +114,6 @@ const loadReport = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 const exportCsv = () => {
     if (!rows.value.length) return;

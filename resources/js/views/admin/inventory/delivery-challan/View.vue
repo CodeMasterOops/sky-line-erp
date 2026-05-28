@@ -95,15 +95,15 @@
                                 <td>{{ item.product_variant?.product?.name || item.product_variant?.name }}</td>
                                 <td>{{ item.product_variant?.sku || '-' }}</td>
                                 <td class="text-end">{{ item.quantity }}</td>
-                                <td class="text-end">{{ fmt(item.rate) }}</td>
-                                <td class="text-end fw-semibold">{{ fmt(item.quantity * item.rate) }}</td>
+                                <td class="text-end">{{ formatMoney(item.rate) }}</td>
+                                <td class="text-end fw-semibold">{{ formatMoney(item.quantity * item.rate) }}</td>
                                 <td>{{ item.remarks || '-' }}</td>
                             </tr>
                         </tbody>
                         <tfoot class="table-secondary fw-bold">
                             <tr>
                                 <td colspan="5">Grand Total</td>
-                                <td class="text-end">{{ fmt(grandTotal) }}</td>
+                                <td class="text-end">{{ formatMoney(grandTotal) }}</td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -144,6 +144,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, ref, onMounted} from 'vue';
 import {useRoute} from 'vue-router';
 import showErrors from '@/helpers/showErrors.js';
@@ -195,7 +196,6 @@ const approve = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 const openInvoiceModal = () => {
     invoiceDeliveryChallanId.value = String(challan.value.id);

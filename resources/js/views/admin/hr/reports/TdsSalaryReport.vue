@@ -28,7 +28,7 @@
                     <div class="card text-center">
                         <div class="card-body">
                             <div class="text-muted">Total Gross (TDS Employees)</div>
-                            <strong class="fs-5">{{ report.summary.total_gross?.toFixed(2) }}</strong>
+                            <strong class="fs-5">{{ formatMoney(report.summary.total_gross) }}</strong>
                         </div>
                     </div>
                 </div>
@@ -36,7 +36,7 @@
                     <div class="card text-center">
                         <div class="card-body">
                             <div class="text-muted">Total TDS Withheld</div>
-                            <strong class="fs-5 text-danger">{{ report.summary.total_tds?.toFixed(2) }}</strong>
+                            <strong class="fs-5 text-danger">{{ formatMoney(report.summary.total_tds) }}</strong>
                         </div>
                     </div>
                 </div>
@@ -68,11 +68,11 @@
                                     <td>{{ row.pan || '—' }}</td>
                                     <td class="small">{{ row.tds_category_label || '—' }}</td>
                                     <td class="text-end">{{ row.tds_rate }}</td>
-                                    <td class="text-end">{{ row.total_gross?.toFixed(2) }}</td>
-                                    <td class="text-end text-danger fw-semibold">{{ row.total_tds?.toFixed(2) }}</td>
+                                    <td class="text-end">{{ formatMoney(row.total_gross) }}</td>
+                                    <td class="text-end text-danger fw-semibold">{{ formatMoney(row.total_tds) }}</td>
                                     <td>
                                         <span v-for="m in row.months" :key="m.month" class="badge bg-light text-dark me-1 border">
-                                            {{ m.month_label }}: {{ m.tds_amount?.toFixed(2) }}
+                                            {{ m.month_label }}: {{ formatMoney(m.tds_amount) }}
                                         </span>
                                     </td>
                                 </tr>
@@ -80,8 +80,8 @@
                             <tfoot class="table-light fw-bold">
                                 <tr>
                                     <td colspan="5">Total</td>
-                                    <td class="text-end">{{ report.summary.total_gross?.toFixed(2) }}</td>
-                                    <td class="text-end text-danger">{{ report.summary.total_tds?.toFixed(2) }}</td>
+                                    <td class="text-end">{{ formatMoney(report.summary.total_gross) }}</td>
+                                    <td class="text-end text-danger">{{ formatMoney(report.summary.total_tds) }}</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -94,6 +94,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { ref, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';

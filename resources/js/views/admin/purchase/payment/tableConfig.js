@@ -1,3 +1,5 @@
+import { formatMoney } from '@/helpers/formatMoney.js';
+
 export const paymentColumns = [
     { title: 'SN',             key: 'sn',               width: 60 },
     { title: 'Payment No',     dataIndex: 'payment_no',       sorter: true },
@@ -5,7 +7,7 @@ export const paymentColumns = [
     { title: 'Supplier',       dataIndex: 'party_name',       sorter: true },
     { title: 'Payment Mode',   dataIndex: 'payment_mode_name', sorter: true },
     { title: 'Account',        dataIndex: 'account_name',     sorter: true },
-    { title: 'Total Amount',   dataIndex: 'total_amount',     sorter: true },
+    { title: 'Total Amount',   dataIndex: 'total_amount',     key: 'total_amount', customRender: ({ text }) => formatMoney(text), sorter: true },
     { title: 'Status',         key: 'status' },
     { title: 'Action',         key: 'action' },
 ];

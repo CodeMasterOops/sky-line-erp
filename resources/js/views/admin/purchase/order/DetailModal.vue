@@ -49,8 +49,8 @@
                                 <td>{{ index + 1 }}</td>
                                 <td class="text-start">{{ productLabel(item) }}</td>
                                 <td>{{ item.quantity }}</td>
-                                <td>{{ formatN(item.rate) }}</td>
-                                <td>{{ formatN(item.discount_amount) }}</td>
+                                <td>{{ formatMoney(item.rate) }}</td>
+                                <td>{{ formatMoney(item.discount_amount) }}</td>
                                 <td>{{ taxLabel(item) }}</td>
                             </tr>
                             </tbody>
@@ -62,27 +62,27 @@
                                 <ul>
                                     <li>
                                         <h4>Sub total</h4>
-                                        <h5>{{ formatN(detailData.subtotal) }}</h5>
+                                        <h5>{{ formatMoney(detailData.subtotal) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Discount</h4>
-                                        <h5>{{ formatN(detailTotalDiscount) }}</h5>
+                                        <h5>{{ formatMoney(detailTotalDiscount) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Non-taxable (net)</h4>
-                                        <h5>{{ formatN(detailData.non_taxable_base) }}</h5>
+                                        <h5>{{ formatMoney(detailData.non_taxable_base) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Taxable (net)</h4>
-                                        <h5>{{ formatN(detailData.taxable_base) }}</h5>
+                                        <h5>{{ formatMoney(detailData.taxable_base) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Tax</h4>
-                                        <h5>{{ formatN(detailData.tax_total) }}</h5>
+                                        <h5>{{ formatMoney(detailData.tax_total) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Grand total</h4>
-                                        <h5>{{ formatN(detailData.grand_total) }}</h5>
+                                        <h5>{{ formatMoney(detailData.grand_total) }}</h5>
                                     </li>
                                 </ul>
                             </div>
@@ -95,6 +95,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, watch} from 'vue';
 import {storeToRefs} from 'pinia';
 import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
@@ -126,12 +127,6 @@ const closeModal = () => {
     detailOrderId.value = '';
 };
 
-const formatN = (v) => {
-    if (v === null || v === undefined || v === '') {
-        return '—';
-    }
-    return Number(v).toFixed(2);
-};
 
 const productLabel = (item) => {
     if (item.product_variant?.name) {

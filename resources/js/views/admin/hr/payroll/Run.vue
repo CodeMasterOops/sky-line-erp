@@ -30,9 +30,9 @@
                                     <th>{{ i + 1 }}</th>
                                     <td>{{ r.period_label }}</td>
                                     <td><span :class="statusBadge(r.status)">{{ r.status_label }}</span></td>
-                                    <td>{{ r.total_gross }}</td>
-                                    <td>{{ r.total_deductions }}</td>
-                                    <td>{{ r.total_net }}</td>
+                                    <td>{{ formatMoney(r.total_gross) }}</td>
+                                    <td>{{ formatMoney(r.total_deductions) }}</td>
+                                    <td>{{ formatMoney(r.total_net) }}</td>
                                     <td style="width:170px;" class="text-center">
                                         <router-link :to="{ name: 'admin.hr-payroll-detail', params: { id: r.id } }" class="btn btn-sm btn-outline-info me-1"><i class="ti ti-eye"></i></router-link>
                                         <button v-if="r.status !== 'paid'" type="button" @click="processRun(r.id)" class="btn btn-sm btn-outline-primary me-1" title="Calculate"><i class="ti ti-calculator"></i></button>
@@ -78,6 +78,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { ref, reactive, computed, onMounted } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';

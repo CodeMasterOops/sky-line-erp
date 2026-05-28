@@ -44,7 +44,7 @@
                             <tbody>
                                 <tr v-for="item in earnings" :key="item.id">
                                     <td>{{ item.component_name }}</td>
-                                    <td class="text-end">{{ item.amount }}</td>
+                                    <td class="text-end">{{ formatMoney(item.amount) }}</td>
                                 </tr>
                                 <tr class="fw-bold"><td>Gross</td><td class="text-end">{{ payslip.data?.gross_salary }}</td></tr>
                             </tbody>
@@ -56,7 +56,7 @@
                             <tbody>
                                 <tr v-for="item in deductions" :key="item.id">
                                     <td>{{ item.component_name }}</td>
-                                    <td class="text-end">{{ item.amount }}</td>
+                                    <td class="text-end">{{ formatMoney(item.amount) }}</td>
                                 </tr>
                                 <tr v-if="(payslip.data?.tds_amount ?? 0) > 0">
                                     <td>TDS Withheld <span class="text-muted small">({{ payslip.data?.employee?.tds_category_label }})</span></td>
@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';

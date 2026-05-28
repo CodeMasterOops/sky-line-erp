@@ -58,7 +58,7 @@
                         <div class="card border-0 bg-primary-subtle mb-0">
                             <div class="card-body text-center">
                                 <h6 class="text-muted">Total Base Amount</h6>
-                                <h4 class="fw-bold">NPR {{ fmt(summary.total_base_amount) }}</h4>
+                                <h4 class="fw-bold">{{ formatMoney(summary.total_base_amount) }}</h4>
                             </div>
                         </div>
                     </div>
@@ -66,7 +66,7 @@
                         <div class="card border-0 bg-danger-subtle mb-0">
                             <div class="card-body text-center">
                                 <h6 class="text-muted">Total TDS Deducted</h6>
-                                <h4 class="fw-bold text-danger">NPR {{ fmt(summary.total_tds_amount) }}</h4>
+                                <h4 class="fw-bold text-danger">{{ formatMoney(summary.total_tds_amount) }}</h4>
                             </div>
                         </div>
                     </div>
@@ -75,7 +75,7 @@
                             <div class="card-body text-center">
                                 <h6 class="text-muted">Net Amount Paid</h6>
                                 <h4 class="fw-bold text-success">
-                                    NPR {{ fmt((summary.total_base_amount || 0) - (summary.total_tds_amount || 0)) }}
+                                    {{ formatMoney((summary.total_base_amount || 0) - (summary.total_tds_amount || 0)) }}
                                 </h4>
                             </div>
                         </div>
@@ -104,9 +104,9 @@
                                 <td>{{ row.party_name || '-' }}</td>
                                 <td>{{ row.party_pan || '-' }}</td>
                                 <td>{{ row.tds_category }}</td>
-                                <td class="text-end">{{ fmt(row.base_amount) }}</td>
+                                <td class="text-end">{{ formatMoney(row.base_amount) }}</td>
                                 <td class="text-end">{{ row.tds_rate }}%</td>
-                                <td class="text-end text-danger fw-semibold">{{ fmt(row.tds_amount) }}</td>
+                                <td class="text-end text-danger fw-semibold">{{ formatMoney(row.tds_amount) }}</td>
                                 <td>{{ row.period_month || '-' }}</td>
                             </tr>
                         </template>
@@ -119,9 +119,9 @@
                         <tfoot v-if="!tdsReport.loading && summary">
                         <tr class="summary-row">
                             <th colspan="4" class="text-end">Total</th>
-                            <th class="text-end">{{ fmt(summary.total_base_amount) }}</th>
+                            <th class="text-end">{{ formatMoney(summary.total_base_amount) }}</th>
                             <th></th>
-                            <th class="text-end">{{ fmt(summary.total_tds_amount) }}</th>
+                            <th class="text-end">{{ formatMoney(summary.total_tds_amount) }}</th>
                             <th></th>
                         </tr>
                         </tfoot>
@@ -137,6 +137,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, onMounted, reactive, ref} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
@@ -176,7 +177,6 @@ const reportPeriodLabel = computed(() => {
     return tdsReport.value.data?.period?.label || 'For the selected period';
 });
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', {minimumFractionDigits: 2});
 
 const formatPickerValue = (startDate, endDate) => `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
 

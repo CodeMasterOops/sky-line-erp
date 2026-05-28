@@ -57,8 +57,8 @@
                                 <td>{{ index + 1 }}</td>
                                 <td class="text-start">{{ productLabel(item) }}</td>
                                 <td>{{ item.quantity }}</td>
-                                <td>{{ formatN(item.rate) }}</td>
-                                <td>{{ formatN(item.discount_amount) }}</td>
+                                <td>{{ formatMoney(item.rate) }}</td>
+                                <td>{{ formatMoney(item.discount_amount) }}</td>
                                 <td>{{ taxLabel(item) }}</td>
                             </tr>
                             </tbody>
@@ -70,19 +70,19 @@
                                 <ul>
                                     <li>
                                         <h4>Sub total</h4>
-                                        <h5>{{ formatN(detailData.subtotal) }}</h5>
+                                        <h5>{{ formatMoney(detailData.subtotal) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Discount</h4>
-                                        <h5>{{ formatN(detailData.discount_total) }}</h5>
+                                        <h5>{{ formatMoney(detailData.discount_total) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Tax</h4>
-                                        <h5>{{ formatN(detailData.tax_total) }}</h5>
+                                        <h5>{{ formatMoney(detailData.tax_total) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Grand total</h4>
-                                        <h5>{{ formatN(detailData.grand_total) }}</h5>
+                                        <h5>{{ formatMoney(detailData.grand_total) }}</h5>
                                     </li>
                                 </ul>
                             </div>
@@ -107,6 +107,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, watch} from 'vue';
 import {storeToRefs} from 'pinia';
 import Swal from 'sweetalert2';
@@ -136,12 +137,6 @@ const closeModal = () => {
     detailDebitNoteId.value = '';
 };
 
-const formatN = (v) => {
-    if (v === null || v === undefined || v === '') {
-        return '—';
-    }
-    return Number(v).toFixed(2);
-};
 
 const productLabel = (item) => {
     if (item.product_variant?.name) {

@@ -1,13 +1,46 @@
+/** Base currency symbol (matches config/currency.php and CurrencySeeder). */
+export const BASE_CURRENCY_SYMBOL = 'Rs.';
+
 /**
- * Format a numeric value as a money string with 2 decimal places.
- * Returns '—' for null / undefined / empty / non-numeric values.
+ * Format a numeric value as plain number string with 2 decimal places (no symbol).
  *
  * @param {number|string|null|undefined} value
  * @returns {string}
  */
-export function formatMoney(value) {
-    if (value === undefined || value === null || value === '') return '—';
+export function formatMoneyPlain(value) {
+    if (value === undefined || value === null || value === '') {
+        return '—';
+    }
+
     const n = Number(value);
-    if (Number.isNaN(n)) return '—';
-    return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    if (Number.isNaN(n)) {
+        return '—';
+    }
+
+    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Format a numeric value as a money string with base currency symbol.
+ *
+ * @param {number|string|null|undefined} value
+ * @param {{ symbol?: string }} [options]
+ * @returns {string}
+ */
+export function formatMoney(value, options = {}) {
+    if (value === undefined || value === null || value === '') {
+        return '—';
+    }
+
+    const n = Number(value);
+
+    if (Number.isNaN(n)) {
+        return '—';
+    }
+
+    const symbol = options.symbol ?? BASE_CURRENCY_SYMBOL;
+    const formatted = n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    return `${symbol} ${formatted}`;
 }

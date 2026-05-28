@@ -14,7 +14,7 @@
         <div class="col" v-for="(label, key) in bucketLabels" :key="key">
             <div class="card border-0 p-3 text-center" :class="bucketBg[key]">
                 <div class="text-muted small">{{ label }}</div>
-                <div class="fw-bold">NPR {{ fmt(buckets[key]) }}</div>
+                <div class="fw-bold">{{ formatMoney(buckets[key]) }}</div>
             </div>
         </div>
     </div>
@@ -43,9 +43,9 @@
                             <td>{{ row.product_name }}</td>
                             <td>{{ row.product_code }}<br><small class="text-muted">{{ row.sku }}</small></td>
                             <td>{{ row.warehouse }}</td>
-                            <td class="text-end">{{ fmt(row.quantity) }}</td>
-                            <td class="text-end">{{ fmt(row.unit_cost) }}</td>
-                            <td class="text-end fw-semibold">{{ fmt(row.total_value) }}</td>
+                            <td class="text-end">{{ formatMoneyPlain(row.quantity) }}</td>
+                            <td class="text-end">{{ formatMoney(row.unit_cost) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(row.total_value) }}</td>
                             <td class="text-end" :class="row.age_days > 90 ? 'text-danger fw-semibold' : ''">{{ row.age_days }}</td>
                             <td>
                                 <span class="badge" :class="bucketBadge[row.age_bucket] || 'bg-secondary'">
@@ -61,6 +61,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -86,5 +87,4 @@ const loadReport = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 </script>

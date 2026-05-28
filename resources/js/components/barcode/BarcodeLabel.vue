@@ -21,12 +21,13 @@
         </div>
 
         <div v-if="showPrice && price" class="barcode-label__price">
-            {{ price }}
+            {{ formatMoney(price) }}
         </div>
     </div>
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { ref, watch, onMounted } from 'vue';
 
 // jsbarcode + qrcode are dynamically imported inside renderBarcode() so they

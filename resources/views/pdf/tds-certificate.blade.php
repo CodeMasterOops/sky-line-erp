@@ -99,14 +99,14 @@
                     <td>{{ $d->tds_category_label ?? $d->tds_category }}</td>
                     <td class="c">{{ $d->revenue_code ?? '11112' }}</td>
                     <td class="r">{{ $d->tds_rate }}%</td>
-                    <td class="r">{{ number_format($d->base_amount, 2) }}</td>
-                    <td class="r">{{ number_format($d->tds_amount, 2) }}</td>
+                    <td class="r">{{ format_money($d->base_amount) }}</td>
+                    <td class="r">{{ format_money($d->tds_amount) }}</td>
                 </tr>
                 @endforeach
                 <tr style="font-weight:bold; background:#f0f0f0;">
                     <td colspan="4" class="r">Total TDS Deducted:</td>
-                    <td class="r">{{ number_format($totalBase, 2) }}</td>
-                    <td class="r">{{ number_format($totalTds, 2) }}</td>
+                    <td class="r">{{ format_money($totalBase) }}</td>
+                    <td class="r">{{ format_money($totalTds) }}</td>
                 </tr>
             </tbody>
         </table>
@@ -117,7 +117,7 @@
     </div>
 
     <div class="section" style="margin-top:6px; font-size:8px; color:#444;">
-        I/We hereby certify that TDS of NPR <strong>{{ number_format($totalTds, 2) }}</strong> has been deducted from payments made to the above deductee and deposited to the Government of Nepal (IRD) as per the Income Tax Act, 2058.
+        I/We hereby certify that TDS of <strong>{{ format_money($totalTds) }}</strong> has been deducted from payments made to the above deductee and deposited to the Government of Nepal (IRD) as per the Income Tax Act, 2058.
     </div>
 
     <div class="sig-row">

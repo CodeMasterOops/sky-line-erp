@@ -221,8 +221,8 @@
                                     <tr v-for="(cost, idx) in grnLandedCosts" :key="idx">
                                         <td>{{ cost.cost_type }}</td>
                                         <td>{{ cost.treatment }}</td>
-                                        <td class="text-end">{{ fmt(cost.amount) }}</td>
-                                        <td class="text-end">{{ fmt(cost.vat_amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(cost.amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(cost.vat_amount) }}</td>
                                     </tr>
                                     </tbody>
                                 </table>
@@ -277,9 +277,9 @@
                                     <tfoot v-if="form.landed_costs.length" class="table-secondary fw-bold">
                                     <tr>
                                         <td colspan="3" class="text-end">Charge Total</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.amount) }}</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.vat) }}</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.claimableVat) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
                                         <td colspan="3"></td>
                                     </tr>
                                     </tfoot>
@@ -292,7 +292,7 @@
                                 <ul>
                                     <li>
                                         <h4>Sub total</h4>
-                                        <h5>{{ summary.subtotal }}</h5>
+                                        <h5>{{ formatMoney(summary.subtotal) }}</h5>
                                     </li>
                                     <li class="po-total-order-discount">
                                         <h4>Discount</h4>
@@ -315,23 +315,23 @@
                                                 "
                                             />
                                         </div>
-                                        <h5>{{ summary.totalDiscount }}</h5>
+                                        <h5>{{ formatMoney(summary.totalDiscount) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Non-taxable (net)</h4>
-                                        <h5>{{ summary.nonTaxableBase }}</h5>
+                                        <h5>{{ formatMoney(summary.nonTaxableBase) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Taxable (net)</h4>
-                                        <h5>{{ summary.taxableBase }}</h5>
+                                        <h5>{{ formatMoney(summary.taxableBase) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Tax</h4>
-                                        <h5>{{ summary.tax }}</h5>
+                                        <h5>{{ formatMoney(summary.tax) }}</h5>
                                     </li>
                                     <li>
                                         <h4>Grand total</h4>
-                                        <h5>{{ summary.grandTotal }}</h5>
+                                        <h5>{{ formatMoney(summary.grandTotal) }}</h5>
                                     </li>
                                 </ul>
                             </div>
@@ -417,6 +417,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {reactive, ref, toRef, watch, computed} from 'vue';
 import debounce from 'lodash/debounce';
 import {useToast} from 'vue-toastification';
@@ -561,8 +562,6 @@ const landedCostSummary = computed(() =>
     }, {amount: 0, vat: 0, claimableVat: 0})
 );
 
-const fmt = (val) =>
-    Number(val ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 const addLandedCost = () => {
     form.landed_costs.push(newLandedCostTemplate());

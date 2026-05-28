@@ -14,12 +14,12 @@
         <div class="modal-body">
           <div class="bg-light br-10 p-4 text-center mb-3">
             <p class="mb-1 text-muted">Amount Due</p>
-            <h2 class="display-1">{{ fmt(grandTotal) }}</h2>
+            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
           </div>
           <div class="mb-3">
             <label class="form-label">Amount Tendered <span class="text-danger">*</span></label>
             <div class="input-icon-start position-relative">
-              <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-dollar"></i></span>
+              <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
               <input
                 type="number"
                 class="form-control"
@@ -31,7 +31,7 @@
             </div>
           </div>
           <div v-if="cashTendered > 0" class="alert alert-success">
-            <strong>Change:</strong> {{ fmt(Math.max(cashTendered - grandTotal, 0)) }}
+            <strong>Change:</strong> {{ formatMoney(Math.max(cashTendered - grandTotal, 0)) }}
           </div>
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
@@ -65,7 +65,7 @@
         <div class="modal-body">
           <div class="bg-light br-10 p-4 text-center mb-3">
             <p class="mb-1 text-muted">Amount Due</p>
-            <h2 class="display-1">{{ fmt(grandTotal) }}</h2>
+            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
           </div>
           <p class="text-muted text-center mb-0">Confirm payment via {{ paymentMethod }}.</p>
         </div>
@@ -95,7 +95,7 @@
         <div class="modal-body">
           <div class="bg-light br-10 p-4 text-center mb-3">
             <p class="mb-1 text-muted">Amount to Charge</p>
-            <h2 class="display-1">{{ fmt(grandTotal) }}</h2>
+            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
           </div>
           <p class="text-muted text-center">Present card to the terminal to complete payment.</p>
         </div>
@@ -125,7 +125,7 @@
         <div class="modal-body text-center">
           <div class="bg-light br-10 p-4 mb-3">
             <p class="mb-1 text-muted">Amount</p>
-            <h2 class="display-1">{{ fmt(grandTotal) }}</h2>
+            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
           </div>
           <i class="ti ti-qrcode fs-64 text-muted"></i>
           <p class="text-muted mt-2">Ask customer to scan the QR code to complete payment.</p>
@@ -154,7 +154,7 @@
             </div>
             <h3 class="mb-2">Payment Completed</h3>
             <p class="mb-1">Invoice: <strong>{{ lastSale?.invoice_no }}</strong></p>
-            <p class="mb-1">Total: <strong>{{ fmt(lastSale?.grand_total) }}</strong></p>
+            <p class="mb-1">Total: <strong>{{ formatMoney(lastSale?.grand_total) }}</strong></p>
             <p class="mb-3">Customer: <strong>{{ lastSale?.party_name ?? 'Walk-in Customer' }}</strong></p>
             <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
               <button
@@ -238,8 +238,8 @@
                     <span v-if="item.warehouse_name" class="pos-receipt__item-wh">{{ item.warehouse_name }}</span>
                   </td>
                   <td class="text-end">{{ item.quantity }}</td>
-                  <td class="text-end">{{ fmt(item.rate) }}</td>
-                  <td class="text-end">{{ fmt(item.total) }}</td>
+                  <td class="text-end">{{ formatMoney(item.rate) }}</td>
+                  <td class="text-end">{{ formatMoney(item.total) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -247,23 +247,23 @@
             <section class="pos-receipt__totals">
               <div v-if="lastSale?.subtotal != null" class="pos-receipt__total-row">
                 <span>Subtotal</span>
-                <span>{{ fmt(lastSale.subtotal) }}</span>
+                <span>{{ formatMoney(lastSale.subtotal) }}</span>
               </div>
               <div v-if="Number(lastSale?.line_discount_total) > 0" class="pos-receipt__total-row is-discount">
                 <span>Line discount</span>
-                <span>-{{ fmt(lastSale.line_discount_total) }}</span>
+                <span>-{{ formatMoney(lastSale.line_discount_total) }}</span>
               </div>
               <div v-if="Number(lastSale?.order_discount_amount) > 0" class="pos-receipt__total-row is-discount">
                 <span>Order discount</span>
-                <span>-{{ fmt(lastSale.order_discount_amount) }}</span>
+                <span>-{{ formatMoney(lastSale.order_discount_amount) }}</span>
               </div>
               <div v-if="Number(lastSale?.tax_total) > 0" class="pos-receipt__total-row">
                 <span>Tax</span>
-                <span>{{ fmt(lastSale.tax_total) }}</span>
+                <span>{{ formatMoney(lastSale.tax_total) }}</span>
               </div>
               <div class="pos-receipt__total-row is-grand">
                 <span>Total</span>
-                <span>{{ fmt(lastSale?.grand_total) }}</span>
+                <span>{{ formatMoney(lastSale?.grand_total) }}</span>
               </div>
             </section>
 
@@ -297,7 +297,7 @@
         <div class="modal-body">
           <div class="bg-light br-10 p-4 text-center mb-3">
             <p class="mb-1 text-muted">Order Total</p>
-            <h2 class="display-1">{{ fmt(grandTotal) }}</h2>
+            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
           </div>
           <div class="mb-3">
             <label class="form-label">Order Reference (optional)</label>
@@ -443,7 +443,7 @@
                   <td>{{ txn.invoice_no }}</td>
                   <td>{{ txn.party_name || 'Walk-in Customer' }}</td>
                   <td>{{ txn.invoice_date }}</td>
-                  <td class="text-end">{{ fmt(txn.grand_total) }}</td>
+                  <td class="text-end">{{ formatMoney(txn.grand_total) }}</td>
                   <td><span class="badge bg-success">{{ txn.status }}</span></td>
                 </tr>
               </tbody>
@@ -530,8 +530,8 @@
             </div>
             <div class="col-6">
               <div class="bg-light p-3 br-10">
-                <i class="ti ti-currency-dollar fs-32 text-success d-block mb-2"></i>
-                <h4>{{ fmt(todaySummary.sale_total) }}</h4>
+                <i class="ti ti-currency-rupee fs-32 text-success d-block mb-2"></i>
+                <h4>{{ formatMoney(todaySummary.sale_total) }}</h4>
                 <p class="text-muted mb-0">Revenue</p>
               </div>
             </div>
@@ -557,22 +557,22 @@
           <div class="row g-3">
             <div class="col-4">
               <div class="bg-light p-3 br-10">
-                <i class="ti ti-currency-dollar fs-28 text-primary d-block mb-1"></i>
-                <h5>{{ fmt(todaySummary.sale_total) }}</h5>
+                <i class="ti ti-currency-rupee fs-28 text-primary d-block mb-1"></i>
+                <h5>{{ formatMoney(todaySummary.sale_total) }}</h5>
                 <p class="text-muted mb-0 small">Revenue</p>
               </div>
             </div>
             <div class="col-4">
               <div class="bg-light p-3 br-10">
                 <i class="ti ti-minus-circle fs-28 text-danger d-block mb-1"></i>
-                <h5>{{ fmt(todaySummary.cogs) }}</h5>
+                <h5>{{ formatMoney(todaySummary.cogs) }}</h5>
                 <p class="text-muted mb-0 small">COGS</p>
               </div>
             </div>
             <div class="col-4">
               <div class="bg-light p-3 br-10">
                 <i class="ti ti-trending-up fs-28 text-success d-block mb-1"></i>
-                <h5>{{ fmt(todaySummary.profit) }}</h5>
+                <h5>{{ formatMoney(todaySummary.profit) }}</h5>
                 <p class="text-muted mb-0 small">Profit</p>
               </div>
             </div>
@@ -599,7 +599,7 @@
             <tbody>
               <tr>
                 <td>Today's Cash Sales</td>
-                <td class="text-end fw-bold">{{ fmt(todaySummary.sale_total) }}</td>
+                <td class="text-end fw-bold">{{ formatMoney(todaySummary.sale_total) }}</td>
               </tr>
               <tr>
                 <td>Number of Transactions</td>
@@ -607,7 +607,7 @@
               </tr>
               <tr>
                 <td>Profit</td>
-                <td class="text-end fw-bold text-success">{{ fmt(todaySummary.profit) }}</td>
+                <td class="text-end fw-bold text-success">{{ formatMoney(todaySummary.profit) }}</td>
               </tr>
             </tbody>
           </table>
@@ -619,6 +619,7 @@
 
 <script>
 import { Modal } from 'bootstrap';
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { useToast } from 'vue-toastification';
@@ -800,9 +801,7 @@ export default {
   },
 
   methods: {
-    fmt(val) {
-      return Number(val ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    },
+    formatMoney,
 
     formatTime(datetime) {
       if (!datetime) return '';

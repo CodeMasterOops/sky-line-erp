@@ -7,7 +7,7 @@
                 <div class="card border-0 shadow-sm sale-widget widget-success flex-fill">
                     <div class="card-body d-flex align-items-center">
                         <span class="sale-icon bg-success-subtle text-success">
-                            <i class="ti ti-currency-dollar fs-24"></i>
+                            <i class="ti ti-currency-rupee fs-24"></i>
                         </span>
                         <div class="ms-3">
                             <p class="fw-medium mb-1">Total Purchase</p>
@@ -207,6 +207,7 @@
 </template>
 
 <script setup>
+import {formatAmount} from '@/helpers/helper.js';
 import {computed, onMounted, reactive, ref} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
@@ -306,14 +307,6 @@ const initializePicker = () => {
     applyDateRange(startDate, endDate);
 };
 
-const formatAmount = (value) => {
-    const amount = Number(value || 0);
-
-    return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount);
-};
 
 const formatQuantity = (value) => {
     const quantity = Number(value || 0);

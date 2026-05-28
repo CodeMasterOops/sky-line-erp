@@ -93,7 +93,7 @@
                             Add Item
                         </button>
                         <div class="text-muted small">
-                            Total Dr: {{ totalDr.toFixed(2) }} | Total Cr: {{ totalCr.toFixed(2) }}
+                            Total Dr: {{ formatMoney(totalDr) }} | Total Cr: {{ formatMoney(totalCr) }}
                         </div>
                     </div>
                     <div v-if="errors.items" class="text-danger small mt-2">
@@ -126,6 +126,7 @@
 </template>
 
 <script setup>
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';

@@ -146,7 +146,7 @@
                                                 :min-value="0"
                                             />
                                         </td>
-                                        <td class="text-end fw-semibold">{{ fmt(lineTotal(item)) }}</td>
+                                        <td class="text-end fw-semibold">{{ formatMoney(lineTotal(item)) }}</td>
                                         <td>
                                             <div class="d-flex align-items-center gap-1 mb-1">
                                                 <input
@@ -195,7 +195,7 @@
                                     <tfoot v-if="form.items.length" class="table-secondary fw-bold">
                                     <tr>
                                         <td colspan="5" class="text-end">Grand Total</td>
-                                        <td class="text-end">{{ fmt(grandTotal) }}</td>
+                                        <td class="text-end">{{ formatMoney(grandTotal) }}</td>
                                         <td colspan="2"></td>
                                     </tr>
                                     </tfoot>
@@ -311,9 +311,9 @@
                                     <tfoot v-if="form.landed_costs.length" class="table-secondary fw-bold">
                                     <tr>
                                         <td colspan="3" class="text-end">Charge Total</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.amount) }}</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.vat) }}</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.claimableVat) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
                                         <td colspan="3"></td>
                                     </tr>
                                     </tfoot>
@@ -338,6 +338,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
@@ -453,8 +454,6 @@ const landedCostSummary = computed(() =>
 const lineTotal = (item) =>
     Number(item.received_qty || 0) * Number(item.unit_cost || 0);
 
-const fmt = (val) =>
-    Number(val ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 const variantLabel = (variant) => {
     let label = variant.name || variant.product?.name || '';

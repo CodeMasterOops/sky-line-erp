@@ -73,14 +73,14 @@
                     <tfoot class="table-secondary fw-bold">
                         <tr>
                             <td>Total</td>
-                            <td class="text-end">{{ fmt(totalDr) }}</td>
-                            <td class="text-end">{{ fmt(totalCr) }}</td>
+                            <td class="text-end">{{ formatMoney(totalDr) }}</td>
+                            <td class="text-end">{{ formatMoney(totalCr) }}</td>
                             <td></td>
                         </tr>
                         <tr v-if="Math.abs(totalDr - totalCr) > 0.005">
                             <td colspan="4" class="text-danger">
                                 <i class="ti ti-alert-triangle me-1"></i>
-                                Debit and Credit totals must be equal. Difference: {{ fmt(Math.abs(totalDr - totalCr)) }}
+                                Debit and Credit totals must be equal. Difference: {{ formatMoney(Math.abs(totalDr - totalCr)) }}
                             </td>
                         </tr>
                     </tfoot>
@@ -98,6 +98,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, computed, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -167,7 +168,6 @@ const postOpeningBalance = async () => {
     }
 };
 
-const fmt = (val) => Number(val || 0).toLocaleString('en-NP', { minimumFractionDigits: 2 });
 
 onMounted(() => {
     loadFiscalYears();

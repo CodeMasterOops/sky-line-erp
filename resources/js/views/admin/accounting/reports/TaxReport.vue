@@ -111,10 +111,10 @@
                             <td>{{ row.customer }}</td>
                             <td>{{ row.date }}</td>
                             <td>{{ row.store }}</td>
-                            <td>{{ row.amount }}</td>
+                            <td>{{ formatMoney(row.amount) }}</td>
                             <td>{{ row.paymentMethod }}</td>
-                            <td>{{ row.discount }}</td>
-                            <td>{{ row.taxAmount }}</td>
+                            <td>{{ formatMoney(row.discount) }}</td>
+                            <td>{{ formatMoney(row.taxAmount) }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -127,7 +127,7 @@
 import {onMounted, ref} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
-import 'daterangepicker/daterangepicker.css';
+import {formatMoney} from '@/helpers/formatMoney.js';
 
 const dateRangeInput = ref(null);
 const selectedStore = ref('All');
@@ -156,16 +156,16 @@ const paymentOptions = [
 ];
 
 const reportRows = [
-    {reference: '#4237300', customer: 'Carl Evans', date: '24 Dec 2024', store: 'Electro Mart', amount: '$200', paymentMethod: 'Stripe', discount: '$200', taxAmount: '$200'},
-    {reference: '#7590325', customer: 'Minerva Ramirez', date: '10 Dec 2024', store: 'Quantum Gadgets', amount: '$50', paymentMethod: 'Paypal', discount: '$50', taxAmount: '$50'},
-    {reference: '#9814521', customer: 'Robert Lamon', date: '27 Nov 2024', store: 'Prime Bazaar', amount: '$800', paymentMethod: 'Cash', discount: '$800', taxAmount: '$800'},
-    {reference: '#8745225', customer: 'Patricia Lewis', date: '18 Nov 2024', store: 'Gadget World', amount: '$100', paymentMethod: 'Paypal', discount: '$100', taxAmount: '$100'},
-    {reference: '#4237022', customer: 'Mark Joslyn', date: '06 Nov 2024', store: 'Volt Vault', amount: '$700', paymentMethod: 'Cash', discount: '$700', taxAmount: '$700'},
-    {reference: '#8744439', customer: 'Marsha Betts', date: '25 Oct 2024', store: 'Elite Retail', amount: '$1000', paymentMethod: 'Cash', discount: '$1000', taxAmount: '$1000'},
-    {reference: '#7590365', customer: 'Daniel Jude', date: '14 Oct 2024', store: 'Prime Mart', amount: '$1200', paymentMethod: 'Paypal', discount: '$1200', taxAmount: '$1200'},
-    {reference: '#8745478', customer: 'Emma Bates', date: '03 Oct 2024', store: 'NeoTech Store', amount: '$750', paymentMethod: 'Stripe', discount: '$750', taxAmount: '$750'},
-    {reference: '#7590321', customer: 'Richard Fralick', date: '20 Sep 2024', store: 'Urban Mart', amount: '$450', paymentMethod: 'Stripe', discount: '$450', taxAmount: '$450'},
-    {reference: '#8745245', customer: 'Michelle Robison', date: '10 Sep 2024', store: 'Travel Mart', amount: '$300', paymentMethod: 'Cash', discount: '$300', taxAmount: '$300'},
+    {reference: '#4237300', customer: 'Carl Evans', date: '24 Dec 2024', store: 'Electro Mart', amount: 200, paymentMethod: 'Stripe', discount: 200, taxAmount: 200},
+    {reference: '#7590325', customer: 'Minerva Ramirez', date: '10 Dec 2024', store: 'Quantum Gadgets', amount: 50, paymentMethod: 'Paypal', discount: 50, taxAmount: 50},
+    {reference: '#9814521', customer: 'Robert Lamon', date: '27 Nov 2024', store: 'Prime Bazaar', amount: 800, paymentMethod: 'Cash', discount: 800, taxAmount: 800},
+    {reference: '#8745225', customer: 'Patricia Lewis', date: '18 Nov 2024', store: 'Gadget World', amount: 100, paymentMethod: 'Paypal', discount: 100, taxAmount: 100},
+    {reference: '#4237022', customer: 'Mark Joslyn', date: '06 Nov 2024', store: 'Volt Vault', amount: 700, paymentMethod: 'Cash', discount: 700, taxAmount: 700},
+    {reference: '#8744439', customer: 'Marsha Betts', date: '25 Oct 2024', store: 'Elite Retail', amount: 1000, paymentMethod: 'Cash', discount: 1000, taxAmount: 1000},
+    {reference: '#7590365', customer: 'Daniel Jude', date: '14 Oct 2024', store: 'Prime Mart', amount: 1200, paymentMethod: 'Paypal', discount: 1200, taxAmount: 1200},
+    {reference: '#8745478', customer: 'Emma Bates', date: '03 Oct 2024', store: 'NeoTech Store', amount: 750, paymentMethod: 'Stripe', discount: 750, taxAmount: 750},
+    {reference: '#7590321', customer: 'Richard Fralick', date: '20 Sep 2024', store: 'Urban Mart', amount: 450, paymentMethod: 'Stripe', discount: 450, taxAmount: 450},
+    {reference: '#8745245', customer: 'Michelle Robison', date: '10 Sep 2024', store: 'Travel Mart', amount: 300, paymentMethod: 'Cash', discount: 300, taxAmount: 300},
 ];
 
 function formatRange(start, end) {

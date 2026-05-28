@@ -21,13 +21,15 @@
         </h6>
         <div class="d-flex align-items-center justify-content-between price">
           <span>{{ product.quantity }} Pcs</span>
-          <p>${{ product.price }}</p>
+          <p>{{ formatMoney(product.price) }}</p>
         </div>
       </div>
     </div>
   </div>
 </template>
 <script>
+import {formatMoney} from '@/helpers/formatMoney.js';
+
 export default {
   data() {
     return {
@@ -141,6 +143,7 @@ export default {
     },
   },
   methods: {
+    formatMoney,
     toggleActive(product) {
       product.isActive = !product.isActive;
     },

@@ -136,7 +136,7 @@
                                                 :disabled="!isDraft"
                                             />
                                         </td>
-                                        <td class="text-end fw-semibold">{{ fmt(lineTotal(item)) }}</td>
+                                        <td class="text-end fw-semibold">{{ formatMoney(lineTotal(item)) }}</td>
                                         <td>{{ item.batch_no || '-' }}</td>
                                         <td v-if="isDraft" class="text-center">
                                             <button
@@ -151,7 +151,7 @@
                                     <tfoot v-if="form.items.length" class="table-secondary fw-bold">
                                     <tr>
                                         <td :colspan="isDraft ? 5 : 5" class="text-end">Grand Total</td>
-                                        <td class="text-end">{{ fmt(grandTotal) }}</td>
+                                        <td class="text-end">{{ formatMoney(grandTotal) }}</td>
                                         <td :colspan="isDraft ? 2 : 1"></td>
                                     </tr>
                                     </tfoot>
@@ -273,9 +273,9 @@
                                     <tfoot v-if="form.landed_costs.length" class="table-secondary fw-bold">
                                     <tr>
                                         <td colspan="3" class="text-end">Charge Total</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.amount) }}</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.vat) }}</td>
-                                        <td class="text-end">{{ fmt(landedCostSummary.claimableVat) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
+                                        <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
                                         <td :colspan="isDraft ? 3 : 2"></td>
                                     </tr>
                                     </tfoot>
@@ -300,6 +300,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, reactive, ref, watch} from 'vue';
 import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
@@ -378,8 +379,6 @@ const landedCostSummary = computed(() =>
 const lineTotal = (item) =>
     Number(item.received_qty || 0) * Number(item.unit_cost || 0);
 
-const fmt = (val) =>
-    Number(val ?? 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 const variantLabel = (variant) => {
     let label = variant?.product?.name || variant?.name || '';

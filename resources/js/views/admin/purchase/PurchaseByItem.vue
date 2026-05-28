@@ -111,7 +111,17 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {usePurchaseReportStore} from '@/stores/admin/purchase/report.js';
-import {formatAmount} from "@/helpers/helper.js";
+import {formatAmount as formatAmountBase} from '@/helpers/helper.js';
+
+const formatAmount = (value, dashOnZero = false) => {
+    const amount = Number(value || 0);
+
+    if (dashOnZero && !amount) {
+        return '-';
+    }
+
+    return formatAmountBase(amount);
+};
 
 const adminSettingStore = useAdminSettingStore();
 const purchaseReportStore = usePurchaseReportStore();

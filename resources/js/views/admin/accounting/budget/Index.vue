@@ -66,7 +66,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Total Budgeted</div>
-                            <div class="fs-5 fw-bold text-primary">NPR {{ fmtNum(vsActualData.summary.total_budgeted) }}</div>
+                            <div class="fs-5 fw-bold text-primary">{{ formatMoney(vsActualData.summary.total_budgeted) }}</div>
                         </div>
                     </div>
                 </div>
@@ -74,7 +74,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Total Actual</div>
-                            <div class="fs-5 fw-bold text-warning">NPR {{ fmtNum(vsActualData.summary.total_actual) }}</div>
+                            <div class="fs-5 fw-bold text-warning">{{ formatMoney(vsActualData.summary.total_actual) }}</div>
                         </div>
                     </div>
                 </div>
@@ -83,7 +83,7 @@
                         <div class="card-body text-center">
                             <div class="text-muted small">Variance</div>
                             <div :class="['fs-5 fw-bold', vsActualData.summary.total_variance >= 0 ? 'text-success' : 'text-danger']">
-                                NPR {{ fmtNum(vsActualData.summary.total_variance) }}
+                                {{ formatMoney(vsActualData.summary.total_variance) }}
                             </div>
                         </div>
                     </div>
@@ -95,11 +95,11 @@
                     <div class="table-responsive">
                         <a-table :columns="vsActualColumns" :data-source="vsActualData?.rows ?? []" :loading="vsActualLoading" row-key="account_id">
                             <template #bodyCell="{ column, record }">
-                                <template v-if="column.key === 'budgeted_amount'">{{ fmtNum(record.budgeted_amount) }}</template>
-                                <template v-if="column.key === 'actual_amount'">{{ fmtNum(record.actual_amount) }}</template>
+                                <template v-if="column.key === 'budgeted_amount'">{{ formatMoney(record.budgeted_amount) }}</template>
+                                <template v-if="column.key === 'actual_amount'">{{ formatMoney(record.actual_amount) }}</template>
                                 <template v-if="column.key === 'variance'">
                                     <span :class="record.variance >= 0 ? 'text-success' : 'text-danger'">
-                                        {{ fmtNum(record.variance) }}
+                                        {{ formatMoney(record.variance) }}
                                         <small v-if="record.variance_pct !== null">({{ record.variance_pct }}%)</small>
                                     </span>
                                 </template>
@@ -211,6 +211,7 @@
 </template>
 
 <script setup>
+import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { ref, computed, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
@@ -365,9 +366,6 @@ async function deleteBudget(id) {
     fetchBudgets();
 }
 
-function fmtNum(n) {
-    return (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function progressColor(row) {
     const pct = row.budgeted_amount > 0 ? row.actual_amount / row.budgeted_amount * 100 : 0;

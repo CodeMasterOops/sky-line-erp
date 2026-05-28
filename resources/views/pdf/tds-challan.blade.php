@@ -80,14 +80,14 @@
                 <td class="c">{{ $d->party_pan ?? '' }}</td>
                 <td>{{ $d->tds_category_label ?? $d->tds_category }}</td>
                 <td class="r">{{ $d->tds_rate }}%</td>
-                <td class="r">{{ number_format($d->base_amount, 2) }}</td>
-                <td class="r">{{ number_format($d->tds_amount, 2) }}</td>
+                <td class="r">{{ format_money($d->base_amount) }}</td>
+                <td class="r">{{ format_money($d->tds_amount) }}</td>
             </tr>
             @endforeach
             <tr class="total-row">
                 <td colspan="5" class="r">TOTAL</td>
-                <td class="r">{{ number_format($totalBase, 2) }}</td>
-                <td class="r">{{ number_format($totalTds, 2) }}</td>
+                <td class="r">{{ format_money($totalBase) }}</td>
+                <td class="r">{{ format_money($totalTds) }}</td>
             </tr>
         </tbody>
     </table>
