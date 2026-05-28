@@ -24,12 +24,24 @@ class OpeningStockEntryController extends Controller
      */
     public function index(Request $request)
     {
-        $query = OpeningStockEntry::with(['warehouse'])
+        $query = OpeningStockEntry::with([
+            'warehouse',
+            'openingStockEntryItems.productVariant.product',
+        ])
             ->orderByDesc('date');
 
         if (! empty($request->search)) {
             $key = '%'.trim($request->search).'%';
-            $query->where('reference_no', 'like', $key);
+            $query->where(function ($q) use ($key) {
+                $q->where('reference_no', 'like', $key)
+                    ->orWhereHas('openingStockEntryItems.productVariant.product', function ($pq) use ($key) {
+                        $pq->where('name', 'like', $key)
+                            ->orWhere('code', 'like', $key);
+                    })
+                    ->orWhereHas('openingStockEntryItems.productVariant', function ($vq) use ($key) {
+                        $vq->where('sku', 'like', $key);
+                    });
+            });
         }
 
         $entries = $query->paginate($request->limit ?? 25);

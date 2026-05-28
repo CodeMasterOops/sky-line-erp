@@ -127,6 +127,15 @@ function openingStockPayload(object $test, array $overrides = []): array
     ], $overrides);
 }
 
+test('opening stock index includes product names from line items', function () {
+    $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this))->assertCreated();
+
+    $list = $this->getJson('/api/admin/opening-stock-entry');
+
+    $list->assertSuccessful()
+        ->assertJsonPath('data.0.product_names', 'Widget');
+});
+
 test('approving opening stock entry updates stock layers and movement type', function () {
     $response = $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this));
 

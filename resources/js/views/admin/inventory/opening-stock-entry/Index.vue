@@ -23,7 +23,7 @@
                         type="search"
                         v-model="filter.search"
                         class="form-control form-control-sm"
-                        placeholder="Search reference"
+                        placeholder="Search reference or product"
                         @input="debouncedFetch"
                     >
                 </div>
@@ -41,6 +41,11 @@
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
                             {{ (entries.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                        </template>
+                        <template v-else-if="column.key === 'products'">
+                            <span class="text-truncate d-inline-block" style="max-width: 280px;" :title="record.product_names">
+                                {{ record.product_names || '—' }}
+                            </span>
                         </template>
                         <template v-else-if="column.key === 'status'">
                             <span
@@ -117,6 +122,7 @@ const filter = reactive({
 const columns = [
     {title: 'SN', key: 'sn', width: 60},
     {title: 'Reference', dataIndex: 'reference_no', sorter: true},
+    {title: 'Products', key: 'products'},
     {title: 'Date', dataIndex: 'date', sorter: true},
     {title: 'Warehouse', dataIndex: 'warehouse', sorter: true},
     {title: 'Status', key: 'status'},

@@ -20,6 +20,21 @@ class OpeningStockEntryResource extends JsonResource
             'approve_user_id' => $this->approve_user_id ?? '',
             'approved_at' => $this->approved_at ?? null,
             'status' => $this->status?->value ?? '',
+            'product_names' => $this->whenLoaded('openingStockEntryItems', function () {
+                return $this->openingStockEntryItems
+                    ->map(function ($item) {
+                        $variant = $item->productVariant;
+                        if (! $variant) {
+                            return null;
+                        }
+
+                        return $variant->variant_name ?: $variant->product?->name;
+                    })
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->implode(', ');
+            }, ''),
             'items' => OpeningStockEntryItemResource::collection($this->whenLoaded('openingStockEntryItems')),
         ];
     }
