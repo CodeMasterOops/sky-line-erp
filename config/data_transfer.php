@@ -3,11 +3,11 @@
 /**
  * Data transfer (import/export) configuration.
  *
+ * Queues: set QUEUE_CONNECTION=redis and run Redis (see .env.example, docker-compose.redis.yml).
  * Workers must listen on named queues (not only "default"):
  * - Local: `composer run dev` runs `queue:listen-app`
  * - Server/Docker: supervisor runs `queue:work-app` (see docker/supervisor)
- * - Manual: `php artisan queue:work-app`
- * - Override list: QUEUE_WORKER_QUEUES in .env
+ * - Verify Redis: `php artisan redis:ping` and `redis:ping --connection=queue`
  * - Schedule: data-transfer:prune (registered in routes/console.php)
  */
 return [

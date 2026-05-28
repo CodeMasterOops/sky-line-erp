@@ -1,3 +1,6 @@
+# Production deploy (Coolify). Use Coolify managed Redis — set REDIS_URL in the app service env.
+# Do not commit real credentials; paste REDIS_URL in Coolify environment variables only.
+
 services:
   app:
     build:
@@ -24,9 +27,16 @@ services:
       DB_PASSWORD: "${DB_PASSWORD}"
       SESSION_DRIVER: database
       SESSION_LIFETIME: "120"
-      QUEUE_CONNECTION: database
+      QUEUE_CONNECTION: redis
       QUEUE_WORKER_QUEUES: "data-transfer-heavy,data-transfer,default,ird"
-      CACHE_STORE: database
+      CACHE_STORE: redis
+      REDIS_CLIENT: predis
+      REDIS_URL: "${REDIS_URL}"
+      REDIS_QUEUE_CONNECTION: queue
+      REDIS_DB: "0"
+      REDIS_CACHE_DB: "1"
+      REDIS_QUEUE_DB: "2"
+      REDIS_QUEUE_RETRY_AFTER: "3900"
       FILESYSTEM_DISK: public
       LOG_CHANNEL: stderr
       LOG_LEVEL: warning
