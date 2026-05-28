@@ -19,6 +19,7 @@ enum JournalTypeEnum: string
     case TDS_PAYABLE = 'tds-payable';
     case CREDIT_NOTE = 'credit-note';
     case DEBIT_NOTE = 'debit-note';
+    case CLOSING_ENTRY = 'closing-entry';
 
     public function label(): string
     {
@@ -42,6 +43,7 @@ enum JournalTypeEnum: string
             self::TDS_PAYABLE => 'TDS Payable',
             self::CREDIT_NOTE => 'Credit Note (Sales Return)',
             self::DEBIT_NOTE => 'Debit Note (Purchase Return)',
+            self::CLOSING_ENTRY => 'Year-End Closing Entry',
         };
     }
 

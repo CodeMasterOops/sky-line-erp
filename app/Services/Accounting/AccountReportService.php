@@ -934,9 +934,10 @@ class AccountReportService
             ->latest('bill_date')
             ->get();
 
-        // Expenses have no voided_at; an approved expense without a journal is unposted.
+        // An approved, non-voided expense without a journal is unposted.
         $expenses = Expense::query()
             ->where('status', StatusEnum::APPROVED)
+            ->whereNull('voided_at')
             ->whereNotExists(function ($query) use ($expenseMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')

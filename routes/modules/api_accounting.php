@@ -49,6 +49,7 @@ Route::prefix('accounting-period')->as('accounting-period.')->controller(Account
     Route::post('generate', 'generate')->name('generate');
     Route::get('close-year/readiness', 'closeYearReadiness')->name('close-year.readiness');
     Route::post('close-year', 'closeYear')->name('close-year');
+    Route::post('closing-entry', 'postClosingEntry')->name('closing-entry');
     Route::post('{accountingPeriod}/close', 'close')->name('close');
     Route::post('{accountingPeriod}/reopen', 'reopen')->name('reopen');
     Route::post('{accountingPeriod}/lock', 'lock')->name('lock');
@@ -95,6 +96,7 @@ Route::prefix('account-report')->as('account-report.')->controller(AccountReport
     Route::get('vat-purchase-register', 'vatPurchaseRegister')->name('vat-purchase-register');
     Route::get('vat-return', 'vatReturn')->name('vat-return');
     Route::get('vat-return-reconciliation', 'vatReturnReconciliation')->name('vat-return-reconciliation');
+    Route::get('books-health', 'booksHealth')->name('books-health');
     Route::get('cash-flow', 'cashFlow')->name('cash-flow');
     Route::get('ar-aging', 'arAging')->name('ar-aging');
     Route::get('ap-aging', 'apAging')->name('ap-aging');

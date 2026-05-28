@@ -18,7 +18,21 @@ readonly class ExpenseService
         private GlAccountConfigGuard $glAccountGuard,
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
+        private JournalVoidService $journalVoid,
     ) {}
+
+    /**
+     * Void an approved expense: reverse its GL journal (soft-delete, audit-safe)
+     * and stamp voided_at. Mirrors invoice/bill void; journal removal is
+     * idempotent so a re-void or an expense that never posted is a safe no-op.
+     */
+    public function voidExpense(Expense $expense): void
+    {
+        DB::transaction(function () use ($expense) {
+            $this->journalVoid->reverseForReference($expense);
+            $expense->update(['voided_at' => now()]);
+        });
+    }
 
     /**
      * Whether an expense journal already exists. Scope-free and excludes

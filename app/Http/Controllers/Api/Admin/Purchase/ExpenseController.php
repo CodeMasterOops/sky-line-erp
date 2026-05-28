@@ -129,6 +129,31 @@ class ExpenseController extends Controller
     }
 
     /**
+     * @Permissions("approve_expense", group="expense", desc="Void Expense")
+     */
+    public function void(Expense $expense)
+    {
+        if ($expense->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved expenses can be voided.',
+            ], 422);
+        }
+
+        if ($expense->voided_at) {
+            return response()->json([
+                'message' => 'Expense is already voided.',
+            ], 422);
+        }
+
+        $this->expenseService->voidExpense($expense);
+
+        return response()->json([
+            'data' => ExpenseResource::make($expense->fresh()),
+            'message' => 'Expense Voided Successfully',
+        ]);
+    }
+
+    /**
      * @Permissions("list_due_expenses", group="expense", desc="List Due Expenses By Party")
      */
     public function dueExpenses(Request $request)

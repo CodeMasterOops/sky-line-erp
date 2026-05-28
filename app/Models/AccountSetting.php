@@ -30,5 +30,6 @@ class AccountSetting extends Model
         'sales_account_id',
         'inventory_account_id',
         'cogs_account_id',
+        'retained_earnings_account_id',
     ];
 }

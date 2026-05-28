@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\Admin\Accounting;
 
 use App\Models\FiscalYear;
 use Illuminate\Http\Request;
+use App\Models\AccountSetting;
 use App\Annotation\Permissions;
 use App\Models\AccountingPeriod;
 use App\Http\Controllers\Controller;
 use App\Enums\AccountingPeriodStatusEnum;
+use App\Services\Accounting\ClosingEntryService;
 use App\Services\Accounting\YearEndCloseService;
 use App\Services\Accounting\AccountingPeriodGenerator;
 
@@ -15,6 +17,7 @@ class AccountingPeriodController extends Controller
 {
     public function __construct(
         private readonly YearEndCloseService $yearEndCloseService,
+        private readonly ClosingEntryService $closingEntryService,
     ) {}
 
     /**
@@ -109,6 +112,58 @@ class AccountingPeriodController extends Controller
         return response()->json([
             'data' => $result,
             'message' => $result['periods_closed'].' period(s) closed. Fiscal year is now closed.',
+        ]);
+    }
+
+    /**
+     * Post the year-end closing entry: zero the income/expense accounts and
+     * transfer the net result to the configured retained-earnings account.
+     * Idempotent — a fiscal year already closed-out is a no-op.
+     *
+     * @Permissions("close_fiscal_year", group="accounting_period", desc="Year-End Close")
+     */
+    public function postClosingEntry(Request $request)
+    {
+        $validated = $request->validate([
+            'fiscal_year_id' => ['required', 'integer', 'exists:fiscal_years,id'],
+        ]);
+
+        $companyId = auth('admin')->user()->company_id;
+
+        $settings = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if (! $settings?->retained_earnings_account_id) {
+            return response()->json([
+                'message' => 'Configure a retained-earnings account in accounting settings before posting a closing entry.',
+            ], 422);
+        }
+
+        $fiscalYear = FiscalYear::findOrFail($validated['fiscal_year_id']);
+
+        $result = $this->closingEntryService->post(
+            $companyId,
+            $fiscalYear,
+            (int) $settings->retained_earnings_account_id,
+            auth('admin')->id(),
+        );
+
+        if (! $result['posted']) {
+            return response()->json([
+                'data' => $result,
+                'message' => match ($result['reason']) {
+                    'already_posted' => 'A closing entry has already been posted for this fiscal year.',
+                    'nothing_to_close' => 'No income or expense balances to close for this fiscal year.',
+                    default => 'Closing entry was not posted.',
+                },
+            ], $result['reason'] === 'already_posted' ? 422 : 200);
+        }
+
+        return response()->json([
+            'data' => $result,
+            'message' => 'Year-end closing entry posted. Net '.($result['net_profit'] >= 0 ? 'profit' : 'loss').' of '.number_format(abs($result['net_profit']), 2).' transferred to retained earnings.',
         ]);
     }
 

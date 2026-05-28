@@ -21,6 +21,7 @@ Route::apiResource('bill', BillController::class);
 // expense
 Route::get('expense/due', [ExpenseController::class, 'dueExpenses'])->name('expense.due');
 Route::post('expense/{expense}/approve', [ExpenseController::class, 'approve'])->name('expense.approve');
+Route::post('expense/{expense}/void', [ExpenseController::class, 'void'])->name('expense.void');
 Route::apiResource('expense', ExpenseController::class);
 
 // payment

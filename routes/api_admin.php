@@ -113,6 +113,7 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
             // TDS Challan & Certificate
             Route::prefix('tds')->as('tds.')->controller(TdsChallanController::class)->group(function () {
                 Route::get('summary', 'summary')->name('summary');
+                Route::get('return-annexure', 'returnAnnexure')->name('return-annexure');
                 Route::get('challan-pdf', 'downloadChallan')->name('challan-pdf');
                 Route::get('certificate-pdf', 'downloadCertificate')->name('certificate-pdf');
             });

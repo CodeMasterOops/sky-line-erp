@@ -8,6 +8,7 @@ use App\Annotation\Permissions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\TdsReturnService;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Nepal\NepaliNumberService;
 
@@ -16,7 +17,32 @@ class TdsChallanController extends Controller
     public function __construct(
         private NepaliDateService $nepaliDate,
         private NepaliNumberService $nepaliNumber,
+        private TdsReturnService $tdsReturn,
     ) {}
+
+    /**
+     * IRD e-TDS return annexure: recorded TDS deductions for the period
+     * aggregated by category, revenue code, and deductee for filing.
+     *
+     * @Permissions("list_invoice", group="invoice", desc="TDS Return Annexure")
+     */
+    public function returnAnnexure(Request $request)
+    {
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $companyId = auth('admin')->user()->company_id;
+
+        return response()->json([
+            'data' => $this->tdsReturn->annexure(
+                $companyId,
+                $validated['start_date'],
+                $validated['end_date'],
+            ),
+        ]);
+    }
 
     /**
      * @Permissions("list_invoice", group="invoice", desc="TDS Challan Summary")

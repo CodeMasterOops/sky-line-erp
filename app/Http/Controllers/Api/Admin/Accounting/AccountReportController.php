@@ -13,6 +13,7 @@ use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Services\Accounting\ExpenseService;
 use App\Services\Purchase\PurchaseBillService;
+use App\Services\Accounting\BooksHealthService;
 use App\Services\Accounting\AccountReportService;
 use App\Services\Accounting\GlAccountConfigGuard;
 use App\Services\Accounting\InvoiceGlPostingService;
@@ -29,6 +30,7 @@ class AccountReportController extends Controller
         private readonly CreditNoteGlPostingService $creditNoteGlPostingService,
         private readonly DebitNoteGlPostingService $debitNoteGlPostingService,
         private readonly GlAccountConfigGuard $glAccountGuard,
+        private readonly BooksHealthService $booksHealthService,
     ) {}
 
     /**
@@ -118,6 +120,16 @@ class AccountReportController extends Controller
     {
         return response()->json([
             'data' => $this->accountReportService->vatReturnReconciliation($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("books_health", group="account_report", desc="Books Health (GL Integrity Snapshot)")
+     */
+    public function booksHealth(Request $request)
+    {
+        return response()->json([
+            'data' => $this->booksHealthService->snapshot($request),
         ]);
     }
 
@@ -309,9 +321,9 @@ class AccountReportController extends Controller
      */
     public function repostExpense(Expense $expense)
     {
-        if ($expense->status !== StatusEnum::APPROVED) {
+        if ($expense->status !== StatusEnum::APPROVED || $expense->voided_at) {
             return response()->json([
-                'message' => 'Only approved expenses can be re-posted.',
+                'message' => 'Only approved, non-voided expenses can be re-posted.',
             ], 422);
         }
 

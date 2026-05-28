@@ -33,6 +33,7 @@ class Expense extends Model
         'create_user_id',
         'approve_user_id',
         'approved_at',
+        'voided_at',
         'status',
     ];
 
@@ -40,6 +41,7 @@ class Expense extends Model
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
         'approved_at' => 'datetime',
+        'voided_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
 
