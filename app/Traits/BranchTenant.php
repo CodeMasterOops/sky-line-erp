@@ -9,17 +9,23 @@ trait BranchTenant
 {
     public static function bootBranchTenant(): void
     {
-        $branchId = TenantService::branchId();
-
-        if ($branchId && columnExists((new self)->getTable(), 'branch_id')) {
-            static::creating(function ($model) use ($branchId) {
-                $model->branch_id = is_null($model->branch_id) ? $branchId : $model->branch_id;
-            });
-
-            // global scope
-            static::addGlobalScope('branch_scope', function (Builder $builder) use ($branchId) {
-                return $builder->where('branch_id', $branchId);
-            });
+        if (! columnExists((new self)->getTable(), 'branch_id')) {
+            return;
         }
+
+        // Resolve the branch dynamically at create / query time, not at boot,
+        // so it follows the current request / job context rather than freezing
+        // to whatever was set when the model first booted in the process.
+        static::creating(function ($model) {
+            if (is_null($model->branch_id) && ($branchId = TenantService::branchId())) {
+                $model->branch_id = $branchId;
+            }
+        });
+
+        static::addGlobalScope('branch_scope', function (Builder $builder) {
+            if ($branchId = TenantService::branchId()) {
+                $builder->where('branch_id', $branchId);
+            }
+        });
     }
 }

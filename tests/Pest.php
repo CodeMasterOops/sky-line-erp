@@ -13,6 +13,16 @@
 
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->beforeEach(function () {
+        // TenantService is a static singleton — its company / branch IDs leak
+        // between tests in a shared process unless reset. With the now-dynamic
+        // MultiTenant / BranchTenant scopes, that leak would let the creating
+        // hook assign stale tenant IDs from a previous test (whose DB rows are
+        // gone after RefreshDatabase), tripping FK constraints. Each test
+        // starts with a clean tenant context and sets its own as needed.
+        \App\Services\TenantService::setCompanyId(null);
+        \App\Services\TenantService::setBranchId(null);
+    })
     ->in('Feature');
 
 /*

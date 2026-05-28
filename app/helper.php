@@ -36,7 +36,13 @@ if (! function_exists('allTables')) {
 if (! function_exists('tableColumns')) {
     function tableColumns($table)
     {
-        return allTables()[$table] ?? [];
+        // Tolerate the SQLite schema-qualified key (`main.<table>`) returned by
+        // Schema::getTableListing() in Laravel 12. Without this, columnExists()
+        // returns false in SQLite tests for every table, so the MultiTenant /
+        // BranchTenant global scopes never register in the test harness.
+        $all = allTables();
+
+        return $all[$table] ?? $all['main.'.$table] ?? [];
     }
 }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusEnum;
+use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Receipt extends Model
 {
+    use Auditable;
     use BranchTenant;
     use MultiTenant;
     use SoftDeletes;

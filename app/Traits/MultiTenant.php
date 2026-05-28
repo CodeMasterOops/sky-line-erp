@@ -9,17 +9,25 @@ trait MultiTenant
 {
     public static function bootMultiTenant(): void
     {
-        $companyId = TenantService::companyId();
-
-        if ($companyId && columnExists((new self)->getTable(), 'company_id')) {
-            static::creating(function ($model) use ($companyId) {
-                $model->company_id = is_null($model->company_id) ? $companyId : $model->company_id;
-            });
-
-            // global scope
-            static::addGlobalScope('company_scope', function (Builder $builder) use ($companyId) {
-                return $builder->where('company_id', $companyId);
-            });
+        if (! columnExists((new self)->getTable(), 'company_id')) {
+            return;
         }
+
+        // Resolve the tenant dynamically at create / query time, not at boot.
+        // Models boot once per process; a frozen tenant captured at boot leaks
+        // across requests on long-lived workers (queues / Octane) where one
+        // process serves multiple companies. Under PHP-FPM this is
+        // behaviour-identical (one tenant per request).
+        static::creating(function ($model) {
+            if (is_null($model->company_id) && ($companyId = TenantService::companyId())) {
+                $model->company_id = $companyId;
+            }
+        });
+
+        static::addGlobalScope('company_scope', function (Builder $builder) {
+            if ($companyId = TenantService::companyId()) {
+                $builder->where('company_id', $companyId);
+            }
+        });
     }
 }
