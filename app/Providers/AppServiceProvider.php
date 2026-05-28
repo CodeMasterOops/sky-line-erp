@@ -34,9 +34,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ($this->app->environment('production')) {
-            URL::forceScheme('https');
-        }
+        $this->configureHttpsUrls();
 
         Relation::morphMap([
             'bill' => Bill::class,
@@ -51,6 +49,29 @@ class AppServiceProvider extends ServiceProvider
             Cache::forget('allTables');
             Cache::forget(\App\Http\Controllers\Api\Admin\UserManagement\PermissionController::PERMISSION_MAP_CACHE_KEY);
         });
+    }
+
+    /**
+     * Force HTTPS for generated URLs when behind TLS-terminating proxies (e.g. Coolify/Traefik).
+     */
+    protected function configureHttpsUrls(): void
+    {
+        $forceHttps = $this->app->environment('production')
+            || filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL);
+
+        if (! $forceHttps) {
+            return;
+        }
+
+        URL::forceScheme('https');
+
+        $appUrl = (string) config('app.url');
+
+        if (str_starts_with($appUrl, 'http://')) {
+            $httpsUrl = 'https://'.substr($appUrl, 7);
+            config(['app.url' => $httpsUrl]);
+            URL::forceRootUrl($httpsUrl);
+        }
     }
 
     /**
