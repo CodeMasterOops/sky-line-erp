@@ -60,7 +60,7 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             const expiresAt = new Date(expires_at);
             Cookies.set("access_token", token, {
                 expires: expiresAt,
-                secure: false,
+                secure: window.location.protocol === 'https:',
                 sameSite: "Strict",
                 path: '/',
             });
@@ -89,7 +89,7 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             localStorage.removeItem('permissions');
             localStorage.removeItem('needs_onboarding');
             Cookies.remove('access_token', {
-                secure: false,
+                secure: window.location.protocol === 'https:',
                 sameSite: "Strict",
                 path: '/',
             });

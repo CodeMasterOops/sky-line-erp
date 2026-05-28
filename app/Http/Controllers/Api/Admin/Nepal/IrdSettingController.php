@@ -4,13 +4,19 @@ namespace App\Http\Controllers\Api\Admin\Nepal;
 
 use App\Models\Company;
 use App\Models\Invoice;
+use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Jobs\SyncInvoiceToIrdJob;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\IrdReconciliationService;
 
 class IrdSettingController extends Controller
 {
+    public function __construct(
+        private readonly IrdReconciliationService $irdReconciliation,
+    ) {}
+
     /**
      * @Permissions("edit_setting", group="setting", desc="Get IRD EBS Settings")
      */
@@ -104,6 +110,79 @@ class IrdSettingController extends Controller
                 'summary' => $counts,
                 'failed' => $failed,
             ],
+        ]);
+    }
+
+    /**
+     * Full IRD reconciliation: sync-status counts plus the approved invoices that
+     * are out of compliance (pending/failed), each annotated with the mandatory
+     * fields it is missing so data issues can be fixed before re-syncing.
+     *
+     * @Permissions("list_invoice", group="invoice", desc="IRD reconciliation report")
+     */
+    public function reconciliation(Request $request)
+    {
+        $validated = $request->validate([
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        $companyId = auth('admin')->user()->company_id;
+
+        return response()->json([
+            'data' => $this->irdReconciliation->reconciliation(
+                $companyId,
+                $validated['start_date'] ?? null,
+                $validated['end_date'] ?? null,
+            ),
+        ]);
+    }
+
+    /**
+     * Bulk re-sync (offline recovery): re-queues every approved, non-voided
+     * invoice that is pending or failed AND has all mandatory fields. Invoices
+     * with missing fields are skipped (they would just fail again) and reported
+     * so the user can fix the data first.
+     *
+     * @Permissions("edit_setting", group="setting", desc="Bulk re-sync invoices to IRD")
+     */
+    public function resyncAll(Request $request)
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $company = Company::withoutGlobalScopes()->find($companyId);
+
+        if (! $company || ! $company->ird_ebs_enabled) {
+            return response()->json([
+                'message' => 'IRD EBS is not enabled for this company.',
+            ], 422);
+        }
+
+        $queued = 0;
+        $skipped = 0;
+
+        Invoice::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->whereIn('ird_sync_status', ['pending', 'failed'])
+            ->with('invoiceItems:id,invoice_id')
+            ->chunkById(100, function ($invoices) use ($company, &$queued, &$skipped) {
+                foreach ($invoices as $invoice) {
+                    if ($this->irdReconciliation->missingMandatoryFields($invoice, $company) !== []) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $invoice->update(['ird_sync_status' => 'pending', 'ird_error' => null]);
+                    SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');
+                    $queued++;
+                }
+            });
+
+        return response()->json([
+            'data' => ['queued' => $queued, 'skipped_missing_fields' => $skipped],
+            'message' => "{$queued} invoice(s) queued for IRD sync; {$skipped} skipped due to missing required fields.",
         ]);
     }
 }

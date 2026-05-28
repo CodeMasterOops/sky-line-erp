@@ -19,14 +19,15 @@ readonly class QuotationService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $quotationNo = $formData['quotation_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            Quotation::class,
-            'QT-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $quotationNo) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $quotationNo = $formData['quotation_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                Quotation::class,
+                'QT-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $quotation = Quotation::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,

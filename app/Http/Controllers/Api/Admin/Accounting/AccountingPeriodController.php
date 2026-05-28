@@ -8,10 +8,15 @@ use App\Annotation\Permissions;
 use App\Models\AccountingPeriod;
 use App\Http\Controllers\Controller;
 use App\Enums\AccountingPeriodStatusEnum;
+use App\Services\Accounting\YearEndCloseService;
 use App\Services\Accounting\AccountingPeriodGenerator;
 
 class AccountingPeriodController extends Controller
 {
+    public function __construct(
+        private readonly YearEndCloseService $yearEndCloseService,
+    ) {}
+
     /**
      * @Permissions("list_accounting_period", group="accounting_period", desc="List Accounting Periods")
      */
@@ -59,6 +64,52 @@ class AccountingPeriodController extends Controller
             'data' => $periods,
             'message' => count($periods).' periods generated successfully.',
         ], 201);
+    }
+
+    /**
+     * Readiness report for a year-end close: the integrity checks that must pass
+     * (balanced journals, no unposted documents, reconciled control accounts)
+     * plus the year's net profit.
+     *
+     * @Permissions("close_fiscal_year", group="accounting_period", desc="Year-End Close")
+     */
+    public function closeYearReadiness(Request $request)
+    {
+        $validated = $request->validate([
+            'fiscal_year_id' => ['required', 'integer', 'exists:fiscal_years,id'],
+        ]);
+
+        $companyId = auth('admin')->user()->company_id;
+
+        return response()->json([
+            'data' => $this->yearEndCloseService->readiness($companyId, (int) $validated['fiscal_year_id']),
+        ]);
+    }
+
+    /**
+     * Close a fiscal year: gated on the readiness checks, then bulk-transitions
+     * every open accounting period in the year to CLOSED.
+     *
+     * @Permissions("close_fiscal_year", group="accounting_period", desc="Year-End Close")
+     */
+    public function closeYear(Request $request)
+    {
+        $validated = $request->validate([
+            'fiscal_year_id' => ['required', 'integer', 'exists:fiscal_years,id'],
+        ]);
+
+        $companyId = auth('admin')->user()->company_id;
+
+        $result = $this->yearEndCloseService->closeYear(
+            $companyId,
+            (int) $validated['fiscal_year_id'],
+            auth('admin')->id(),
+        );
+
+        return response()->json([
+            'data' => $result,
+            'message' => $result['periods_closed'].' period(s) closed. Fiscal year is now closed.',
+        ]);
     }
 
     /**

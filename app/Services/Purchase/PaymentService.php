@@ -25,16 +25,17 @@ readonly class PaymentService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $paymentNo = $formData['payment_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            Payment::class,
-            'PP-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
         $allocations = $this->validatedAllocations($formData);
         $tdsData = $this->normalizeTdsData($formData, $allocations);
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $paymentNo, $allocations, $tdsData) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting, $allocations, $tdsData) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $paymentNo = $formData['payment_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                Payment::class,
+                'PP-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $payment = Payment::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,

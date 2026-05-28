@@ -19,14 +19,15 @@ readonly class SalesOrderService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $orderNo = $formData['order_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            SalesOrder::class,
-            'SO-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $orderNo) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $orderNo = $formData['order_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                SalesOrder::class,
+                'SO-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $order = SalesOrder::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,

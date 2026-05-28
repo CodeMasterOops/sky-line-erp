@@ -17,6 +17,8 @@ enum JournalTypeEnum: string
     case RECURRING = 'recurring';
     case DEPRECIATION = 'depreciation';
     case TDS_PAYABLE = 'tds-payable';
+    case CREDIT_NOTE = 'credit-note';
+    case DEBIT_NOTE = 'debit-note';
 
     public function label(): string
     {
@@ -38,6 +40,8 @@ enum JournalTypeEnum: string
             self::RECURRING => 'Recurring',
             self::DEPRECIATION => 'Depreciation',
             self::TDS_PAYABLE => 'TDS Payable',
+            self::CREDIT_NOTE => 'Credit Note (Sales Return)',
+            self::DEBIT_NOTE => 'Debit Note (Purchase Return)',
         };
     }
 

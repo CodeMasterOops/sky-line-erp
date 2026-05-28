@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoidService;
 use App\Http\Resources\Admin\Sales\CreditNoteResource;
+use App\Services\Accounting\CreditNoteGlPostingService;
 use App\Services\Inventory\SalesReturnUnitCostResolver;
 use App\Http\Requests\Api\Admin\Sales\CreditNoteRequest;
 use App\Services\Inventory\InventoryLayerReceiptService;
@@ -24,6 +26,8 @@ class CreditNoteController extends Controller
         private SalesReturnUnitCostResolver $salesReturnCostResolver,
         private InventoryDocumentReversalService $documentReversal,
         private DocumentNumberGenerator $documentNumberGenerator,
+        private CreditNoteGlPostingService $creditNoteGl,
+        private JournalVoidService $journalVoid,
     ) {}
 
     /**
@@ -49,15 +53,17 @@ class CreditNoteController extends Controller
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $creditNoteNo = $formData['credit_note_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            CreditNote::class,
-            'CN-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
 
         try {
-            $creditNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $creditNoteNo) {
+            $creditNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+                // Generated inside the transaction so the fiscal-year lock the
+                // generator takes holds until the credit note is inserted.
+                $creditNoteNo = $formData['credit_note_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                    CreditNote::class,
+                    'CN-',
+                    $fiscalYearId,
+                    $setting->fiscalYear?->year_code,
+                );
                 $creditNote = CreditNote::create([
                     'company_id' => $user->company_id,
                     'fiscal_year_id' => $fiscalYearId,
@@ -105,6 +111,7 @@ class CreditNoteController extends Controller
                 if ($status === StatusEnum::APPROVED->value) {
                     $creditNote->refresh();
                     $this->applyInventoryForApprovedCreditNote($creditNote, $user->company, $user);
+                    $this->creditNoteGl->postFromCreditNote($creditNote);
                 }
 
                 return $creditNote;
@@ -274,6 +281,7 @@ class CreditNoteController extends Controller
                     $user->id,
                     $creditNote->remarks,
                 );
+                $this->journalVoid->reverseForReference($creditNote);
                 $creditNote->update(['voided_at' => now()]);
             });
         } catch (ValidationException $e) {
@@ -327,6 +335,7 @@ class CreditNoteController extends Controller
                 ]);
 
                 $this->applyInventoryForApprovedCreditNote($creditNote, $user->company, $user);
+                $this->creditNoteGl->postFromCreditNote($creditNote);
             });
         } catch (ValidationException $e) {
             return response()->json([

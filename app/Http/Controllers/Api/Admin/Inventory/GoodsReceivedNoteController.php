@@ -72,17 +72,13 @@ class GoodsReceivedNoteController extends Controller
     {
         $validated = $request->validated();
         $company = auth('admin')->user()->company;
-        $grnNo = $this->documentNumberGenerator->companyPadded(
-            GoodsReceivedNote::class,
-            'GRN-',
-            $company->id,
-        );
 
+        // The GRN service now generates the number inside its own transaction so
+        // the FOR UPDATE lock the generator takes holds until the row is inserted.
         $grn = $this->grnService->createGrn(
             $validated,
             $company,
             auth('admin')->id(),
-            $grnNo,
         );
 
         return response()->json([

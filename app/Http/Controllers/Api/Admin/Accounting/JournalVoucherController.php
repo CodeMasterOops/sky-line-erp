@@ -53,22 +53,21 @@ class JournalVoucherController extends Controller
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
 
-        $voucherNo = $this->documentNumberGenerator->journalVoucher(
-            JournalTypeEnum::JOURNAL_VOUCHER,
-            'JV-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
-
         $formData['fiscal_year_id'] = $fiscalYearId;
         $formData['type'] = JournalTypeEnum::JOURNAL_VOUCHER->value;
-        $formData['voucher_no'] = $voucherNo;
         $formData['create_user_id'] = $user->id;
         $formData['approve_user_id'] = $status === StatusEnum::APPROVED->value ? $user->id : null;
         $formData['approved_at'] = $status === StatusEnum::APPROVED->value ? now() : null;
         $formData['status'] = $status;
 
-        $journal = DB::transaction(function () use ($formData) {
+        $journal = DB::transaction(function () use ($formData, $fiscalYearId, $setting) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $formData['voucher_no'] = $this->documentNumberGenerator->journalVoucher(
+                JournalTypeEnum::JOURNAL_VOUCHER,
+                'JV-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $journal = Journal::create($formData);
 
             $journal->journalItems()->createMany($formData['items']);

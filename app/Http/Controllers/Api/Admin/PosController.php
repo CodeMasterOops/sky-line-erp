@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
+use App\Services\Accounting\GlAccountConfigGuard;
 use App\Http\Requests\Api\Admin\PosCheckoutRequest;
 use App\Services\Accounting\InvoiceGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
@@ -30,6 +31,7 @@ class PosController extends Controller
         private InvoiceGlPostingService $invoiceGl,
         private NepaliDateService $nepaliDate,
         private DocumentNumberGenerator $documentNumberGenerator,
+        private GlAccountConfigGuard $glAccountGuard,
     ) {}
 
     /**
@@ -231,15 +233,21 @@ class PosController extends Controller
         $accountId = $this->resolveAccountId($request->payment_method, $accountSetting);
 
         $yearCode = $company->fiscalYear?->year_code;
-        $invoiceNo = $this->documentNumberGenerator->fiscalYear(
-            Invoice::class,
-            'INV-',
-            $fiscalYearId,
-            $yearCode,
-        );
 
         try {
-            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $invoiceNo, $accountId) {
+            $hasTax = collect($request->items)->contains(
+                fn ($item) => (float) ($item['tax_amount'] ?? 0) > 0
+            );
+            $this->glAccountGuard->assertSalesPostable($hasTax);
+
+            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $accountId, $yearCode) {
+                // See InvoiceService for the lock-inside-transaction concurrency note.
+                $invoiceNo = $this->documentNumberGenerator->fiscalYear(
+                    Invoice::class,
+                    'INV-',
+                    $fiscalYearId,
+                    $yearCode,
+                );
                 $invoiceDateBs = null;
                 try {
                     $bs = $this->nepaliDate->adToBs($today);

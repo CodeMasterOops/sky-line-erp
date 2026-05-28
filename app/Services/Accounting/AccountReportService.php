@@ -5,14 +5,18 @@ namespace App\Services\Accounting;
 use Carbon\Carbon;
 use App\Models\Bill;
 use App\Models\Account;
+use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Journal;
 use App\Enums\StatusEnum;
+use App\Models\DebitNote;
+use App\Models\CreditNote;
 use App\Models\FiscalYear;
 use App\Models\JournalItem;
 use App\Models\AccountGroup;
 use Illuminate\Http\Request;
 use App\Enums\JournalTypeEnum;
+use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -456,6 +460,77 @@ class AccountReportService
         ];
     }
 
+    /**
+     * Reconciles the VAT return computed from documents (output VAT on sales
+     * invoices − input VAT on purchase bills) against the GL VAT control account
+     * balance for the same period. A single vat_account_id carries both sides, so
+     * its net (CR − DR) over the period should equal the net VAT payable.
+     *
+     * A non-zero delta surfaces: invoices/bills whose VAT wasn't posted to the
+     * GL, manual VAT journal adjustments, or returns (credit/debit notes adjust
+     * the GL VAT account but are not part of the invoice/bill-only computed
+     * figure, so they legitimately appear here as a delta to investigate).
+     *
+     * @return array{period:array, fiscal_year:mixed, account_configured:bool, output_vat:float, input_vat:float, computed_net_vat:float, gl_net_vat:float, delta:float, reconciled:bool}
+     */
+    public function vatReturnReconciliation(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $period = $this->resolvePeriod($request);
+        $return = $this->vatReturn($request);
+
+        $computedNet = (float) $return['net_vat_payable'];
+
+        $settings = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        $vatAccountId = $settings?->vat_account_id;
+
+        $base = [
+            'period' => $return['period'],
+            'fiscal_year' => $return['fiscal_year'],
+            'output_vat' => $return['sales']['output_vat'],
+            'input_vat' => $return['purchases']['input_vat'],
+            'computed_net_vat' => round($computedNet, 2),
+        ];
+
+        if (! $vatAccountId) {
+            return $base + [
+                'account_configured' => false,
+                'gl_net_vat' => 0.0,
+                'delta' => round($computedNet, 2),
+                'reconciled' => false,
+            ];
+        }
+
+        $sums = DB::table('journal_items')
+            ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
+            ->where('journals.company_id', $companyId)
+            ->where('journals.status', StatusEnum::APPROVED->value)
+            ->whereNull('journals.deleted_at')
+            ->whereNull('journal_items.deleted_at')
+            ->where('journal_items.account_id', $vatAccountId)
+            ->whereBetween('journals.date', [
+                $period['start_date']->toDateString(),
+                $period['end_date']->toDateString(),
+            ])
+            ->selectRaw('COALESCE(SUM(journal_items.dr_amount), 0) AS dr, COALESCE(SUM(journal_items.cr_amount), 0) AS cr')
+            ->first();
+
+        // VAT payable is a credit-side liability: output VAT (CR) − input VAT (DR).
+        $glNet = round((float) $sums->cr - (float) $sums->dr, 2);
+        $delta = round($computedNet - $glNet, 2);
+
+        return $base + [
+            'account_configured' => true,
+            'gl_net_vat' => $glNet,
+            'delta' => $delta,
+            'reconciled' => ! JournalBalanceGuard::exceedsTolerance($delta),
+        ];
+    }
+
     public function cashFlow(Request $request): array
     {
         $period = $this->resolvePeriod($request);
@@ -538,14 +613,14 @@ class AccountReportService
             ->whereNull('voided_at')
             ->get()
             ->filter(function (Invoice $invoice) {
-                $paid = $invoice->receiptAllocations()->sum('allocated_amount');
+                $paid = $invoice->receiptAllocations()->sum('amount');
                 $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
 
                 return round($total - $paid, 2) > 0;
             });
 
         $rows = $invoices->map(function (Invoice $invoice) use ($asOf) {
-            $paid = $invoice->receiptAllocations()->sum('allocated_amount');
+            $paid = $invoice->receiptAllocations()->sum('amount');
             $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
             $outstanding = round($total - $paid, 2);
             $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date) : Carbon::parse($invoice->invoice_date)->addDays(30);
@@ -588,14 +663,14 @@ class AccountReportService
             ->whereNull('voided_at')
             ->get()
             ->filter(function (Bill $bill) {
-                $paid = $bill->paymentAllocations()->sum('allocated_amount');
+                $paid = $bill->paymentAllocations()->sum('amount');
                 $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
 
                 return round($total - $paid, 2) > 0;
             });
 
         $rows = $bills->map(function (Bill $bill) use ($asOf) {
-            $paid = $bill->paymentAllocations()->sum('allocated_amount');
+            $paid = $bill->paymentAllocations()->sum('amount');
             $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
             $outstanding = round($total - $paid, 2);
             $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date)->addDays(30);
@@ -809,6 +884,445 @@ class AccountReportService
                 'total_tds_amount' => round($deductions->sum('tds_amount'), 2),
             ],
         ];
+    }
+
+    /**
+     * GL integrity report: approved, non-voided sales invoices and purchase
+     * bills that have no general-ledger journal. Surfaces documents that were
+     * approved while control accounts were unconfigured (legacy data) or that
+     * otherwise slipped past posting, so they can be re-posted.
+     *
+     * @return array{
+     *     sales_invoices: list<array{id:int, document_no:string, date:string, party:?string, amount:float}>,
+     *     purchase_bills: list<array{id:int, document_no:string, date:string, party:?string, amount:float}>,
+     *     summary: array{sales_count:int, sales_amount:float, purchase_count:int, purchase_amount:float, total_count:int}
+     * }
+     */
+    public function unpostedDocuments(Request $request): array
+    {
+        $invoiceMorph = (new Invoice)->getMorphClass();
+        $billMorph = (new Bill)->getMorphClass();
+        $expenseMorph = (new Expense)->getMorphClass();
+        $creditNoteMorph = (new CreditNote)->getMorphClass();
+        $debitNoteMorph = (new DebitNote)->getMorphClass();
+
+        $invoices = Invoice::query()
+            ->where('status', StatusEnum::APPROVED)
+            ->whereNull('voided_at')
+            ->whereNotExists(function ($query) use ($invoiceMorph) {
+                $query->select(DB::raw(1))
+                    ->from('journals')
+                    ->whereColumn('journals.reference_id', 'invoices.id')
+                    ->where('journals.reference_type', $invoiceMorph)
+                    ->whereNull('journals.deleted_at');
+            })
+            ->with(['party:id,name', 'invoiceItems', 'discount'])
+            ->latest('invoice_date')
+            ->get();
+
+        $bills = Bill::query()
+            ->where('status', StatusEnum::APPROVED)
+            ->whereNull('voided_at')
+            ->whereNotExists(function ($query) use ($billMorph) {
+                $query->select(DB::raw(1))
+                    ->from('journals')
+                    ->whereColumn('journals.reference_id', 'bills.id')
+                    ->where('journals.reference_type', $billMorph)
+                    ->whereNull('journals.deleted_at');
+            })
+            ->with(['party:id,name', 'billItems'])
+            ->latest('bill_date')
+            ->get();
+
+        // Expenses have no voided_at; an approved expense without a journal is unposted.
+        $expenses = Expense::query()
+            ->where('status', StatusEnum::APPROVED)
+            ->whereNotExists(function ($query) use ($expenseMorph) {
+                $query->select(DB::raw(1))
+                    ->from('journals')
+                    ->whereColumn('journals.reference_id', 'expenses.id')
+                    ->where('journals.reference_type', $expenseMorph)
+                    ->whereNull('journals.deleted_at');
+            })
+            ->with(['party:id,name', 'expenseItems'])
+            ->latest('date')
+            ->get();
+
+        $creditNotes = CreditNote::query()
+            ->where('status', StatusEnum::APPROVED)
+            ->whereNull('voided_at')
+            ->whereNotExists(function ($query) use ($creditNoteMorph) {
+                $query->select(DB::raw(1))
+                    ->from('journals')
+                    ->whereColumn('journals.reference_id', 'credit_notes.id')
+                    ->where('journals.reference_type', $creditNoteMorph)
+                    ->whereNull('journals.deleted_at');
+            })
+            ->with(['party:id,name', 'creditNoteItems'])
+            ->latest('credit_note_date')
+            ->get();
+
+        $debitNotes = DebitNote::query()
+            ->where('status', StatusEnum::APPROVED)
+            ->whereNull('voided_at')
+            ->whereNotExists(function ($query) use ($debitNoteMorph) {
+                $query->select(DB::raw(1))
+                    ->from('journals')
+                    ->whereColumn('journals.reference_id', 'debit_notes.id')
+                    ->where('journals.reference_type', $debitNoteMorph)
+                    ->whereNull('journals.deleted_at');
+            })
+            ->with(['party:id,name', 'debitNoteItems'])
+            ->latest('debit_note_date')
+            ->get();
+
+        $salesRows = $invoices->map(fn (Invoice $invoice) => [
+            'id' => $invoice->id,
+            'document_no' => (string) $invoice->invoice_no,
+            'date' => $this->toDateString($invoice->invoice_date),
+            'party' => $invoice->party?->name,
+            'amount' => $this->documentLineTotal($invoice->invoiceItems, (float) ($invoice->discount?->amount ?? 0)),
+        ])->values()->all();
+
+        $purchaseRows = $bills->map(fn (Bill $bill) => [
+            'id' => $bill->id,
+            'document_no' => (string) $bill->bill_no,
+            'date' => $this->toDateString($bill->bill_date),
+            'party' => $bill->party?->name,
+            'amount' => $this->documentLineTotal($bill->billItems, 0.0),
+        ])->values()->all();
+
+        $expenseRows = $expenses->map(fn (Expense $expense) => [
+            'id' => $expense->id,
+            'document_no' => (string) $expense->expense_no,
+            'date' => $this->toDateString($expense->date),
+            'party' => $expense->party?->name,
+            'amount' => $this->expenseTotal($expense->expenseItems),
+        ])->values()->all();
+
+        $creditNoteRows = $creditNotes->map(fn (CreditNote $note) => [
+            'id' => $note->id,
+            'document_no' => (string) $note->credit_note_no,
+            'date' => $this->toDateString($note->credit_note_date),
+            'party' => $note->party?->name,
+            'amount' => $this->documentLineTotal($note->creditNoteItems, 0.0),
+        ])->values()->all();
+
+        $debitNoteRows = $debitNotes->map(fn (DebitNote $note) => [
+            'id' => $note->id,
+            'document_no' => (string) $note->debit_note_no,
+            'date' => $this->toDateString($note->debit_note_date),
+            'party' => $note->party?->name,
+            'amount' => $this->documentLineTotal($note->debitNoteItems, 0.0),
+        ])->values()->all();
+
+        return [
+            'sales_invoices' => $salesRows,
+            'purchase_bills' => $purchaseRows,
+            'expenses' => $expenseRows,
+            'credit_notes' => $creditNoteRows,
+            'debit_notes' => $debitNoteRows,
+            'summary' => [
+                'sales_count' => count($salesRows),
+                'sales_amount' => round(array_sum(array_column($salesRows, 'amount')), 2),
+                'purchase_count' => count($purchaseRows),
+                'purchase_amount' => round(array_sum(array_column($purchaseRows, 'amount')), 2),
+                'expense_count' => count($expenseRows),
+                'expense_amount' => round(array_sum(array_column($expenseRows, 'amount')), 2),
+                'credit_note_count' => count($creditNoteRows),
+                'credit_note_amount' => round(array_sum(array_column($creditNoteRows, 'amount')), 2),
+                'debit_note_count' => count($debitNoteRows),
+                'debit_note_amount' => round(array_sum(array_column($debitNoteRows, 'amount')), 2),
+                'total_count' => count($salesRows) + count($purchaseRows) + count($expenseRows)
+                    + count($creditNoteRows) + count($debitNoteRows),
+            ],
+        ];
+    }
+
+    /**
+     * GL integrity report: every approved, non-deleted journal whose line-item
+     * DR/CR totals don't balance (above a 1-paisa rounding tolerance). New
+     * postings can't produce imbalances — `JournalBalanceGuard` enforces it at
+     * write-time — but this surfaces any legacy or manually-edited data.
+     *
+     * @return array{
+     *     rows: list<array{id:int, voucher_no:?string, type:?string, date:?string, reference_type:?string, reference_id:?int, dr_total:float, cr_total:float, delta:float}>,
+     *     summary: array{count:int, total_delta:float}
+     * }
+     */
+    public function unbalancedJournals(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        // Pull totals per journal then filter in PHP — portable across MySQL
+        // and SQLite without having-clause-on-alias differences, and the result
+        // set is small (only journals with items, scoped to one company).
+        $records = DB::table('journals')
+            ->leftJoin('journal_items', function ($join) {
+                $join->on('journal_items.journal_id', '=', 'journals.id')
+                    ->whereNull('journal_items.deleted_at');
+            })
+            ->where('journals.company_id', $companyId)
+            ->whereNull('journals.deleted_at')
+            ->groupBy(
+                'journals.id', 'journals.voucher_no', 'journals.type',
+                'journals.date', 'journals.reference_type', 'journals.reference_id',
+            )
+            ->selectRaw('
+                journals.id,
+                journals.voucher_no,
+                journals.type,
+                journals.date,
+                journals.reference_type,
+                journals.reference_id,
+                COALESCE(SUM(journal_items.dr_amount), 0) AS dr_total,
+                COALESCE(SUM(journal_items.cr_amount), 0) AS cr_total
+            ')
+            ->orderByDesc('journals.date')
+            ->get();
+
+        $rows = $records
+            ->filter(fn ($row) => JournalBalanceGuard::exceedsTolerance((float) $row->dr_total - (float) $row->cr_total))
+            ->map(fn ($row) => [
+                'id' => (int) $row->id,
+                'voucher_no' => $row->voucher_no,
+                'type' => $row->type,
+                'date' => $row->date,
+                'reference_type' => $row->reference_type,
+                'reference_id' => $row->reference_id ? (int) $row->reference_id : null,
+                'dr_total' => round((float) $row->dr_total, 2),
+                'cr_total' => round((float) $row->cr_total, 2),
+                'delta' => round((float) $row->dr_total - (float) $row->cr_total, 2),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'rows' => $rows,
+            'summary' => [
+                'count' => count($rows),
+                'total_delta' => round(array_sum(array_map(fn ($r) => abs($r['delta']), $rows)), 2),
+            ],
+        ];
+    }
+
+    /**
+     * AR / AP control-account reconciliation: compare the sub-ledger total
+     * (sum of outstanding from approved unvoided invoices/bills minus
+     * receipts/payments) against the GL control-account balance. They must
+     * match — a non-zero delta points at a missing or extra GL posting, a
+     * manual journal voucher hitting the control account, or an unposted
+     * approved document.
+     *
+     * @return array{
+     *     ar: array{account_id:?int, account_configured:bool, gl_balance:float, subledger_balance:float, delta:float, reconciled:bool},
+     *     ap: array{account_id:?int, account_configured:bool, gl_balance:float, subledger_balance:float, delta:float, reconciled:bool}
+     * }
+     */
+    public function arApReconciliation(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        // Bypass tenant scope but keep soft-delete filtering — we want the
+        // currently-active settings row, not a previously deleted one.
+        $settings = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        return [
+            'ar' => $this->reconcileControlAccount(
+                $companyId,
+                $settings?->customer_account_id,
+                $this->arSubledgerOutstanding($companyId),
+                glSign: 1, // AR is a DR-side asset; subledger sign matches (DR - CR).
+            ),
+            'ap' => $this->reconcileControlAccount(
+                $companyId,
+                $settings?->supplier_account_id,
+                $this->apSubledgerOutstanding($companyId),
+                glSign: -1, // AP is a CR-side liability; flip sign to get (CR - DR).
+            ),
+        ];
+    }
+
+    /**
+     * Reconciles the live perpetual-inventory valuation (sum of remaining stock
+     * layers × unit cost) against the GL inventory control account. They should
+     * match when every inventory-valued stock movement has posted its journal;
+     * a non-zero delta surfaces unposted movements, manual journals touching the
+     * inventory account, or landed costs that hit the GL but not the layers.
+     *
+     * @return array{account_id:?int, account_configured:bool, gl_balance:float, subledger_balance:float, inventory_value:float, delta:float, reconciled:bool}
+     */
+    public function inventoryGlReconciliation(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        $settings = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->whereNull('deleted_at')
+            ->first();
+
+        $result = $this->reconcileControlAccount(
+            $companyId,
+            $settings?->inventory_account_id,
+            $this->inventoryPerpetualValue($companyId),
+            glSign: 1, // Inventory is a DR-side asset; (DR - CR) matches on-hand value.
+        );
+
+        // Alias the shared sub-ledger key under an inventory-specific name.
+        $result['inventory_value'] = $result['subledger_balance'];
+
+        return $result;
+    }
+
+    /**
+     * @return array{account_id:?int, account_configured:bool, gl_balance:float, subledger_balance:float, delta:float, reconciled:bool}
+     */
+    private function reconcileControlAccount(int $companyId, ?int $accountId, float $subledger, int $glSign): array
+    {
+        if (! $accountId) {
+            return [
+                'account_id' => null,
+                'account_configured' => false,
+                'gl_balance' => 0.0,
+                'subledger_balance' => round($subledger, 2),
+                'delta' => round($subledger, 2),
+                'reconciled' => false,
+            ];
+        }
+
+        $sums = DB::table('journal_items')
+            ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
+            ->where('journals.company_id', $companyId)
+            ->whereNull('journals.deleted_at')
+            ->whereNull('journal_items.deleted_at')
+            ->where('journal_items.account_id', $accountId)
+            ->selectRaw('COALESCE(SUM(journal_items.dr_amount), 0) AS dr, COALESCE(SUM(journal_items.cr_amount), 0) AS cr')
+            ->first();
+
+        $glBalance = round($glSign * ((float) $sums->dr - (float) $sums->cr), 2);
+        $delta = round($subledger - $glBalance, 2);
+
+        return [
+            'account_id' => $accountId,
+            'account_configured' => true,
+            'gl_balance' => $glBalance,
+            'subledger_balance' => round($subledger, 2),
+            'delta' => $delta,
+            'reconciled' => ! JournalBalanceGuard::exceedsTolerance($delta),
+        ];
+    }
+
+    /**
+     * Sum of unpaid amounts on approved, non-voided invoices, less amounts
+     * already settled by receipt allocations. Approximate (does not subtract
+     * credit notes separately — they appear in the GL side, so a credit note
+     * with no matching invoice adjustment will show as a delta to investigate).
+     */
+    private function arSubledgerOutstanding(int $companyId): float
+    {
+        $invoiceTotal = (float) Invoice::query()
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->with(['invoiceItems', 'discount'])
+            ->get()
+            ->sum(fn (Invoice $invoice) => $invoice->invoiceItems->sum(
+                fn ($item) => ((float) $item->quantity * (float) $item->rate)
+                    - (float) $item->discount_amount
+                    + (float) $item->tax_amount
+            ) - (float) ($invoice->discount?->amount ?? 0));
+
+        $receiptAllocations = (float) DB::table('receipt_allocations')
+            ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
+            ->where('receipts.company_id', $companyId)
+            ->where('receipts.status', StatusEnum::APPROVED->value)
+            ->whereNull('receipts.deleted_at')
+            ->whereNull('receipt_allocations.deleted_at')
+            ->sum('receipt_allocations.amount');
+
+        return $invoiceTotal - $receiptAllocations;
+    }
+
+    /**
+     * Symmetric of arSubledgerOutstanding for bills and payment allocations.
+     */
+    private function apSubledgerOutstanding(int $companyId): float
+    {
+        $billTotal = (float) Bill::query()
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->with('billItems')
+            ->get()
+            ->sum(fn (Bill $bill) => $bill->billItems->sum(
+                fn ($item) => ((float) $item->quantity * (float) $item->rate)
+                    - (float) $item->discount_amount
+                    + (float) $item->tax_amount
+            ));
+
+        $paymentAllocations = (float) DB::table('payment_allocations')
+            ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
+            ->where('payments.company_id', $companyId)
+            ->where('payments.status', StatusEnum::APPROVED->value)
+            ->whereNull('payments.deleted_at')
+            ->whereNull('payment_allocations.deleted_at')
+            ->sum('payment_allocations.amount');
+
+        return $billTotal - $paymentAllocations;
+    }
+
+    /**
+     * Live perpetual-inventory valuation: sum of remaining stock-layer quantities
+     * × their unit cost across all warehouses for the company. This is the same
+     * cost basis the StockMovementGlPostingService posts (movement total_cost),
+     * so it should equal the GL inventory control account when fully posted.
+     */
+    private function inventoryPerpetualValue(int $companyId): float
+    {
+        return (float) DB::table('stock_layers')
+            ->where('company_id', $companyId)
+            ->where('qty_remaining', '>', 0)
+            ->selectRaw('COALESCE(SUM(qty_remaining * unit_cost), 0) AS value')
+            ->value('value');
+    }
+
+    /**
+     * Net expense total from its line items: sum(amount - discount + tax).
+     *
+     * @param  \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>  $items
+     */
+    private function expenseTotal(Collection $items): float
+    {
+        return round($items->sum(fn ($item) => (float) $item->amount
+            - (float) $item->discount_amount
+            + (float) $item->tax_amount), 2);
+    }
+
+    /**
+     * Net document total from its line items, less any order-level discount:
+     * sum(quantity * rate - line discount + tax) - order discount.
+     *
+     * @param  \Illuminate\Support\Collection<int, \Illuminate\Database\Eloquent\Model>  $items
+     */
+    private function documentLineTotal(Collection $items, float $orderDiscount): float
+    {
+        $lineTotal = $items->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate)
+            - (float) $item->discount_amount
+            + (float) $item->tax_amount);
+
+        return round($lineTotal - $orderDiscount, 2);
+    }
+
+    private function toDateString($date): string
+    {
+        if ($date instanceof \Carbon\Carbon) {
+            return $date->toDateString();
+        }
+
+        return (string) $date;
     }
 
     private function agingBucket(int $daysOverdue): string

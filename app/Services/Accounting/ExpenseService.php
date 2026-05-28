@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\Expense;
+use App\Models\Journal;
 use App\Enums\StatusEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
@@ -14,7 +15,39 @@ readonly class ExpenseService
 {
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
+        private GlAccountConfigGuard $glAccountGuard,
+        private JournalBalanceGuard $balanceGuard,
+        private PeriodLockGuard $periodGuard,
     ) {}
+
+    /**
+     * Whether an expense journal already exists. Scope-free and excludes
+     * soft-deleted journals so it matches the unposted-documents report.
+     */
+    public function isPosted(Expense $expense): bool
+    {
+        return Journal::withoutGlobalScopes()
+            ->where('reference_type', $expense->getMorphClass())
+            ->where('reference_id', $expense->id)
+            ->where('type', JournalTypeEnum::EXPENSE->value)
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Idempotently post an expense journal for an approved expense that is
+     * missing one. Guards the payable/VAT accounts; no-ops if already posted.
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function repost(Expense $expense): void
+    {
+        if ($this->isPosted($expense)) {
+            return;
+        }
+
+        DB::transaction(fn () => $this->createJournal($expense));
+    }
 
     public function createExpense(array $formData): Expense
     {
@@ -22,16 +55,17 @@ readonly class ExpenseService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $expenseNo = ! empty($formData['expense_no'])
-            ? $formData['expense_no']
-            : $this->documentNumberGenerator->fiscalYear(
-                Expense::class,
-                'EX-',
-                $fiscalYearId,
-                $setting->fiscalYear?->year_code,
-            );
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $expenseNo) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $expenseNo = ! empty($formData['expense_no'])
+                ? $formData['expense_no']
+                : $this->documentNumberGenerator->fiscalYear(
+                    Expense::class,
+                    'EX-',
+                    $fiscalYearId,
+                    $setting->fiscalYear?->year_code,
+                );
             $expense = Expense::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
@@ -91,9 +125,15 @@ readonly class ExpenseService
     {
         $expense->loadMissing('expenseItems.account', 'party:id,name');
 
+        // Single chokepoint guard: protects approve-on-create, approveExpense and repost.
+        $hasTax = (float) $expense->expenseItems->sum('tax_amount') > 0;
+        $this->glAccountGuard->assertExpensePostable($hasTax);
+        $this->periodGuard->assertPostable($expense->company_id, $expense->fiscal_year_id, $expense->date);
+
         $accountSetting = AccountSetting::first();
 
         $journal = $expense->journal()->create([
+            'company_id' => $expense->company_id,
             'fiscal_year_id' => $expense->fiscal_year_id,
             'type' => JournalTypeEnum::EXPENSE->value,
             'voucher_no' => $expense->expense_no,
@@ -146,6 +186,8 @@ readonly class ExpenseService
             'cr_amount' => round($grandTotal, 2),
             'remarks' => 'To-Expense Account',
         ]);
+
+        $this->balanceGuard->assertBalanced($journal);
     }
 
     private function groupExpenseLines(Collection $items): Collection

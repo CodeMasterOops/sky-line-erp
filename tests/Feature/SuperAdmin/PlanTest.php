@@ -6,8 +6,8 @@ it('lists plans for authenticated super admin', function () {
     actingAsSuperAdmin();
     createDefaultPlan();
     Plan::create([
-        'name' => 'Basic',
-        'slug' => 'basic',
+        'name' => 'Standard',
+        'slug' => 'standard',
         'price_monthly' => 49,
         'price_yearly' => 490,
         'is_active' => true,
@@ -45,8 +45,8 @@ it('creates a plan', function () {
 it('updates a plan', function () {
     actingAsSuperAdmin();
     $plan = Plan::create([
-        'name' => 'Basic',
-        'slug' => 'basic',
+        'name' => 'Standard',
+        'slug' => 'standard',
         'price_monthly' => 49,
         'price_yearly' => 490,
         'is_active' => true,
@@ -77,8 +77,8 @@ it('cannot delete a plan with subscriptions', function () {
     actingAsSuperAdmin();
     createDefaultPlan();
     $paidPlan = Plan::create([
-        'name' => 'Basic',
-        'slug' => 'basic',
+        'name' => 'Standard',
+        'slug' => 'standard',
         'price_monthly' => 49,
         'price_yearly' => 490,
         'is_active' => true,

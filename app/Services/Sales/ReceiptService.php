@@ -23,15 +23,16 @@ readonly class ReceiptService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $receiptNo = $formData['receipt_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            Receipt::class,
-            'RC-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
         $allocations = $this->validatedAllocations($formData);
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $receiptNo, $allocations) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting, $allocations) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $receiptNo = $formData['receipt_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                Receipt::class,
+                'RC-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $receipt = Receipt::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,

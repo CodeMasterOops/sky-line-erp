@@ -159,6 +159,26 @@ function posCheckoutPayload(object $test, array $overrides = []): array
     ], $overrides);
 }
 
+it('blocks checkout when GL control accounts are not configured', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'items' => [
+            [
+                'product_variant_id' => $this->variant->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 1,
+                'rate' => 100,
+                'tax_amount' => 0,
+                'discount_amount' => 0,
+            ],
+        ],
+    ]));
+
+    $response->assertStatus(422);
+    expect(Invoice::count())->toBe(0);
+});
+
 it('rejects checkout with a service line item', function () {
     $serviceProduct = Product::create([
         'company_id' => $this->company->id,
@@ -255,6 +275,8 @@ it('completes checkout and persists order discount on invoice', function () {
     AccountSetting::create([
         'company_id' => $this->company->id,
         'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
     ]);
 
     $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
@@ -329,6 +351,8 @@ it('reduces stock quantity after successful checkout', function () {
     AccountSetting::create([
         'company_id' => $this->company->id,
         'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
     ]);
 
     $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
@@ -376,6 +400,8 @@ it('checkout supports multiple warehouses on one order', function () {
     AccountSetting::create([
         'company_id' => $this->company->id,
         'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
     ]);
 
     $response = $this->postJson('/api/admin/pos/checkout', [

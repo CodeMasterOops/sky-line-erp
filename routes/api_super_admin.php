@@ -17,7 +17,7 @@ use App\Http\Controllers\Api\SuperAdmin\PlanController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionController;
 
 Route::controller(AuthController::class)->group(function () {
-    Route::post('login', 'login')->name('login');
+    Route::post('login', 'login')->middleware('throttle:auth')->name('login');
     Route::post('logout', 'logout')->middleware('auth:super_admin');
 });
 

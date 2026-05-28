@@ -23,8 +23,8 @@ use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
 // Phase 6 — Multi-branch
 
 Route::controller(AuthController::class)->group(function () {
-    Route::post('login', 'login')->name('login');
-    Route::post('register', 'register')->name('register');
+    Route::post('login', 'login')->middleware('throttle:auth')->name('login');
+    Route::post('register', 'register')->middleware('throttle:auth')->name('register');
     Route::post('logout', 'logout')->middleware('auth:admin');
 });
 
@@ -100,6 +100,8 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
                 Route::put('settings', 'update')->name('settings.update');
                 Route::post('invoice/{invoice}/retry-sync', 'retrySync')->name('retry-sync');
                 Route::get('sync-summary', 'syncSummary')->name('sync-summary');
+                Route::get('reconciliation', 'reconciliation')->name('reconciliation');
+                Route::post('resync-all', 'resyncAll')->name('resync-all');
             });
 
             // VAT D3 Return

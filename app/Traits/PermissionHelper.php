@@ -4,15 +4,31 @@ namespace App\Traits;
 
 use Illuminate\Support\Str;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\Cache;
 use Doctrine\Common\Annotations\AnnotationReader;
 
 trait PermissionHelper
 {
+    /**
+     * Cache key for the full annotation-derived permission map. The map is
+     * defined entirely in code (controller annotations), so it is identical
+     * for every tenant and only changes on deploy. It is invalidated on
+     * migrate (see AppServiceProvider) and by a standard deploy cache:clear.
+     */
+    public const PERMISSION_MAP_CACHE_KEY = 'admin_permission_map';
+
     public function getAllPermissions($group = null): array
     {
-        $adminPermissions = $this->getPermissions($group);
+        // Only the default (full) map is cached; scanning ~95 controllers with
+        // reflection on every role-management page load is the expensive path.
+        if ($group === null) {
+            return Cache::rememberForever(
+                self::PERMISSION_MAP_CACHE_KEY,
+                fn (): array => $this->getPermissions()
+            );
+        }
 
-        return array_merge_recursive($adminPermissions, []);
+        return $this->getPermissions($group);
     }
 
     protected function getPermissions($group = []): array

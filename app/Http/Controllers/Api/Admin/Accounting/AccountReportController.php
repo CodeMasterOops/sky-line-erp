@@ -2,14 +2,34 @@
 
 namespace App\Http\Controllers\Api\Admin\Accounting;
 
+use App\Models\Bill;
+use App\Models\Expense;
+use App\Models\Invoice;
+use App\Enums\StatusEnum;
+use App\Models\DebitNote;
+use App\Models\CreditNote;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\Accounting\ExpenseService;
+use App\Services\Purchase\PurchaseBillService;
 use App\Services\Accounting\AccountReportService;
+use App\Services\Accounting\GlAccountConfigGuard;
+use App\Services\Accounting\InvoiceGlPostingService;
+use App\Services\Accounting\DebitNoteGlPostingService;
+use App\Services\Accounting\CreditNoteGlPostingService;
 
 class AccountReportController extends Controller
 {
-    public function __construct(private readonly AccountReportService $accountReportService) {}
+    public function __construct(
+        private readonly AccountReportService $accountReportService,
+        private readonly InvoiceGlPostingService $invoiceGlPostingService,
+        private readonly PurchaseBillService $purchaseBillService,
+        private readonly ExpenseService $expenseService,
+        private readonly CreditNoteGlPostingService $creditNoteGlPostingService,
+        private readonly DebitNoteGlPostingService $debitNoteGlPostingService,
+        private readonly GlAccountConfigGuard $glAccountGuard,
+    ) {}
 
     /**
      * @Permissions("trial_balance", group="account_report", desc="Trial Balance Report")
@@ -92,6 +112,16 @@ class AccountReportController extends Controller
     }
 
     /**
+     * @Permissions("vat_report", group="account_report", desc="VAT Return ↔ GL Reconciliation")
+     */
+    public function vatReturnReconciliation(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->vatReturnReconciliation($request),
+        ]);
+    }
+
+    /**
      * @Permissions("cash_flow", group="account_report", desc="Cash Flow Statement")
      */
     public function cashFlow(Request $request)
@@ -158,6 +188,215 @@ class AccountReportController extends Controller
     {
         return response()->json([
             'data' => $this->accountReportService->tdsReport($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("unposted_documents", group="account_report", desc="Unposted Documents (GL Integrity)")
+     */
+    public function unpostedDocuments(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->unpostedDocuments($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("unbalanced_journals", group="account_report", desc="Unbalanced Journals (GL Integrity)")
+     */
+    public function unbalancedJournals(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->unbalancedJournals($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("ar_ap_reconciliation", group="account_report", desc="AR/AP Control Account Reconciliation")
+     */
+    public function arApReconciliation(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->arApReconciliation($request),
+        ]);
+    }
+
+    /**
+     * @Permissions("inventory_gl_reconciliation", group="account_report", desc="Inventory ↔ GL Reconciliation")
+     */
+    public function inventoryGlReconciliation(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->inventoryGlReconciliation($request),
+        ]);
+    }
+
+    /**
+     * Idempotently post a sales journal for an approved invoice that is missing
+     * one (e.g. approved before GL accounts were configured). Safe to retry:
+     * the posting service no-ops if a journal already exists.
+     *
+     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
+     */
+    public function repostInvoice(Invoice $invoice)
+    {
+        if ($invoice->status !== StatusEnum::APPROVED || $invoice->voided_at) {
+            return response()->json([
+                'message' => 'Only approved, non-voided invoices can be re-posted.',
+            ], 422);
+        }
+
+        if ($this->invoiceGlPostingService->isPosted($invoice)) {
+            return response()->json([
+                'message' => 'Invoice is already posted to the ledger.',
+            ], 422);
+        }
+
+        $hasTax = (float) $invoice->invoiceItems()->sum('tax_amount') > 0;
+        $this->glAccountGuard->assertSalesPostable($hasTax);
+
+        $this->invoiceGlPostingService->postFromInvoice($invoice);
+
+        if (! $this->invoiceGlPostingService->isPosted($invoice)) {
+            return response()->json([
+                'message' => 'Invoice could not be posted. Check that it has a positive total and a fiscal year is configured.',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Invoice posted to the ledger successfully.',
+        ]);
+    }
+
+    /**
+     * Idempotently post a purchase journal for an approved bill that is missing
+     * one. Safe to retry: no-ops if a journal already exists.
+     *
+     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
+     */
+    public function repostBill(Bill $bill)
+    {
+        if ($bill->status !== StatusEnum::APPROVED || $bill->voided_at) {
+            return response()->json([
+                'message' => 'Only approved, non-voided bills can be re-posted.',
+            ], 422);
+        }
+
+        if ($this->purchaseBillService->isPosted($bill)) {
+            return response()->json([
+                'message' => 'Bill is already posted to the ledger.',
+            ], 422);
+        }
+
+        $this->purchaseBillService->repost($bill);
+
+        if (! $this->purchaseBillService->isPosted($bill)) {
+            return response()->json([
+                'message' => 'Bill could not be posted. Check that it has line items and a fiscal year is configured.',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Bill posted to the ledger successfully.',
+        ]);
+    }
+
+    /**
+     * Idempotently post an expense journal for an approved expense that is
+     * missing one. Safe to retry: no-ops if a journal already exists.
+     *
+     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
+     */
+    public function repostExpense(Expense $expense)
+    {
+        if ($expense->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved expenses can be re-posted.',
+            ], 422);
+        }
+
+        if ($this->expenseService->isPosted($expense)) {
+            return response()->json([
+                'message' => 'Expense is already posted to the ledger.',
+            ], 422);
+        }
+
+        $this->expenseService->repost($expense);
+
+        if (! $this->expenseService->isPosted($expense)) {
+            return response()->json([
+                'message' => 'Expense could not be posted. Check that it has line items and a fiscal year is configured.',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Expense posted to the ledger successfully.',
+        ]);
+    }
+
+    /**
+     * Idempotently post a sales-return journal for an approved credit note that
+     * is missing one. Safe to retry.
+     *
+     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
+     */
+    public function repostCreditNote(CreditNote $creditNote)
+    {
+        if ($creditNote->status !== StatusEnum::APPROVED || $creditNote->voided_at) {
+            return response()->json([
+                'message' => 'Only approved, non-voided credit notes can be re-posted.',
+            ], 422);
+        }
+
+        if ($this->creditNoteGlPostingService->isPosted($creditNote)) {
+            return response()->json([
+                'message' => 'Credit note is already posted to the ledger.',
+            ], 422);
+        }
+
+        $this->creditNoteGlPostingService->postFromCreditNote($creditNote);
+
+        if (! $this->creditNoteGlPostingService->isPosted($creditNote)) {
+            return response()->json([
+                'message' => 'Credit note could not be posted. Check that it has a positive total and a fiscal year is configured.',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Credit note posted to the ledger successfully.',
+        ]);
+    }
+
+    /**
+     * Idempotently post a purchase-return journal for an approved debit note
+     * that is missing one. Safe to retry.
+     *
+     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
+     */
+    public function repostDebitNote(DebitNote $debitNote)
+    {
+        if ($debitNote->status !== StatusEnum::APPROVED || $debitNote->voided_at) {
+            return response()->json([
+                'message' => 'Only approved, non-voided debit notes can be re-posted.',
+            ], 422);
+        }
+
+        if ($this->debitNoteGlPostingService->isPosted($debitNote)) {
+            return response()->json([
+                'message' => 'Debit note is already posted to the ledger.',
+            ], 422);
+        }
+
+        $this->debitNoteGlPostingService->postFromDebitNote($debitNote);
+
+        if (! $this->debitNoteGlPostingService->isPosted($debitNote)) {
+            return response()->json([
+                'message' => 'Debit note could not be posted. Check that it has a positive total and a fiscal year is configured.',
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'Debit note posted to the ledger successfully.',
         ]);
     }
 }

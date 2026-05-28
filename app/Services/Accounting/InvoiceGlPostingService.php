@@ -23,6 +23,20 @@ use Illuminate\Support\Facades\DB;
  */
 class InvoiceGlPostingService
 {
+    public function __construct(
+        private JournalBalanceGuard $balanceGuard,
+        private PeriodLockGuard $periodGuard,
+    ) {}
+
+    /**
+     * Whether a sales journal already exists for this invoice. Scope-free so the
+     * answer never depends on the current branch/company tenant context.
+     */
+    public function isPosted(Invoice $invoice): bool
+    {
+        return $this->alreadyPosted($invoice);
+    }
+
     public function postFromInvoice(Invoice $invoice): void
     {
         if ($this->alreadyPosted($invoice)) {
@@ -65,6 +79,8 @@ class InvoiceGlPostingService
         if ($grandTotal <= 0) {
             return;
         }
+
+        $this->periodGuard->assertPostable($invoice->company_id, $invoice->fiscal_year_id, $invoice->invoice_date);
 
         $user = \App\Models\User::withoutGlobalScopes()
             ->where('company_id', $invoice->company_id)
@@ -142,6 +158,8 @@ class InvoiceGlPostingService
                     ->where('account_id', $salesAccountId)
                     ->increment('cr_amount', $vatAmount);
             }
+
+            $this->balanceGuard->assertBalanced($journal);
         });
     }
 

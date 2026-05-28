@@ -4,15 +4,20 @@ namespace App\Services\Purchase;
 
 use App\Models\Bill;
 use App\Models\GrnItem;
+use App\Models\Journal;
 use App\Enums\StatusEnum;
 use App\Enums\ChangeTypeEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Accounting\PeriodLockGuard;
 use App\Services\Inventory\LandedCostService;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoidService;
+use App\Services\Accounting\JournalBalanceGuard;
+use App\Services\Accounting\GlAccountConfigGuard;
 use App\Services\Inventory\InventoryCostCalculator;
 use App\Services\Inventory\GoodsReceivedNoteService;
 use App\Services\Inventory\InventoryLayerReceiptService;
@@ -27,7 +32,43 @@ readonly class PurchaseBillService
         private GoodsReceivedNoteService $grnService,
         private LandedCostService $landedCosts,
         private DocumentNumberGenerator $documentNumberGenerator,
+        private GlAccountConfigGuard $glAccountGuard,
+        private JournalVoidService $journalVoid,
+        private JournalBalanceGuard $balanceGuard,
+        private PeriodLockGuard $periodGuard,
     ) {}
+
+    /**
+     * Whether a purchase journal already exists for this bill. Scope-free and
+     * excludes soft-deleted journals so it matches the unposted-documents report.
+     */
+    public function isPosted(Bill $bill): bool
+    {
+        return Journal::withoutGlobalScopes()
+            ->where('reference_type', $bill->getMorphClass())
+            ->where('reference_id', $bill->id)
+            ->where('type', JournalTypeEnum::PURCHASE_BILL->value)
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Idempotently post a purchase journal for an approved bill that is missing
+     * one. Guards on the purchase control accounts and no-ops if already posted.
+     *
+     * @throws ValidationException
+     */
+    public function repost(Bill $bill): void
+    {
+        if ($this->isPosted($bill)) {
+            return;
+        }
+
+        $hasTax = (float) $bill->billItems()->sum('tax_amount') > 0;
+        $this->glAccountGuard->assertPurchasePostable($hasTax);
+
+        DB::transaction(fn () => $this->createJournal($bill));
+    }
 
     public function createBill(array $formData)
     {
@@ -35,16 +76,17 @@ readonly class PurchaseBillService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $billNo = $formData['bill_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            Bill::class,
-            'BILL-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
 
         $formData = $this->applyResolvedDiscounts($formData);
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $billNo) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $billNo = $formData['bill_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                Bill::class,
+                'BILL-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $items = $formData['items'];
 
             $this->validateGrnItemQuantities($items);
@@ -232,6 +274,10 @@ readonly class PurchaseBillService
     {
         $bill->loadMissing('billItems.grnItem', 'party:id,name', 'discount');
 
+        $hasTax = (float) $bill->billItems->sum('tax_amount') > 0;
+        $this->glAccountGuard->assertPurchasePostable($hasTax);
+        $this->periodGuard->assertPostable($bill->company_id, $bill->fiscal_year_id, $bill->bill_date);
+
         $accountSetting = AccountSetting::first();
 
         $journal = $bill->journal()->create([
@@ -329,6 +375,8 @@ readonly class PurchaseBillService
             'cr_amount' => $grandTotal,
             'remarks' => 'To-Purchase Account',
         ]);
+
+        $this->balanceGuard->assertBalanced($journal);
     }
 
     public function voidBill(Bill $bill): void
@@ -341,6 +389,7 @@ readonly class PurchaseBillService
                 $user->id,
                 $bill->remarks,
             );
+            $this->journalVoid->reverseForReference($bill);
             $this->decrementGrnBilledQuantities($bill);
             $bill->update(['voided_at' => now()]);
         });

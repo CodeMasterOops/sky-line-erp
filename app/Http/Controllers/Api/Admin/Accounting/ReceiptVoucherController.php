@@ -45,14 +45,14 @@ class ReceiptVoucherController extends Controller
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
 
-        $voucherNo = $this->documentNumberGenerator->journalVoucher(
-            JournalTypeEnum::RECEIPT_VOUCHER,
-            'RV-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
-
-        $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $voucherNo) {
+        $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $voucherNo = $this->documentNumberGenerator->journalVoucher(
+                JournalTypeEnum::RECEIPT_VOUCHER,
+                'RV-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $journal = Journal::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'type' => JournalTypeEnum::RECEIPT_VOUCHER->value,

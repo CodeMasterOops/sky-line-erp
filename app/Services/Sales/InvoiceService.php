@@ -13,6 +13,10 @@ use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
+use App\Services\Accounting\PeriodLockGuard;
+use App\Services\Accounting\JournalVoidService;
+use App\Services\Accounting\JournalBalanceGuard;
+use App\Services\Accounting\GlAccountConfigGuard;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Services\Inventory\InventoryDocumentReversalService;
 
@@ -23,6 +27,10 @@ readonly class InvoiceService
         private InventoryDocumentReversalService $documentReversal,
         private NepaliDateService $nepaliDate,
         private DocumentNumberGenerator $documentNumberGenerator,
+        private GlAccountConfigGuard $glAccountGuard,
+        private JournalVoidService $journalVoid,
+        private JournalBalanceGuard $balanceGuard,
+        private PeriodLockGuard $periodGuard,
     ) {}
 
     public function createInvoice(array $formData): Invoice
@@ -32,14 +40,17 @@ readonly class InvoiceService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $invoiceNo = $formData['invoice_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            Invoice::class,
-            'INV-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
 
-        $invoice = DB::transaction(function () use ($formData, $reference, $user, $status, $fiscalYearId, $invoiceNo) {
+        $invoice = DB::transaction(function () use ($formData, $reference, $user, $status, $fiscalYearId, $setting) {
+            // Generated inside the transaction so the per-fiscal-year lock the
+            // generator takes holds until the invoice row is inserted, blocking
+            // any concurrent transaction that would otherwise read the same count.
+            $invoiceNo = $formData['invoice_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                Invoice::class,
+                'INV-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $invoiceDateBs = null;
             try {
                 $bs = $this->nepaliDate->adToBs($formData['invoice_date']);
@@ -164,6 +175,8 @@ readonly class InvoiceService
 
     public function approveInvoice(Invoice $invoice): void
     {
+        $this->assertGlAccountsConfigured($invoice);
+
         $user = auth('admin')->user();
 
         DB::transaction(function () use ($invoice, $user) {
@@ -190,6 +203,7 @@ readonly class InvoiceService
                 $user->id,
                 $invoice->remarks,
             );
+            $this->journalVoid->reverseForReference($invoice);
             $invoice->update(['voided_at' => now()]);
         });
     }
@@ -226,9 +240,28 @@ readonly class InvoiceService
         }
     }
 
+    /**
+     * Guard approval so an invoice is never posted to the GL with missing
+     * control accounts (which would create journal lines with a null account
+     * or silently skip posting).
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    private function assertGlAccountsConfigured(Invoice $invoice): void
+    {
+        $hasTax = (float) $invoice->invoiceItems()->sum('tax_amount') > 0;
+
+        $this->glAccountGuard->assertSalesPostable($hasTax);
+    }
+
     private function createJournal(Invoice $invoice): void
     {
         $invoice->loadMissing('invoiceItems', 'party:id,name', 'discount');
+
+        // Single chokepoint guard: protects every posting path, including the
+        // approve-on-create branch of createInvoice, not just approveInvoice().
+        $this->assertGlAccountsConfigured($invoice);
+        $this->periodGuard->assertPostable($invoice->company_id, $invoice->fiscal_year_id, $invoice->invoice_date);
 
         $accountSetting = AccountSetting::first();
 
@@ -283,6 +316,8 @@ readonly class InvoiceService
                 'remarks' => 'By-'.($invoice->party->name ?? ''),
             ]);
         }
+
+        $this->balanceGuard->assertBalanced($journal);
     }
 
     /**

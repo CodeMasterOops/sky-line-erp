@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Invoice;
 use Illuminate\Bus\Queueable;
+use App\Services\TenantService;
 use Illuminate\Support\Facades\Log;
 use App\Services\Nepal\IrdApiService;
 use Illuminate\Queue\SerializesModels;
@@ -25,6 +26,10 @@ class SyncInvoiceToIrdJob implements ShouldQueue
 
     public function handle(IrdApiService $irdApi): void
     {
+        // Queue workers run without HTTP tenant context; establish it from the
+        // invoice so tenant-scoped queries inside the sync resolve correctly.
+        TenantService::setCompanyId($this->invoice->company_id);
+
         $this->invoice->refresh();
 
         if ($this->invoice->ird_sync_status === 'synced') {

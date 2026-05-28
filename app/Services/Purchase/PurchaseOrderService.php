@@ -21,23 +21,23 @@ readonly class PurchaseOrderService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $orderNo = $formData['order_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            PurchaseOrder::class,
-            'PO-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
 
         $formData = $this->applyResolvedDiscounts($formData);
 
         $formData['fiscal_year_id'] = $fiscalYearId;
-        $formData['order_no'] = $orderNo;
         $formData['create_user_id'] = $user->id;
         $formData['approve_user_id'] = $status === StatusEnum::APPROVED->value ? $user->id : null;
         $formData['approved_at'] = $status === StatusEnum::APPROVED->value ? now() : null;
         $formData['status'] = $status;
 
-        return DB::transaction(function () use ($formData) {
+        return DB::transaction(function () use ($formData, $fiscalYearId, $setting) {
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $formData['order_no'] = $formData['order_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                PurchaseOrder::class,
+                'PO-',
+                $fiscalYearId,
+                $setting->fiscalYear?->year_code,
+            );
             $items = $formData['items'];
             $orderDiscountType = $formData['order_discount_type'];
             $orderDiscountValue = $formData['order_discount_value'] ?? null;

@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoidService;
+use App\Services\Accounting\DebitNoteGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Http\Resources\Admin\Purchase\DebitNoteResource;
 use App\Http\Requests\Api\Admin\Purchase\DebitNoteRequest;
@@ -22,6 +24,8 @@ class DebitNoteController extends Controller
         private InventoryLayerIssueService $inventoryIssue,
         private InventoryDocumentReversalService $documentReversal,
         private DocumentNumberGenerator $documentNumberGenerator,
+        private DebitNoteGlPostingService $debitNoteGl,
+        private JournalVoidService $journalVoid,
     ) {}
 
     /**
@@ -47,15 +51,16 @@ class DebitNoteController extends Controller
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $debitNoteNo = $formData['debit_note_no'] ?? $this->documentNumberGenerator->fiscalYear(
-            DebitNote::class,
-            'DN-',
-            $fiscalYearId,
-            $setting->fiscalYear?->year_code,
-        );
 
         try {
-            $debitNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $debitNoteNo) {
+            $debitNote = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+                // See InvoiceService for the lock-inside-transaction concurrency note.
+                $debitNoteNo = $formData['debit_note_no'] ?? $this->documentNumberGenerator->fiscalYear(
+                    DebitNote::class,
+                    'DN-',
+                    $fiscalYearId,
+                    $setting->fiscalYear?->year_code,
+                );
                 $debitNote = DebitNote::create([
                     'company_id' => $user->company_id,
                     'fiscal_year_id' => $fiscalYearId,
@@ -102,6 +107,7 @@ class DebitNoteController extends Controller
                 if ($status === StatusEnum::APPROVED->value) {
                     $debitNote->refresh();
                     $this->applyInventoryForApprovedDebitNote($debitNote, $user->company, $user);
+                    $this->debitNoteGl->postFromDebitNote($debitNote);
                 }
 
                 return $debitNote;
@@ -269,6 +275,7 @@ class DebitNoteController extends Controller
                     $user->id,
                     $debitNote->remarks,
                 );
+                $this->journalVoid->reverseForReference($debitNote);
                 $debitNote->update(['voided_at' => now()]);
             });
         } catch (ValidationException $e) {
@@ -322,6 +329,7 @@ class DebitNoteController extends Controller
                 ]);
 
                 $this->applyInventoryForApprovedDebitNote($debitNote, $user->company, $user);
+                $this->debitNoteGl->postFromDebitNote($debitNote);
             });
         } catch (ValidationException $e) {
             return response()->json([

@@ -47,6 +47,8 @@ Route::apiResource('account-setting', AccountSettingController::class)->only('in
 Route::prefix('accounting-period')->as('accounting-period.')->controller(AccountingPeriodController::class)->group(function () {
     Route::get('/', 'index')->name('index');
     Route::post('generate', 'generate')->name('generate');
+    Route::get('close-year/readiness', 'closeYearReadiness')->name('close-year.readiness');
+    Route::post('close-year', 'closeYear')->name('close-year');
     Route::post('{accountingPeriod}/close', 'close')->name('close');
     Route::post('{accountingPeriod}/reopen', 'reopen')->name('reopen');
     Route::post('{accountingPeriod}/lock', 'lock')->name('lock');
@@ -92,6 +94,7 @@ Route::prefix('account-report')->as('account-report.')->controller(AccountReport
     Route::get('vat-sales-register', 'vatSalesRegister')->name('vat-sales-register');
     Route::get('vat-purchase-register', 'vatPurchaseRegister')->name('vat-purchase-register');
     Route::get('vat-return', 'vatReturn')->name('vat-return');
+    Route::get('vat-return-reconciliation', 'vatReturnReconciliation')->name('vat-return-reconciliation');
     Route::get('cash-flow', 'cashFlow')->name('cash-flow');
     Route::get('ar-aging', 'arAging')->name('ar-aging');
     Route::get('ap-aging', 'apAging')->name('ap-aging');
@@ -99,6 +102,15 @@ Route::prefix('account-report')->as('account-report.')->controller(AccountReport
     Route::get('stock-aging', 'stockAging')->name('stock-aging');
     Route::get('reorder-alerts', 'reorderAlerts')->name('reorder-alerts');
     Route::get('tds-report', 'tdsReport')->name('tds-report');
+    Route::get('unposted-documents', 'unpostedDocuments')->name('unposted-documents');
+    Route::get('unbalanced-journals', 'unbalancedJournals')->name('unbalanced-journals');
+    Route::get('ar-ap-reconciliation', 'arApReconciliation')->name('ar-ap-reconciliation');
+    Route::get('inventory-gl-reconciliation', 'inventoryGlReconciliation')->name('inventory-gl-reconciliation');
+    Route::post('invoice/{invoice}/repost', 'repostInvoice')->name('invoice.repost');
+    Route::post('bill/{bill}/repost', 'repostBill')->name('bill.repost');
+    Route::post('expense/{expense}/repost', 'repostExpense')->name('expense.repost');
+    Route::post('credit-note/{creditNote}/repost', 'repostCreditNote')->name('credit-note.repost');
+    Route::post('debit-note/{debitNote}/repost', 'repostDebitNote')->name('debit-note.repost');
 });
 
 // PDC Cheques

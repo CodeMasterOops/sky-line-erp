@@ -10,6 +10,7 @@ use App\Models\GoodsReceivedNote;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
 use App\Enums\GrnBillingStatusEnum;
+use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 
 class GoodsReceivedNoteService
@@ -18,15 +19,23 @@ class GoodsReceivedNoteService
         private InventoryLayerReceiptService $inventoryReceipt,
         private InventoryDocumentReversalService $documentReversal,
         private LandedCostService $landedCosts,
+        private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
     /**
      * @param  array<string, mixed>  $validated
      */
-    public function createGrn(array $validated, Company $company, int $userId, string $grnNo): GoodsReceivedNote
+    public function createGrn(array $validated, Company $company, int $userId, ?string $grnNo = null): GoodsReceivedNote
     {
         return DB::transaction(function () use ($validated, $company, $userId, $grnNo) {
             $this->validatePurchaseOrderQuantities($validated);
+
+            // See InvoiceService for the lock-inside-transaction concurrency note.
+            $grnNo = $grnNo ?? $this->documentNumberGenerator->companyPadded(
+                GoodsReceivedNote::class,
+                'GRN-',
+                $company->id,
+            );
 
             $grn = GoodsReceivedNote::create([
                 'company_id' => $company->id,
