@@ -1,0 +1,4 @@
+name,code,product_type,category,unit,sales_price,purchase_price
+Valid Product,VP-1,product,General,Piece,10,8
+,INVALID,,,,
+Missing Category,MC-1,product,,Piece,10,8

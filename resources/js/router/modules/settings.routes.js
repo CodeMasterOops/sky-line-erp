@@ -34,6 +34,12 @@ export default [
         component: () => import("@/views/admin/profile/Index.vue"),
     },
     {
+        path: "data-transfer",
+        name: "admin.data-transfer-list",
+        meta: { pageTitle: "Data Transfer" },
+        component: () => import("@/views/admin/data-transfer/Index.vue"),
+    },
+    {
         path: "tax",
         name: "admin.tax-list",
         meta: {

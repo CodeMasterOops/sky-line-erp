@@ -70,6 +70,9 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         // settings module
         require __DIR__.'/modules/api_settings.php';
 
+        // data transfer (import / export)
+        require __DIR__.'/modules/api_data_transfer.php';
+
         // inventory module
         require __DIR__.'/modules/api_inventory.php';
 

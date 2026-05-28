@@ -6,13 +6,29 @@
                 <i class="ti ti-circle-plus me-2"></i>
                 Add Item
             </router-link>
-            <a href="#" class="btn btn-secondary color d-flex align-items-center" data-bs-toggle="modal"
-                data-bs-target="#view-notes">
-                <i class="ti ti-download me-2"></i>
+            <button
+                v-can="'import_product'"
+                type="button"
+                class="btn btn-secondary color d-flex align-items-center"
+                @click="openImportWizard"
+            >
+                <i class="ti ti-upload me-2"></i>
                 Import Product
-            </a>
+            </button>
+            <button
+                v-can="'export_data'"
+                type="button"
+                class="btn btn-outline-secondary d-flex align-items-center"
+                :disabled="exporting"
+                @click="exportProducts"
+            >
+                <i class="ti ti-download me-2"></i>
+                Export
+            </button>
         </template>
     </PageHeader>
+
+    <ProductImportWizard ref="importWizardRef" @imported="fetchProducts" />
 
     <div class="card table-list-card">
         <VTableToolbar v-model="filter.search" placeholder="Search products" :is-filtered="isFiltered"
@@ -140,7 +156,10 @@ import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import StockDetailModal from './StockDetailModal.vue';
+import ProductImportWizard from '@/views/admin/data-transfer/ProductImportWizard.vue';
 import { useProductStore } from '@/stores/admin/inventory/product.js';
+import { useDataTransferStore } from '@/stores/admin/data-transfer.js';
+import { useToast } from 'vue-toastification';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
 import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
@@ -150,7 +169,11 @@ import { formatMoney } from '@/helpers/formatMoney.js';
 import { getProductColumns, createRowActions, formatProductType } from './tableConfig.js';
 
 const router = useRouter();
+const toast = useToast();
 const productStore = useProductStore();
+const dataTransferStore = useDataTransferStore();
+const importWizardRef = ref(null);
+const exporting = ref(false);
 const categoryStore = useProductCategoryStore();
 const brandStore = useBrandStore();
 
@@ -206,6 +229,23 @@ const setFilter = (key, value, name = '') => {
 };
 
 const openStockDetail = (record) => { stockDetailProduct.value = record; };
+
+const openImportWizard = () => importWizardRef.value?.show();
+
+const exportProducts = async () => {
+    exporting.value = true;
+    try {
+        await dataTransferStore.queueExport('product', 'csv', {
+            search: filter.search || undefined,
+            product_category_id: filter.product_category_id || undefined,
+            brand_id: filter.brand_id || undefined,
+            product_type: filter.product_type || undefined,
+        });
+        toast.info('Export queued. Check Data Transfer history when ready.');
+    } finally {
+        exporting.value = false;
+    }
+};
 
 const editProduct = (id) => {
     router.push({ name: 'admin.product-edit', params: { id: String(id) } });
