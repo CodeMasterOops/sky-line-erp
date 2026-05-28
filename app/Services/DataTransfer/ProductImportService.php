@@ -2,7 +2,6 @@
 
 namespace App\Services\DataTransfer;
 
-use App\Models\Stock;
 use App\Models\Product;
 use App\Enums\EntityCodeType;
 use App\Enums\ProductTypeEnum;
@@ -10,11 +9,13 @@ use App\Models\ProductVariant;
 use App\Models\DataTransferJob;
 use Illuminate\Support\Facades\DB;
 use App\Services\EntityCodeGenerator;
+use App\Services\Inventory\OpeningStockEntryService;
 
 class ProductImportService
 {
     public function __construct(
         private EntityCodeGenerator $codeGenerator,
+        private OpeningStockEntryService $openingStockEntryService,
     ) {}
 
     /**
@@ -82,7 +83,7 @@ class ProductImportService
             $variant = $this->upsertVariant($product, $variantPayload, (bool) $normalized['has_variants']);
 
             if ($opening = $normalized['opening_stock'] ?? null) {
-                $this->upsertOpeningStock($job, $variant, $opening);
+                $this->applyImportOpeningStock($job, $variant, $opening, $variantPayload);
             }
 
             return [
@@ -133,27 +134,32 @@ class ProductImportService
 
     /**
      * @param  array{warehouse_id: int, quantity: int}  $opening
+     * @param  array<string, mixed>  $variantPayload
      */
-    private function upsertOpeningStock(DataTransferJob $job, ProductVariant $variant, array $opening): void
-    {
+    private function applyImportOpeningStock(
+        DataTransferJob $job,
+        ProductVariant $variant,
+        array $opening,
+        array $variantPayload,
+    ): void {
         if (! $job->branch_id) {
             throw new \RuntimeException('Branch context is required for opening stock.');
         }
 
-        if ($variant->product?->isService()) {
-            return;
+        $userId = $job->user_id;
+        if (! $userId) {
+            throw new \RuntimeException('User context is required for opening stock import.');
         }
 
-        Stock::query()->updateOrCreate(
-            [
-                'company_id' => $job->company_id,
-                'branch_id' => $job->branch_id,
-                'product_variant_id' => $variant->id,
-                'warehouse_id' => $opening['warehouse_id'],
-            ],
-            [
-                'quantity' => $opening['quantity'],
-            ]
+        $unitCost = (float) ($variantPayload['purchase_price'] ?? 0);
+
+        $this->openingStockEntryService->applyImportOpeningStock(
+            $job->company_id,
+            $job->branch_id,
+            $variant,
+            $opening,
+            $unitCost,
+            (int) $userId,
         );
     }
 }

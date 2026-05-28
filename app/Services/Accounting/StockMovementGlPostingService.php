@@ -49,7 +49,14 @@ class StockMovementGlPostingService
         $purchaseId = $settings->purchase_account_id;
         $grniId = $settings->grni_account_id;
 
-        $pair = $this->resolveDebitCreditAccounts($movement, $inventoryId, $cogsId, $purchaseId, $grniId);
+        $pair = $this->resolveDebitCreditAccounts(
+            $movement,
+            $inventoryId,
+            $cogsId,
+            $purchaseId,
+            $grniId,
+            $settings->opening_stock_equity_account_id,
+        );
         if ($pair === null) {
             return;
         }
@@ -123,6 +130,7 @@ class StockMovementGlPostingService
         ?int $cogsId,
         ?int $purchaseId,
         ?int $grniId,
+        ?int $openingStockEquityId,
     ): ?array {
         if (! $inventoryId) {
             return null;
@@ -166,6 +174,14 @@ class StockMovementGlPostingService
             }
 
             return [$purchaseId, $inventoryId];
+        }
+
+        if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::OPENING_STOCK) {
+            if (! $openingStockEquityId) {
+                return null;
+            }
+
+            return [$inventoryId, $openingStockEquityId];
         }
 
         if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::ADJUSTMENT_IN) {

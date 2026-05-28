@@ -33,5 +33,6 @@ class AccountSetting extends Model
         'inventory_account_id',
         'cogs_account_id',
         'retained_earnings_account_id',
+        'opening_stock_equity_account_id',
     ];
 }

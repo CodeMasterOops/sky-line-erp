@@ -44,3 +44,28 @@ export function formatMoney(value, options = {}) {
 
     return `${symbol} ${formatted}`;
 }
+
+/**
+ * Format a signed amount: negatives shown in parentheses, e.g. (Rs. 1,234.56).
+ *
+ * @param {number|string|null|undefined} value
+ * @param {{ symbol?: string }} [options]
+ * @returns {string}
+ */
+export function formatSignedAmount(value, options = {}) {
+    if (value === undefined || value === null || value === '') {
+        return '—';
+    }
+
+    const n = Number(value);
+
+    if (Number.isNaN(n)) {
+        return '—';
+    }
+
+    if (n < 0) {
+        return `(${formatMoney(Math.abs(n), options)})`;
+    }
+
+    return formatMoney(n, options);
+}

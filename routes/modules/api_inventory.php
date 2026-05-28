@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Admin\Inventory\StockTransferController;
 use App\Http\Controllers\Api\Admin\Inventory\DeliveryChallanController;
 use App\Http\Controllers\Api\Admin\Inventory\ProductCategoryController;
 use App\Http\Controllers\Api\Admin\Inventory\ProductionOrderController;
+use App\Http\Controllers\Api\Admin\Inventory\OpeningStockEntryController;
 use App\Http\Controllers\Api\Admin\Inventory\StockAdjustmentController;
 use App\Http\Controllers\Api\Admin\Inventory\GoodsReceivedNoteController;
 use App\Http\Controllers\Api\Admin\Inventory\InventoryStockReconciliationController;
@@ -59,6 +60,10 @@ Route::apiResource('stock-transfer', StockTransferController::class);
 // stock adjustment
 Route::post('stock-adjustment/{stockAdjustment}/approve', [StockAdjustmentController::class, 'approve'])->name('stock-adjustment.approve');
 Route::apiResource('stock-adjustment', StockAdjustmentController::class);
+
+// opening stock entry
+Route::post('opening-stock-entry/{openingStockEntry}/approve', [OpeningStockEntryController::class, 'approve'])->name('opening-stock-entry.approve');
+Route::apiResource('opening-stock-entry', OpeningStockEntryController::class)->parameters(['opening-stock-entry' => 'openingStockEntry']);
 
 Route::get('inventory/stock-reconciliation', InventoryStockReconciliationController::class)->name('inventory.stock-reconciliation');
 Route::post('inventory/stock-reconciliation/align', InventoryStockReconciliationAlignController::class)->name('inventory.stock-reconciliation.align');

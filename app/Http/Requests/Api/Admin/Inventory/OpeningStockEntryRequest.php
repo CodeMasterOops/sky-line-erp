@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Requests\Api\Admin\Inventory;
+
+use App\Tenancy\TRule;
+use App\Enums\StatusEnum;
+use Illuminate\Validation\Rule;
+use Illuminate\Foundation\Http\FormRequest;
+
+class OpeningStockEntryRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'reference_no' => ['nullable', 'string', 'max:255'],
+            'date' => ['required', 'date'],
+            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'remarks' => ['nullable', 'string'],
+            'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
+            'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
+        ];
+    }
+}

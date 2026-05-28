@@ -33,6 +33,7 @@ class AccountSettingRequest extends FormRequest
             'inventory_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
             'cogs_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
             'retained_earnings_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'opening_stock_equity_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
         ];
     }
 }

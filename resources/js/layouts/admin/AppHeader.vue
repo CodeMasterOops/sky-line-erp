@@ -94,65 +94,13 @@
                     <i class="fa fa-arrows-alt"></i>
                 </a>
             </li>
-            <!-- Notifications -->
-            <li class="nav-item dropdown nav-item-box">
-                <template v-if="notifications.data.length">
-                    <a href="javascript:void(0);" class="dropdown-toggle nav-link" data-bs-toggle="dropdown">
-                        <i class="fa fa-bell"></i>
-                        <span class="badge bg-warning badge-number">
-                            {{ notifications.data.length }}
-                        </span>
-                    </a>
-                    <div class="dropdown-menu notifications">
-                        <div class="topnav-dropdown-header">
-                            <h5 class="notification-title">
-                                You have {{ notifications.data.length }} new notifications
-                            </h5>
-                            <a href="javascript:void(0)" class="clear-noti" @click.prevent="markAllAsRead">
-                                Mark all as read
-                            </a>
-                        </div>
-                        <div class="noti-content">
-                            <ul class="notification-list">
-                                <template v-for="notification in notifications.data" :key="notification.id">
-                                    <li class="notification-message">
-                                        <a href="javascript:void(0);" class="recent-msg"
-                                           @click.prevent="notificationClick(notification)">
-                                            <div class="media d-flex">
-                                                <span class="avatar flex-shrink-0">
-                                                    <img alt="" src="@/assets/images/profiles/avatar-10.jpg">
-                                                </span>
-                                                <div class="flex-grow-1">
-                                                    <p class="noti-details">
-                                                        <span class="noti-title">
-                                                            {{ notification.notification_type }}
-                                                        </span>
-                                                        {{ notification.data.notification_title }}
-                                                    </p>
-                                                    <p class="noti-time">{{ notification.time }}</p>
-                                                </div>
-                                            </div>
-                                        </a>
-                                    </li>
-                                </template>
-                            </ul>
-                        </div>
-                        <div class="topnav-dropdown-footer d-flex align-items-center gap-3">
-                            <a href="javascript:void(0);" class="btn btn-secondary btn-md w-100">Close</a>
-                            <router-link :to="{ name: 'admin.notification-list' }"
-                                         class="btn btn-primary btn-md w-100">
-                                View all
-                            </router-link>
-                        </div>
-                    </div>
-                </template>
-                <template v-else>
-                    <router-link :to="{ name: 'admin.notification-list' }" class="dropdown-toggle nav-link">
-                        <i class="fa fa-bell"></i>
-                    </router-link>
-                </template>
-            </li>
-            <!-- /Notifications -->
+            <HeaderNotificationDropdown
+                :notifications="notifications.data"
+                :loading="notifications.loading"
+                view-all-route="admin.notification-list"
+                @notification-click="notificationClick"
+                @mark-all-read="markAllAsRead"
+            />
 
             <li class="nav-item nav-item-box">
                 <router-link :to="{ name: 'admin.setting' }"><i class="fa fa-cog"></i></router-link>
@@ -228,6 +176,7 @@ import {useAdminSettingStore} from "@/stores/admin/settings/admin-setting.js";
 import {adToBsDate} from "@/helpers/helper.js";
 import {useBranchStore} from "@/stores/admin/settings/branch.js";
 import {useRoute} from "vue-router";
+import HeaderNotificationDropdown from "@/components/shared/HeaderNotificationDropdown.vue";
 
 const notificationStore = useAdminNotificationStore();
 const profileStore = useProfileStore();

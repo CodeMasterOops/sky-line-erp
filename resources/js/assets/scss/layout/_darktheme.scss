@@ -560,6 +560,18 @@
                 }
             }
         }
+        .notification-empty-state {
+            .notification-empty-icon {
+                background: variables.$darkmode-gray-200;
+                color: variables.$gray-500;
+            }
+            .notification-empty-title {
+                color: variables.$darkmode-gray-900;
+            }
+            .notification-empty-text {
+                color: variables.$gray-500;
+            }
+        }
     }
     .user-menu.nav {
         li {

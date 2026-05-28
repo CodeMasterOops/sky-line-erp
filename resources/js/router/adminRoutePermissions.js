@@ -35,6 +35,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.warehouse-list': 'list_warehouse',
     'admin.stock-transfer': 'list_stock_transfer',
     'admin.stock-adjustment': 'list_stock_adjustment',
+    'admin.opening-stock-entry': 'list_opening_stock_entry',
     'admin.product-category-list': 'list_product_category',
     'admin.product-create': 'create_product',
     'admin.product-edit': 'edit_product',

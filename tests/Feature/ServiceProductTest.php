@@ -170,6 +170,31 @@ beforeEach(function () {
     TenantService::setCompanyId($this->company->id);
 });
 
+it('defaults min_stock_level to zero when omitted on physical product create', function () {
+    $response = $this->postJson('/api/admin/product', [
+        'product_type' => ProductTypeEnum::PRODUCT->value,
+        'name' => 'Test Product',
+        'code' => 'PROD-'.uniqid(),
+        'product_category_id' => $this->category->id,
+        'unit_id' => $this->unit->id,
+        'min_stock_level' => '',
+        'reorder_quantity' => 10,
+        'has_variants' => false,
+        'variants' => [
+            [
+                'sales_price' => 100,
+                'purchase_price' => 50,
+                'is_default' => true,
+            ],
+        ],
+    ]);
+
+    $response->assertCreated();
+    $product = Product::query()->find($response->json('data.id'));
+    expect($product)->not->toBeNull();
+    expect((float) $product->min_stock_level)->toBe(0.0);
+});
+
 it('creates a service product without brand via API', function () {
     $response = $this->postJson('/api/admin/product', serviceProductPayload([
         'product_category_id' => $this->category->id,

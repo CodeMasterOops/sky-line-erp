@@ -153,7 +153,7 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
-import {formatAmount} from "@/helpers/helper.js";
+import {formatSignedAmount} from '@/helpers/helper.js';
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
@@ -288,12 +288,6 @@ const toggleRow = (key) => {
 const isExpanded = (key) => expandedRows.value.has(key);
 
 const flatRows = computed(() => flattenRows(profitLoss.value.data?.rows || []));
-
-const formatSignedAmount = (value) => {
-    const formatted = formatAmount(value);
-
-    return value < 0 ? `(${Math.abs(formatted)})` : formatted;
-};
 
 const generateReport = async () => {
     dataLoaded.value = true;

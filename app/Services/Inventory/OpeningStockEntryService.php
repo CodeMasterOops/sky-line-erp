@@ -1,0 +1,147 @@
+<?php
+
+namespace App\Services\Inventory;
+
+use App\Models\User;
+use App\Models\Stock;
+use App\Models\Company;
+use App\Enums\StatusEnum;
+use App\Enums\ChangeTypeEnum;
+use App\Models\ProductVariant;
+use App\Models\OpeningStockEntry;
+use Illuminate\Support\Facades\DB;
+use App\Models\OpeningStockEntryItem;
+use Illuminate\Validation\ValidationException;
+
+class OpeningStockEntryService
+{
+    public function __construct(
+        private InventoryLayerReceiptService $inventoryReceipt,
+    ) {}
+
+    public function approve(OpeningStockEntry $entry, User $user): void
+    {
+        if ($entry->status === StatusEnum::APPROVED) {
+            return;
+        }
+
+        $entry->loadMissing(['openingStockEntryItems.productVariant.product']);
+        $company = Company::findOrFail($entry->company_id);
+
+        DB::transaction(function () use ($entry, $user, $company) {
+            foreach ($entry->openingStockEntryItems as $item) {
+                $this->applyItem($company, $entry, $item, $user);
+            }
+
+            $entry->update([
+                'approve_user_id' => $user->id,
+                'approved_at' => now(),
+                'status' => StatusEnum::APPROVED,
+            ]);
+        });
+    }
+
+    /**
+     * Import path: create a single-line entry and approve immediately.
+     *
+     * @param  array{warehouse_id: int, quantity: int}  $opening
+     */
+    public function applyImportOpeningStock(
+        int $companyId,
+        ?int $branchId,
+        ProductVariant $variant,
+        array $opening,
+        float $unitCost,
+        int $userId,
+    ): void {
+        if ($variant->product?->isService()) {
+            return;
+        }
+
+        $quantity = (int) ($opening['quantity'] ?? 0);
+        if ($quantity <= 0) {
+            return;
+        }
+
+        $user = User::query()->findOrFail($userId);
+        $company = Company::findOrFail($companyId);
+
+        DB::transaction(function () use ($company, $branchId, $variant, $opening, $unitCost, $quantity, $user) {
+            $entry = OpeningStockEntry::create([
+                'company_id' => $company->id,
+                'branch_id' => $branchId,
+                'reference_no' => 'IMPORT-'.$variant->id,
+                'date' => now()->toDateString(),
+                'warehouse_id' => $opening['warehouse_id'],
+                'remarks' => __('Product import opening stock'),
+                'create_user_id' => $user->id,
+                'status' => StatusEnum::DRAFT,
+            ]);
+
+            $item = $entry->openingStockEntryItems()->create([
+                'product_variant_id' => $variant->id,
+                'unit_id' => $variant->product?->unit_id,
+                'quantity' => $quantity,
+                'unit_cost' => max(0, $unitCost),
+            ]);
+
+            $this->applyItem($company, $entry, $item, $user);
+
+            $entry->update([
+                'approve_user_id' => $user->id,
+                'approved_at' => now(),
+                'status' => StatusEnum::APPROVED,
+            ]);
+        });
+    }
+
+    private function applyItem(
+        Company $company,
+        OpeningStockEntry $entry,
+        OpeningStockEntryItem $item,
+        User $user,
+    ): void {
+        $quantity = (int) $item->quantity;
+        if ($quantity <= 0) {
+            return;
+        }
+
+        $variant = $item->productVariant ?? ProductVariant::query()
+            ->with('product')
+            ->find($item->product_variant_id);
+
+        if ($variant?->product?->isService()) {
+            return;
+        }
+
+        $existingQty = (int) Stock::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->where('product_variant_id', $item->product_variant_id)
+            ->where('warehouse_id', $entry->warehouse_id)
+            ->value('quantity');
+
+        if ($existingQty > 0) {
+            throw ValidationException::withMessages([
+                'items' => [
+                    __('Opening stock is for initial setup only. Variant :sku already has stock in this warehouse; use Stock Adjustment instead.', [
+                        'sku' => $variant?->sku ?? (string) $item->product_variant_id,
+                    ]),
+                ],
+            ]);
+        }
+
+        $unitCost = max(0, (float) $item->unit_cost);
+
+        $this->inventoryReceipt->receive(
+            $company,
+            $entry,
+            $item->product_variant_id,
+            $entry->warehouse_id,
+            $quantity,
+            $unitCost,
+            ChangeTypeEnum::OPENING_STOCK,
+            $user->id,
+            $entry->remarks,
+        );
+    }
+}

@@ -73,9 +73,16 @@
 
     <CreateBill v-model:create-modal-opened="createModalOpened" />
     <EditBill v-model:bill_id="edit_bill_id" />
-    <BillDetailModal v-model:detail-bill-id="detail_bill_id" @voided="fetchBills" />
-    <PaymentModal v-model:open="paymentModalOpened" v-model:payable-id="paymentBillId" :payable-type="'bill'"
-        :lock-payable-type="true" @saved="fetchBills" />
+    <BillDetailModal
+        v-model:detail-bill-id="detail_bill_id"
+        @voided="fetchBills"
+        @record-payment="recordPayment" />
+    <PaymentModal
+        v-model:open="paymentModalOpened"
+        v-model:payable-id="paymentBillId"
+        :payable-type="'bill'"
+        :lock-payable-type="true"
+        @saved="onPaymentSaved" />
 </template>
 
 <script setup>
@@ -133,8 +140,15 @@ const editBill = (id) => { edit_bill_id.value = id; };
 const openDetail = (id) => { detail_bill_id.value = String(id); };
 
 const recordPayment = (id) => {
-    paymentBillId.value = id;
+    paymentBillId.value = String(id);
     paymentModalOpened.value = true;
+};
+
+const onPaymentSaved = () => {
+    fetchBills();
+    if (detail_bill_id.value) {
+        billStore.getBill(detail_bill_id.value);
+    }
 };
 
 const handleDelete = (id) => {

@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\Purchase;
 
 use App\Models\Tax;
+use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Http\Resources\Admin\PartyResource;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -13,6 +14,7 @@ class BillResource extends JsonResource
     public function toArray(Request $request): array
     {
         $totals = $this->calculateTotals();
+        $payment = $this->calculatePaymentTotals($totals['grand_total']);
 
         return [
             'id' => $this->id ?? '',
@@ -45,12 +47,42 @@ class BillResource extends JsonResource
             'taxable_base' => $totals['taxable_base'],
             'tax_total' => $totals['tax_total'],
             'grand_total' => $totals['grand_total'],
+            'paid_total' => $payment['paid_total'],
+            'due_amount' => $payment['due_amount'],
             'items' => BillItemResource::collection($this->whenLoaded('billItems')),
             'landed_costs' => LandedCostResource::collection($this->whenLoaded('landedCosts')),
             'grn_landed_costs' => $this->when(
                 $this->relationLoaded('billItems'),
                 fn () => $this->resolveGrnLandedCosts(),
             ),
+        ];
+    }
+
+    /**
+     * @return array{paid_total: float|null, due_amount: float|null}
+     */
+    private function calculatePaymentTotals(float $grandTotal): array
+    {
+        if (! $this->relationLoaded('paymentAllocations')) {
+            return [
+                'paid_total' => null,
+                'due_amount' => null,
+            ];
+        }
+
+        $paid = 0.0;
+        foreach ($this->paymentAllocations as $allocation) {
+            $payment = $allocation->relationLoaded('payment') ? $allocation->payment : null;
+            if ($payment && $payment->status === StatusEnum::APPROVED) {
+                $paid += (float) $allocation->amount;
+            }
+        }
+
+        $paid = round($paid, 2);
+
+        return [
+            'paid_total' => $paid,
+            'due_amount' => round(max($grandTotal - $paid, 0), 2),
         ];
     }
 

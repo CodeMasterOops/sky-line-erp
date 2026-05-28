@@ -40,6 +40,14 @@ export default [
         component: () => import("@/views/admin/inventory/stock-adjustment/Index.vue"),
     },
     {
+        path: "opening-stock-entry",
+        name: "admin.opening-stock-entry",
+        meta: {
+            pageTitle: "Opening Stock",
+        },
+        component: () => import("@/views/admin/inventory/opening-stock-entry/Index.vue"),
+    },
+    {
         path: "stock-reconciliation",
         name: "admin.stock-reconciliation",
         meta: {

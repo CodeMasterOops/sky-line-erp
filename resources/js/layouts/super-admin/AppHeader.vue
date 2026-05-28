@@ -51,34 +51,7 @@
                 </a>
             </li>
 
-            <!-- Notifications -->
-            <li class="nav-item dropdown nav-item-box">
-                <a href="javascript:void(0);" class="dropdown-toggle nav-link" data-bs-toggle="dropdown">
-                    <i class="fa fa-bell"></i>
-                    <span class="badge bg-warning badge-number">0</span>
-                </a>
-                <div class="dropdown-menu notifications">
-                    <div class="topnav-dropdown-header">
-                        <h5 class="notification-title">Notifications</h5>
-                        <a href="javascript:void(0)" class="clear-noti">Mark all as read</a>
-                    </div>
-                    <div class="noti-content">
-                        <ul class="notification-list">
-                            <li class="notification-message">
-                                <div class="media d-flex">
-                                    <div class="flex-grow-1">
-                                        <p class="noti-details"><span class="noti-title">No new notifications</span></p>
-                                    </div>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="topnav-dropdown-footer">
-                        <a href="javascript:void(0);">View all Notifications</a>
-                    </div>
-                </div>
-            </li>
-            <!-- /Notifications -->
+            <HeaderNotificationDropdown />
             
             <li class="nav-item dropdown has-arrow main-drop profile-nav">
                 <a href="javascript:void(0);" class="nav-link userset" data-bs-toggle="dropdown">
@@ -133,6 +106,7 @@ import { useSuperAdminProfileStore } from "@/stores/super-admin/profile";
 import showErrors from "@/helpers/showErrors";
 import { toast } from "@/helpers/toast";
 import { useRouter } from "vue-router";
+import HeaderNotificationDropdown from "@/components/shared/HeaderNotificationDropdown.vue";
 
 const profileStore = useSuperAdminProfileStore();
 const authStore = useSuperAdminAuthStore();

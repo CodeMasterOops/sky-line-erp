@@ -33,6 +33,7 @@ class BillController extends Controller
             'billItems.grnItem.goodsReceivedNote.landedCosts.account',
             'landedCosts.account',
             'landedCosts.allocations',
+            'paymentAllocations.payment',
         ];
     }
 
@@ -42,7 +43,7 @@ class BillController extends Controller
     public function index(Request $request)
     {
         $bills = Bill::filter($request->all())
-            ->with(['party', 'discount', 'billItems.discount'])
+            ->with(['party', 'discount', 'billItems.discount', 'paymentAllocations.payment'])
             ->latest('bill_date')
             ->paginate($request->limit ?? 25);
 

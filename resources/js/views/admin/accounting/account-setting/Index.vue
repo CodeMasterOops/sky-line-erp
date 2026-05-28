@@ -144,6 +144,14 @@
                                         label="COGS Account (perpetual GL)"
                                     />
                                 </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="opening_stock_equity_account_id"
+                                        v-model="form.opening_stock_equity_account_id"
+                                        :options="accounts.data"
+                                        label="Opening Stock Equity (perpetual GL)"
+                                    />
+                                </div>
                                 <div class="col-12 text-end">
                                     <VButton :loading="isSubmitting" />
                                 </div>
@@ -187,6 +195,7 @@ const initialState = {
     sales_account_id: "",
     inventory_account_id: "",
     cogs_account_id: "",
+    opening_stock_equity_account_id: "",
 };
 
 const form = reactive({ ...initialState });

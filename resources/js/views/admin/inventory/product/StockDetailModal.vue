@@ -34,8 +34,8 @@
                             </p>
                         </div>
                         <p v-else class="text-muted mb-0">
-                            No on-hand stock for this product. Receive inventory with an approved bill (or use stock
-                            adjustment).
+                            No on-hand stock for this product. Use Opening Stock for initial quantities, an approved
+                            bill to receive stock, or Stock Adjustment for corrections.
                         </p>
                     </div>
                 </div>

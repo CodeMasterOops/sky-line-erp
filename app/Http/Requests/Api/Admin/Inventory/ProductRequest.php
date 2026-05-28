@@ -17,6 +17,11 @@ class ProductRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $minStockLevel = $this->input('min_stock_level');
+        if ($minStockLevel === null || $minStockLevel === '') {
+            $this->merge(['min_stock_level' => 0]);
+        }
+
         if ($this->input('product_type') === ProductTypeEnum::SERVICE->value) {
             $this->merge([
                 'brand_id' => null,

@@ -169,6 +169,11 @@
                         "permission": "list_stock_adjustment"
                     },
                     {
+                        "menuValue": "Opening Stock",
+                        "route": { "name": "admin.opening-stock-entry" },
+                        "permission": "list_opening_stock_entry"
+                    },
+                    {
                         "menuValue": "Stock Reconciliation",
                         "route": { "name": "admin.stock-reconciliation" },
                         "permission": "list_stock_adjustment"
