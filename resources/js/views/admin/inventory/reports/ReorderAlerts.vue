@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Reorder Alerts" subtitle="Products at or below minimum stock level" />
+    <PageHeader hide-action-buttons title="Reorder Alerts" subtitle="Products at or below minimum stock level" />
 
     <div class="card border-0 mb-3">
         <div class="card-body d-flex align-items-center gap-3 flex-wrap">

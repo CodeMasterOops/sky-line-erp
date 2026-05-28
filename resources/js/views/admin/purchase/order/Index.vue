@@ -1,5 +1,11 @@
 <template>
-    <PageHeader title="Purchase Orders" subtitle="Manage your purchase orders" @refresh="fetchOrders">
+    <PageHeader
+        title="Purchase Orders"
+        subtitle="Manage your purchase orders"
+        export-entity="purchase_order"
+        :get-export-filters="getPurchaseOrderExportFilters"
+        @refresh="fetchOrders"
+    >
         <template #actions>
             <button v-can="'create_purchase_order'" type="button" @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
@@ -151,5 +157,10 @@ const rowActions = createRowActions({
     onApprove: handleApprove,
     onConvertToBill: convertToBill,
     onDelete: handleDelete,
+});
+
+const getPurchaseOrderExportFilters = () => ({
+    search: filter.search,
+    status: filter.status,
 });
 </script>

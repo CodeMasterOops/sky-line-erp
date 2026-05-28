@@ -1,5 +1,11 @@
 <template>
-    <PageHeader title="Product List" subtitle="Manage products and services" @refresh="fetchProducts">
+    <PageHeader
+        title="Product List"
+        subtitle="Manage products and services"
+        export-entity="product"
+        :get-export-filters="getProductExportFilters"
+        @refresh="fetchProducts"
+    >
         <template #actions>
             <router-link :to="{ name: 'admin.product-create' }" v-can="'create_product'"
                 class="btn btn-primary d-flex align-items-center">
@@ -14,16 +20,6 @@
             >
                 <i class="ti ti-upload me-2"></i>
                 Import Product
-            </button>
-            <button
-                v-can="'export_data'"
-                type="button"
-                class="btn btn-outline-secondary d-flex align-items-center"
-                :disabled="exporting"
-                @click="exportProducts"
-            >
-                <i class="ti ti-download me-2"></i>
-                Export
             </button>
         </template>
     </PageHeader>
@@ -158,8 +154,6 @@ import VTableActions from '@/components/base/VTableActions.vue';
 import StockDetailModal from './StockDetailModal.vue';
 import ProductImportWizard from '@/views/admin/data-transfer/ProductImportWizard.vue';
 import { useProductStore } from '@/stores/admin/inventory/product.js';
-import { useDataTransferStore } from '@/stores/admin/data-transfer.js';
-import { useToast } from 'vue-toastification';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
 import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
@@ -169,11 +163,8 @@ import { formatMoney } from '@/helpers/formatMoney.js';
 import { getProductColumns, createRowActions, formatProductType } from './tableConfig.js';
 
 const router = useRouter();
-const toast = useToast();
 const productStore = useProductStore();
-const dataTransferStore = useDataTransferStore();
 const importWizardRef = ref(null);
-const exporting = ref(false);
 const categoryStore = useProductCategoryStore();
 const brandStore = useBrandStore();
 
@@ -232,20 +223,12 @@ const openStockDetail = (record) => { stockDetailProduct.value = record; };
 
 const openImportWizard = () => importWizardRef.value?.show();
 
-const exportProducts = async () => {
-    exporting.value = true;
-    try {
-        await dataTransferStore.queueExport('product', 'csv', {
-            search: filter.search || undefined,
-            product_category_id: filter.product_category_id || undefined,
-            brand_id: filter.brand_id || undefined,
-            product_type: filter.product_type || undefined,
-        });
-        toast.info('Export queued. Check Data Transfer history when ready.');
-    } finally {
-        exporting.value = false;
-    }
-};
+const getProductExportFilters = () => ({
+    search: filter.search,
+    product_category_id: filter.product_category_id,
+    brand_id: filter.brand_id,
+    product_type: filter.product_type,
+});
 
 const editProduct = (id) => {
     router.push({ name: 'admin.product-edit', params: { id: String(id) } });

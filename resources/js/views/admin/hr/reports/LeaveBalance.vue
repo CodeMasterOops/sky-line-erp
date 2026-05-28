@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Leave Balance" subtitle="Employee leave balance report" />
+    <PageHeader hide-action-buttons title="Leave Balance" subtitle="Employee leave balance report" />
 
     <section class="section">
         <div class="card">

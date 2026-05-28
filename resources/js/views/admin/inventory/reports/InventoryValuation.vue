@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Inventory Valuation Report" subtitle="Current stock value by product (FIFO costing)" />
+    <PageHeader title="Inventory Valuation Report" subtitle="Current stock value by product (FIFO costing)" hide-action-buttons />
 
     <div class="card border-0 mb-3">
         <div class="card-body pb-1">

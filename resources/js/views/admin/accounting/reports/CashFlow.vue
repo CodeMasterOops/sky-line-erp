@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Cash Flow Statement" subtitle="Indirect Method" />
+    <PageHeader hide-action-buttons title="Cash Flow Statement" subtitle="Indirect Method" />
 
     <div class="card border-0 mb-3">
         <div class="card-body pb-1">

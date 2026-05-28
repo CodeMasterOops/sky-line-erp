@@ -26,6 +26,7 @@ export const useDataTransferStore = defineStore('dataTransfer', {
             const params = new URLSearchParams();
             if (filter?.page) params.set('page', filter.page);
             if (filter?.limit) params.set('limit', filter.limit);
+            if (filter?.search) params.set('search', filter.search);
             if (filter?.direction) params.set('direction', filter.direction);
             if (filter?.entity_type) params.set('entity_type', filter.entity_type);
             if (filter?.status) params.set('status', filter.status);

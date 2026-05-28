@@ -98,6 +98,52 @@ it('uploads a product import file and creates a job', function () {
     Queue::assertPushed(App\Jobs\DataTransfer\ParseFileJob::class);
 });
 
+it('paginates data transfer job index', function () {
+    foreach (range(1, 12) as $i) {
+        DataTransferJob::query()->create([
+            'company_id' => $this->company->id,
+            'user_id' => $this->user->id,
+            'direction' => 'export',
+            'entity_type' => 'product',
+            'status' => DataTransferStatusEnum::Completed,
+            'original_filename' => "export-{$i}.csv",
+        ]);
+    }
+
+    $response = $this->getJson('/api/admin/data-transfers?limit=10&page=1');
+
+    $response->assertSuccessful()
+        ->assertJsonCount(10, 'data')
+        ->assertJsonPath('meta.per_page', 10)
+        ->assertJsonPath('meta.total', 12)
+        ->assertJsonPath('meta.current_page', 1);
+});
+
+it('filters data transfer jobs by search', function () {
+    DataTransferJob::query()->create([
+        'company_id' => $this->company->id,
+        'user_id' => $this->user->id,
+        'direction' => 'import',
+        'entity_type' => 'product',
+        'status' => DataTransferStatusEnum::Completed,
+        'original_filename' => 'products-import.csv',
+    ]);
+
+    DataTransferJob::query()->create([
+        'company_id' => $this->company->id,
+        'user_id' => $this->user->id,
+        'direction' => 'export',
+        'entity_type' => 'party',
+        'status' => DataTransferStatusEnum::Completed,
+        'original_filename' => 'parties-export.csv',
+    ]);
+
+    $this->getJson('/api/admin/data-transfers?search=products')
+        ->assertSuccessful()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.original_filename', 'products-import.csv');
+});
+
 it('isolates data transfer jobs by company', function () {
     $otherCompany = Company::create([
         'fiscal_year_id' => $this->company->fiscal_year_id,

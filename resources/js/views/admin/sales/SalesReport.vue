@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Sales Report" subtitle="Sales report" @refresh="generateReport"/>
+    <PageHeader hide-action-buttons title="Sales Report" subtitle="Sales report" @refresh="generateReport"/>
 
     <section class="section">
         <div class="row g-3 mb-3">

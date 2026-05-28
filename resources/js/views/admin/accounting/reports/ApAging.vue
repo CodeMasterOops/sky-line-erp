@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Accounts Payable Aging" subtitle="Outstanding bills by age" />
+    <PageHeader hide-action-buttons title="Accounts Payable Aging" subtitle="Outstanding bills by age" />
 
     <div class="card border-0 mb-3">
         <div class="card-body pb-1">

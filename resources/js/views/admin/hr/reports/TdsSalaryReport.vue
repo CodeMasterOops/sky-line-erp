@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="TDS Salary Report" subtitle="Employee-wise TDS deducted on salary" />
+    <PageHeader hide-action-buttons title="TDS Salary Report" subtitle="Employee-wise TDS deducted on salary" />
 
     <section class="section">
         <div class="card mb-4">

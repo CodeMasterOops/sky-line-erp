@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Profit and Loss" subtitle="Accounting report" @refresh="generateReport"/>
+    <PageHeader hide-action-buttons title="Profit and Loss" subtitle="Accounting report" @refresh="generateReport"/>
 
     <section class="section">
         <div class="card border-0 shadow-sm">

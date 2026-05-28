@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Payroll Summary" subtitle="Monthly payroll summary report" />
+    <PageHeader hide-action-buttons title="Payroll Summary" subtitle="Monthly payroll summary report" />
 
     <section class="section">
         <div class="card">

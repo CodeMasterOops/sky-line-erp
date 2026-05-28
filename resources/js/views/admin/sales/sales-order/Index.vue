@@ -1,5 +1,11 @@
 <template>
-    <PageHeader title="Sales Orders" subtitle="Manage your sales orders" @refresh="fetchOrders">
+    <PageHeader
+        title="Sales Orders"
+        subtitle="Manage your sales orders"
+        export-entity="sales_order"
+        :get-export-filters="getSalesOrderExportFilters"
+        @refresh="fetchOrders"
+    >
         <template #actions>
             <button v-can="'create_sales_order'" type="button" @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
@@ -168,5 +174,10 @@ const rowActions = createRowActions({
     onConvert: convertToInvoice,
     onDeliver: createDeliveryChallan,
     onDelete:  handleDelete,
+});
+
+const getSalesOrderExportFilters = () => ({
+    search: filter.search,
+    status: filter.status,
 });
 </script>

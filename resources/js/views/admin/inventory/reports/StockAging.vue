@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Stock Aging Report" subtitle="Identify slow-moving and dead stock by FIFO layer age" />
+    <PageHeader hide-action-buttons title="Stock Aging Report" subtitle="Identify slow-moving and dead stock by FIFO layer age" />
 
     <div class="card border-0 mb-3">
         <div class="card-body">

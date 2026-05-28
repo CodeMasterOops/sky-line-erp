@@ -1,5 +1,11 @@
 <template>
-    <PageHeader :title="pageTitle" :subtitle="pageSubtitle" @refresh="fetchParties">
+    <PageHeader
+        :title="pageTitle"
+        :subtitle="pageSubtitle"
+        export-entity="party"
+        :get-export-filters="getPartyExportFilters"
+        @refresh="fetchParties"
+    >
         <template #actions>
             <button v-can="'create_party'" type="button" @click.prevent="openCreate"
                 class="btn btn-primary d-flex align-items-center">
@@ -126,5 +132,10 @@ const handleDelete = (id) => {
 const rowActions = createRowActions({
     onEdit:   openEdit,
     onDelete: handleDelete,
+});
+
+const getPartyExportFilters = () => ({
+    search: filter.search,
+    type: filter.type,
 });
 </script>

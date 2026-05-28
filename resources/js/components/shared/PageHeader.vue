@@ -7,24 +7,24 @@
       </div>
     </div>
     <ul v-if="showToolbar" class="table-top-head">
-      <template v-if="showExportAndCollapse">
-        <li>
-          <a data-bs-toggle="tooltip" data-bs-placement="top" title="Pdf">
-            <img src="@/assets/images/icons/pdf.svg" alt="img">
-          </a>
-        </li>
-        <li>
-          <a data-bs-toggle="tooltip" data-bs-placement="top" title="Excel">
-            <img src="@/assets/images/icons/excel.svg" alt="img">
-          </a>
-        </li>
-      </template>
+      <li v-if="showExcelExport" v-can="'export_data'">
+        <a
+          href="javascript:void(0);"
+          data-bs-toggle="tooltip"
+          data-bs-placement="top"
+          title="Export Excel"
+          :class="{ 'opacity-50 pe-none': exporting }"
+          @click.prevent="onExportClick"
+        >
+          <img src="@/assets/images/icons/excel.svg" alt="Export Excel">
+        </a>
+      </li>
       <li v-if="showRefresh">
         <a data-bs-toggle="tooltip" data-bs-placement="top" title="Refresh" @click="$emit('refresh')">
           <i class="ti ti-refresh"></i>
         </a>
       </li>
-      <li v-if="showExportAndCollapse">
+      <li v-if="showCollapse">
         <a data-bs-toggle="tooltip" data-bs-placement="top" title="Collapse" id="collapse-header" @click="toggleHeader">
           <i class="ti ti-chevron-up"></i>
         </a>
@@ -37,8 +37,9 @@
 </template>
 
 <script setup>
-import {computed, useAttrs} from 'vue';
-import {useRoute} from 'vue-router';
+import { computed, useAttrs } from 'vue';
+import { useRoute } from 'vue-router';
+import { useQueuedExport } from '@/composables/useQueuedExport.js';
 
 const props = defineProps({
   title: {
@@ -49,10 +50,24 @@ const props = defineProps({
     type: String,
     default: '',
   },
-  /** When true, hides the PDF/Excel/Refresh/Collapse toolbar. */
+  /** When true, hides Refresh, Collapse, and Excel toolbar controls. */
   hideActionButtons: {
     type: Boolean,
     default: false,
+  },
+  /** Data-transfer entity type; when set, shows a working Excel export icon. */
+  exportEntity: {
+    type: String,
+    default: null,
+  },
+  exportFormat: {
+    type: String,
+    default: 'csv',
+  },
+  /** Returns filter object for the queued export (e.g. current list filters). */
+  getExportFilters: {
+    type: Function,
+    default: null,
   },
 });
 
@@ -60,14 +75,21 @@ defineEmits(['refresh']);
 
 const attrs = useAttrs();
 const route = useRoute();
+const { exporting, runExport } = useQueuedExport();
 
 const isSuperAdminRoute = computed(() => Boolean(route.meta?.isSuperAdmin));
 
 const hasRefreshHandler = computed(() => typeof attrs.onRefresh === 'function');
 
-const showExportAndCollapse = computed(
+const showChrome = computed(
   () => !props.hideActionButtons && !isSuperAdminRoute.value,
 );
+
+const showExcelExport = computed(
+  () => showChrome.value && Boolean(props.exportEntity),
+);
+
+const showCollapse = computed(() => showChrome.value);
 
 const showRefresh = computed(() => {
   if (props.hideActionButtons) {
@@ -82,12 +104,23 @@ const showRefresh = computed(() => {
 });
 
 const showToolbar = computed(
-  () => showExportAndCollapse.value || showRefresh.value,
+  () => showExcelExport.value || showRefresh.value || showCollapse.value,
 );
 
+const onExportClick = () => {
+  if (!props.exportEntity) {
+    return;
+  }
+
+  const getFilters = props.getExportFilters ?? (() => ({}));
+  runExport(props.exportEntity, getFilters, props.exportFormat);
+};
+
 const toggleHeader = () => {
-    const header = document.getElementById("collapse-header");
-    if(header) header.classList.toggle("active");
-    document.body.classList.toggle("header-collapse");
+  const header = document.getElementById('collapse-header');
+  if (header) {
+    header.classList.toggle('active');
+  }
+  document.body.classList.toggle('header-collapse');
 };
 </script>

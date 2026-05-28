@@ -23,6 +23,10 @@
             {
                 "title": "Notifications",
                 "routes": "/admin/settings/notifications"
+            },
+            {
+                "title": "Data transfer",
+                "routes": "/admin/settings/data-transfer"
             }
         ]
     },

@@ -1,11 +1,8 @@
 <template>
-    <PageHeader title="Purchase List" subtitle="Manage your purchases">
+    <PageHeader hide-action-buttons title="Purchase List" subtitle="Manage your purchases">
         <template #actions>
             <a href="#" class="btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#add-units">
                 <i class="ti ti-circle-plus me-2"></i>Add Product
-            </a>
-            <a href="#" class="btn btn-secondary form-btn-color d-inline-flex align-items-center" data-bs-toggle="modal" data-bs-target="#view-notes">
-                <i class="ti ti-download me-2"></i>Import Purchase
             </a>
         </template>
     </PageHeader>

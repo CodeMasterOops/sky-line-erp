@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Add Product" subtitle="Create a stocked product or a billable service">
+    <PageHeader hide-action-buttons title="Add Product" subtitle="Create a stocked product or a billable service">
         <template #actions>
             <router-link :to="{ name: 'admin.product-list' }"
                 class="btn btn-outline-secondary d-flex align-items-center">

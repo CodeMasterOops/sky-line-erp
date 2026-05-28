@@ -37,11 +37,21 @@ class DataTransferController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $search = trim((string) $request->get('search', ''));
+
         $jobs = DataTransferJob::query()
             ->where('company_id', auth('admin')->user()->company_id)
             ->when($request->direction, fn ($q, $d) => $q->where('direction', $d))
             ->when($request->entity_type, fn ($q, $t) => $q->where('entity_type', $t))
             ->when($request->status, fn ($q, $s) => $q->where('status', $s))
+            ->when($search !== '', function ($q) use ($search) {
+                $like = '%'.$search.'%';
+                $q->where(function ($sub) use ($like) {
+                    $sub->where('original_filename', 'like', $like)
+                        ->orWhere('entity_type', 'like', $like)
+                        ->orWhere('status', 'like', $like);
+                });
+            })
             ->latest()
             ->paginate(min(max((int) $request->get('limit', 25), 1), 100));
 

@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="TDS Report" subtitle="Tax Deducted at Source – Nepal IRD" @refresh="generateReport" />
+    <PageHeader title="TDS Report" subtitle="Tax Deducted at Source – Nepal IRD" hide-action-buttons />
 
     <section class="section">
         <div class="card border-0 shadow-sm">

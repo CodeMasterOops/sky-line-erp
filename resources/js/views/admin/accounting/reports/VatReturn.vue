@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="VAT Return (D3 / Anusuchi 13)" subtitle="Nepal IRD VAT Return" />
+    <PageHeader title="VAT Return (D3 / Anusuchi 13)" subtitle="Nepal IRD VAT Return" hide-action-buttons />
 
     <div class="card border-0 mb-3">
         <div class="card-body pb-1">

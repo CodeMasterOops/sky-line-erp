@@ -1,5 +1,11 @@
 <template>
-    <PageHeader title="Invoices" subtitle="Manage your invoices" @refresh="fetchInvoices">
+    <PageHeader
+        title="Invoices"
+        subtitle="Manage your invoices"
+        export-entity="invoice"
+        :get-export-filters="getInvoiceExportFilters"
+        @refresh="fetchInvoices"
+    >
         <template #actions>
             <button v-can="'create_invoice'" type="button" @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
@@ -175,5 +181,12 @@ const rowActions = createRowActions({
     onDelete: handleDelete,
     canViewInvoice: () => hasPermission('show_invoice'),
     canVoidInvoice: () => hasPermission('approve_invoice'),
+});
+
+const getInvoiceExportFilters = () => ({
+    search: filter.search,
+    status: filter.status,
+    start_date: filter.date_from,
+    end_date: filter.date_to,
 });
 </script>

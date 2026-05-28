@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Bank Reconciliation" subtitle="Match bank statement lines to GL entries" />
+    <PageHeader hide-action-buttons title="Bank Reconciliation" subtitle="Match bank statement lines to GL entries" />
 
     <div class="row g-3">
         <div class="col-md-3">

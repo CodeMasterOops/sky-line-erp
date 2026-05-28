@@ -17,6 +17,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Worker Queues
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated queue names processed by `php artisan queue:work-app`
+    | (local dev via composer run dev, Docker supervisor on production).
+    | Order matters: workers drain the first queue before the next.
+    |
+    */
+
+    'worker_queues' => env(
+        'QUEUE_WORKER_QUEUES',
+        'data-transfer-heavy,data-transfer,default,ird',
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
     |

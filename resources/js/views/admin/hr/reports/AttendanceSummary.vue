@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Attendance Summary" subtitle="Monthly attendance report" />
+    <PageHeader hide-action-buttons title="Attendance Summary" subtitle="Monthly attendance report" />
 
     <section class="section">
         <div class="card">

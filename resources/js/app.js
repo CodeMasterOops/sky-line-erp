@@ -41,7 +41,6 @@ import VDateTimePicker from "@/components/base/VDateTimePicker.vue";
 import VueFeather from "vue-feather";
 import verticalSidebar from "@/layouts/admin/vertical-sidebar.vue";
 import PosLoader from "@/layouts/pos-loader.vue";
-import ProductHeader from "@/components/product/product-header.vue";
 import PageHeader from "@/components/shared/PageHeader.vue";
 import SettingsSidebar from "@/layouts/admin/settings-sidebar.vue";
 import SuperAdminSettingsSidebar from "@/layouts/super-admin/settings-sidebar.vue";
@@ -73,7 +72,6 @@ createApp(App)
     .component("VSelect", VSelect)
     .component("Multiselect", Multiselect)
     .component("VMultiselect", VMultiselect)
-    .component("ProductHeader", ProductHeader)
     .component("PageHeader", PageHeader)
     .component("VCheckbox", VCheckbox)
     .component("VDatepicker", VDatepicker)

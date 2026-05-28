@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Edit Product" subtitle="Update product details, pricing, and variants">
+    <PageHeader hide-action-buttons title="Edit Product" subtitle="Update product details, pricing, and variants">
         <template #actions>
             <router-link :to="{ name: 'admin.product-list' }"
                 class="btn btn-outline-secondary d-flex align-items-center">

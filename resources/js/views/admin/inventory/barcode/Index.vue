@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Print Barcode" subtitle="Generate & print product barcode labels" />
+    <PageHeader hide-action-buttons title="Print Barcode" subtitle="Generate & print product barcode labels" />
 
     <div class="barcode-page">
         <!-- ── Search & Add Panel ─────────────────────────────────── -->

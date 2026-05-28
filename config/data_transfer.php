@@ -3,10 +3,11 @@
 /**
  * Data transfer (import/export) configuration.
  *
- * Production scaling:
- * - Set QUEUE_CONNECTION=redis and install Laravel Horizon for workers on
- *   queues: data-transfer, data-transfer-heavy, ird.
- * - Run: php artisan queue:work --queue=data-transfer-heavy,data-transfer,ird
+ * Workers must listen on named queues (not only "default"):
+ * - Local: `composer run dev` runs `queue:listen-app`
+ * - Server/Docker: supervisor runs `queue:work-app` (see docker/supervisor)
+ * - Manual: `php artisan queue:work-app`
+ * - Override list: QUEUE_WORKER_QUEUES in .env
  * - Schedule: data-transfer:prune (registered in routes/console.php)
  */
 return [

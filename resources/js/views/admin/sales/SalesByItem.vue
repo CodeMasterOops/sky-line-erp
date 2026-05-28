@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Sales By Item" subtitle="Sales report" @refresh="generateReport" />
+    <PageHeader hide-action-buttons title="Sales By Item" subtitle="Sales report" @refresh="generateReport" />
 
     <section class="section">
         <div class="card border-0 shadow-sm mb-3">

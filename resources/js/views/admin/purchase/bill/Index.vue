@@ -1,5 +1,11 @@
 <template>
-    <PageHeader title="Bills" subtitle="Manage your bills" @refresh="fetchBills">
+    <PageHeader
+        title="Bills"
+        subtitle="Manage your bills"
+        export-entity="bill"
+        :get-export-filters="getBillExportFilters"
+        @refresh="fetchBills"
+    >
         <template #actions>
             <button v-can="'create_bill'" type="button" @click.prevent="createModalOpened = true"
                 class="btn btn-primary d-flex align-items-center">
@@ -171,5 +177,10 @@ const rowActions = createRowActions({
     onDelete: handleDelete,
     canViewBill: () => hasPermission('show_bill'),
     canVoidBill: () => hasPermission('approve_bill'),
+});
+
+const getBillExportFilters = () => ({
+    search: filter.search,
+    status: filter.status,
 });
 </script>

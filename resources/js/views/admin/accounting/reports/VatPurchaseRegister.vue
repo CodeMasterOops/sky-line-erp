@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Kharid Khata" subtitle="VAT Purchase Register" />
+    <PageHeader title="Kharid Khata" subtitle="VAT Purchase Register" hide-action-buttons />
 
     <div class="card border-0 mb-3">
         <div class="card-body pb-1">

@@ -25,6 +25,7 @@ services:
       SESSION_DRIVER: database
       SESSION_LIFETIME: "120"
       QUEUE_CONNECTION: database
+      QUEUE_WORKER_QUEUES: "data-transfer-heavy,data-transfer,default,ird"
       CACHE_STORE: database
       FILESYSTEM_DISK: public
       LOG_CHANNEL: stderr

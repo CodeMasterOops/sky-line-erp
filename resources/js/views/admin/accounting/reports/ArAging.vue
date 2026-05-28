@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Accounts Receivable Aging" subtitle="Outstanding invoices by age" />
+    <PageHeader hide-action-buttons title="Accounts Receivable Aging" subtitle="Outstanding invoices by age" />
 
     <div class="card border-0 mb-3">
         <div class="card-body pb-1">

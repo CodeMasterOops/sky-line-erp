@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Tax Report" subtitle="Financial report" />
+    <PageHeader title="Tax Report" subtitle="Financial report" hide-action-buttons />
 
     <div class="card border-0">
         <div class="card-body pb-1">
@@ -70,27 +70,16 @@
             <div>
                 <h4>Sales Tax Report</h4>
             </div>
-            <ul class="table-top-head">
-                <li class="me-2">
-                    <a href="javascript:void(0);" data-bs-toggle="tooltip" data-bs-placement="top" title="Pdf">
-                        <img src="@/assets/images/icons/pdf.svg" alt="PDF" />
-                    </a>
-                </li>
-                <li class="me-2">
-                    <a href="javascript:void(0);" data-bs-toggle="tooltip" data-bs-placement="top" title="Excel">
-                        <img src="@/assets/images/icons/excel.svg" alt="Excel" />
-                    </a>
-                </li>
-                <li>
-                    <a href="javascript:void(0);" data-bs-toggle="tooltip" data-bs-placement="top" title="Print">
-                        <i class="ti ti-printer"></i>
-                    </a>
-                </li>
-            </ul>
+            <VExport
+                title="tax-report"
+                target="tax-report-table"
+                button-label="Export Excel"
+                btn-class="btn btn-sm btn-outline-success"
+            />
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table datatable">
+                <table id="tax-report-table" class="table datatable">
                     <thead class="thead-light">
                         <tr>
                             <th>Reference</th>
