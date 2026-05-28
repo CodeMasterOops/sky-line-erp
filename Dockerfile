@@ -11,31 +11,102 @@ COPY resources ./resources
 
 RUN npm run build
 
-# Stage 2: PHP application
-FROM serversideup/php:8.3-fpm-nginx
+# Stage 2: Install PHP dependencies
+FROM php:8.4-fpm-bookworm AS composer
 
-USER root
-
-# Install gd extension (required by simplesoftwareio/simple-qrcode and dompdf)
-RUN apt-get update && apt-get install -y \
-    libgd-dev \
-    libjpeg-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    unzip \
     libpng-dev \
-    libwebp-dev \
+    libjpeg-dev \
     libfreetype6-dev \
+    libwebp-dev \
+    libzip-dev \
+    libicu-dev \
+    libonig-dev \
+    default-libmysqlclient-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install gd \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo_mysql \
+        mbstring \
+        zip \
+        bcmath \
+        gd \
+        opcache \
+        pcntl \
+        intl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=www-data:www-data . /var/www/html
-COPY --chown=www-data:www-data --from=node-builder /app/public/build /var/www/html/public/build
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-USER www-data
+WORKDIR /var/www/html
 
-RUN composer install --no-interaction --optimize-autoloader --no-dev \
-    && mkdir -p storage/framework/sessions \
-    && mkdir -p storage/framework/views \
-    && mkdir -p storage/framework/cache/data \
-    && mkdir -p storage/app/public \
-    && mkdir -p bootstrap/cache \
+COPY composer.json composer.lock ./
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist
+
+COPY . .
+
+RUN rm -f bootstrap/cache/packages.php bootstrap/cache/services.php \
+    && composer dump-autoload --optimize --no-dev --no-scripts
+
+# Stage 3: Production runtime
+FROM php:8.4-fpm-bookworm AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    supervisor \
+    curl \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libwebp-dev \
+    libzip-dev \
+    libicu-dev \
+    libonig-dev \
+    default-libmysqlclient-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo_mysql \
+        mbstring \
+        zip \
+        bcmath \
+        gd \
+        opcache \
+        pcntl \
+        intl \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/sites-enabled/default
+
+COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY docker/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/scripts/entrypoint.sh /usr/local/bin/entrypoint
+
+RUN chmod +x /usr/local/bin/entrypoint
+
+WORKDIR /var/www/html
+
+COPY --from=composer --chown=www-data:www-data /var/www/html /var/www/html
+COPY --from=node-builder --chown=www-data:www-data /app/public/build /var/www/html/public/build
+
+RUN mkdir -p \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/framework/cache/data \
+        storage/app/public \
+        bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl -f http://127.0.0.1/up || exit 1
+
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

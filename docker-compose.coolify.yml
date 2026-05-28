@@ -3,11 +3,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: pos-saas-app:latest
+    image: sky-line-erp:latest
+    ports:
+      - "80:80"
     environment:
-      AUTORUN_ENABLED: "true"
-      AUTORUN_LARAVEL_MIGRATION_ISOLATION: "false"
-      AUTORUN_LARAVEL_OPTIMIZE: "false"
+      RUN_MIGRATIONS: "true"
+      RUN_OPTIMIZE: "true"
+      RUN_STORAGE_LINK: "true"
       APP_ENV: production
       APP_DEBUG: "false"
       APP_URL: "${APP_URL}"
@@ -32,68 +34,18 @@ services:
       MAIL_USERNAME: "${MAIL_USERNAME:-}"
       MAIL_PASSWORD: "${MAIL_PASSWORD:-}"
       MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS:-}"
-      MAIL_FROM_NAME: "${APP_NAME:-POS}"
-      VITE_APP_NAME: "${APP_NAME:-POS}"
+      MAIL_FROM_NAME: "${APP_NAME:-Sky Line ERP}"
+      VITE_APP_NAME: "${APP_NAME:-Sky Line ERP}"
     volumes:
       - storage_data:/var/www/html/storage/app
     networks:
       - coolify
-
-  scheduler:
-    image: pos-saas-app:latest
-    command: ["php", "/var/www/html/artisan", "schedule:work"]
-    environment:
-      APP_ENV: production
-      APP_KEY: "${APP_KEY}"
-      APP_URL: "${APP_URL}"
-      DB_CONNECTION: mysql
-      DB_HOST: "${DB_HOST}"
-      DB_PORT: "3306"
-      DB_DATABASE: "${DB_DATABASE}"
-      DB_USERNAME: "${DB_USERNAME}"
-      DB_PASSWORD: "${DB_PASSWORD}"
-      QUEUE_CONNECTION: database
-      CACHE_STORE: database
-      FILESYSTEM_DISK: public
-      LOG_CHANNEL: stderr
-    volumes:
-      - storage_data:/var/www/html/storage/app
-    networks:
-      - coolify
-    depends_on:
-      - app
-
-  worker:
-    image: pos-saas-app:latest
-    command:
-      [
-        "php",
-        "/var/www/html/artisan",
-        "queue:work",
-        "--sleep=3",
-        "--tries=3",
-        "--max-time=3600",
-      ]
-    environment:
-      APP_ENV: production
-      APP_KEY: "${APP_KEY}"
-      APP_URL: "${APP_URL}"
-      DB_CONNECTION: mysql
-      DB_HOST: "${DB_HOST}"
-      DB_PORT: "3306"
-      DB_DATABASE: "${DB_DATABASE}"
-      DB_USERNAME: "${DB_USERNAME}"
-      DB_PASSWORD: "${DB_PASSWORD}"
-      QUEUE_CONNECTION: database
-      CACHE_STORE: database
-      FILESYSTEM_DISK: public
-      LOG_CHANNEL: stderr
-    volumes:
-      - storage_data:/var/www/html/storage/app
-    networks:
-      - coolify
-    depends_on:
-      - app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
 volumes:
   storage_data:
