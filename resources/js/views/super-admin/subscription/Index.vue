@@ -77,7 +77,6 @@
             :data-source="subscriptions.data"
             :loading="subscriptions.loading"
             :pagination="false"
-            :loading="subscriptions.loading"
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.key === 'sn'">

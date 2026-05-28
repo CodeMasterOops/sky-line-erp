@@ -92,7 +92,6 @@
             :data-source="plans.data"
             :loading="plans.loading"
             :pagination="false"
-            :loading="plans.loading"
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.key === 'sn'">
