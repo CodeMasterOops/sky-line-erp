@@ -15,13 +15,23 @@ class BudgetController extends Controller
     /**
      * @Permissions("list_budget", group="budget", desc="List Budgets")
      */
-    public function index()
+    public function index(Request $request)
     {
         $budgets = Budget::with(['fiscalYear:id,year_code', 'branch:id,name,code', 'createdBy:id,name'])
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate($request->integer('limit', 25));
 
-        return response()->json(['data' => $budgets]);
+        return response()->json([
+            'data' => $budgets->items(),
+            'meta' => [
+                'current_page' => $budgets->currentPage(),
+                'from' => $budgets->firstItem(),
+                'last_page' => $budgets->lastPage(),
+                'per_page' => $budgets->perPage(),
+                'to' => $budgets->lastItem(),
+                'total' => $budgets->total(),
+            ],
+        ]);
     }
 
     /**

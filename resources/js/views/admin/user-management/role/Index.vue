@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Role List" subtitle="Manage user roles" @refresh="fetchRoles(true)">
+    <PageHeader title="Role List" subtitle="Manage user roles" @refresh="fetch">
         <template #actions>
             <router-link
                 v-can="'create_role'"
@@ -19,10 +19,11 @@
                         :columns="columns"
                         :data-source="roles.data"
                         :loading="roles.loading"
+                        :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ (roles.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-else-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
@@ -44,6 +45,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="roles.meta" />
                 </div>
             </div>
         </div>
@@ -51,70 +53,46 @@
 </template>
 
 <script setup>
-import {onMounted} from "vue";
-import Swal from "sweetalert2";
-import {toast} from "@/helpers/toast";
-import showErrors from "@/helpers/showErrors";
-import {useRoleStore} from "@/stores/admin/user-management/role";
-import {storeToRefs} from "pinia";
+import Swal from 'sweetalert2';
+import { toast } from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import { useRoleStore } from '@/stores/admin/user-management/role';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 
 const roleStore = useRoleStore();
+const { roles } = storeToRefs(roleStore);
 
-onMounted(() => {
-  fetchRoles();
-})
-
-const {roles} = storeToRefs(roleStore);
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => roleStore.getRoles({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const columns = [
-  {
-    title: 'SN',
-    key: 'sn',
-    width: 60,
-  },
-  {
-    title: 'Name',
-    dataIndex: 'name',
-    sorter: {
-      compare: (a, b) => {
-        a = a.name.toLowerCase();
-        b = b.name.toLowerCase();
-        return a > b ? -1 : b > a ? 1 : 0;
-      },
-    },
-  },
-  {
-    title: 'Action',
-    key: 'action',
-    align: 'center',
-  },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
-const fetchRoles = (refetch = false) => {
-  if (refetch) {
-    roles.value.data = [];
-  }
-
-  roleStore.getRoles();
-};
-
 const deleteRole = async (id) => {
-  Swal.fire({
-    title: 'Are You Sure to Delete ? ',
-    text: "If you delete this, it will be gone forever.",
-    icon:'warning',
-    showCancelButton: true,
-    confirmButtonColor: 'red',
-    confirmButtonText: "Yes",
-  }).then(async (result) => {
-    if (result.value) {
-      try {
-        let res = await roleStore.deleteRole(id);
-        toast(res.status, res.data.message);
-      } catch (e) {
-        showErrors(e)
-      }
-    }
-  });
-}
+    Swal.fire({
+        title: 'Are You Sure to Delete ? ',
+        text: 'If you delete this, it will be gone forever.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'red',
+        confirmButtonText: 'Yes',
+    }).then(async (result) => {
+        if (result.value) {
+            try {
+                let res = await roleStore.deleteRole(id);
+                toast(res.status, res.data.message);
+                fetch();
+            } catch (e) {
+                showErrors(e);
+            }
+        }
+    });
+};
 </script>

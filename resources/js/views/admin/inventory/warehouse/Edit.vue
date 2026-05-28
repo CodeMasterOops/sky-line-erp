@@ -103,7 +103,7 @@ const isSubmitting = ref(false);
 
 watch(() => edit_warehouse_id.value, async (id) => {
     if (id) {
-        await warehouseStore.getWarehouses(true);
+        await warehouseStore.getWarehouses();
         await warehouseStore.getWarehouse(id);
         Object.keys(form).forEach((key) => {
             const v = warehouse.value.data[key];

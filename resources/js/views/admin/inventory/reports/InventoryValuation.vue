@@ -23,19 +23,19 @@
         <div class="col-md-4">
             <div class="card border-0 bg-primary-subtle text-center p-3">
                 <div class="text-muted small">Total Items</div>
-                <div class="fw-bold fs-5">{{ summary.total_items }}</div>
+                <div class="fw-bold ">{{ summary.total_items }}</div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 bg-info-subtle text-center p-3">
                 <div class="text-muted small">Total Quantity</div>
-                <div class="fw-bold fs-5">{{ formatMoneyPlain(summary.total_quantity) }}</div>
+                <div class="fw-bold ">{{ formatMoneyPlain(summary.total_quantity) }}</div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card border-0 bg-success-subtle text-center p-3">
                 <div class="text-muted small">Total Inventory Value</div>
-                <div class="fw-bold fs-5 text-success">{{ formatMoney(summary.total_value) }}</div>
+                <div class="fw-bold  text-success">{{ formatMoney(summary.total_value) }}</div>
             </div>
         </div>
     </div>

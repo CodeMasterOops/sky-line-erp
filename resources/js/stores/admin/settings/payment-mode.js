@@ -8,6 +8,7 @@ export const usePaymentModeStore = defineStore('payment-mode', {
     state: () => ({
         paymentModes: {
             data: [],
+            meta: {},
             loading: false
         },
         paymentMode: {
@@ -17,18 +18,19 @@ export const usePaymentModeStore = defineStore('payment-mode', {
     }),
 
     actions: {
-        getPaymentModes(refetch = false) {
-            if (!this.paymentModes.data.length || refetch) {
-                this.paymentModes.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.paymentModes.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.paymentModes.loading = false;
-                    })
-            }
+        getPaymentModes({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.paymentModes.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.paymentModes.data = res.data.data;
+                    this.paymentModes.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.paymentModes.loading = false;
+                });
         },
         storePaymentMode(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)

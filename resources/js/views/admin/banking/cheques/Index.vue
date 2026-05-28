@@ -42,14 +42,14 @@
             <div class="card-body py-2">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-2">
-                        <select class="form-select form-select-sm" v-model="filter.type" @change="fetchCheques">
+                        <select class="form-select form-select-sm" v-model="filter.type" @change="fetchCheques(true)">
                             <option value="">All Types</option>
                             <option value="payable">Payable</option>
                             <option value="receivable">Receivable</option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <select class="form-select form-select-sm" v-model="filter.status" @change="fetchCheques">
+                        <select class="form-select form-select-sm" v-model="filter.status" @change="fetchCheques(true)">
                             <option value="">All Status</option>
                             <option value="pending">Pending</option>
                             <option value="presented">Presented</option>
@@ -64,7 +64,7 @@
                             input-type="date"
                             v-model="filter.from_date"
                             label="From"
-                            @change="fetchCheques"
+                            @change="fetchCheques(true)"
                         />
                     </div>
                     <div class="col-md-2">
@@ -73,7 +73,7 @@
                             input-type="date"
                             v-model="filter.to_date"
                             label="To"
-                            @change="fetchCheques"
+                            @change="fetchCheques(true)"
                         />
                     </div>
                 </div>
@@ -83,8 +83,11 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <a-table :columns="columns" :data-source="cheques" :loading="loading" row-key="id">
-                        <template #bodyCell="{ column, record }">
+                    <a-table :columns="columns" :data-source="cheques" :loading="loading" :pagination="false" row-key="id">
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ (listMeta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                            </template>
                             <template v-if="column.key === 'type'">
                                 <span :class="record.type === 'receivable' ? 'badge bg-success' : 'badge bg-danger'">
                                     {{ record.type === 'receivable' ? 'Receivable' : 'Payable' }}
@@ -118,6 +121,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="listMeta" />
                 </div>
             </div>
         </div>
@@ -232,7 +236,8 @@
 </template>
 
 <script setup>
-import {ref, onMounted, computed, watch} from 'vue';
+import {ref, onMounted, computed, watch, reactive} from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
 import {apiAdmin} from '@/helpers/api';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -242,6 +247,7 @@ import {formatMoney} from '@/helpers/formatMoney.js';
 const loading = ref(false);
 const saving = ref(false);
 const cheques = ref([]);
+const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
 const summary = ref([]);
 const dueThisWeek = ref([]);
 const createModal = ref(false);
@@ -274,7 +280,7 @@ const hidePartyDropdown = () => {
     }, 150);
 };
 
-const filter = ref({type: '', status: '', from_date: '', to_date: ''});
+const filter = reactive({ type: '', status: '', from_date: '', to_date: '', page: 1, limit: 10 });
 const form = ref({
     type: 'receivable',
     party_id: '',
@@ -288,6 +294,7 @@ const form = ref({
 });
 
 const columns = [
+    {title: 'SN', key: 'sn', width: 60},
     {title: 'Cheque No', dataIndex: 'cheque_no', key: 'cheque_no'},
     {title: 'Party', key: 'party', dataIndex: ['party', 'name']},
     {title: 'Bank', dataIndex: 'bank_name', key: 'bank'},
@@ -372,16 +379,38 @@ async function fetchBankAccounts() {
     }
 }
 
-async function fetchCheques() {
+async function fetchCheques(resetPage = false) {
+    if (resetPage) {
+        filter.page = 1;
+    }
     loading.value = true;
     try {
-        const params = new URLSearchParams(Object.fromEntries(Object.entries(filter.value).filter(([, v]) => v)));
+        const params = new URLSearchParams({
+            page: String(filter.page),
+            per_page: String(filter.limit),
+            ...(filter.type ? { type: filter.type } : {}),
+            ...(filter.status ? { status: filter.status } : {}),
+            ...(filter.from_date ? { from_date: filter.from_date } : {}),
+            ...(filter.to_date ? { to_date: filter.to_date } : {}),
+        });
         const {data} = await apiAdmin(`cheque?${params}`);
-        cheques.value = data.data;
+        cheques.value = data.data ?? [];
+        listMeta.value = data.meta ?? {
+            total: data.total ?? 0,
+            current_page: data.current_page ?? filter.page,
+            per_page: data.per_page ?? filter.limit,
+            from: data.from ?? null,
+            to: data.to ?? null,
+            last_page: data.last_page ?? 1,
+        };
     } finally {
         loading.value = false;
     }
 }
+
+watch(() => [filter.page, filter.limit], () => {
+    fetchCheques();
+});
 
 async function fetchSummary() {
     const {data} = await apiAdmin('cheque/summary');

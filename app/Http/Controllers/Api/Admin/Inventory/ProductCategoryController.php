@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Models\ProductCategory;
 use App\Http\Controllers\Controller;
@@ -13,9 +14,11 @@ class ProductCategoryController extends Controller
     /**
      * @Permissions("list_product_category", group="product_category", desc="List Product Category")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $productCategories = ProductCategory::all();
+        $productCategories = ProductCategory::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return ProductCategoryResource::collection($productCategories);
     }

@@ -9,6 +9,7 @@ export const useWarehouseStore = defineStore('warehouse', {
     state: () => ({
         warehouses: {
             data: [],
+            meta: {},
             loading: false
         },
         warehouse: {
@@ -26,18 +27,19 @@ export const useWarehouseStore = defineStore('warehouse', {
     },
 
     actions: {
-        getWarehouses(refetch = false) {
-            if (!this.warehouses.data.length || refetch) {
-                this.warehouses.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.warehouses.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.warehouses.loading = false;
-                    })
-            }
+        getWarehouses({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.warehouses.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.warehouses.data = res.data.data;
+                    this.warehouses.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.warehouses.loading = false;
+                });
         },
         storeWarehouse(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)

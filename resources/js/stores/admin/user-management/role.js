@@ -8,6 +8,7 @@ export const useRoleStore = defineStore('role', {
     state: () => ({
         roles: {
             data: [],
+            meta: {},
             loading: false
         },
         role: {
@@ -32,18 +33,19 @@ export const useRoleStore = defineStore('role', {
                     this.permissions.loading = false;
                 })
         },
-        getRoles() {
-            if (!this.roles.data.length) {
-                this.roles.loading = true;
-                return apiAdmin(`${roleUrl}`)
-                    .then((res) => {
-                        this.roles.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.roles.loading = false;
-                    })
-            }
+        getRoles({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.roles.loading = true;
+            return apiAdmin(`${roleUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.roles.data = res.data.data;
+                    this.roles.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.roles.loading = false;
+                });
         },
         storeRole(form) {
             return apiAdmin(`${roleUrl}`, 'post', form)

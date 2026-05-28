@@ -1,6 +1,6 @@
 <template>
     <div>
-        <PageHeader title="Branch Management" subtitle="Manage company branches / offices" @refresh="fetchBranches(true)">
+        <PageHeader title="Branch Management" subtitle="Manage company branches / offices" @refresh="fetch">
             <template #actions>
                 <button v-can="'create_branch'" type="button" class="btn btn-primary" @click="openCreate">
                     <i class="ti ti-circle-plus me-2"></i> Add Branch
@@ -16,7 +16,13 @@
                 <div class="card flex-fill mb-0">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <a-table :columns="columns" :data-source="branches.data" :loading="branches.loading" row-key="id">
+                            <a-table
+                                :columns="columns"
+                                :data-source="branches.data"
+                                :loading="branches.loading"
+                                :pagination="false"
+                                row-key="id"
+                            >
                                 <template #bodyCell="{ column, record }">
                                     <template v-if="column.key === 'is_head_office'">
                                         <span v-if="record.is_head_office" class="badge bg-primary">Head Office</span>
@@ -34,6 +40,7 @@
                                     </template>
                                 </template>
                             </a-table>
+                            <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="branches.meta" />
                         </div>
                     </div>
                 </div>
@@ -106,20 +113,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import { useBranchStore } from '@/stores/admin/settings/branch.js';
 import { useNextCode } from '@/helpers/useNextCode.js';
 
 const branchStore = useBranchStore();
-
 const saving = ref(false);
 const formModal = ref(false);
 const editId = ref(null);
 const { branches } = storeToRefs(branchStore);
+
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => branchStore.getBranches({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const form = ref({ name: '', code: '', address: '', phone: '', email: '', pan: '', is_head_office: false, is_active: true });
 const { loading: codeLoading, fetchNextCode } = useNextCode(form, 'code', 'branch/next-code');
@@ -134,12 +147,6 @@ const columns = [
     { title: 'Status', key: 'is_active' },
     { title: 'Action', key: 'action' },
 ];
-
-onMounted(fetchBranches);
-
-async function fetchBranches(refetch = false) {
-    await branchStore.getBranches(refetch);
-}
 
 function openCreate() {
     editId.value = null;
@@ -168,6 +175,7 @@ async function saveBranch() {
         }
         toast('Branch saved successfully');
         closeFormModal();
+        fetch();
     } catch (e) { showErrors(e); }
     finally { saving.value = false; }
 }
@@ -177,5 +185,6 @@ async function deleteBranch(id) {
     if (!result.isConfirmed) return;
     await branchStore.deleteBranch(id);
     toast('Branch deleted');
+    fetch();
 }
 </script>

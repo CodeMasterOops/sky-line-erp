@@ -1,6 +1,6 @@
 <template>
     <div>
-        <PageHeader title="Tax List" subtitle="Manage your taxes" @refresh="fetchTaxes(true)">
+        <PageHeader title="Tax List" subtitle="Manage your taxes" @refresh="fetch">
             <template #actions>
                 <button
                     v-can="'create_tax'"
@@ -25,10 +25,11 @@
                                 :columns="columns"
                                 :data-source="taxes.data"
                                 :loading="taxes.loading"
+                                :pagination="false"
                             >
                                 <template #bodyCell="{ column, record, index }">
                                     <template v-if="column.key === 'sn'">
-                                        {{ index + 1 }}
+                                        {{ (taxes.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                                     </template>
                                     <template v-if="column.key === 'action'">
                                         <div class="action-icon d-inline-flex">
@@ -47,6 +48,7 @@
                                     </template>
                                 </template>
                             </a-table>
+                            <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="taxes.meta" />
                         </div>
                     </div>
                 </div>
@@ -58,86 +60,53 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from "vue";
-import Swal from "sweetalert2";
-import {toast} from "@/helpers/toast";
-import showErrors from "@/helpers/showErrors";
-import {storeToRefs} from "pinia";
+import { ref } from 'vue';
+import Swal from 'sweetalert2';
+import { toast } from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateTax from './Create.vue';
 import EditTax from './Edit.vue';
-import {useTaxStore} from '@/stores/admin/settings/tax.js';
+import { useTaxStore } from '@/stores/admin/settings/tax.js';
 
 const taxStore = useTaxStore();
-
-onMounted(() => {
-    fetchTaxes();
-})
-
 const edit_tax_id = ref('');
 const createModalOpened = ref(false);
+const { taxes } = storeToRefs(taxStore);
 
-const {taxes} = storeToRefs(taxStore);
-
-const fetchTaxes = (refetch = false) => {
-    taxStore.getTaxes(refetch);
-}
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => taxStore.getTaxes({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Rate(%)',
-        dataIndex: 'rate',
-        sorter: {
-            compare: (a, b) => {
-                a = a.code.toLowerCase();
-                b = b.code.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Type',
-        dataIndex: 'type_label',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Rate(%)', dataIndex: 'rate' },
+    { title: 'Type', dataIndex: 'type_label' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
 const deleteTax = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
-        text: "If you delete this, it will be gone forever.",
+        text: 'If you delete this, it will be gone forever.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: "Yes",
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
                 let res = await taxStore.deleteTax(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 </script>

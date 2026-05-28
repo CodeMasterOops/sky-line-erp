@@ -8,6 +8,7 @@ export const useUnitStore = defineStore('unit', {
     state: () => ({
         units: {
             data: [],
+            meta: {},
             loading: false
         },
         unit: {
@@ -17,18 +18,19 @@ export const useUnitStore = defineStore('unit', {
     }),
 
     actions: {
-        getUnits(refetch = false) {
-            if (!this.units.data.length || refetch) {
-                this.units.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.units.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.units.loading = false;
-                    })
-            }
+        getUnits({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.units.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.units.data = res.data.data;
+                    this.units.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.units.loading = false;
+                });
         },
         storeUnit(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)

@@ -20,9 +20,19 @@ class BomController extends Controller
             ->when($request->is_active !== null, fn ($q) => $q->where('is_active', filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN)))
             ->with(['productVariant.product:id,name', 'items'])
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate($request->integer('limit', 25));
 
-        return response()->json(['data' => $boms]);
+        return response()->json([
+            'data' => $boms->items(),
+            'meta' => [
+                'current_page' => $boms->currentPage(),
+                'from' => $boms->firstItem(),
+                'last_page' => $boms->lastPage(),
+                'per_page' => $boms->perPage(),
+                'to' => $boms->lastItem(),
+                'total' => $boms->total(),
+            ],
+        ]);
     }
 
     /**

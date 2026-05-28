@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin\UserManagement;
 
 use App\Models\User;
 use App\Enums\UserTypeEnum;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -16,12 +17,13 @@ class UserController extends Controller
     /**
      * @Permissions("list_user", group="user", desc="List User")
      */
-    public function index()
+    public function index(Request $request)
     {
         $users = User::with('roles:id,name')
             ->where('company_id', auth('admin')->user()->company_id)
             ->whereNot('user_type', UserTypeEnum::ADMIN->value)
-            ->get();
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return UserResource::collection($users);
     }

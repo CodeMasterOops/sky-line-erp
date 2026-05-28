@@ -18,7 +18,9 @@ class AttributeController extends Controller
      */
     public function index(Request $request)
     {
-        $attributes = Attribute::with('values')->get();
+        $attributes = Attribute::with('values')
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return AttributeResource::collection($attributes);
     }

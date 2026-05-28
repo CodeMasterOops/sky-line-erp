@@ -74,7 +74,7 @@
                 <div class="row mt-3">
                     <div class="col-12">
                         <div class="alert alert-primary d-flex justify-content-between align-items-center">
-                            <span class="fs-5 fw-bold">Net Pay</span>
+                            <span class=" fw-bold">Net Pay</span>
                             <span class="fs-4 fw-bold">{{ payslip.data?.net_salary }}</span>
                         </div>
                     </div>

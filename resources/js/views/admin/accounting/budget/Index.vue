@@ -12,8 +12,11 @@
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <a-table :columns="listColumns" :data-source="budgets" :loading="loading" row-key="id">
-                            <template #bodyCell="{ column, record }">
+                        <a-table :columns="listColumns" :data-source="budgets" :loading="loading" :pagination="false" row-key="id">
+                            <template #bodyCell="{ column, record, index }">
+                                <template v-if="column.key === 'sn'">
+                                    {{ (listMeta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                                </template>
                                 <template v-if="column.key === 'is_active'">
                                     <span :class="record.is_active ? 'badge bg-success' : 'badge bg-secondary'">
                                         {{ record.is_active ? 'Active' : 'Inactive' }}
@@ -34,6 +37,7 @@
                                 </template>
                             </template>
                         </a-table>
+                        <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="listMeta" />
                     </div>
                 </div>
             </div>
@@ -66,7 +70,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Total Budgeted</div>
-                            <div class="fs-5 fw-bold text-primary">{{ formatMoney(vsActualData.summary.total_budgeted) }}</div>
+                            <div class=" fw-bold text-primary">{{ formatMoney(vsActualData.summary.total_budgeted) }}</div>
                         </div>
                     </div>
                 </div>
@@ -74,7 +78,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Total Actual</div>
-                            <div class="fs-5 fw-bold text-warning">{{ formatMoney(vsActualData.summary.total_actual) }}</div>
+                            <div class=" fw-bold text-warning">{{ formatMoney(vsActualData.summary.total_actual) }}</div>
                         </div>
                     </div>
                 </div>
@@ -82,7 +86,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Variance</div>
-                            <div :class="['fs-5 fw-bold', vsActualData.summary.total_variance >= 0 ? 'text-success' : 'text-danger']">
+                            <div :class="[' fw-bold', vsActualData.summary.total_variance >= 0 ? 'text-success' : 'text-danger']">
                                 {{ formatMoney(vsActualData.summary.total_variance) }}
                             </div>
                         </div>
@@ -213,6 +217,8 @@
 <script setup>
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { ref, computed, onMounted } from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -221,6 +227,7 @@ const loading = ref(false);
 const saving = ref(false);
 const vsActualLoading = ref(false);
 const budgets = ref([]);
+const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
 const fiscalYears = ref([]);
 const branches = ref([]);
 const accounts = ref([]);
@@ -243,6 +250,7 @@ const filteredAccounts = computed(() => {
 });
 
 const listColumns = [
+    { title: 'SN', key: 'sn', width: 60 },
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Fiscal Year', key: 'fiscal_year', dataIndex: ['fiscal_year', 'year_code'] },
     { title: 'Branch', key: 'branch', dataIndex: ['branch', 'name'] },
@@ -260,20 +268,27 @@ const vsActualColumns = [
     { title: 'Usage', key: 'progress' },
 ];
 
+const { filter, fetch: fetchBudgets } = usePaginatedList({
+    fetchFn: async ({ filter }) => {
+        loading.value = true;
+        try {
+            const params = new URLSearchParams({
+                page: String(filter.page),
+                limit: String(filter.limit),
+            });
+            const { data } = await apiAdmin(`budget?${params}`);
+            budgets.value = data.data ?? [];
+            listMeta.value = data.meta ?? { total: budgets.value.length };
+        } finally { loading.value = false; }
+    },
+    defaults: { page: 1, limit: 10 },
+});
+
 onMounted(() => {
-    fetchBudgets();
     fetchFiscalYears();
     fetchBranches();
     fetchAccounts();
 });
-
-async function fetchBudgets() {
-    loading.value = true;
-    try {
-        const { data } = await apiAdmin('budget');
-        budgets.value = data.data;
-    } finally { loading.value = false; }
-}
 
 async function fetchFiscalYears() {
     try {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Unit;
+use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
@@ -17,9 +18,11 @@ class UnitController extends Controller
     /**
      * @Permissions("list_unit", group="unit", desc="List Unit")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $units = Unit::all();
+        $units = Unit::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return UnitResource::collection($units);
     }

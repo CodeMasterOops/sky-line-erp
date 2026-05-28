@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Currencies" subtitle="Manage global exchange rates (Base: NPR)" @refresh="fetchCurrencies">
+    <PageHeader title="Currencies" subtitle="Manage global exchange rates (Base: NPR)" @refresh="fetch">
         <template #actions>
             <button type="button" class="btn btn-primary" @click.prevent="createModalOpened = true">
                 <i class="ti ti-circle-plus me-1"></i>Add Currency
@@ -58,10 +58,11 @@
                             <i class="ti ti-search fs-14 feather-search"></i>
                         </a>
                         <input
-                            v-model="search"
+                            v-model="filter.search"
                             type="search"
                             class="form-control form-control-sm"
                             placeholder="Search currencies"
+                            @input="debouncedFetch"
                         />
                     </div>
                 </div>
@@ -71,13 +72,13 @@
                     <a-table
                         class="table datanew table-hover table-center mb-0"
                         :columns="columns"
-                        :data-source="filteredCurrencies"
+                        :data-source="currencies.data"
                         :loading="currencies.loading"
                         :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ (currencies.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-if="column.key === 'exchange_rate'">
                                 <span class="text-end d-block">{{ record.exchange_rate }}</span>
@@ -110,6 +111,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="currencies.meta" />
                 </div>
             </div>
         </div>
@@ -120,55 +122,49 @@
 </template>
 
 <script setup>
-import {computed, onMounted, ref} from 'vue';
+import { ref } from 'vue';
+import debounce from 'lodash/debounce';
 import Swal from 'sweetalert2';
-import {storeToRefs} from 'pinia';
-import {toast} from '@/helpers/toast';
+import { storeToRefs } from 'pinia';
+import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {formatDate} from '@/helpers/helper.js';
+import { formatDate } from '@/helpers/helper.js';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateCurrency from './Create.vue';
 import EditCurrency from './Edit.vue';
-import {useCurrencyStore} from '@/stores/super-admin/currency';
+import { useCurrencyStore } from '@/stores/super-admin/currency';
 
 const currencyStore = useCurrencyStore();
-const {currencies, stats} = storeToRefs(currencyStore);
+const { currencies, stats } = storeToRefs(currencyStore);
 
 const createModalOpened = ref(false);
 const editCurrencyId = ref('');
-const search = ref('');
+
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => currencyStore.getCurrencies({ filter }),
+    defaults: { search: '', page: 1, limit: 10 },
+});
 
 const columns = [
-    {title: 'SN', key: 'sn', width: 60},
-    {title: 'Code', dataIndex: 'code', key: 'code'},
-    {title: 'Name', dataIndex: 'name', key: 'name'},
-    {title: 'Symbol', dataIndex: 'symbol', key: 'symbol'},
-    {title: 'Exchange Rate (to NPR)', key: 'exchange_rate', align: 'right'},
-    {title: 'Rate Date', key: 'rate_date'},
-    {title: 'Base', key: 'base'},
-    {title: 'Status', key: 'status'},
-    {title: 'Action', key: 'action', align: 'center'},
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Code', dataIndex: 'code', key: 'code' },
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Symbol', dataIndex: 'symbol', key: 'symbol' },
+    { title: 'Exchange Rate (to NPR)', key: 'exchange_rate', align: 'right' },
+    { title: 'Rate Date', key: 'rate_date' },
+    { title: 'Base', key: 'base' },
+    { title: 'Status', key: 'status' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
-const filteredCurrencies = computed(() => {
-    const term = search.value.trim().toLowerCase();
-    if (!term) {
-        return currencies.value.data;
+const debouncedFetch = debounce(() => {
+    const onFirstPage = filter.page === 1;
+    filter.page = 1;
+    if (onFirstPage) {
+        fetch();
     }
-
-    return currencies.value.data.filter((currency) => {
-        return [currency.code, currency.name, currency.symbol]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(term));
-    });
-});
-
-onMounted(() => {
-    fetchCurrencies();
-});
-
-const fetchCurrencies = () => {
-    currencyStore.getCurrencies();
-};
+}, 300);
 
 const deleteCurrency = async (id) => {
     Swal.fire({
@@ -183,6 +179,7 @@ const deleteCurrency = async (id) => {
             try {
                 const res = await currencyStore.deleteCurrency(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
                 showErrors(e);
             }

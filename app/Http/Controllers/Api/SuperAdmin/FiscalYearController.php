@@ -3,15 +3,18 @@
 namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Models\FiscalYear;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SuperAdmin\FiscalYearResource;
 use App\Http\Requests\Api\SuperAdmin\FiscalYearRequest;
 
 class FiscalYearController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $fiscalYears = FiscalYear::orderBy('start_date')->get();
+        $fiscalYears = FiscalYear::query()
+            ->orderBy('start_date')
+            ->paginate($request->integer('limit', 25));
 
         return FiscalYearResource::collection($fiscalYears);
     }

@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Currencies" subtitle="View foreign exchange rates (Base: NPR)" @refresh="loadCurrencies">
+    <PageHeader title="Currencies" subtitle="View foreign exchange rates (Base: NPR)" @refresh="fetchCurrencies">
         <template #actions>
             <button type="button" class="btn btn-primary" @click.prevent="openCreate">
                 <i class="ti ti-circle-plus me-1"></i>Add Currency
@@ -16,10 +16,11 @@
                             <i class="ti ti-search fs-14 feather-search"></i>
                         </a>
                         <input
-                            v-model="search"
+                            v-model="filter.search"
                             type="search"
                             class="form-control form-control-sm"
                             placeholder="Search currencies"
+                            @input="debouncedFetch"
                         />
                     </div>
                 </div>
@@ -29,13 +30,13 @@
                     <a-table
                         class="table datanew table-hover table-center mb-0"
                         :columns="columns"
-                        :data-source="filteredCurrencies"
+                        :data-source="currencies"
                         :loading="loading"
                         :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ (listMeta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-if="column.key === 'exchange_rate'">
                                 <span class="text-end d-block">{{ record.exchange_rate }}</span>
@@ -63,6 +64,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="listMeta" />
                 </div>
             </div>
         </div>
@@ -110,58 +112,71 @@
 </template>
 
 <script setup>
-import {computed, onMounted, ref} from 'vue';
-import {apiAdmin} from '@/helpers/api.js';
+import { onMounted, reactive, ref, watch } from 'vue';
+import debounce from 'lodash/debounce';
+import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
-import {toast} from '@/helpers/toast.js';
-import {formatDate} from '@/helpers/helper.js';
+import { toast } from '@/helpers/toast.js';
+import { formatDate } from '@/helpers/helper.js';
 import Swal from 'sweetalert2';
+import VPagination from '@/components/base/VPagination.vue';
 
 const currencies = ref([]);
 const loading = ref(false);
 const showForm = ref(false);
 const saving = ref(false);
 const editingCurrency = ref(null);
-const search = ref('');
+const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
+
+const filter = reactive({ search: '', page: 1, limit: 10 });
 
 const columns = [
-    {title: 'SN', key: 'sn', width: 60},
-    {title: 'Code', dataIndex: 'code', key: 'code'},
-    {title: 'Name', dataIndex: 'name', key: 'name'},
-    {title: 'Symbol', dataIndex: 'symbol', key: 'symbol'},
-    {title: 'Exchange Rate (to NPR)', key: 'exchange_rate', align: 'right'},
-    {title: 'Rate Date', key: 'rate_date'},
-    {title: 'Base', key: 'base'},
-    {title: 'Action', key: 'action', align: 'center'},
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Code', dataIndex: 'code', key: 'code' },
+    { title: 'Name', dataIndex: 'name', key: 'name' },
+    { title: 'Symbol', dataIndex: 'symbol', key: 'symbol' },
+    { title: 'Exchange Rate (to NPR)', key: 'exchange_rate', align: 'right' },
+    { title: 'Rate Date', key: 'rate_date' },
+    { title: 'Base', key: 'base' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
 const defaultForm = () => ({ code: '', name: '', symbol: '', exchange_rate: 1, rate_date: null });
 const form = ref(defaultForm());
 
-const filteredCurrencies = computed(() => {
-    const term = search.value.trim().toLowerCase();
-    if (!term) {
-        return currencies.value;
-    }
-
-    return currencies.value.filter((currency) => {
-        return [currency.code, currency.name, currency.symbol]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(term));
-    });
-});
-
-const loadCurrencies = async () => {
+const fetchCurrencies = async () => {
     loading.value = true;
     try {
-        const res = await apiAdmin('currency', 'get');
+        const params = new URLSearchParams({
+            page: String(filter.page),
+            limit: String(filter.limit),
+            ...(filter.search ? { search: filter.search } : {}),
+        });
+        const res = await apiAdmin(`currency?${params}`);
         currencies.value = res.data.data || [];
+        listMeta.value = res.data.meta ?? { total: currencies.value.length };
     } catch (e) {
         showErrors(e);
     } finally {
         loading.value = false;
     }
 };
+
+const debouncedFetch = debounce(() => {
+    const onFirstPage = filter.page === 1;
+    filter.page = 1;
+    if (onFirstPage) {
+        fetchCurrencies();
+    }
+}, 300);
+
+watch(() => [filter.page, filter.limit], () => {
+    fetchCurrencies();
+});
+
+onMounted(() => {
+    fetchCurrencies();
+});
 
 const openCreate = () => {
     editingCurrency.value = null;
@@ -189,7 +204,7 @@ const saveCurrency = async () => {
             toast('success', 'Currency added.');
         }
         showForm.value = false;
-        await loadCurrencies();
+        await fetchCurrencies();
     } catch (e) {
         showErrors(e);
     } finally {
@@ -211,13 +226,9 @@ const deleteCurrency = async (id) => {
     try {
         await apiAdmin(`currency/${id}`, 'delete');
         toast('success', 'Deleted.');
-        await loadCurrencies();
+        await fetchCurrencies();
     } catch (e) {
         showErrors(e);
     }
 };
-
-onMounted(() => {
-    loadCurrencies();
-});
 </script>

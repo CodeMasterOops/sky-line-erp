@@ -24,7 +24,7 @@ class TaxController extends Controller
             $query->lineItem();
         }
 
-        $taxes = $query->get();
+        $taxes = $query->orderBy('name')->paginate($request->integer('limit', 25));
 
         return TaxResource::collection($taxes);
     }

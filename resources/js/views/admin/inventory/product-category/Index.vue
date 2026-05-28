@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Category List" subtitle="Manage your product categories" @refresh="fetchProductCategories(true)">
+    <PageHeader title="Category List" subtitle="Manage your product categories" @refresh="fetch">
         <template #actions>
             <button
                 v-can="'create_product_category'"
@@ -20,10 +20,11 @@
                         :columns="columns"
                         :data-source="productCategories.data"
                         :loading="productCategories.loading"
+                        :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ (productCategories.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
@@ -39,6 +40,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="productCategories.meta" />
                 </div>
             </div>
         </div>
@@ -48,57 +50,33 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateProductCategory from './Create.vue';
 import EditProductCategory from './Edit.vue';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
 
 const categoryStore = useProductCategoryStore();
-
-onMounted(() => {
-    fetchProductCategories();
-});
-
 const edit_product_category_id = ref('');
 const createModalOpened = ref(false);
-
 const { productCategories } = storeToRefs(categoryStore);
 
-const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Description',
-        dataIndex: 'description',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
-];
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => categoryStore.getProductCategories({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
-const fetchProductCategories = (refetch = false) => {
-    categoryStore.getProductCategories(refetch);
-};
+const columns = [
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Description', dataIndex: 'description' },
+    { title: 'Action', key: 'action', align: 'center' },
+];
 
 const deleteProductCategory = async (id) => {
     Swal.fire({
@@ -113,6 +91,7 @@ const deleteProductCategory = async (id) => {
             try {
                 let res = await categoryStore.deleteProductCategory(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
                 showErrors(e);
             }

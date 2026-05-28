@@ -10,9 +10,13 @@ use App\Http\Controllers\Controller;
 
 class TaxTemplateController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $templates = TaxTemplate::orderBy('name')->get()->map(function ($t) {
+        $paginator = TaxTemplate::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
+
+        $templates = $paginator->getCollection()->map(function ($t) {
             return [
                 'id' => $t->id,
                 'name' => $t->name,
@@ -26,7 +30,17 @@ class TaxTemplateController extends Controller
             ];
         });
 
-        return response()->json(['data' => $templates]);
+        return response()->json([
+            'data' => $templates,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'from' => $paginator->firstItem(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'to' => $paginator->lastItem(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function store(Request $request)

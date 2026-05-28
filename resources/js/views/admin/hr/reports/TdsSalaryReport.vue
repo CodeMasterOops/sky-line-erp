@@ -28,7 +28,7 @@
                     <div class="card text-center">
                         <div class="card-body">
                             <div class="text-muted">Total Gross (TDS Employees)</div>
-                            <strong class="fs-5">{{ formatMoney(report.summary.total_gross) }}</strong>
+                            <strong class="">{{ formatMoney(report.summary.total_gross) }}</strong>
                         </div>
                     </div>
                 </div>
@@ -36,7 +36,7 @@
                     <div class="card text-center">
                         <div class="card-body">
                             <div class="text-muted">Total TDS Withheld</div>
-                            <strong class="fs-5 text-danger">{{ formatMoney(report.summary.total_tds) }}</strong>
+                            <strong class=" text-danger">{{ formatMoney(report.summary.total_tds) }}</strong>
                         </div>
                     </div>
                 </div>

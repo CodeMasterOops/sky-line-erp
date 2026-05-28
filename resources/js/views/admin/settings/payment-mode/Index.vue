@@ -1,6 +1,6 @@
 <template>
     <div>
-        <PageHeader title="Payment Modes" subtitle="Manage your payment modes" @refresh="fetchPaymentModes(true)">
+        <PageHeader title="Payment Modes" subtitle="Manage your payment modes" @refresh="fetch">
             <template #actions>
                 <button
                     v-can="'create_payment_mode'"
@@ -25,10 +25,11 @@
                                 :columns="columns"
                                 :data-source="paymentModes.data"
                                 :loading="paymentModes.loading"
+                                :pagination="false"
                             >
                                 <template #bodyCell="{ column, record, index }">
                                     <template v-if="column.key === 'sn'">
-                                        {{ index + 1 }}
+                                        {{ (paymentModes.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                                     </template>
                                     <template v-if="column.key === 'status'">
                                         <span :class="record.is_active ? 'badge bg-success' : 'badge bg-secondary'">
@@ -49,6 +50,7 @@
                                     </template>
                                 </template>
                             </a-table>
+                            <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="paymentModes.meta" />
                         </div>
                     </div>
                 </div>
@@ -60,76 +62,52 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from "vue";
-import Swal from "sweetalert2";
-import {toast} from "@/helpers/toast";
-import showErrors from "@/helpers/showErrors";
-import {storeToRefs} from "pinia";
+import { ref } from 'vue';
+import Swal from 'sweetalert2';
+import { toast } from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreatePaymentMode from './Create.vue';
 import EditPaymentMode from './Edit.vue';
-import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
+import { usePaymentModeStore } from '@/stores/admin/settings/payment-mode.js';
 
 const paymentModeStore = usePaymentModeStore();
-
-onMounted(() => {
-    fetchPaymentModes();
-})
-
 const edit_payment_mode_id = ref('');
 const createModalOpened = ref(false);
+const { paymentModes } = storeToRefs(paymentModeStore);
 
-const {paymentModes} = storeToRefs(paymentModeStore);
-
-const fetchPaymentModes = (refetch = false) => {
-    paymentModeStore.getPaymentModes(refetch);
-}
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => paymentModeStore.getPaymentModes({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Status',
-        key: 'status',
-        align: 'center',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Status', key: 'status', align: 'center' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
 const deletePaymentMode = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
-        text: "If you delete this, it will be gone forever.",
+        text: 'If you delete this, it will be gone forever.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: "Yes",
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
                 let res = await paymentModeStore.deletePaymentMode(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 </script>

@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Accounts" subtitle="Manage Accounts" @refresh="fetchAccounts">
+    <PageHeader title="Accounts" subtitle="Manage Accounts" @refresh="fetch">
         <template #actions>
             <button
                 v-can="'create_account'"
@@ -18,10 +18,11 @@
                 :columns="columns"
                 :data-source="accounts.data"
                 :loading="accounts.loading"
+                :pagination="false"
             >
                 <template #bodyCell="{ column, record, index }">
                     <template v-if="column.key === 'sn'">
-                        {{ index + 1 }}
+                        {{ (accounts.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                     </template>
                     <template v-if="column.key === 'account_group'">
                         {{ record.account_group?.name || '-' }}
@@ -40,6 +41,7 @@
                     </template>
                 </template>
             </a-table>
+            <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="accounts.meta" />
         </div>
     </section>
     <CreateAccount v-model:create-modal-opened="createModalOpened"/>
@@ -47,74 +49,40 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
+import { ref, onMounted } from 'vue';
 import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
+import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateAccount from './Create.vue';
 import EditAccount from './Edit.vue';
-import {useAccountStore} from "@/stores/admin/accounting/account.js";
-import {useAccountGroupStore} from "@/stores/admin/accounting/account-group.js";
+import { useAccountStore } from '@/stores/admin/accounting/account.js';
+import { useAccountGroupStore } from '@/stores/admin/accounting/account-group.js';
 
 const accountStore = useAccountStore();
 const accountGroupStore = useAccountGroupStore();
+const edit_account_id = ref('');
+const createModalOpened = ref(false);
+const { accounts } = storeToRefs(accountStore);
+
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => accountStore.getAccounts({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 onMounted(() => {
-    fetchAccounts();
     accountGroupStore.getAccountGroups();
 });
 
-const fetchAccounts = () => {
-    accountStore.getAccounts();
-}
-
-const edit_account_id = ref('');
-const createModalOpened = ref(false);
-
-const {accounts} = storeToRefs(accountStore);
-
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Code',
-        dataIndex: 'code',
-        sorter: {
-            compare: (a, b) => {
-                a = a.code.toLowerCase();
-                b = b.code.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Category',
-        dataIndex: 'category',
-    },
-    {
-        title: 'Account Group',
-        key: 'account_group',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Code', dataIndex: 'code' },
+    { title: 'Category', dataIndex: 'category' },
+    { title: 'Account Group', key: 'account_group' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
 const deleteAccount = async (id) => {
@@ -130,6 +98,7 @@ const deleteAccount = async (id) => {
             try {
                 let res = await accountStore.deleteAccount(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
                 showErrors(e);
             }

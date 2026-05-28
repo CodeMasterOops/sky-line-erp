@@ -3,18 +3,19 @@
 namespace App\Http\Controllers\Api\SuperAdmin;
 
 use App\Models\Province;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SuperAdmin\ProvinceResource;
 use App\Http\Requests\Api\SuperAdmin\ProvinceRequest;
 
 class ProvinceController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $provinces = Province::query()
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->get();
+            ->paginate($request->integer('limit', 25));
 
         return ProvinceResource::collection($provinces);
     }

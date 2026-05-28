@@ -3,7 +3,7 @@
         <PageHeader
             title="Tax Templates"
             subtitle="Default tax rates seeded to new companies on registration"
-            @refresh="loadTemplates"
+            @refresh="fetchTemplates"
         >
             <template #actions>
                 <button
@@ -43,7 +43,10 @@
                                 :loading="loading"
                                 :pagination="false"
                             >
-                                <template #bodyCell="{ column, record }">
+                                <template #bodyCell="{ column, record, index }">
+                                    <template v-if="column.key === 'sn'">
+                                        {{ (listMeta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                                    </template>
                                     <template v-if="column.key === 'rate'">
                                         <span class="text-end d-block">{{ record.rate }}%</span>
                                     </template>
@@ -83,6 +86,7 @@
                                     </template>
                                 </template>
                             </a-table>
+                            <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="listMeta" />
                         </div>
                     </div>
                 </div>
@@ -90,25 +94,29 @@
         </div>
     </div>
 
-    <CreateTaxTemplate v-model:create-modal-opened="createModalOpened" @saved="loadTemplates"/>
-    <EditTaxTemplate v-model:template-id="editTemplateId" @saved="loadTemplates"/>
+    <CreateTaxTemplate v-model:create-modal-opened="createModalOpened" @saved="fetchTemplates"/>
+    <EditTaxTemplate v-model:template-id="editTemplateId" @saved="fetchTemplates"/>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import { apiSuperAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { toast } from '@/helpers/toast.js';
 import Swal from 'sweetalert2';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateTaxTemplate from './Create.vue';
 import EditTaxTemplate from './Edit.vue';
 
 const templates = ref([]);
 const loading = ref(false);
+const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
 const createModalOpened = ref(false);
 const editTemplateId = ref('');
 
 const columns = [
+    { title: 'SN', key: 'sn', width: 60 },
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Rate (%)', key: 'rate', align: 'right' },
     { title: 'Type', key: 'type_label' },
@@ -118,17 +126,25 @@ const columns = [
     { title: 'Action', key: 'action', align: 'center' },
 ];
 
-const loadTemplates = async () => {
-    loading.value = true;
-    try {
-        const res = await apiSuperAdmin('tax-template', 'get');
-        templates.value = res.data.data || [];
-    } catch (e) {
-        showErrors(e);
-    } finally {
-        loading.value = false;
-    }
-};
+const { filter, fetch: fetchTemplates } = usePaginatedList({
+    fetchFn: async ({ filter }) => {
+        loading.value = true;
+        try {
+            const params = new URLSearchParams({
+                page: String(filter.page),
+                limit: String(filter.limit),
+            });
+            const res = await apiSuperAdmin(`tax-template?${params}`, 'get');
+            templates.value = res.data.data || [];
+            listMeta.value = res.data.meta ?? { total: templates.value.length };
+        } catch (e) {
+            showErrors(e);
+        } finally {
+            loading.value = false;
+        }
+    },
+    defaults: { page: 1, limit: 10 },
+});
 
 const deleteTemplate = async (id) => {
     const result = await Swal.fire({
@@ -145,13 +161,9 @@ const deleteTemplate = async (id) => {
     try {
         await apiSuperAdmin(`tax-template/${id}`, 'delete');
         toast('success', 'Deleted.');
-        await loadTemplates();
+        await fetchTemplates();
     } catch (e) {
         showErrors(e);
     }
 };
-
-onMounted(() => {
-    loadTemplates();
-});
 </script>

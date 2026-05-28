@@ -8,6 +8,7 @@ export const useAccountGroupStore = defineStore('account-group', {
     state: () => ({
         accountGroups: {
             data: [],
+            meta: {},
             loading: false
         },
         accountGroup: {
@@ -17,18 +18,19 @@ export const useAccountGroupStore = defineStore('account-group', {
     }),
 
     actions: {
-        getAccountGroups() {
-            if (!this.accountGroups.data.length) {
-                this.accountGroups.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.accountGroups.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.accountGroups.loading = false;
-                    })
-            }
+        getAccountGroups({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.accountGroups.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.accountGroups.data = res.data.data;
+                    this.accountGroups.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.accountGroups.loading = false;
+                });
         },
         storeAccountGroup(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)

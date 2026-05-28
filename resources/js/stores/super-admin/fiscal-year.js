@@ -8,6 +8,7 @@ export const useFiscalYearStore = defineStore('fiscal-year', {
     state: () => ({
         fiscalYears: {
             data: [],
+            meta: {},
             loading: false
         },
         fiscalYear: {
@@ -18,18 +19,19 @@ export const useFiscalYearStore = defineStore('fiscal-year', {
     }),
 
     actions: {
-        getFiscalYears(refetch = false) {
-            if (!this.fiscalYears.data.length || refetch) {
-                this.fiscalYears.loading = true;
-                return apiSuperAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.fiscalYears.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.fiscalYears.loading = false;
-                    })
-            }
+        getFiscalYears({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.fiscalYears.loading = true;
+            return apiSuperAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.fiscalYears.data = res.data.data;
+                    this.fiscalYears.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.fiscalYears.loading = false;
+                });
         },
         storeFiscalYear(form) {
             return apiSuperAdmin(`${apiUrl}`, 'post', form)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Warehouse;
+use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
@@ -17,13 +18,13 @@ class WarehouseController extends Controller
     /**
      * @Permissions("list_warehouse", group="warehouse", desc="List Warehouse")
      */
-    public function index()
+    public function index(Request $request)
     {
         $warehouses = Warehouse::query()
             ->with('parent:id,name,code')
             ->orderByRaw('parent_id is null desc')
             ->orderBy('name')
-            ->get();
+            ->paginate($request->integer('limit', 25));
 
         return WarehouseResource::collection($warehouses);
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin\Accounting;
 
 use App\Models\Account;
 use App\Models\AccountGroup;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Accounting\AccountResource;
@@ -15,9 +16,11 @@ class AccountController extends Controller
     /**
      * @Permissions("list_account", group="account", desc="List Account")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $accounts = Account::with('accountGroup')->get();
+        $accounts = Account::with('accountGroup')
+            ->orderBy('code')
+            ->paginate($request->integer('limit', 25));
 
         return AccountResource::collection($accounts);
     }

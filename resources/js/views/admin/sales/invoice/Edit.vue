@@ -317,7 +317,7 @@ const {taxes} = storeToRefs(taxStore);
 onMounted(() => {
     productStore.getProductVariants();
     partyStore.getParties({filter: {type: 'customer'}});
-    taxStore.getTaxes(false, {for: 'line_item'});
+    taxStore.getTaxes({ filter: { for: 'line_item' } });
 });
 
 const emptyLine = () => ({

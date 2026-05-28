@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Variant Attributes" subtitle="Manage your variant attributes" @refresh="fetchWarehouses(true)">
+    <PageHeader title="Variant Attributes" subtitle="Manage your variant attributes" @refresh="fetch">
         <template #actions>
             <button
                 v-can="'create_attribute'"
@@ -20,10 +20,11 @@
                         :columns="columns"
                         :data-source="attributes.data"
                         :loading="attributes.loading"
+                        :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ (attributes.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-if="column.key==='values'">
                                 <span v-for="attrVal in record.values" :key="`${record.id}-${attrVal.id}`"
@@ -43,6 +44,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="attributes.meta" />
                 </div>
             </div>
         </div>
@@ -53,71 +55,52 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from "vue";
-import Swal from "sweetalert2";
-import {toast} from "@/helpers/toast.js";
-import showErrors from "@/helpers/showErrors.js";
-import {storeToRefs} from "pinia";
+import { ref } from 'vue';
+import Swal from 'sweetalert2';
+import { toast } from '@/helpers/toast.js';
+import showErrors from '@/helpers/showErrors.js';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateAttribute from './Create.vue';
 import EditAttribute from './Edit.vue';
-import {useAttributeStore} from "@/stores/admin/inventory/attribute.js";
+import { useAttributeStore } from '@/stores/admin/inventory/attribute.js';
 
 const attributeStore = useAttributeStore();
-
-onMounted(() => {
-    attributeStore.getAttributes();
-})
-
 const edit_attribute_id = ref('');
 const createModalOpened = ref(false);
+const { attributes } = storeToRefs(attributeStore);
 
-const {attributes} = storeToRefs(attributeStore);
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => attributeStore.getAttributes({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Values',
-        key: 'values',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Values', key: 'values' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
 const deleteAttribute = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
-        text: "If you delete this, it will be gone forever.",
+        text: 'If you delete this, it will be gone forever.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: "Yes",
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
                 let res = await attributeStore.deleteAttribute(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 </script>

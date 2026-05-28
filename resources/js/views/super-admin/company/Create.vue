@@ -260,7 +260,7 @@
 </template>
 
 <script setup>
-import {onMounted, reactive, ref, watch} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
@@ -271,7 +271,8 @@ import {storeToRefs} from 'pinia';
 
 const companyStore = useCompanyStore();
 const locationStore = useLocationStore();
-const {provinces} = storeToRefs(locationStore);
+const {provinces: provincesState} = storeToRefs(locationStore);
+const provinces = computed(() => provincesState.value.data ?? []);
 const districtOptions = ref([]);
 const palikaOptions = ref([]);
 const wardOptions = ref([]);
@@ -369,7 +370,7 @@ watch(
             return;
         }
         await locationStore.loadDistricts(pid);
-        districtOptions.value = [...locationStore.districts];
+        districtOptions.value = [...locationStore.districts.data];
     }
 );
 
@@ -384,7 +385,7 @@ watch(
             return;
         }
         await locationStore.loadPalikas(did);
-        palikaOptions.value = [...locationStore.palikas];
+        palikaOptions.value = [...locationStore.palikas.data];
     }
 );
 
@@ -397,7 +398,7 @@ watch(
             return;
         }
         await locationStore.loadWards(palikaId);
-        wardOptions.value = [...locationStore.wards];
+        wardOptions.value = [...locationStore.wards.data];
     }
 );
 

@@ -11,8 +11,11 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <a-table :columns="columns" :data-source="boms" :loading="loading" row-key="id">
-                        <template #bodyCell="{ column, record }">
+                    <a-table :columns="columns" :data-source="boms" :loading="loading" :pagination="false" row-key="id">
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ (listMeta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                            </template>
                             <template v-if="column.key === 'product'">
                                 {{ record.product_variant?.product?.name }}
                             </template>
@@ -36,6 +39,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="listMeta" />
                 </div>
             </div>
         </div>
@@ -150,15 +154,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 import Swal from 'sweetalert2';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 
 const loading = ref(false);
 const saving = ref(false);
 const boms = ref([]);
+const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
 const formModal = ref(false);
 const viewModal = ref(false);
 const viewData = ref(null);
@@ -172,6 +179,7 @@ const form = ref({
 });
 
 const columns = [
+    { title: 'SN', key: 'sn', width: 60 },
     { title: 'Product', key: 'product' },
     { title: 'BOM Name', dataIndex: 'name', key: 'name' },
     { title: 'Version', dataIndex: 'version', key: 'version' },
@@ -182,15 +190,23 @@ const columns = [
     { title: 'Action', key: 'action' },
 ];
 
-onMounted(fetchBoms);
-
-async function fetchBoms() {
-    loading.value = true;
-    try {
-        const { data } = await apiAdmin('bom');
-        boms.value = data.data;
-    } finally { loading.value = false; }
-}
+const { filter, fetch: fetchBoms } = usePaginatedList({
+    fetchFn: async ({ filter }) => {
+        loading.value = true;
+        try {
+            const params = new URLSearchParams({
+                page: String(filter.page),
+                limit: String(filter.limit),
+            });
+            const { data } = await apiAdmin(`bom?${params}`);
+            boms.value = data.data;
+            listMeta.value = data.meta ?? { total: boms.value.length };
+        } finally {
+            loading.value = false;
+        }
+    },
+    defaults: { page: 1, limit: 10 },
+});
 
 function openCreate() {
     editId.value = null;

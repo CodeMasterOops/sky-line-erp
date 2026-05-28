@@ -353,7 +353,7 @@ watch(
     (opened) => {
         if (opened) {
             resetForm();
-            taxStore.getTaxes(false, {for: 'line_item'});
+            taxStore.getTaxes({ filter: { for: 'line_item' } });
             partyStore.getParties({
                 filter: {
                     type: 'customer',

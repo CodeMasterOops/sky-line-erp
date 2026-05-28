@@ -8,6 +8,7 @@ export const useAccountStore = defineStore('account', {
     state: () => ({
         accounts: {
             data: [],
+            meta: {},
             loading: false
         },
         coaTree: {
@@ -21,18 +22,19 @@ export const useAccountStore = defineStore('account', {
     }),
 
     actions: {
-        getAccounts() {
-            if (!this.accounts.data.length) {
-                this.accounts.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.accounts.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.accounts.loading = false;
-                    })
-            }
+        getAccounts({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.accounts.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.accounts.data = res.data.data;
+                    this.accounts.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.accounts.loading = false;
+                });
         },
         getCoaTree() {
             this.coaTree.loading = true;

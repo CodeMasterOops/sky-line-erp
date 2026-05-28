@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Account Groups" subtitle="Manage Account Groups" @refresh="fetchAccountGroups">
+    <PageHeader title="Account Groups" subtitle="Manage Account Groups" @refresh="fetch">
         <template #actions>
             <button
                 v-can="'create_account_group'"
@@ -18,10 +18,11 @@
                 :columns="columns"
                 :data-source="accountGroups.data"
                 :loading="accountGroups.loading"
+                :pagination="false"
             >
                 <template #bodyCell="{ column, record, index }">
                     <template v-if="column.key === 'sn'">
-                        {{ index + 1 }}
+                        {{ (accountGroups.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                     </template>
                     <template v-if="column.key === 'action'">
                         <div class="action-icon d-inline-flex">
@@ -37,6 +38,7 @@
                     </template>
                 </template>
             </a-table>
+            <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="accountGroups.meta" />
         </div>
     </section>
     <CreateAccountGroup v-model:create-modal-opened="createModalOpened"/>
@@ -44,67 +46,33 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from 'vue';
+import { ref } from 'vue';
 import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
+import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateAccountGroup from './Create.vue';
 import EditAccountGroup from './Edit.vue';
-import {useAccountGroupStore} from "@/stores/admin/accounting/account-group.js";
+import { useAccountGroupStore } from '@/stores/admin/accounting/account-group.js';
 
 const accountGroupStore = useAccountGroupStore();
-
-onMounted(() => {
-    fetchAccountGroups();
-});
-
-const fetchAccountGroups = () => {
-    accountGroupStore.getAccountGroups();
-}
-
 const edit_account_group_id = ref('');
 const createModalOpened = ref(false);
+const { accountGroups } = storeToRefs(accountGroupStore);
 
-const {accountGroups} = storeToRefs(accountGroupStore);
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => accountGroupStore.getAccountGroups({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Code',
-        dataIndex: 'code',
-        sorter: {
-            compare: (a, b) => {
-                a = a.code.toLowerCase();
-                b = b.code.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Description',
-        key: 'description',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Code', dataIndex: 'code' },
+    { title: 'Description', key: 'description' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
 const deleteAccountGroup = async (id) => {
@@ -120,6 +88,7 @@ const deleteAccountGroup = async (id) => {
             try {
                 let res = await accountGroupStore.deleteAccountGroup(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
                 showErrors(e);
             }

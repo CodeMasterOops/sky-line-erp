@@ -72,13 +72,12 @@
                         class="table datanew table-hover table-center mb-0"
                         :columns="columns"
                         :data-source="companies.data"
-                        :pagination="pagination"
+                        :pagination="false"
                         :loading="companies.loading"
-                        @change="handleTableChange"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+                                {{ (companies.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-if="column.key === 'plan'">
                                 {{ record.current_subscription?.plan?.name || '—' }}
@@ -120,6 +119,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="companies.meta" />
                 </div>
             </div>
         </div>
@@ -129,7 +129,8 @@
 </template>
 
 <script setup>
-import {onMounted, reactive, ref, computed} from "vue";
+import {onMounted, reactive, ref, computed, watch} from "vue";
+import VPagination from '@/components/base/VPagination.vue';
 import {toast} from "@/helpers/toast";
 import showErrors from "@/helpers/showErrors";
 import {useCompanyStore} from "@/stores/super-admin/company";
@@ -203,14 +204,6 @@ const columns = [
     },
 ];
 
-const pagination = computed(() => ({
-    total: companies.value.meta.total,
-    current: companies.value.meta.current_page,
-    pageSize: companies.value.meta.per_page,
-    showSizeChanger: true,
-    showQuickJumper: true,
-}));
-
 onMounted(() => {
     fetchCompanies();
     dashboardStore.getDashboardData();
@@ -221,11 +214,9 @@ const fetchCompanies = () => {
     dashboardStore.getDashboardData();
 };
 
-const handleTableChange = (pag) => {
-    filter.page = pag.current;
-    filter.limit = pag.pageSize;
+watch(() => [filter.page, filter.limit], () => {
     fetchCompanies();
-};
+});
 
 const updateCompanyStatus = async (id) => {
     Swal.fire({

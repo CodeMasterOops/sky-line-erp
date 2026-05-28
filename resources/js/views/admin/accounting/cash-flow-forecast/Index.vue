@@ -37,7 +37,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Opening Balance</div>
-                            <div class="fs-5 fw-bold text-secondary">{{ formatMoney(forecast.opening_balance) }}</div>
+                            <div class=" fw-bold text-secondary">{{ formatMoney(forecast.opening_balance) }}</div>
                         </div>
                     </div>
                 </div>
@@ -45,7 +45,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Expected Inflows</div>
-                            <div class="fs-5 fw-bold text-success">{{ formatMoney(forecast.summary.total_inflow) }}</div>
+                            <div class=" fw-bold text-success">{{ formatMoney(forecast.summary.total_inflow) }}</div>
                         </div>
                     </div>
                 </div>
@@ -53,7 +53,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Expected Outflows</div>
-                            <div class="fs-5 fw-bold text-danger">{{ formatMoney(forecast.summary.total_outflow) }}</div>
+                            <div class=" fw-bold text-danger">{{ formatMoney(forecast.summary.total_outflow) }}</div>
                         </div>
                     </div>
                 </div>
@@ -61,7 +61,7 @@
                     <div class="card border-0 shadow-sm">
                         <div class="card-body text-center">
                             <div class="text-muted small">Projected Closing Balance</div>
-                            <div :class="['fs-5 fw-bold', forecast.summary.closing_balance >= 0 ? 'text-primary' : 'text-danger']">
+                            <div :class="[' fw-bold', forecast.summary.closing_balance >= 0 ? 'text-primary' : 'text-danger']">
                                 {{ formatMoney(forecast.summary.closing_balance) }}
                             </div>
                         </div>

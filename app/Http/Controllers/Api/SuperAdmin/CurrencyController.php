@@ -8,11 +8,29 @@ use App\Http\Controllers\Controller;
 
 class CurrencyController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $currencies = Currency::orderBy('code')->get();
+        $currencies = Currency::query()
+            ->when($request->filled('search'), fn ($q) => $q->where(function ($q) use ($request) {
+                $term = '%'.$request->string('search').'%';
+                $q->where('code', 'like', $term)
+                    ->orWhere('name', 'like', $term)
+                    ->orWhere('symbol', 'like', $term);
+            }))
+            ->orderBy('code')
+            ->paginate($request->integer('limit', 25));
 
-        return response()->json(['data' => $currencies]);
+        return response()->json([
+            'data' => $currencies->items(),
+            'meta' => [
+                'current_page' => $currencies->currentPage(),
+                'from' => $currencies->firstItem(),
+                'last_page' => $currencies->lastPage(),
+                'per_page' => $currencies->perPage(),
+                'to' => $currencies->lastItem(),
+                'total' => $currencies->total(),
+            ],
+        ]);
     }
 
     public function store(Request $request)

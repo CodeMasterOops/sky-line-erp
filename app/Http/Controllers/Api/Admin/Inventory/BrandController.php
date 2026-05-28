@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Brand;
+use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
@@ -17,9 +18,11 @@ class BrandController extends Controller
     /**
      * @Permissions("list_brand", group="brand", desc="List Brand")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $brands = Brand::all();
+        $brands = Brand::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return BrandResource::collection($brands);
     }

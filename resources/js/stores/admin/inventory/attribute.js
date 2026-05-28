@@ -8,6 +8,7 @@ export const useAttributeStore = defineStore('attribute', {
     state: () => ({
         attributes: {
             data: [],
+            meta: {},
             loading: false
         },
         attribute: {
@@ -17,18 +18,19 @@ export const useAttributeStore = defineStore('attribute', {
     }),
 
     actions: {
-        getAttributes() {
-            if (!this.attributes.data.length) {
-                this.attributes.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.attributes.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.attributes.loading = false;
-                    })
-            }
+        getAttributes({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.attributes.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.attributes.data = res.data.data;
+                    this.attributes.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.attributes.loading = false;
+                });
         },
         storeAttribute(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)

@@ -40,13 +40,12 @@
                     class="table datanew table-hover table-center mb-0"
                     :columns="tableColumns"
                     :data-source="tableData"
-                    :pagination="pagination"
+                    :pagination="false"
                     :loading="challans.loading"
-                    @change="handleTableChange"
                 >
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
-                            {{ index + 1 }}
+                            {{ (challans.meta.from || ((filter.page - 1) * filter.per_page + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'challan_no'">
                             <router-link
@@ -70,6 +69,7 @@
                         </template>
                     </template>
                 </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.per_page" :meta="challans.meta" />
             </div>
         </div>
     </div>
@@ -79,7 +79,8 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
 import {useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
@@ -119,14 +120,6 @@ const tableData = computed(() =>
     })),
 );
 
-const pagination = computed(() => ({
-    total: challans.value.meta?.total || 0,
-    current: challans.value.meta?.current_page || filter.page,
-    pageSize: challans.value.meta?.per_page || filter.per_page,
-    showSizeChanger: true,
-    showQuickJumper: true,
-}));
-
 onMounted(() => {
     fetchChallans();
 });
@@ -136,15 +129,16 @@ const fetchChallans = () => {
 };
 
 const debouncedFetch = debounce(() => {
+    const onFirstPage = filter.page === 1;
     filter.page = 1;
-    fetchChallans();
+    if (onFirstPage) {
+        fetchChallans();
+    }
 }, 300);
 
-const handleTableChange = (pag) => {
-    filter.page = pag.current;
-    filter.per_page = pag.pageSize;
+watch(() => [filter.page, filter.per_page], () => {
     fetchChallans();
-};
+});
 
 const viewChallan = (id) => {
     router.push({ name: 'admin.delivery-challan-view', params: { id } });

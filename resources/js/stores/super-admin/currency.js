@@ -8,6 +8,7 @@ export const useCurrencyStore = defineStore('currency', {
     state: () => ({
         currencies: {
             data: [],
+            meta: {},
             loading: false,
         },
         currency: {
@@ -22,17 +23,21 @@ export const useCurrencyStore = defineStore('currency', {
     }),
 
     actions: {
-        getCurrencies() {
+        getCurrencies({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+                ...(filter?.search ? { search: filter.search } : {}),
+            };
             this.currencies.loading = true;
 
-            return apiSuperAdmin(apiUrl)
+            return apiSuperAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
                 .then((res) => {
                     this.currencies.data = res.data.data || [];
+                    this.currencies.meta = res.data.meta ?? {};
                     this.updateStats();
                 })
-                .catch((err) => {
-                    showErrors(err);
-                })
+                .catch(showErrors)
                 .finally(() => {
                     this.currencies.loading = false;
                 });
@@ -44,9 +49,7 @@ export const useCurrencyStore = defineStore('currency', {
                 .then((res) => {
                     this.currency.data = res.data.data;
                 })
-                .catch((err) => {
-                    showErrors(err);
-                })
+                .catch(showErrors)
                 .finally(() => {
                     this.currency.loading = false;
                 });
@@ -88,10 +91,10 @@ export const useCurrencyStore = defineStore('currency', {
                 });
         },
         updateStats() {
-            const rows = this.currencies.data;
-            this.stats.total = rows.length;
-            this.stats.active = rows.filter((c) => c.is_active).length;
-            this.stats.foreign = rows.filter((c) => !c.is_base).length;
+            const total = this.currencies.meta?.total ?? this.currencies.data.length;
+            this.stats.total = total;
+            this.stats.active = this.currencies.data.filter((c) => c.is_active).length;
+            this.stats.foreign = this.currencies.data.filter((c) => !c.is_base).length;
         },
     },
 });

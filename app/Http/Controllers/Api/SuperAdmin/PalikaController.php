@@ -21,7 +21,9 @@ class PalikaController extends Controller
             $q->where('district_id', $request->query('district_id'));
         }
 
-        return PalikaResource::collection($q->get());
+        return PalikaResource::collection(
+            $q->paginate($request->integer('limit', 25))
+        );
     }
 
     public function store(PalikaRequest $request)

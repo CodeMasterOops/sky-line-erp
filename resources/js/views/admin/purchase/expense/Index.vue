@@ -59,13 +59,12 @@
                     class="table datanew table-hover table-center mb-0"
                     :columns="columns"
                     :data-source="expenses.data"
-                    :pagination="pagination"
+                    :pagination="false"
                     :loading="expenses.loading"
-                    @change="handleTableChange"
                 >
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
-                            {{ index + 1 }}
+                            {{ (expenses.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'status'">
                             <span
@@ -107,6 +106,7 @@
                         </template>
                     </template>
                 </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="expenses.meta" />
             </div>
         </div>
     </div>
@@ -123,7 +123,8 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {onMounted, reactive, ref, watch} from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
 import Swal from 'sweetalert2';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -155,14 +156,6 @@ const filter = reactive({
     page: 1,
     limit: 10
 });
-
-const pagination = computed(() => ({
-    total: expenses.value.meta.total || 0,
-    current: expenses.value.meta.current_page || 1,
-    pageSize: expenses.value.meta.per_page || filter.limit,
-    showSizeChanger: true,
-    showQuickJumper: true,
-}));
 
 const columns = [
     {
@@ -222,20 +215,24 @@ const fetchExpenses = () => {
 };
 
 const debouncedFetch = debounce(() => {
+    const onFirstPage = filter.page === 1;
     filter.page = 1;
-    fetchExpenses();
+    if (onFirstPage) {
+        fetchExpenses();
+    }
 }, 300);
 
 watch(() => [filter.party_id, filter.date_from, filter.date_to], () => {
+    const onFirstPage = filter.page === 1;
     filter.page = 1;
-    fetchExpenses();
+    if (onFirstPage) {
+        fetchExpenses();
+    }
 });
 
-const handleTableChange = (pagination) => {
-    filter.page = pagination.current;
-    filter.limit = pagination.pageSize;
+watch(() => [filter.page, filter.limit], () => {
     fetchExpenses();
-};
+});
 
 const editExpense = (id) => {
     edit_expense_id.value = id;

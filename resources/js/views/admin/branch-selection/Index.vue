@@ -185,7 +185,7 @@ const canOpenBranchSettings = computed(() =>
 );
 
 onMounted(async () => {
-    await branchStore.getBranches(true);
+    await branchStore.getBranches();
     await branchStore.ensureSelectedBranchLoaded();
 
     if (!branches.value.data.length && canOpenBranchSettings.value) {

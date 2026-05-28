@@ -76,12 +76,12 @@
             :columns="columns"
             :data-source="subscriptions.data"
             :loading="subscriptions.loading"
-            :pagination="pagination"
-            @change="handleTableChange"
+            :pagination="false"
+            :loading="subscriptions.loading"
           >
             <template #bodyCell="{ column, record, index }">
               <template v-if="column.key === 'sn'">
-                {{ (pagination.current - 1) * pagination.pageSize + index + 1 }}
+                {{ (subscriptions.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
               </template>
               <template v-if="column.key === 'company'">
                 {{ record.company?.company_name || '—' }}
@@ -119,6 +119,7 @@
               </template>
             </template>
           </a-table>
+          <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="subscriptions.meta" />
         </div>
       </div>
     </div>
@@ -128,7 +129,8 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from "vue";
+import {onMounted, reactive, ref, watch} from "vue";
+import VPagination from '@/components/base/VPagination.vue';
 import Swal from "sweetalert2";
 import {storeToRefs} from "pinia";
 import {toast} from "@/helpers/toast";
@@ -158,13 +160,6 @@ const columns = [
     {title: 'Action', key: 'action', align: 'center'},
 ];
 
-const pagination = computed(() => ({
-    total: subscriptions.value.meta.total,
-    current: subscriptions.value.meta.current_page,
-    pageSize: subscriptions.value.meta.per_page,
-    showSizeChanger: true,
-}));
-
 onMounted(() => {
     fetchSubscriptions();
 });
@@ -176,11 +171,9 @@ const fetchSubscriptions = (refetch = false) => {
     subscriptionStore.getSubscriptions({filter});
 };
 
-const handleTableChange = (pag) => {
-    filter.page = pag.current;
-    filter.limit = pag.pageSize;
+watch(() => [filter.page, filter.limit], () => {
     fetchSubscriptions();
-};
+});
 
 const formatPrice = formatSuperAdminMoney;
 

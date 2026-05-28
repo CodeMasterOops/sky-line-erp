@@ -8,6 +8,7 @@ export const useBrandStore = defineStore('brand', {
     state: () => ({
         brands: {
             data: [],
+            meta: {},
             loading: false
         },
         brand: {
@@ -17,18 +18,19 @@ export const useBrandStore = defineStore('brand', {
     }),
 
     actions: {
-        getBrands(refetch = false) {
-            if (!this.brands.data.length || refetch) {
-                this.brands.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.brands.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.brands.loading = false;
-                    })
-            }
+        getBrands({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.brands.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.brands.data = res.data.data;
+                    this.brands.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.brands.loading = false;
+                });
         },
         storeBrand(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)

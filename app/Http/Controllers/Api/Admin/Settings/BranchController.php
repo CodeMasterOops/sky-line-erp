@@ -21,9 +21,11 @@ class BranchController extends Controller
     /**
      * @Permissions("list_branch", group="branch", desc="List Branches")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $branches = Branch::orderBy('name')->get();
+        $branches = Branch::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return BranchResource::collection($branches);
     }

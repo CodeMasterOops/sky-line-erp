@@ -8,7 +8,7 @@
                         v-model="onlyMismatch"
                         class="form-check-input"
                         type="checkbox"
-                        @change="fetchRows"
+                        @change="fetchRows(true)"
                     >
                     <label class="form-check-label" for="only-mismatch">Only mismatches</label>
                 </div>
@@ -47,7 +47,7 @@
                 >
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
-                            {{ index + 1 }}
+                            {{ (meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'difference'">
                             <span
@@ -79,13 +79,15 @@
                         </template>
                     </template>
                 </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="meta" />
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import {onMounted, reactive, ref} from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
 import Swal from 'sweetalert2';
 import {toast} from '@/helpers/toast';
 import {apiAdmin} from '@/helpers/api.js';
@@ -94,8 +96,15 @@ import showErrors from '@/helpers/showErrors.js';
 const rows = ref([]);
 const loading = ref(false);
 const onlyMismatch = ref(true);
+const filter = reactive({ page: 1, limit: 25 });
 const meta = reactive({
     row_count: null,
+    total: 0,
+    current_page: 1,
+    per_page: 25,
+    from: null,
+    to: null,
+    last_page: 1,
 });
 
 const columns = [
@@ -109,11 +118,16 @@ const columns = [
     {title: 'Actions', key: 'actions', width: 220},
 ];
 
-const fetchRows = async () => {
+const fetchRows = async (resetPage = false) => {
+    if (resetPage) {
+        filter.page = 1;
+    }
     loading.value = true;
     try {
         const q = new URLSearchParams({
             only_mismatch: onlyMismatch.value ? '1' : '0',
+            page: String(filter.page),
+            limit: String(filter.limit),
         });
         const res = await apiAdmin(`inventory/stock-reconciliation?${q.toString()}`);
         const list = res.data.data || [];
@@ -121,13 +135,24 @@ const fetchRows = async () => {
             ...r,
             rowKey: `${r.product_variant_id}-${r.warehouse_id}-${i}`,
         }));
-        meta.row_count = res.data.meta?.row_count ?? list.length;
+        const responseMeta = res.data.meta ?? {};
+        meta.row_count = responseMeta.row_count ?? responseMeta.total ?? list.length;
+        meta.total = responseMeta.total ?? meta.row_count;
+        meta.current_page = responseMeta.current_page ?? filter.page;
+        meta.per_page = responseMeta.per_page ?? filter.limit;
+        meta.from = responseMeta.from ?? null;
+        meta.to = responseMeta.to ?? null;
+        meta.last_page = responseMeta.last_page ?? 1;
     } catch (e) {
         showErrors(e);
     } finally {
         loading.value = false;
     }
 };
+
+watch(() => [filter.page, filter.limit], () => {
+    fetchRows();
+});
 
 onMounted(() => {
     fetchRows();

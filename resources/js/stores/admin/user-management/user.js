@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', {
     state: () => ({
         users: {
             data: [],
+            meta: {},
             loading: false
         },
         user: {
@@ -17,18 +18,19 @@ export const useUserStore = defineStore('user', {
     }),
 
     actions: {
-        getUsers() {
-            if (!this.users.data.length) {
-                this.users.loading = true;
-                return apiAdmin(`${userUrl}`)
-                    .then((res) => {
-                        this.users.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.users.loading = false;
-                    })
-            }
+        getUsers({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.users.loading = true;
+            return apiAdmin(`${userUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.users.data = res.data.data;
+                    this.users.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.users.loading = false;
+                });
         },
         storeUser(form) {
             return apiAdmin(`${userUrl}`, 'post', form)

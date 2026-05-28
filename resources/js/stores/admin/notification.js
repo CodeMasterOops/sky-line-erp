@@ -17,11 +17,21 @@ export const useAdminNotificationStore = defineStore('admin-notification', {
         },
     }),
     actions: {
-        getAllNotifications() {
+        getAllNotifications({filter} = {}) {
             this.allNotifications.loading = true;
-            return apiAdmin(`${apiUrl}/all`)
+            const params = new URLSearchParams();
+            if (filter?.page) {
+                params.set('page', String(filter.page));
+            }
+            if (filter?.limit) {
+                params.set('limit', String(filter.limit));
+            }
+            const query = params.toString();
+
+            return apiAdmin(`${apiUrl}/all${query ? `?${query}` : ''}`)
                 .then((res) => {
                     this.allNotifications.data = res.data.data;
+                    this.allNotifications.meta = res.data.meta ?? {};
                 })
                 .catch((err) => {
                     showErrors(err);

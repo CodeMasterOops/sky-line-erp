@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Accounting;
 
 use App\Models\AccountGroup;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Accounting\AccountGroupResource;
@@ -13,9 +14,11 @@ class AccountGroupController extends Controller
     /**
      * @Permissions("list_account_group", group="account_group", desc="List Account Group")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $accountGroups = AccountGroup::all();
+        $accountGroups = AccountGroup::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return AccountGroupResource::collection($accountGroups);
     }

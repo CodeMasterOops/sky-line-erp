@@ -44,12 +44,12 @@
                                 class="table datanew table-hover table-center mb-0"
                                 :columns="currentColumns"
                                 :data-source="currentData"
-                                :loading="loading"
+                                :loading="currentLoading"
                                 :pagination="false"
                             >
                                 <template #bodyCell="{ column, record, index }">
                                     <template v-if="column.key === 'sn'">
-                                        {{ index + 1 }}
+                                        {{ (currentMeta.from || ((activeFilter.page - 1) * activeFilter.limit + 1)) + index }}
                                     </template>
                                     <template v-if="column.key === 'province_name'">
                                         {{ record.province_name || '—' }}
@@ -85,6 +85,11 @@
                                     </template>
                                 </template>
                             </a-table>
+                            <VPagination
+                                v-model:page="activeFilter.page"
+                                v-model:limit="activeFilter.limit"
+                                :meta="currentMeta"
+                            />
                         </div>
                     </div>
                 </div>
@@ -105,11 +110,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import Swal from 'sweetalert2';
+import VPagination from '@/components/base/VPagination.vue';
 import { useLocationStore } from '@/stores/super-admin/location';
 import CreateAddress from './Create.vue';
 import EditAddress from './Edit.vue';
@@ -123,6 +129,13 @@ const tabDefs = [
     { id: 'palikas', label: 'Palikas' },
     { id: 'wards', label: 'Wards' },
 ];
+
+const tabFilters = reactive({
+    provinces: { page: 1, limit: 10 },
+    districts: { page: 1, limit: 10 },
+    palikas: { page: 1, limit: 10 },
+    wards: { page: 1, limit: 10 },
+});
 
 const provinceColumns = [
     { title: 'SN', key: 'sn', width: 60 },
@@ -160,9 +173,10 @@ const wardColumns = [
 ];
 
 const activeTab = ref('provinces');
-const loading = ref(false);
 const createModalOpened = ref(false);
 const editRecord = ref(null);
+
+const activeFilter = computed(() => tabFilters[activeTab.value]);
 
 const currentColumns = computed(() => {
     const map = {
@@ -176,50 +190,70 @@ const currentColumns = computed(() => {
 
 const currentData = computed(() => {
     const map = {
-        provinces: provinces.value,
-        districts: districts.value,
-        palikas: palikas.value,
-        wards: wards.value,
+        provinces: provinces.value.data,
+        districts: districts.value.data,
+        palikas: palikas.value.data,
+        wards: wards.value.data,
     };
     return map[activeTab.value] || [];
+});
+
+const currentMeta = computed(() => {
+    const map = {
+        provinces: provinces.value.meta,
+        districts: districts.value.meta,
+        palikas: palikas.value.meta,
+        wards: wards.value.meta,
+    };
+    return map[activeTab.value] || {};
+});
+
+const currentLoading = computed(() => {
+    const map = {
+        provinces: provinces.value.loading,
+        districts: districts.value.loading,
+        palikas: palikas.value.loading,
+        wards: wards.value.loading,
+    };
+    return map[activeTab.value] || false;
 });
 
 function setTab(tab) {
     activeTab.value = tab;
     createModalOpened.value = false;
     editRecord.value = null;
-    refreshForTab();
 }
 
 async function refreshForTab() {
-    loading.value = true;
+    const filter = tabFilters[activeTab.value];
     try {
         switch (activeTab.value) {
             case 'provinces':
-                await locationStore.loadProvinces();
+                await locationStore.loadProvinces({ filter });
                 break;
             case 'districts':
-                await locationStore.loadProvinces();
-                await locationStore.loadDistricts();
+                await locationStore.loadDistricts({ filter });
                 break;
             case 'palikas':
-                await locationStore.loadProvinces();
-                await locationStore.loadPalikas();
+                await locationStore.loadPalikas({ filter });
                 break;
             case 'wards':
-                await locationStore.loadProvinces();
-                await locationStore.loadWards();
+                await locationStore.loadWards({ filter });
                 break;
             default:
         }
-    } finally {
-        loading.value = false;
+    } catch (e) {
+        showErrors(e);
     }
 }
 
-onMounted(() => {
-    refreshForTab();
-});
+watch(
+    () => [activeTab.value, activeFilter.value.page, activeFilter.value.limit],
+    () => {
+        refreshForTab();
+    },
+    { immediate: true },
+);
 
 function removeRecord(id) {
     switch (activeTab.value) {
@@ -254,7 +288,7 @@ async function removeProvince(id) {
     try {
         await locationStore.deleteProvince(id);
         toast('success', 'Deleted.');
-        await locationStore.loadProvinces();
+        await refreshForTab();
     } catch (e) {
         showErrors(e);
     }
@@ -317,7 +351,7 @@ async function removeWard(id) {
     try {
         await locationStore.deleteWard(id);
         toast('success', 'Deleted.');
-        await locationStore.loadWards();
+        await refreshForTab();
     } catch (e) {
         showErrors(e);
     }

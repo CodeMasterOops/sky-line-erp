@@ -39,9 +39,12 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <a-table :columns="columns" :data-source="batches" :loading="loading" :pagination="pagination"
-                             @change="handleTableChange" row-key="id">
-                        <template #bodyCell="{ column, record }">
+                    <a-table :columns="columns" :data-source="batches" :loading="loading" :pagination="false"
+                             row-key="id">
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ (listMeta.from || ((filter.page - 1) * filter.per_page + 1)) + index }}
+                            </template>
                             <template v-if="column.key === 'product'">
                                 {{ record.product_variant?.product?.name }}
                             </template>
@@ -60,6 +63,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.per_page" :meta="listMeta" />
                 </div>
             </div>
         </div>
@@ -162,7 +166,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive, watch } from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -180,9 +185,9 @@ const showForm = ref(false);
 const alertModal = ref(false);
 const alerts = ref([]);
 const alertDays = ref(30);
-const pagination = ref({ current: 1, pageSize: 25, total: 0 });
+const listMeta = ref({ total: 0, current_page: 1, per_page: 25, from: null, to: null, last_page: 1 });
 
-const filter = ref({ status: '', expiring_days: '' });
+const filter = reactive({ status: '', expiring_days: '', page: 1, per_page: 25 });
 
 const form = ref({
     product_variant_id: '', warehouse_id: '', batch_no: '', lot_no: '',
@@ -190,6 +195,7 @@ const form = ref({
 });
 
 const columns = [
+    { title: 'SN', key: 'sn', width: 60 },
     { title: 'Product', key: 'product', dataIndex: 'product_variant' },
     { title: 'Batch No', key: 'batch_no', dataIndex: 'batch_no' },
     { title: 'Lot No', key: 'lot_no', dataIndex: 'lot_no' },
@@ -206,22 +212,35 @@ onMounted(() => {
 });
 
 async function fetchBatches(reset = false) {
-    if (reset) pagination.value.current = 1;
+    if (reset) {
+        filter.page = 1;
+    }
     loading.value = true;
     try {
         const params = new URLSearchParams({
-            page: pagination.value.current,
-            per_page: pagination.value.pageSize,
-            ...(filter.value.status && { status: filter.value.status }),
-            ...(filter.value.expiring_days && { expiring_days: filter.value.expiring_days }),
+            page: String(filter.page),
+            per_page: String(filter.per_page),
+            ...(filter.status && { status: filter.status }),
+            ...(filter.expiring_days && { expiring_days: filter.expiring_days }),
         });
         const { data } = await apiAdmin(`batch?${params}`);
         batches.value = data.data;
-        pagination.value.total = data.total;
+        listMeta.value = {
+            total: data.meta?.total ?? data.total ?? 0,
+            current_page: data.meta?.current_page ?? data.current_page ?? filter.page,
+            per_page: data.meta?.per_page ?? data.per_page ?? filter.per_page,
+            from: data.meta?.from ?? data.from ?? null,
+            to: data.meta?.to ?? data.to ?? null,
+            last_page: data.meta?.last_page ?? data.last_page ?? 1,
+        };
     } finally {
         loading.value = false;
     }
 }
+
+watch(() => [filter.page, filter.per_page], () => {
+    fetchBatches();
+});
 
 async function fetchWarehouses() {
     const { data } = await apiAdmin('warehouse');
@@ -255,13 +274,9 @@ function resetForm() {
 }
 
 function clearFilters() {
-    filter.value = { status: '', expiring_days: '' };
+    filter.status = '';
+    filter.expiring_days = '';
     fetchBatches(true);
-}
-
-function handleTableChange(pag) {
-    pagination.value.current = pag.current;
-    fetchBatches();
 }
 
 function expiryClass(date) {

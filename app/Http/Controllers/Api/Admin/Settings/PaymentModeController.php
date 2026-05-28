@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Settings;
 
 use App\Models\PaymentMode;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Settings\PaymentModeResource;
@@ -13,9 +14,11 @@ class PaymentModeController extends Controller
     /**
      * @Permissions("list_payment_mode", group="payment_mode", desc="List Payment Mode")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $paymentModes = PaymentMode::all();
+        $paymentModes = PaymentMode::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return PaymentModeResource::collection($paymentModes);
     }

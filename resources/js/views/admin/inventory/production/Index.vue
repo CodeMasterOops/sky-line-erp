@@ -22,8 +22,11 @@
         <div class="card">
             <div class="card-body">
                 <div class="table-responsive">
-                    <a-table :columns="columns" :data-source="orders" :loading="loading" row-key="id">
-                        <template #bodyCell="{ column, record }">
+                    <a-table :columns="columns" :data-source="orders" :loading="loading" :pagination="false" row-key="id">
+                        <template #bodyCell="{ column, record, index }">
+                            <template v-if="column.key === 'sn'">
+                                {{ (listMeta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                            </template>
                             <template v-if="column.key === 'product'">
                                 {{ record.bom?.product_variant?.product?.name }}
                             </template>
@@ -47,6 +50,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="listMeta" />
                 </div>
             </div>
         </div>
@@ -143,7 +147,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive, watch } from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -161,7 +166,8 @@ const showCreate = ref(false);
 const completeModal = ref(false);
 const selectedOrder = ref(null);
 
-const filter = ref({ status: '' });
+const filter = reactive({ status: '', page: 1, limit: 10 });
+const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
 const statuses = [
     { value: '', label: 'All' }, { value: 'draft', label: 'Draft' },
     { value: 'in_progress', label: 'In Progress' }, { value: 'completed', label: 'Completed' },
@@ -172,6 +178,7 @@ const createForm = ref({ bom_id: '', warehouse_id: '', planned_qty: '', planned_
 const completeForm = ref({ produced_qty: '', consumptions: [] });
 
 const columns = [
+    { title: 'SN', key: 'sn', width: 60 },
     { title: 'Order No', dataIndex: 'order_no', key: 'order_no' },
     { title: 'Product (BOM)', key: 'product' },
     { title: 'Warehouse', key: 'warehouse', dataIndex: ['warehouse', 'name'] },
@@ -184,21 +191,40 @@ const columns = [
 
 onMounted(() => { fetchOrders(); fetchWarehouses(); });
 
-async function fetchOrders() {
+async function fetchOrders(resetPage = false) {
+    if (resetPage) {
+        filter.page = 1;
+    }
     loading.value = true;
     try {
-        const params = filter.value.status ? `?status=${filter.value.status}` : '';
-        const { data } = await apiAdmin(`production-order${params}`);
-        orders.value = data.data;
+        const params = new URLSearchParams({
+            page: String(filter.page),
+            per_page: String(filter.limit),
+            ...(filter.status ? { status: filter.status } : {}),
+        });
+        const { data } = await apiAdmin(`production-order?${params}`);
+        orders.value = data.data ?? [];
+        listMeta.value = {
+            total: data.total ?? 0,
+            current_page: data.current_page ?? filter.page,
+            per_page: data.per_page ?? filter.limit,
+            from: data.from ?? null,
+            to: data.to ?? null,
+            last_page: data.last_page ?? 1,
+        };
     } finally { loading.value = false; }
 }
+
+watch(() => [filter.page, filter.limit], () => {
+    fetchOrders();
+});
 
 async function fetchWarehouses() {
     const { data } = await apiAdmin('warehouse');
     warehouses.value = data.data;
 }
 
-function setStatus(s) { filter.value.status = s; fetchOrders(); }
+function setStatus(s) { filter.status = s; fetchOrders(true); }
 
 async function createOrder() {
     saving.value = true;

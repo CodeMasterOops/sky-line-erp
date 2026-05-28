@@ -3,7 +3,7 @@
         <PageHeader
             title="Fiscal Year"
             subtitle="Manage fiscal years"
-            @refresh="fetchFiscalYears(true)"
+            @refresh="fetch"
         >
             <template #actions>
                 <button
@@ -32,10 +32,11 @@
                                 :columns="columns"
                                 :data-source="fiscalYears.data"
                                 :loading="fiscalYears.loading"
+                                :pagination="false"
                             >
                                 <template #bodyCell="{ column, record, index }">
                                     <template v-if="column.key === 'sn'">
-                                        {{ index + 1 }}
+                                        {{ (fiscalYears.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                                     </template>
                                     <template v-if="column.key === 'action'">
                                         <div class="action-icon d-inline-flex">
@@ -56,6 +57,7 @@
                                     </template>
                                 </template>
                             </a-table>
+                            <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="fiscalYears.meta" />
                         </div>
                     </div>
                 </div>
@@ -67,90 +69,75 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from "vue";
-import Swal from "sweetalert2";
-import {toast} from "@/helpers/toast";
-import showErrors from "@/helpers/showErrors";
-import {storeToRefs} from "pinia";
+import { ref } from 'vue';
+import Swal from 'sweetalert2';
+import { toast } from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateFiscalYear from './Create.vue';
 import EditFiscalYear from './Edit.vue';
-import {useFiscalYearStore} from '@/stores/super-admin/fiscal-year.js';
-import {adToBsDate} from "@/helpers/helper.js";
+import { useFiscalYearStore } from '@/stores/super-admin/fiscal-year.js';
+import { adToBsDate } from '@/helpers/helper.js';
 
 const fiscalYearStore = useFiscalYearStore();
-
-onMounted(() => {
-    fetchFiscalYears();
-})
-
 const edit_fiscal_year_id = ref('');
 const createModalOpened = ref(false);
 const settingCurrent = ref(false);
+const { fiscalYears } = storeToRefs(fiscalYearStore);
 
-const fetchFiscalYears = (refetch = false) => {
-    fiscalYearStore.getFiscalYears(refetch);
-}
-
-const {fiscalYears} = storeToRefs(fiscalYearStore);
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => fiscalYearStore.getFiscalYears({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Year',
-        dataIndex: 'year_name',
-    },
-    {
-        title: 'Code',
-        dataIndex: 'year_code',
-    },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Year', dataIndex: 'year_name' },
+    { title: 'Code', dataIndex: 'year_code' },
     {
         title: 'Start Date',
-        customRender: ({record}) => adToBsDate(record.start_date),
+        customRender: ({ record }) => adToBsDate(record.start_date),
     },
     {
         title: 'End Date',
-        customRender: ({record}) => adToBsDate(record.end_date),
+        customRender: ({ record }) => adToBsDate(record.end_date),
     },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
 const deleteFiscalYear = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
-        text: "If you delete this, it will be gone forever.",
+        text: 'If you delete this, it will be gone forever.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: "Yes",
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
                 let res = await fiscalYearStore.deleteFiscalYear(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 
 const setCurrentFiscalYear = async (id) => {
     settingCurrent.value = true;
     try {
         const res = await fiscalYearStore.setCurrentFiscalYear(id);
         toast(res.status, res.data.message);
+        fetch();
     } catch (e) {
         showErrors(e);
     } finally {
         settingCurrent.value = false;
     }
-}
+};
 </script>

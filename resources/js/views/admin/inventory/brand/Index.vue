@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Brand List" subtitle="Manage your brands" @refresh="fetchBrands(true)">
+    <PageHeader title="Brand List" subtitle="Manage your brands" @refresh="fetch">
         <template #actions>
             <button
                 v-can="'create_brand'"
@@ -20,10 +20,11 @@
                         :columns="columns"
                         :data-source="brands.data"
                         :loading="brands.loading"
+                        :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ (brands.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
@@ -39,6 +40,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="brands.meta" />
                 </div>
             </div>
         </div>
@@ -48,64 +50,33 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { ref } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateBrand from './Create.vue';
 import EditBrand from './Edit.vue';
 import { useBrandStore } from '@/stores/admin/inventory/brand.js';
 
 const brandStore = useBrandStore();
-
-onMounted(() => {
-    fetchBrands();
-});
-
 const edit_brand_id = ref('');
 const createModalOpened = ref(false);
-
 const { brands } = storeToRefs(brandStore);
 
-const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Code',
-        dataIndex: 'code',
-        sorter: {
-            compare: (a, b) => {
-                a = a.code.toLowerCase();
-                b = b.code.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
-];
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => brandStore.getBrands({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
-const fetchBrands = (refetch = false) => {
-    brandStore.getBrands(refetch);
-};
+const columns = [
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Code', dataIndex: 'code' },
+    { title: 'Action', key: 'action', align: 'center' },
+];
 
 const deleteBrand = async (id) => {
     Swal.fire({
@@ -120,6 +91,7 @@ const deleteBrand = async (id) => {
             try {
                 let res = await brandStore.deleteBrand(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
                 showErrors(e);
             }

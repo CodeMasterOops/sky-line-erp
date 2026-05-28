@@ -59,26 +59,33 @@ class InventoryStockReconciliationController extends Controller
             $query->whereRaw('s.quantity != COALESCE(v.valued_qty, 0)');
         }
 
-        $rows = $query
+        $paginator = $query
             ->orderBy('p.name')
             ->orderBy('pv.sku')
-            ->get()
-            ->map(fn ($r) => [
-                'product_variant_id' => (int) $r->product_variant_id,
-                'sku' => $r->sku,
-                'product_name' => $r->product_name,
-                'warehouse_id' => (int) $r->warehouse_id,
-                'warehouse_name' => $r->warehouse_name,
-                'stock_quantity' => (int) $r->stock_quantity,
-                'valued_quantity' => (int) $r->valued_quantity,
-                'difference' => (int) $r->difference,
-            ]);
+            ->paginate($request->integer('limit', 25));
+
+        $rows = collect($paginator->items())->map(fn ($r) => [
+            'product_variant_id' => (int) $r->product_variant_id,
+            'sku' => $r->sku,
+            'product_name' => $r->product_name,
+            'warehouse_id' => (int) $r->warehouse_id,
+            'warehouse_name' => $r->warehouse_name,
+            'stock_quantity' => (int) $r->stock_quantity,
+            'valued_quantity' => (int) $r->valued_quantity,
+            'difference' => (int) $r->difference,
+        ]);
 
         return response()->json([
             'data' => $rows,
             'meta' => [
                 'only_mismatch' => $onlyMismatch,
-                'row_count' => $rows->count(),
+                'row_count' => $paginator->total(),
+                'current_page' => $paginator->currentPage(),
+                'from' => $paginator->firstItem(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'to' => $paginator->lastItem(),
+                'total' => $paginator->total(),
             ],
         ]);
     }

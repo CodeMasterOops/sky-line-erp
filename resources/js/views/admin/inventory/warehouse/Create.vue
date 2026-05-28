@@ -99,7 +99,7 @@ const createModalOpened = defineModel('createModalOpened');
 
 watch(createModalOpened, async (open) => {
     if (open) {
-        warehouseStore.getWarehouses(true);
+        warehouseStore.getWarehouses();
         await fetchNextCode();
     }
 });

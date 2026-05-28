@@ -21,7 +21,9 @@ class DistrictController extends Controller
             $q->where('province_id', $request->query('province_id'));
         }
 
-        return DistrictResource::collection($q->get());
+        return DistrictResource::collection(
+            $q->paginate($request->integer('limit', 25))
+        );
     }
 
     public function store(DistrictRequest $request)

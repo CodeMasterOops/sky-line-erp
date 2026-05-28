@@ -11,6 +11,7 @@ export const useBranchStore = defineStore('branch', {
         selectedBranch: null,
         branches: {
             data: [],
+            meta: {},
             loading: false
         },
         branch: {
@@ -20,20 +21,19 @@ export const useBranchStore = defineStore('branch', {
     }),
 
     actions: {
-        getBranches(refetch = false) {
-            if (!this.branches.data.length || refetch) {
-                this.branches.loading = true;
-                return apiAdmin(`${apiUrl}`)
-                    .then((res) => {
-                        this.branches.data = res.data.data;
-                    }).catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.branches.loading = false;
-                    });
-            }
-
-            return Promise.resolve();
+        getBranches({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
+            this.branches.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.branches.data = res.data.data;
+                    this.branches.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.branches.loading = false;
+                });
         },
         storeBranch(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)

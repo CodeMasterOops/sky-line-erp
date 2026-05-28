@@ -22,7 +22,9 @@ class WardController extends Controller
             $q->where('palika_id', $request->query('palika_id'));
         }
 
-        return WardResource::collection($q->get());
+        return WardResource::collection(
+            $q->paginate($request->integer('limit', 25))
+        );
     }
 
     public function store(WardRequest $request)

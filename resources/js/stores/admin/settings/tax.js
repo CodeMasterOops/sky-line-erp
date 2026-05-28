@@ -8,9 +8,9 @@ export const useTaxStore = defineStore('tax', {
     state: () => ({
         taxes: {
             data: [],
+            meta: {},
             loading: false
         },
-        taxesFetchKey: '',
         tax: {
             data: {},
             loading: false
@@ -18,25 +18,18 @@ export const useTaxStore = defineStore('tax', {
     }),
 
     actions: {
-        /**
-         * @param {boolean} refetch
-         * @param {Record<string, string>} [query] e.g. { for: 'line_item' } for VAT-only taxes (invoice/bill lines)
-         */
-        getTaxes(refetch = false, query = {}) {
-            const qs = new URLSearchParams(query).toString();
-            const path = qs ? `${apiUrl}?${qs}` : apiUrl;
-            const fetchKey = qs || '__all__';
-            if (!refetch && this.taxesFetchKey === fetchKey && this.taxes.data.length) {
-                return Promise.resolve();
-            }
+        getTaxes({ filter } = {}) {
+            const params = {
+                ...(filter ?? {}),
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 1000,
+            };
             this.taxes.loading = true;
-            return apiAdmin(path)
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
                 .then((res) => {
                     this.taxes.data = res.data.data;
-                    this.taxesFetchKey = fetchKey;
-                }).catch((err) => {
-                    showErrors(err);
-                }).finally(() => {
+                    this.taxes.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
                     this.taxes.loading = false;
                 });
         },

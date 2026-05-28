@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="User List" subtitle="Manage your users" @refresh="fetchUsers(true)">
+    <PageHeader title="User List" subtitle="Manage your users" @refresh="fetch">
         <template #actions>
             <button
                 v-can="'create_user'"
@@ -20,10 +20,11 @@
                         :columns="columns"
                         :data-source="users.data"
                         :loading="users.loading"
+                        :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ index + 1 }}
+                                {{ (users.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                             </template>
                             <template v-else-if="column.key === 'roles'">
                                 <template v-if="record.roles?.length">
@@ -70,6 +71,7 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="users.meta" />
                 </div>
             </div>
         </div>
@@ -79,107 +81,74 @@
 </template>
 
 <script setup>
-import {onMounted, ref} from "vue";
-import Swal from "sweetalert2";
-import {toast} from "@/helpers/toast";
-import showErrors from "@/helpers/showErrors";
-import {storeToRefs} from "pinia";
-import {useUserStore} from "@/stores/admin/user-management/user";
+import { ref } from 'vue';
+import Swal from 'sweetalert2';
+import { toast } from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
+import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
+import { useUserStore } from '@/stores/admin/user-management/user';
 import CreateUser from './Create.vue';
 import EditUser from './Edit.vue';
 
 const userStore = useUserStore();
-
-onMounted(() => {
-    fetchUsers();
-})
-
 const edit_user_id = ref('');
 const createModalOpened = ref(false);
+const { users } = storeToRefs(userStore);
 
-const {users} = storeToRefs(userStore);
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => userStore.getUsers({ filter }),
+    defaults: { page: 1, limit: 10 },
+});
 
 const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: {
-            compare: (a, b) => {
-                a = a.name.toLowerCase();
-                b = b.name.toLowerCase();
-                return a > b ? -1 : b > a ? 1 : 0;
-            },
-        },
-    },
-    {
-        title: 'Email',
-        dataIndex: 'email',
-    },
-    {
-        title: 'Role',
-        key: 'roles',
-    },
-    {
-        title: 'Status',
-        key: 'status',
-        align: 'center',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-    },
+    { title: 'SN', key: 'sn', width: 60 },
+    { title: 'Name', dataIndex: 'name' },
+    { title: 'Email', dataIndex: 'email' },
+    { title: 'Role', key: 'roles' },
+    { title: 'Status', key: 'status', align: 'center' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
-
-const fetchUsers = (refetch = false) => {
-    if (refetch) {
-        users.value.data = [];
-    }
-
-    userStore.getUsers();
-};
 
 const deleteUser = async (id) => {
     Swal.fire({
         title: 'Are You Sure to Delete ? ',
-        text: "If you delete this, it will be gone forever.",
+        text: 'If you delete this, it will be gone forever.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: "Yes",
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
                 let res = await userStore.deleteUser(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 
 const updateStatus = async (id) => {
     Swal.fire({
-        text: "Are you sure you want to change the status?",
+        text: 'Are you sure you want to change the status?',
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: "red",
-        confirmButtonText: "Yes",
+        confirmButtonColor: 'red',
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
                 let res = await userStore.updateStatus(id);
                 toast(res.status, res.data.message);
+                fetch();
             } catch (e) {
-                showErrors(e)
+                showErrors(e);
             }
         }
     });
-}
+};
 </script>

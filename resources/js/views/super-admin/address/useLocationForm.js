@@ -1,4 +1,4 @@
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -13,7 +13,8 @@ const formTitles = {
 
 export function useLocationForm(activeTab, onSaved) {
     const locationStore = useLocationStore();
-    const { provinces } = storeToRefs(locationStore);
+    const { provinces: provincesState } = storeToRefs(locationStore);
+    const provinces = computed(() => provincesState.value.data ?? []);
 
     const form = ref({ name: '', sort_order: 0 });
     const palForm = ref({ province_id: '' });
@@ -78,8 +79,8 @@ export function useLocationForm(activeTab, onSaved) {
                 sort_order: row.sort_order ?? 0,
             };
             if (row.province_id) {
-                await locationStore.loadDistricts(row.province_id);
-                palikaDistricts.value = [...locationStore.districts];
+                await locationStore.loadDistricts({ provinceId: row.province_id });
+                palikaDistricts.value = [...locationStore.districts.data];
             }
             await nextTick();
             suppressPalikaCascade.value = false;
@@ -98,12 +99,12 @@ export function useLocationForm(activeTab, onSaved) {
                 sort_order: row.sort_order ?? 0,
             };
             if (row.province_id) {
-                await locationStore.loadDistricts(row.province_id);
-                wardDistricts.value = [...locationStore.districts];
+                await locationStore.loadDistricts({ provinceId: row.province_id });
+                wardDistricts.value = [...locationStore.districts.data];
             }
             if (row.district_id) {
-                await locationStore.loadPalikas(row.district_id);
-                wardPalikas.value = [...locationStore.palikas];
+                await locationStore.loadPalikas({ districtId: row.district_id });
+                wardPalikas.value = [...locationStore.palikas.data];
             }
             await nextTick();
             suppressWardCascade.value = false;
@@ -121,8 +122,8 @@ export function useLocationForm(activeTab, onSaved) {
                 palikaDistricts.value = [];
                 return;
             }
-            await locationStore.loadDistricts(pid);
-            palikaDistricts.value = [...locationStore.districts];
+            await locationStore.loadDistricts({ provinceId: pid });
+            palikaDistricts.value = [...locationStore.districts.data];
         }
     );
 
@@ -139,8 +140,8 @@ export function useLocationForm(activeTab, onSaved) {
                 wardDistricts.value = [];
                 return;
             }
-            await locationStore.loadDistricts(pid);
-            wardDistricts.value = [...locationStore.districts];
+            await locationStore.loadDistricts({ provinceId: pid });
+            wardDistricts.value = [...locationStore.districts.data];
         }
     );
 
@@ -155,8 +156,8 @@ export function useLocationForm(activeTab, onSaved) {
                 wardPalikas.value = [];
                 return;
             }
-            await locationStore.loadPalikas(did);
-            wardPalikas.value = [...locationStore.palikas];
+            await locationStore.loadPalikas({ districtId: did });
+            wardPalikas.value = [...locationStore.palikas.data];
         }
     );
 

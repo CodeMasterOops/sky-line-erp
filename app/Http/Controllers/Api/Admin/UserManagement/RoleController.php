@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\UserManagement;
 
 use App\Models\Role;
+use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\UserManagement\RoleResource;
@@ -14,9 +15,11 @@ class RoleController extends Controller
     /**
      * @Permissions("list_role", group="role", desc="List Role")
      */
-    public function index()
+    public function index(Request $request)
     {
-        $roles = Role::all();
+        $roles = Role::query()
+            ->orderBy('name')
+            ->paginate($request->integer('limit', 25));
 
         return RoleResource::collection($roles);
     }

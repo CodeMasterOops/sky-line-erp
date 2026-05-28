@@ -1048,7 +1048,7 @@ onMounted(async () => {
     brandStore.getBrands();
     attributeStore.getAttributes();
     await settingStore.getSetting();
-    await taxStore.getTaxes(false, { for: 'line_item' });
+    await taxStore.getTaxes({ filter: { for: 'line_item' } });
     if (isEdit.value && props.productId) {
         ready.value = false;
         await productStore.getProduct(props.productId);

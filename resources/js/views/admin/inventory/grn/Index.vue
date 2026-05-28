@@ -40,13 +40,12 @@
                     class="table datanew table-hover table-center mb-0"
                     :columns="tableColumns"
                     :data-source="tableData"
-                    :pagination="pagination"
+                    :pagination="false"
                     :loading="grns.loading"
-                    @change="handleTableChange"
                 >
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
-                            {{ index + 1 }}
+                            {{ (grns.meta.from || ((filter.page - 1) * filter.per_page + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'grn_no'">
                             <router-link
@@ -75,6 +74,7 @@
                         </template>
                     </template>
                 </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.per_page" :meta="grns.meta" />
             </div>
         </div>
     </div>
@@ -84,7 +84,8 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
+import VPagination from '@/components/base/VPagination.vue';
 import {useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
@@ -126,14 +127,6 @@ const tableData = computed(() =>
     })),
 );
 
-const pagination = computed(() => ({
-    total: grns.value.meta?.total || 0,
-    current: grns.value.meta?.current_page || filter.page,
-    pageSize: grns.value.meta?.per_page || filter.per_page,
-    showSizeChanger: true,
-    showQuickJumper: true,
-}));
-
 onMounted(() => {
     fetchGrns();
 });
@@ -143,15 +136,16 @@ const fetchGrns = () => {
 };
 
 const debouncedFetch = debounce(() => {
+    const onFirstPage = filter.page === 1;
     filter.page = 1;
-    fetchGrns();
+    if (onFirstPage) {
+        fetchGrns();
+    }
 }, 300);
 
-const handleTableChange = (pag) => {
-    filter.page = pag.current;
-    filter.per_page = pag.pageSize;
+watch(() => [filter.page, filter.per_page], () => {
     fetchGrns();
-};
+});
 
 const viewGrn = (id) => {
     router.push({name: 'admin.grn-view', params: {id}});

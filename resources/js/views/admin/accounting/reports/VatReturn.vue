@@ -104,7 +104,7 @@
                             <div :class="['alert', data.net_vat_payable >= 0 ? 'alert-danger' : 'alert-success']">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <strong>{{ data.net_vat_payable >= 0 ? 'NET VAT PAYABLE (IRD)' : 'VAT CREDIT CARRY FORWARD' }}</strong>
-                                    <strong class="fs-5">{{ formatMoney(Math.abs(data.net_vat_payable)) }}</strong>
+                                    <strong class="">{{ formatMoney(Math.abs(data.net_vat_payable)) }}</strong>
                                 </div>
                             </div>
                         </div>
