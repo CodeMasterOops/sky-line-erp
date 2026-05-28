@@ -7,10 +7,10 @@
                 <div class="col-md-3">
                     <div class="mb-3">
                         <label class="form-label">Fiscal Year</label>
-                        <vue-select
+                        <Multiselect
                             v-model="filters.fiscal_year_id"
                             :options="fiscalYearOptions"
-                            :reduce="opt => opt.value"
+                            value-prop="value" label="label" :searchable="true"
                             placeholder="Select Fiscal Year"
                         />
                     </div>

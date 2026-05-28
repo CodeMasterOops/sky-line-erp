@@ -6,7 +6,7 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Product</label>
-                    <vue-select v-model="filters.product_id" :options="productOptions" :reduce="o => o.value" placeholder="All Products" clearable @update:modelValue="load" />
+                    <Multiselect v-model="filters.product_id" :options="productOptions" value-prop="value" label="label" :searchable="true" placeholder="All Products" clearable @update:modelValue="load" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Status</label>

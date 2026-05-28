@@ -103,7 +103,7 @@
                                                             <label class="form-label">
                                                                   Country <span class="text-danger">*</span>
                                                             </label>
-                                                            <vue-select :options="Austa" v-model="selected"
+                                                            <Multiselect :options="Austa" v-model="selected"
                                                                   placeholder="Select" />
 
                                                       </div>
@@ -113,7 +113,7 @@
                                                             <label class="form-label">
                                                                   State <span class="text-danger">*</span>
                                                             </label>
-                                                            <vue-select :options="Tasmania" v-model="selectedOne"
+                                                            <Multiselect :options="Tasmania" v-model="selectedOne"
                                                                   placeholder="Select" />
 
                                                       </div>
@@ -123,7 +123,7 @@
                                                             <label class="form-label">
                                                                   City <span class="text-danger">*</span>
                                                             </label>
-                                                            <vue-select :options="Anchorage" v-model="selectedTwo"
+                                                            <Multiselect :options="Anchorage" v-model="selectedTwo"
                                                                   placeholder="Select" />
                                                       </div>
                                                 </div>

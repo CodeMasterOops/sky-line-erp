@@ -8,9 +8,9 @@ import { createPinia } from "pinia";
 import router from "@/router";
 import Antd from "ant-design-vue";
 import "ant-design-vue/dist/reset.css";
-import VueSelect from "vue3-select-component";
 
-//multiselect css
+//multiselect css — @vueform/multiselect is the single project-wide
+//select component (handles both single and multi-select).
 import "@vueform/multiselect/themes/default.css";
 
 //bootstrap
@@ -91,7 +91,6 @@ createApp(App)
     .directive("can", permissionAccess)
     .component("SettingsSidebar", SettingsSidebar)
     .component("SuperAdminSettingsSidebar", SuperAdminSettingsSidebar)
-    .component("VueSelect", VueSelect)
     .use(VueApexCharts)
     .use(Antd)
     .mount("#app");

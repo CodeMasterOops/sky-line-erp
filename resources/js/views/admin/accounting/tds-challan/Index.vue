@@ -141,10 +141,10 @@
             <div class="row align-items-end">
                 <div class="col-md-5">
                     <label class="form-label">Select Party</label>
-                    <vue-select
+                    <Multiselect
                         v-model="certPartyId"
                         :options="partyOptions"
-                        :reduce="opt => opt.value"
+                        value-prop="value" label="label" :searchable="true"
                         placeholder="Search party..."
                     />
                 </div>

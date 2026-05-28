@@ -5,10 +5,10 @@
         <div class="card-body d-flex gap-3 align-items-end flex-wrap">
             <div>
                 <label class="form-label">Fiscal Year</label>
-                <vue-select
+                <Multiselect
                     v-model="selectedFiscalYear"
                     :options="fiscalYearOptions"
-                    :reduce="opt => opt.value"
+                    value-prop="value" label="label" :searchable="true"
                     placeholder="Select Fiscal Year"
                     class="w-200px"
                     @update:modelValue="loadPeriods"

@@ -192,7 +192,7 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">GL Account (Cash/Bank) *</label>
-                        <vue-select v-model="newAccount.account_id" :options="glAccountOptions" :reduce="o => o.value" placeholder="Select account" />
+                        <Multiselect v-model="newAccount.account_id" :options="glAccountOptions" value-prop="value" label="label" :searchable="true" placeholder="Select account" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Bank Name *</label>

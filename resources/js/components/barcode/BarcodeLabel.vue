@@ -28,8 +28,10 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue';
-import JsBarcode from 'jsbarcode';
-import QRCode from 'qrcode';
+
+// jsbarcode + qrcode are dynamically imported inside renderBarcode() so they
+// only ship to clients that actually render a label, not every page that may
+// import this component.
 
 const props = defineProps({
     value: {
@@ -74,12 +76,32 @@ const props = defineProps({
 const svgEl    = ref(null);
 const qrCanvas = ref(null);
 
-const renderBarcode = () => {
+// Cache the dynamically-loaded barcode libs so a fallback or a re-render
+// doesn't re-fetch the chunk after the first call.
+let JsBarcode = null;
+let QRCode = null;
+
+const loadJsBarcode = async () => {
+    if (!JsBarcode) {
+        JsBarcode = (await import('jsbarcode')).default;
+    }
+    return JsBarcode;
+};
+
+const loadQRCode = async () => {
+    if (!QRCode) {
+        QRCode = (await import('qrcode')).default;
+    }
+    return QRCode;
+};
+
+const renderBarcode = async () => {
     if (!props.value) return;
 
     if (props.format === 'qr') {
         if (!qrCanvas.value) return;
-        QRCode.toCanvas(qrCanvas.value, props.value, {
+        const qr = await loadQRCode();
+        qr.toCanvas(qrCanvas.value, props.value, {
             width: 90,
             margin: 1,
             errorCorrectionLevel: 'M',
@@ -89,6 +111,8 @@ const renderBarcode = () => {
     }
 
     if (!svgEl.value) return;
+
+    await loadJsBarcode();
 
     const options = {
         format:      props.format === 'ean13' ? 'EAN13' : 'CODE128',
@@ -120,10 +144,11 @@ const renderBarcode = () => {
 /**
  * Fall back to Code128 when EAN-13 validation fails.
  */
-const renderFallback = () => {
+const renderFallback = async () => {
     if (!svgEl.value) return;
+    const lib = await loadJsBarcode();
     try {
-        JsBarcode(svgEl.value, props.value, {
+        lib(svgEl.value, props.value, {
             format:      'CODE128',
             lineColor:   '#000000',
             background:  '#ffffff',

@@ -193,7 +193,7 @@
               <label class="form-label fw-semibold mb-1 small text-uppercase text-muted ls-1">Customer</label>
               <div class="d-flex gap-2 align-items-start">
                 <div class="flex-grow-1">
-                  <vue-select
+                  <Multiselect
                     :options="customerOptions"
                     v-model="selectedCustomerOption"
                     placeholder="Walk-in Customer"

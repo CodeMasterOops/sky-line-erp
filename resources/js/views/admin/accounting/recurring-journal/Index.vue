@@ -99,7 +99,7 @@
                         <tbody>
                             <tr v-for="(item, idx) in form.items" :key="idx">
                                 <td>
-                                    <vue-select v-model="item.account_id" :options="accountOptions" :reduce="o => o.value" placeholder="Select account" />
+                                    <Multiselect v-model="item.account_id" :options="accountOptions" value-prop="value" label="label" :searchable="true" placeholder="Select account" />
                                 </td>
                                 <td><input type="number" class="form-control form-control-sm text-end" v-model="item.dr_amount" min="0" step="0.01" /></td>
                                 <td><input type="number" class="form-control form-control-sm text-end" v-model="item.cr_amount" min="0" step="0.01" /></td>

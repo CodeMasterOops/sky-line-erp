@@ -1,11 +1,14 @@
-import printJS from 'print-js';
 import {containsHtmlTag} from "@/helpers/helper.js";
 
+// print-js is loaded on-demand at the moment the user actually triggers a
+// print, keeping it out of the initial bundle of every screen that imports
+// this composable.
 export const usePrint = () => {
-    const printContent = (printable,title='') => {
+    const printContent = async (printable, title = '') => {
+        const {default: printJS} = await import('print-js')
         printJS({
             printable,
-            type:containsHtmlTag(printable) ? 'raw-html' : 'html',
+            type: containsHtmlTag(printable) ? 'raw-html' : 'html',
             documentTitle: title || 'document',
             showModal: true,
             targetStyles: ['*'],

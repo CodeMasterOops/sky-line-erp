@@ -117,7 +117,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Category</label>
-                            <vue-select v-model="form.fixed_asset_category_id" :options="categoryOptions" :reduce="o => o.value" placeholder="Select category" />
+                            <Multiselect v-model="form.fixed_asset_category_id" :options="categoryOptions" value-prop="value" label="label" :searchable="true" placeholder="Select category" />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Purchase Date *</label>

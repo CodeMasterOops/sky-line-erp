@@ -287,9 +287,8 @@ import { ref, computed } from 'vue';
 import { useBarcodeStore } from '@/stores/admin/inventory/barcode.js';
 import BarcodeLabel from '@/components/barcode/BarcodeLabel.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
-import printJS from 'print-js';
-import JsBarcode from 'jsbarcode';
-import QRCode from 'qrcode';
+// print-js / jsbarcode / qrcode are loaded on-demand inside the print and
+// label-building handlers, keeping these heavy libs out of the initial bundle.
 
 const store = useBarcodeStore();
 
@@ -322,10 +321,12 @@ const buildLabelHtml = async (item) => {
     let barcodeHtml = '';
 
     if (item.format === 'qr') {
+        const {default: QRCode} = await import('qrcode');
         const canvas = document.createElement('canvas');
         await QRCode.toCanvas(canvas, item.value || ' ', { width: 90, margin: 1 });
         barcodeHtml = `<img src="${canvas.toDataURL()}" width="90" height="90" />`;
     } else {
+        const {default: JsBarcode} = await import('jsbarcode');
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         try {
             JsBarcode(svg, item.value, {
@@ -387,6 +388,7 @@ const printBrowser = async () => {
             <div class="grid">${labelHtmlParts.join('')}</div>
         `;
 
+        const {default: printJS} = await import('print-js');
         printJS({
             printable:     gridHtml,
             type:          'raw-html',

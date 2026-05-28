@@ -7,10 +7,10 @@
                 <div class="col-md-3">
                     <div class="mb-3">
                         <label class="form-label">Fiscal Year</label>
-                        <vue-select
+                        <Multiselect
                             v-model="fiscalYearId"
                             :options="fiscalYearOptions"
-                            :reduce="opt => opt.value"
+                            value-prop="value" label="label" :searchable="true"
                             placeholder="Select Fiscal Year"
                         />
                     </div>
@@ -47,10 +47,10 @@
                     <tbody>
                         <tr v-for="(line, idx) in lines" :key="idx">
                             <td>
-                                <vue-select
+                                <Multiselect
                                     v-model="line.account_id"
                                     :options="accountOptions"
-                                    :reduce="opt => opt.value"
+                                    value-prop="value" label="label" :searchable="true"
                                     placeholder="Select Account"
                                 />
                             </td>

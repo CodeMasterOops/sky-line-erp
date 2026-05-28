@@ -26,7 +26,7 @@
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Store</label>
-                                    <vue-select
+                                    <Multiselect
                                         v-model="selectedStore"
                                         :options="storeOptions"
                                         placeholder="All"
@@ -36,7 +36,7 @@
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Customer</label>
-                                    <vue-select
+                                    <Multiselect
                                         v-model="selectedCustomer"
                                         :options="customerOptions"
                                         placeholder="All"
@@ -46,7 +46,7 @@
                             <div class="col-md-3">
                                 <div class="mb-3">
                                     <label class="form-label">Payment Method</label>
-                                    <vue-select
+                                    <Multiselect
                                         v-model="selectedPayment"
                                         :options="paymentOptions"
                                         placeholder="All"
