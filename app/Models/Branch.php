@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Branch extends Model
 {
@@ -48,5 +49,18 @@ class Branch extends Model
     public function budgets(): HasMany
     {
         return $this->hasMany(Budget::class);
+    }
+
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'branch_users')
+            ->withPivot(['role_id', 'is_active'])
+            ->wherePivot('is_active', true)
+            ->withTimestamps();
+    }
+
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(BranchUser::class);
     }
 }
