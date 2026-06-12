@@ -83,13 +83,19 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $isServiceOnly = $request->input('product_type') === ProductTypeEnum::SERVICE->value;
+        $warehouseIds = Product::parseWarehouseIds($request->input('warehouse_ids'));
 
         $variantRelations = $isServiceOnly ? [] : [
-            'stocks' => fn ($sq) => $sq->with('warehouse'),
+            'stocks' => fn ($sq) => $sq
+                ->select('id', 'product_variant_id', 'warehouse_id', 'quantity')
+                ->when($warehouseIds !== [], fn ($q) => $q->whereIn('warehouse_id', $warehouseIds))
+                ->with('warehouse:id,name,code'),
         ];
 
         if (! $isServiceOnly && $request->boolean('include_inventory_value')) {
-            $variantRelations['stockLayers'] = fn ($lq) => $lq->where('qty_remaining', '>', 0);
+            $variantRelations['stockLayers'] = fn ($lq) => $lq
+                ->where('qty_remaining', '>', 0)
+                ->when($warehouseIds !== [], fn ($q) => $q->whereIn('warehouse_id', $warehouseIds));
         }
 
         $products = Product::with([

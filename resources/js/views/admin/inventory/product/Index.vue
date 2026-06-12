@@ -91,6 +91,16 @@
                         </li>
                     </ul>
                 </div>
+                <!-- Warehouse filter -->
+                <div class="me-2" style="min-width: 220px;">
+                    <VMultiselect
+                        id="warehouse_ids"
+                        v-model="selectedWarehouseId"
+                        :options="warehouseStore.optionsTree"
+                        :loading="warehouseStore.warehouses.loading"
+                        placeholder="Warehouse"
+                    />
+                </div>
             </template>
         </VTableToolbar>
 
@@ -176,11 +186,13 @@ import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
+import VMultiselect from '@/components/base/VMultiselect.vue';
 import StockDetailModal from './StockDetailModal.vue';
 import ProductImportWizard from '@/views/admin/data-transfer/ProductImportWizard.vue';
 import { useProductStore } from '@/stores/admin/inventory/product.js';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
 import { useBrandStore } from '@/stores/admin/inventory/brand.js';
+import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
@@ -199,6 +211,7 @@ const productStore = useProductStore();
 const importWizardRef = ref(null);
 const categoryStore = useProductCategoryStore();
 const brandStore = useBrandStore();
+const warehouseStore = useWarehouseStore();
 
 const { products } = storeToRefs(productStore);
 const { productCategories: categories } = storeToRefs(categoryStore);
@@ -230,11 +243,19 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
         product_type: '',
         product_category_id: '',
         brand_id: '',
+        warehouse_ids: '',
         page: 1,
         limit: 10,
         include_inventory_value: 1,
     },
     onFilter: fetchProducts,
+});
+
+const selectedWarehouseId = computed({
+    get: () => (filter.warehouse_ids ? Number(filter.warehouse_ids) : ''),
+    set: (id) => {
+        filter.warehouse_ids = id ? String(id) : '';
+    },
 });
 
 const { handleTableChange } = useTablePagination({
@@ -245,7 +266,11 @@ const { handleTableChange } = useTablePagination({
 const { confirmDelete } = useConfirmAction();
 
 onMounted(async () => {
-    await Promise.all([categoryStore.getProductCategories(), brandStore.getBrands()]);
+    await Promise.all([
+        categoryStore.getProductCategories(),
+        brandStore.getBrands(),
+        warehouseStore.getWarehouses(),
+    ]);
 });
 
 const rowKey = (row) => row.id;
@@ -266,6 +291,7 @@ const getProductExportFilters = () => ({
     product_category_id: filter.product_category_id,
     brand_id: filter.brand_id,
     product_type: filter.product_type,
+    warehouse_ids: filter.warehouse_ids,
 });
 
 const editProduct = (id) => {
