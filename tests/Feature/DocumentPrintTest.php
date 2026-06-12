@@ -61,6 +61,7 @@ it('exposes company branding fields required for document print headers', functi
     $response->assertJsonPath('data.pan', '609999999');
     $response->assertJsonPath('data.phone', '9800000000');
     $response->assertJsonPath('data.email', 'print@test.co');
+    $response->assertJsonPath('data.invoice_note', '');
 });
 
 it('returns invoice detail data used by the printable invoice view', function () {

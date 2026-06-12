@@ -23,6 +23,7 @@ class UpdateSettingRequest extends FormRequest
             'legal_name' => ['required', 'string', 'max:255'],
             'pan' => ['nullable'],
             'logo' => ['nullable', 'image'],
+            'invoice_note' => ['nullable', 'string', 'max:2000'],
             'phone' => ['nullable'],
             'landline' => ['nullable'],
             'website' => ['nullable'],

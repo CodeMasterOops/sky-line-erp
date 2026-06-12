@@ -623,8 +623,6 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { useToast } from 'vue-toastification';
-import defaultLogoUrl from '@/assets/images/logo.svg';
-
 const RECEIPT_PRINT_STYLES = `
   * { box-sizing: border-box; }
   html, body {
@@ -786,7 +784,7 @@ export default {
 
   computed: {
     receiptLogoUrl() {
-      return this.companyLogoUrl || defaultLogoUrl;
+      return this.companyLogoUrl;
     },
   },
 

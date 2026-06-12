@@ -206,6 +206,26 @@
 
                             <div class="card-title-head">
                                 <h6 class="fs-16 fw-bold mb-3">
+                                    <span class="fs-16 me-2"><i class="ti ti-file-invoice"></i></span>
+                                    Invoice settings
+                                </h6>
+                            </div>
+                            <div class="row g-3 mb-4">
+                                <div class="col-12">
+                                    <VTextarea
+                                        id="invoice_note"
+                                        v-model="form.invoice_note"
+                                        label="Invoice note / rules"
+                                        rows="4"
+                                    />
+                                    <p class="text-muted small mb-0 mt-1">
+                                        Shown on sales invoice prints and Nepal VAT invoice PDFs (e.g. payment terms, return policy).
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="card-title-head">
+                                <h6 class="fs-16 fw-bold mb-3">
                                     <span class="fs-16 me-2"><i class="ti ti-calculator"></i></span>
                                     Fiscal &amp; inventory
                                 </h6>
@@ -286,6 +306,7 @@ const initialState = {
     ward_id: '',
     postal_code: '',
     logo: '',
+    invoice_note: '',
     fiscal_year_id: '',
     inventory_costing_method: 'fifo',
 };
@@ -317,6 +338,14 @@ watch(
 
 function openLogoPicker() {
     document.getElementById('logo')?.click();
+}
+
+function clearPendingLogo() {
+    if (logoBlobUrl.value) {
+        URL.revokeObjectURL(logoBlobUrl.value);
+        logoBlobUrl.value = null;
+    }
+    form.logo = '';
 }
 
 onUnmounted(() => {
@@ -374,6 +403,7 @@ const setSettingData = async (refetch = false) => {
     form.palika_id = d.palika_id != null && d.palika_id !== '' ? String(d.palika_id) : '';
     form.ward_id = d.ward_id != null && d.ward_id !== '' ? String(d.ward_id) : '';
     form.postal_code = d.postal_code ?? '';
+    form.invoice_note = d.invoice_note ?? '';
     if (d.province_id) {
         await locationStore.loadDistricts(d.province_id);
         districtOptions.value = [...locationStore.districts];
@@ -471,24 +501,27 @@ const updateSetting = async () => {
         isSubmitting.value = true;
         try {
             const formData = new FormData();
-            Object.keys(form).forEach(key => {
+            Object.keys(form).forEach((key) => {
+                if (key === 'logo') {
+                    if (form.logo instanceof File) {
+                        formData.append(key, form.logo);
+                    }
+
+                    return;
+                }
                 formData.append(key, form[key] || '');
             });
             const res = await settingStore.updateSetting(formData);
             toast(res.status, res.data.message);
-            resetForm();
             await setSettingData(true);
+            clearPendingLogo();
+            errors.value = {};
         } catch (e) {
             showErrors(e);
         } finally {
             isSubmitting.value = false;
         }
     }
-};
-
-const resetForm = () => {
-    Object.assign(form, {...initialState});
-    errors.value = {};
 };
 </script>
 

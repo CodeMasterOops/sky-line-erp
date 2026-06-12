@@ -31,7 +31,15 @@
 </template>
 
 <script setup>
+import {onMounted} from 'vue';
 import DocumentPrintHeader from '@/components/print/DocumentPrintHeader.vue';
+import {useCompanyBranding} from '@/composables/useCompanyBranding.js';
+
+const {ensureBranding} = useCompanyBranding();
+
+onMounted(() => {
+    ensureBranding();
+});
 
 defineProps({
     areaId: {

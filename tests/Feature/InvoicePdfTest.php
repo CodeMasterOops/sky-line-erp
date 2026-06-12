@@ -146,6 +146,93 @@ it('renders invoice pdf with line items and tax summary', function () {
     expect(strlen($response->getContent()))->toBeGreaterThan(1000);
 });
 
+it('renders nepal invoice template with product code and invoice note', function () {
+    $party = Party::create([
+        'company_id' => $this->company->id,
+        'type' => PartyTypeEnum::CUSTOMER,
+        'name' => 'Retail Customer',
+        'code' => 'RC-2',
+        'is_active' => true,
+    ]);
+
+    $product = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Coded Widget',
+        'code' => 'CW-99',
+        'hsn_code' => '5678',
+    ]);
+
+    $variant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $product->id,
+        'sku' => 'CW-SKU',
+        'sales_price' => 50,
+        'is_default' => true,
+    ]);
+
+    $unit = Unit::create([
+        'company_id' => $this->company->id,
+        'name' => 'Piece',
+        'code' => 'PC',
+    ]);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $party->id,
+        'invoice_no' => 'INV-CODE-001',
+        'invoice_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    InvoiceItem::create([
+        'invoice_id' => $invoice->id,
+        'product_variant_id' => $variant->id,
+        'unit_id' => $unit->id,
+        'quantity' => 1,
+        'rate' => 50,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+        'tax_line_type' => TaxLineTypeEnum::EXEMPT,
+    ]);
+
+    $invoice->load([
+        'party',
+        'invoiceItems.productVariant.product',
+        'invoiceItems.unit',
+        'invoiceItems.tax',
+        'fiscalYear',
+    ]);
+
+    $this->company->update([
+        'invoice_note' => 'Payment due within 30 days.',
+    ]);
+
+    $html = view('pdf.nepal-invoice', [
+        'invoice' => $invoice,
+        'company' => $this->company->fresh(),
+        'logoPath' => null,
+        'invoiceDateAd' => $invoice->invoice_date instanceof \DateTimeInterface
+            ? $invoice->invoice_date->format('Y-m-d')
+            : (string) $invoice->invoice_date,
+        'dueDateAd' => null,
+        'invoiceDateBs' => '',
+        'subtotal' => 50.0,
+        'totalDiscount' => 0.0,
+        'vatTaxableAmount' => 0.0,
+        'vatAmount' => 0.0,
+        'exemptAmount' => 50.0,
+        'zeroRatedAmount' => 0.0,
+        'grandTotal' => 50.0,
+        'amountInWords' => 'Fifty only',
+        'qrCode' => '',
+    ])->render();
+
+    expect($html)->toContain('CW-99');
+    expect($html)->toContain('Payment due within 30 days.');
+});
+
 it('sanitizes download filenames', function () {
     expect(sanitizeDownloadFilename('INV-081/82-001.pdf'))->toBe('INV-081-82-001.pdf');
     expect(sanitizeDownloadFilename('path\\to\\file.pdf'))->toBe('path-to-file.pdf');

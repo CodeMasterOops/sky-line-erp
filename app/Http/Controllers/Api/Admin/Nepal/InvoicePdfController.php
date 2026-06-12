@@ -7,7 +7,6 @@ use App\Enums\TaxLineTypeEnum;
 use App\Annotation\Permissions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Storage;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Nepal\NepaliNumberService;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -37,10 +36,7 @@ class InvoicePdfController extends Controller
             ? \App\Models\Company::find($invoice->company_id)
             : null;
 
-        $logoPath = null;
-        if ($company?->logo && Storage::disk('public')->exists($company->logo)) {
-            $logoPath = Storage::disk('public')->path($company->logo);
-        }
+        $logoPath = $company?->logoAbsolutePath();
 
         $invoiceDateAd = $invoice->invoice_date instanceof \DateTimeInterface
             ? $invoice->invoice_date->format('Y-m-d')

@@ -19,6 +19,7 @@ export const useCompanyBranding = () => {
     const landline = computed(() => company.value.landline || '');
     const email = computed(() => company.value.email || '');
     const website = computed(() => company.value.website || '');
+    const invoiceNote = computed(() => company.value.invoice_note || '');
 
     const formattedAddress = computed(() => {
         const parts = [
@@ -50,6 +51,7 @@ export const useCompanyBranding = () => {
         landline,
         email,
         website,
+        invoiceNote,
         formattedAddress,
         displayName,
         ensureBranding,

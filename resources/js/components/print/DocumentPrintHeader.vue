@@ -1,14 +1,8 @@
 <template>
     <div class="row justify-content-between align-items-start border-bottom mb-3">
         <div class="col-md-6">
-            <div class="mb-3 document-print-logo d-flex">
-                <template v-if="logoUrl">
-                    <img :src="logoUrl" width="130" class="img-fluid" alt="logo">
-                </template>
-                <template v-else>
-                    <img src="@/assets/images/logo.svg" width="130" class="img-fluid dark-logo" alt="logo">
-                    <img src="@/assets/images/logo-white.svg" width="130" class="img-fluid white-logo" alt="logo">
-                </template>
+            <div v-if="logoUrl" class="mb-3 document-print-logo d-flex">
+                <img :src="logoUrl" width="130" class="img-fluid" alt="logo">
             </div>
             <p v-if="formattedAddress" class="mb-1">{{ formattedAddress }}</p>
             <p v-if="pan" class="mb-1"><strong>PAN:</strong> {{ pan }}</p>

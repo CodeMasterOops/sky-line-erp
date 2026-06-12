@@ -80,6 +80,7 @@
                         <thead class="thead-light">
                             <tr>
                                 <th>Job Description</th>
+                                <th>Code</th>
                                 <th class="text-end">Qty</th>
                                 <th class="text-end">Cost</th>
                                 <th class="text-end">Discount</th>
@@ -91,13 +92,14 @@
                                 <td>
                                     <h6 class="mb-0">{{ lineDescription(item) }}</h6>
                                 </td>
+                                <td class="text-gray-9">{{ lineProductCode(item) }}</td>
                                 <td class="text-gray-9 fw-medium text-end">{{ formatMoneyPlain(item.quantity) }}</td>
                                 <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.rate) }}</td>
                                 <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.discount_amount) }}</td>
                                 <td class="text-gray-9 fw-medium text-end">{{ formatMoney(lineTotal(item)) }}</td>
                             </tr>
                             <tr v-if="!lineItems.length">
-                                <td colspan="5" class="text-center text-muted">No line items</td>
+                                <td colspan="6" class="text-center text-muted">No line items</td>
                             </tr>
                         </tbody>
                     </table>
@@ -132,12 +134,9 @@
             <template #footer>
                 <div class="row align-items-center border-bottom mb-3">
                     <div class="col-md-12">
-                        <div class="mb-3">
-                            <h6 class="mb-1">Terms and Conditions</h6>
-                            <p class="mb-0">
-                                Please pay within the agreed terms from the date of invoice. Late payments may incur
-                                interest or fees as per your agreement.
-                            </p>
+                        <div v-if="setting.data.invoice_note" class="mb-3">
+                            <h6 class="mb-1">Invoice note / rules</h6>
+                            <p class="mb-0" style="white-space: pre-line">{{ setting.data.invoice_note }}</p>
                         </div>
                         <div v-if="inv.remarks" class="mb-3">
                             <h6 class="mb-1">Notes</h6>
@@ -344,6 +343,8 @@ const formatDate = (value) => {
 };
 
 const lineDescription = (item) => item.product_variant?.name || 'Item';
+
+const lineProductCode = (item) => item.product_variant?.product_code || '—';
 
 const lineTotal = (item) => {
     const qty = Number(item.quantity || 0);
