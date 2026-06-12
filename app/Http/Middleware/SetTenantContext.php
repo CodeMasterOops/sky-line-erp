@@ -6,10 +6,13 @@ use Closure;
 use App\Models\Branch;
 use Illuminate\Http\Request;
 use App\Services\TenantService;
+use App\Services\BranchAccessService;
 use Symfony\Component\HttpFoundation\Response;
 
 class SetTenantContext
 {
+    public function __construct(private readonly BranchAccessService $accessService) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $user = auth('admin')->user();
@@ -20,10 +23,31 @@ class SetTenantContext
             if ($request->header('X-Branch-Id')) {
                 $branchId = (int) $request->header('X-Branch-Id');
 
-                if ($this->branchBelongsToCompany($branchId, (int) $user->company_id)) {
-                    TenantService::setBranchId($branchId);
-                } else {
-                    abort(Response::HTTP_FORBIDDEN, 'Invalid branch selection.');
+                if (! $this->branchBelongsToCompany($branchId, (int) $user->company_id)) {
+                    abort(Response::HTTP_FORBIDDEN, 'You do not have access to this branch.');
+                }
+
+                // Enforce per-user branch access when isolation is enabled.
+                if (config('features.branch_isolation') && ! $this->accessService->canUserAccessBranch($user, $branchId)) {
+                    \Illuminate\Support\Facades\Log::warning('branch-access-denied', [
+                        'user_id' => $user->id,
+                        'branch_id' => $branchId,
+                        'company_id' => $user->company_id,
+                        'ip' => $request->ip(),
+                    ]);
+
+                    abort(Response::HTTP_FORBIDDEN, 'You do not have access to this branch.');
+                }
+
+                TenantService::setBranchId($branchId);
+
+                // Store the effective role and permissions for this branch context
+                // so hasPermission() can resolve branch-specific access without a
+                // second database query on every permission check.
+                $role = $this->accessService->getEffectiveRole($user, $branchId);
+                if ($role) {
+                    TenantService::setBranchRole($role->id);
+                    TenantService::setBranchPermissions($role->permissions ?? []);
                 }
             }
         }

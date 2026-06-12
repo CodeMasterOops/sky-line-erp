@@ -3,10 +3,16 @@
 namespace App\Providers;
 
 use App\Models\Bill;
+use App\Models\Branch;
 use App\Models\Expense;
+use App\Models\BranchUser;
 use Illuminate\Http\Request;
 use App\Models\StockMovement;
+use App\Policies\BranchPolicy;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Gate;
+use App\Observers\BranchUserObserver;
+use App\Services\BranchAccessService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -42,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
         ]);
 
         StockMovement::observe(StockMovementObserver::class);
+        BranchUser::observe(BranchUserObserver::class);
+
+        $this->registerBranchGates();
 
         $this->configureRateLimiting();
 
@@ -72,6 +81,23 @@ class AppServiceProvider extends ServiceProvider
             config(['app.url' => $httpsUrl]);
             URL::forceRootUrl($httpsUrl);
         }
+    }
+
+    protected function registerBranchGates(): void
+    {
+        Gate::policy(Branch::class, BranchPolicy::class);
+
+        Gate::define('access-branch', function ($user, Branch $branch): bool {
+            return app(BranchAccessService::class)->canUserAccessBranch($user, $branch->id);
+        });
+
+        Gate::define('manage-branch-users', function ($user, Branch $branch): bool {
+            return $user->isAdmin();
+        });
+
+        Gate::define('view-all-branches', function ($user): bool {
+            return $user->isAdmin();
+        });
     }
 
     /**

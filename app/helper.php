@@ -62,10 +62,20 @@ if (! function_exists('hasPermission')) {
             return true;
         }
 
+        // When inside a branch context, use branch-specific permissions stored
+        // by SetTenantContext rather than re-querying the user's company roles.
+        // The wildcard '*' value means the effective role grants all permissions.
+        $branchPermissions = \App\Services\TenantService::branchPermissions();
+        $activePermissions = $branchPermissions ?? userPermissions($user);
+
+        if (in_array('*', $activePermissions)) {
+            return true;
+        }
+
         $permissionToCheck = is_array($permissions) ? $permissions : [$permissions];
 
         foreach ($permissionToCheck as $p) {
-            if (in_array($p, userPermissions($user))) {
+            if (in_array($p, $activePermissions)) {
                 return true;
             }
         }

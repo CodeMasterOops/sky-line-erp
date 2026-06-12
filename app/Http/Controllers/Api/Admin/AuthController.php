@@ -5,15 +5,18 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
+use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Services\BranchAccessService;
 use App\Services\SubscriptionService;
 use App\Http\Requests\Api\Admin\LoginRequest;
 use App\Http\Resources\Admin\ProfileResource;
 use App\Services\SetCompanyDefaultDataService;
 use App\Http\Requests\Api\Admin\RegisterRequest;
+use App\Http\Resources\Admin\Settings\BranchResource;
 
 class AuthController extends Controller
 {
@@ -41,6 +44,12 @@ class AuthController extends Controller
             $tokenData = auth('admin')->user()->createToken('auth-token', ['*'], now()->addWeek());
 
             $authUser = auth('admin')->user();
+            TenantService::setCompanyId($authUser->company_id);
+
+            $accessService = app(BranchAccessService::class);
+            $accessibleBranches = $accessService->getAccessibleBranches($authUser);
+            $defaultBranchId = $accessibleBranches->firstWhere('is_head_office', true)?->id
+                ?? $accessibleBranches->first()?->id;
 
             return response()->json([
                 'access_token' => $tokenData->plainTextToken,
@@ -48,6 +57,8 @@ class AuthController extends Controller
                 'user' => ProfileResource::make($authUser),
                 'permissions' => base64_encode(json_encode(userPermissions($authUser))),
                 'needs_onboarding' => $user->company->onboarding_completed_at === null,
+                'accessible_branches' => BranchResource::collection($accessibleBranches),
+                'default_branch_id' => $defaultBranchId,
                 'message' => 'Signed In Successfully.',
             ]);
         } else {
