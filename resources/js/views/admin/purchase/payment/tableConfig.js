@@ -13,10 +13,16 @@ export const paymentColumns = [
 ];
 
 /**
- * @param {{ onApprove: Function, onDelete: Function }} handlers
+ * @param {{ onView: Function, onApprove: Function, onDelete: Function }} handlers
  */
-export function createRowActions({ onApprove, onDelete }) {
+export function createRowActions({ onView, onApprove, onDelete }) {
     return [
+        {
+            key:       'view',
+            icon:      'ti-printer',
+            title:     'View / Print',
+            handler:   (record) => onView(record.id),
+        },
         {
             key:       'approve',
             icon:      'ti-check',

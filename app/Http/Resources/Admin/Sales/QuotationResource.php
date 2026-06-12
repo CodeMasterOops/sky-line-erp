@@ -4,9 +4,12 @@ namespace App\Http\Resources\Admin\Sales;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Admin\Concerns\MapsPartyFields;
 
 class QuotationResource extends JsonResource
 {
+    use MapsPartyFields;
+
     public function toArray(Request $request): array
     {
         return [
@@ -16,6 +19,7 @@ class QuotationResource extends JsonResource
             'expiry_date' => $this->expiry_date ?? '',
             'party_id' => $this->party_id ?? '',
             'party_name' => $this->party?->name ?? '',
+            ...$this->mapPartyFields($this->party),
             'remarks' => $this->remarks ?? '',
             'fiscal_year_id' => $this->fiscal_year_id ?? '',
             'create_user_id' => $this->create_user_id ?? '',

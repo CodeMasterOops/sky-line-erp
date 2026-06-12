@@ -1,10 +1,16 @@
 <?php
 
 use App\Models\User;
+use App\Models\Party;
+use App\Models\Account;
 use App\Models\Company;
 use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\Receipt;
+use App\Enums\StatusEnum;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
+use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
@@ -78,4 +84,81 @@ it('returns invoice detail data used by the printable invoice view', function ()
 
     $response->assertSuccessful();
     $response->assertJsonPath('data.invoice_no', 'INV-PRINT-001');
+});
+
+it('returns receipt detail with party contact fields for printable money receipts', function () {
+    $party = Party::create([
+        'company_id' => $this->company->id,
+        'name' => 'Print Customer',
+        'code' => 'CUST-PRINT',
+        'type' => PartyTypeEnum::CUSTOMER,
+        'address' => 'Baneshwor, Kathmandu',
+        'phone' => '9811111111',
+        'pan' => '123456789',
+    ]);
+
+    $account = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash',
+        'code' => 'CASH-PRINT',
+    ]);
+
+    $receipt = Receipt::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $party->id,
+        'receipt_no' => 'RC-PRINT-001',
+        'receipt_date' => now()->toDateString(),
+        'payment_method' => 'cash',
+        'account_id' => $account->id,
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    $response = $this->getJson("/api/admin/receipt/{$receipt->id}");
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('data.party_name', 'Print Customer');
+    $response->assertJsonPath('data.party_address', 'Baneshwor, Kathmandu');
+    $response->assertJsonPath('data.party_phone', '9811111111');
+    $response->assertJsonPath('data.party_pan', '123456789');
+});
+
+it('returns payment detail with party contact fields for printable payment slips', function () {
+    $party = Party::create([
+        'company_id' => $this->company->id,
+        'name' => 'Print Supplier',
+        'code' => 'SUP-PRINT',
+        'type' => PartyTypeEnum::SUPPLIER,
+        'address' => 'Birgunj, Parsa',
+        'phone' => '9822222222',
+        'pan' => '987654321',
+    ]);
+
+    $account = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Bank',
+        'code' => 'BANK-PRINT',
+    ]);
+
+    $payment = Payment::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $party->id,
+        'payment_no' => 'PAY-PRINT-001',
+        'payment_date' => now()->toDateString(),
+        'account_id' => $account->id,
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    $response = $this->getJson("/api/admin/payment/{$payment->id}");
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('data.party_name', 'Print Supplier');
+    $response->assertJsonPath('data.party_address', 'Birgunj, Parsa');
+    $response->assertJsonPath('data.party_phone', '9822222222');
+    $response->assertJsonPath('data.party_pan', '987654321');
 });

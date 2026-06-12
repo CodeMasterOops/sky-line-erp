@@ -13,6 +13,8 @@
                 :detail-data="detailData"
                 account-label="Deposited To"
                 :account-name="detailData.deposited_to_account"
+                counterparty-label="Received From"
+                :counterparty-name="receivedFromAccount"
             />
 
             <div v-if="detailData.id && !voucher.loading" class="d-flex gap-2 mt-3 no-print">
@@ -36,6 +38,10 @@ const {ensureBranding} = useCompanyBranding();
 
 const detailVoucherId = defineModel('detailVoucherId', {type: String, default: ''});
 const detailData = computed(() => voucher.value.data || {});
+
+const receivedFromAccount = computed(() =>
+    (detailData.value.items || []).map((item) => item.account).filter(Boolean).join(', ') || '—',
+);
 
 watch(() => detailVoucherId.value, async (id) => {
     if (id) {

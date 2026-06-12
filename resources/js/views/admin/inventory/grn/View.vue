@@ -34,65 +34,23 @@
         <span class="spinner-border"></span>
     </div>
 
-    <DocumentPrintLayout
+    <ChallanGrnPrintLayout
         v-else-if="grn"
-        document-title="Goods Received Note"
-        :document-no="grn.grn_no || ''"
-        :document-date="formatDate(grn.received_date)"
-    >
-        <template #header-meta>
-            <p class="mb-1"><strong>Supplier Invoice:</strong> {{ grn.supplier_invoice_no || '—' }}</p>
-            <span class="badge" :class="grn.status === 'approved' ? 'bg-success' : 'bg-secondary'">{{ grn.status }}</span>
-            <span class="badge bg-info-subtle text-info text-capitalize ms-1">{{ billingLabel(grn.billing_status) }}</span>
-        </template>
+        document-title="GOODS RECEIPT NOTE (GRN)"
+        :detail-data="printData"
+        party-title="Supplier"
+        document-no-key="grn_no"
+        document-date-key="received_date"
+        items-key="grn_items"
+        qty-column-label="Received"
+        :show-rates="true"
+        :show-grand-total="true"
+        footer-note="Goods received in good condition."
+        :context-fields="grnContextFields"
+    />
 
-        <template #parties>
-            <DocumentPrintParties :party-name="grn.party?.name" />
-        </template>
-
-        <template #body>
-            <p class="mb-3"><strong>Warehouse:</strong> {{ grn.warehouse?.name || '—' }}</p>
-            <p v-if="grn.remarks" class="mb-3"><strong>Remarks:</strong> {{ grn.remarks }}</p>
-
-            <h6 class="mb-2">Line Items</h6>
-            <div class="table-responsive mb-4">
-                <table class="table datanew table-bordered mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>SKU</th>
-                            <th class="text-end">Ordered</th>
-                            <th class="text-end">Received</th>
-                            <th class="text-end">Unit Cost</th>
-                            <th class="text-end">Total</th>
-                            <th>Batch</th>
-                            <th>Expiry</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="(item, idx) in grn.grn_items" :key="item.id">
-                            <td>{{ idx + 1 }}</td>
-                            <td class="fw-medium">{{ item.product_variant?.product?.name || item.product_variant?.name }}</td>
-                            <td>{{ item.product_variant?.sku || '—' }}</td>
-                            <td class="text-end">{{ item.ordered_qty }}</td>
-                            <td class="text-end">{{ item.received_qty }}</td>
-                            <td class="text-end">{{ formatMoney(item.unit_cost) }}</td>
-                            <td class="text-end fw-semibold">{{ formatMoney(item.received_qty * item.unit_cost) }}</td>
-                            <td>{{ item.batch_no || '—' }}</td>
-                            <td>{{ formatDate(item.expiry_date) }}</td>
-                        </tr>
-                    </tbody>
-                    <tfoot class="table-secondary fw-bold">
-                        <tr>
-                            <td colspan="6" class="text-end">Grand Total</td>
-                            <td class="text-end">{{ formatMoney(grandTotal) }}</td>
-                            <td colspan="2"></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-
+    <div v-if="grn" class="card mt-3 no-print">
+        <div class="card-body">
             <h6 class="mb-2">Additional Charges / Landed Costs</h6>
             <div class="table-responsive">
                 <table class="table datanew table-bordered mb-0">
@@ -122,12 +80,12 @@
                 </table>
             </div>
 
-            <div class="no-print mt-3 text-muted small">
+            <div class="mt-3 text-muted small">
                 <p class="mb-1"><strong>Created By:</strong> {{ grn.create_user?.name || '—' }}</p>
                 <p class="mb-0"><strong>Approved By:</strong> {{ grn.approve_user?.name || '—' }} · {{ formatDate(grn.approved_at) }}</p>
             </div>
-        </template>
-    </DocumentPrintLayout>
+        </div>
+    </div>
 
     <EditGrn v-model:grn-id="editGrnId" @saved="loadGrn" />
 </template>
@@ -142,8 +100,7 @@ import {toast} from '@/helpers/toast.js';
 import {formatDate} from '@/helpers/helper.js';
 import {useCompanyBranding} from '@/composables/useCompanyBranding.js';
 import EditGrn from './Edit.vue';
-import DocumentPrintLayout from '@/components/print/DocumentPrintLayout.vue';
-import DocumentPrintParties from '@/components/print/DocumentPrintParties.vue';
+import ChallanGrnPrintLayout from '@/components/print/ChallanGrnPrintLayout.vue';
 import DocumentPrintButton from '@/components/print/DocumentPrintButton.vue';
 
 const route = useRoute();
@@ -154,7 +111,27 @@ const loading = ref(false);
 const approving = ref(false);
 const editGrnId = ref('');
 
-const billingLabel = (status) => (status || 'open').replace(/_/g, ' ');
+const printData = computed(() => {
+    if (!grn.value) {
+        return {};
+    }
+
+    return {
+        ...grn.value,
+        received_date: formatDate(grn.value.received_date),
+        party_name: grn.value.party?.name || '',
+        party_address: grn.value.party?.address || '',
+        party_phone: grn.value.party?.phone || '',
+        party_pan: grn.value.party?.pan || '',
+        reference_label: 'Supplier Invoice',
+        reference_value: grn.value.supplier_invoice_no || '',
+        grand_total: grandTotal.value,
+    };
+});
+
+const grnContextFields = computed(() => [
+    {label: 'Supplier Invoice', value: grn.value?.supplier_invoice_no},
+]);
 
 const grandTotal = computed(() =>
     (grn.value?.grn_items || []).reduce(

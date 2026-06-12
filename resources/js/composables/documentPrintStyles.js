@@ -92,6 +92,178 @@ export const DOCUMENT_PRINT_CSS = `
     .text-primary { color: #0d6efd !important; }
     .small { font-size: 0.875em; }
     img { max-width: 100%; height: auto; }
+
+    .form-document-print,
+    .form-document-print-area {
+        border: 2px solid #212529 !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .form-document-print .card-body,
+    .form-document-print-area .card-body {
+        padding: 1.25rem !important;
+    }
+
+    .form-document-company-name {
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+
+    .form-document-company-meta {
+        color: #495057;
+        font-size: 0.8125rem;
+    }
+
+    .form-document-logo-image {
+        display: inline-block;
+        max-height: 52px;
+        max-width: 130px;
+        object-fit: contain;
+    }
+
+    .form-document-title-box {
+        border: 2px solid #212529;
+        margin: 0 auto 1rem;
+        max-width: 420px;
+        padding: 0.5rem 1rem;
+        text-align: center;
+    }
+
+    .form-document-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin: 0;
+        text-transform: uppercase;
+    }
+
+    .form-document-meta-grid td {
+        border: 1px solid #adb5bd;
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .form-document-meta-label {
+        background: #f8f9fa;
+        font-weight: 600;
+        width: 14%;
+    }
+
+    .form-document-context-row {
+        border: 1px solid #adb5bd;
+        font-size: 0.8125rem;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .form-document-ledger-table th,
+    .form-document-ledger-table td {
+        border: 1px solid #adb5bd;
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.55rem;
+    }
+
+    .form-document-ledger-table thead th {
+        background: #ececec;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .form-document-ledger-table tfoot td {
+        background: #f8f9fa;
+        font-weight: 700;
+    }
+
+    .form-document-amount-words {
+        border: 1px solid #adb5bd;
+        font-size: 0.8125rem;
+        margin-bottom: 0.75rem;
+        padding: 0.55rem 0.75rem;
+    }
+
+    .form-document-signatures {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.25rem;
+    }
+
+    .form-document-signature-cell {
+        flex: 1;
+    }
+
+    .form-document-signature-line {
+        border-top: 1px solid #495057;
+        margin-bottom: 0.35rem;
+        min-height: 2.5rem;
+    }
+
+    .form-document-signature-label {
+        color: #495057;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0;
+        text-align: center;
+    }
+
+    .form-document-party-box {
+        border: 1px solid #adb5bd;
+        margin-bottom: 0.75rem;
+        padding: 0.65rem 0.75rem;
+    }
+
+    .form-document-party-box-title {
+        color: #495057;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    .form-document-party-name {
+        font-size: 0.9375rem;
+        font-weight: 700;
+    }
+
+    .form-document-receipt-body {
+        border: 1px solid #adb5bd;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+        margin-bottom: 0.75rem;
+        padding: 0.85rem 1rem;
+        text-align: center;
+    }
+
+    .form-document-receipt-amount {
+        font-size: 1.05rem;
+        font-weight: 700;
+    }
+
+    .form-document-summary-box td {
+        border-bottom: 1px solid #dee2e6;
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.65rem;
+    }
+
+    .form-document-summary-box tr:last-child td {
+        background: #f8f9fa;
+        font-weight: 700;
+    }
+
+    .form-document-disclaimer {
+        color: #6c757d;
+        font-size: 0.75rem;
+        font-style: italic;
+    }
+
+    .form-document-note {
+        border: 1px dashed #adb5bd;
+        color: #495057;
+        font-size: 0.8125rem;
+        padding: 0.5rem 0.75rem;
+    }
 `;
 
 export const DOCUMENT_PRINT_LANDSCAPE_CSS = `

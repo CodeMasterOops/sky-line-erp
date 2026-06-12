@@ -34,98 +34,40 @@
         <span class="spinner-border"></span>
     </div>
 
-    <DocumentPrintLayout
+    <ChallanGrnPrintLayout
         v-else-if="challan"
-        document-title="Delivery Challan"
-        :document-no="challan.challan_no || ''"
-        :document-date="formatDate(challan.challan_date)"
-    >
-        <template #header-meta>
-            <span class="badge" :class="challan.status === 'approved' ? 'bg-success' : 'bg-warning text-dark'">
-                {{ challan.status }}
-            </span>
-        </template>
+        document-title="DELIVERY CHALLAN"
+        :detail-data="printData"
+        party-title="Customer"
+        document-no-key="challan_no"
+        document-date-key="challan_date"
+        items-key="challan_items"
+        :context-fields="challanContextFields"
+    />
 
-        <template #parties>
-            <DocumentPrintParties
-                :party-name="challan.party?.name"
-                :party-address="challan.delivery_address"
-            />
-        </template>
-
-        <template #body>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <p class="mb-1"><strong>Warehouse:</strong> {{ challan.warehouse?.name || '—' }}</p>
-                    <p class="mb-1"><strong>Receiver:</strong> {{ challan.receiver_name || '—' }}</p>
-                    <p v-if="challan.sales_order_id" class="mb-0"><strong>Sales Order:</strong> #{{ challan.sales_order_id }}</p>
-                </div>
-                <div class="col-md-6 no-print">
-                    <p class="mb-1"><strong>Created By:</strong> {{ challan.create_user?.name || '—' }}</p>
-                    <p class="mb-1"><strong>Approved By:</strong> {{ challan.approve_user?.name || '—' }}</p>
-                    <p class="mb-0"><strong>Approved At:</strong> {{ formatDate(challan.approved_at) }}</p>
-                </div>
-            </div>
-            <p v-if="challan.remarks" class="mb-3"><strong>Remarks:</strong> {{ challan.remarks }}</p>
-
-            <h6 class="mb-2">Items</h6>
+    <div v-if="challan && challan.status === 'approved' && stockMovements.length" class="card mt-3 no-print">
+        <div class="card-body">
+            <h6 class="mb-2">Stock Movements</h6>
             <div class="table-responsive">
-                <table class="table table-sm datanew table-bordered">
+                <table class="table table-sm">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
-                            <th>Product</th>
-                            <th>SKU</th>
-                            <th class="text-end">Qty</th>
-                            <th class="text-end">Rate</th>
-                            <th class="text-end">Total</th>
-                            <th>Remarks</th>
+                            <th>Product Variant</th>
+                            <th class="text-end">Quantity</th>
+                            <th>Type</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="(item, idx) in challan.challan_items" :key="item.id">
-                            <td>{{ idx + 1 }}</td>
-                            <td>{{ item.product_variant?.product?.name || item.product_variant?.name }}</td>
-                            <td>{{ item.product_variant?.sku || '—' }}</td>
-                            <td class="text-end">{{ item.quantity }}</td>
-                            <td class="text-end">{{ formatMoney(item.rate) }}</td>
-                            <td class="text-end fw-semibold">{{ formatMoney(item.quantity * item.rate) }}</td>
-                            <td>{{ item.remarks || '—' }}</td>
+                        <tr v-for="movement in stockMovements" :key="movement.id">
+                            <td>{{ movement.product_variant_id }}</td>
+                            <td class="text-end">{{ movement.quantity }}</td>
+                            <td>{{ movement.type }}</td>
                         </tr>
                     </tbody>
-                    <tfoot class="table-secondary fw-bold">
-                        <tr>
-                            <td colspan="5">Grand Total</td>
-                            <td class="text-end">{{ formatMoney(grandTotal) }}</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
-
-            <div v-if="challan.status === 'approved' && stockMovements.length" class="mt-4 no-print">
-                <h6 class="mb-2">Stock Movements</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Product Variant</th>
-                                <th class="text-end">Quantity</th>
-                                <th>Type</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="movement in stockMovements" :key="movement.id">
-                                <td>{{ movement.product_variant_id }}</td>
-                                <td class="text-end">{{ movement.quantity }}</td>
-                                <td>{{ movement.type }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </template>
-    </DocumentPrintLayout>
+        </div>
+    </div>
 
     <CreateInvoice
         v-model:create-modal-opened="invoiceModalOpened"
@@ -134,7 +76,6 @@
 </template>
 
 <script setup>
-import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, ref, onMounted} from 'vue';
 import {useRoute} from 'vue-router';
 import showErrors from '@/helpers/showErrors.js';
@@ -143,8 +84,7 @@ import {formatDate} from '@/helpers/helper.js';
 import {useDeliveryChallanStore} from '@/stores/admin/inventory/delivery-challan.js';
 import {useCompanyBranding} from '@/composables/useCompanyBranding.js';
 import CreateInvoice from '@/views/admin/sales/invoice/Create.vue';
-import DocumentPrintLayout from '@/components/print/DocumentPrintLayout.vue';
-import DocumentPrintParties from '@/components/print/DocumentPrintParties.vue';
+import ChallanGrnPrintLayout from '@/components/print/ChallanGrnPrintLayout.vue';
 import DocumentPrintButton from '@/components/print/DocumentPrintButton.vue';
 
 const route = useRoute();
@@ -159,12 +99,26 @@ const invoiceDeliveryChallanId = ref('');
 
 const stockMovements = computed(() => challan.value?.stock_movements || []);
 
-const grandTotal = computed(() =>
-    (challan.value?.challan_items || []).reduce(
-        (sum, item) => sum + Number(item.quantity || 0) * Number(item.rate || 0),
-        0,
-    ),
-);
+const printData = computed(() => {
+    if (!challan.value) {
+        return {};
+    }
+
+    return {
+        ...challan.value,
+        challan_date: formatDate(challan.value.challan_date),
+        party_name: challan.value.party?.name || '',
+        party_address: challan.value.delivery_address || challan.value.party?.address || '',
+        party_phone: challan.value.party?.phone || '',
+        party_pan: challan.value.party?.pan || '',
+        reference_label: 'Sales Order',
+        reference_value: challan.value.sales_order_id ? `#${challan.value.sales_order_id}` : '',
+    };
+});
+
+const challanContextFields = computed(() => [
+    {label: 'Receiver', value: challan.value?.receiver_name},
+]);
 
 const loadChallan = async () => {
     loading.value = true;

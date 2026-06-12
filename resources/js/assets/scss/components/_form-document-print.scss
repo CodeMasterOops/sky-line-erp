@@ -1,0 +1,248 @@
+.form-document-print {
+    border: 2px solid #212529;
+    border-radius: 0;
+    box-shadow: none;
+
+    .card-body {
+        padding: 1.25rem;
+    }
+}
+
+.form-document-header {
+    margin-bottom: 1rem;
+}
+
+.form-document-company-strip {
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+.form-document-logo-image {
+    display: inline-block;
+    max-height: 52px;
+    max-width: 130px;
+    object-fit: contain;
+}
+
+.form-document-company-name {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.form-document-company-meta {
+    color: #495057;
+    font-size: 0.8125rem;
+    margin-bottom: 0;
+}
+
+.form-document-title-box {
+    border: 2px solid #212529;
+    margin: 0 auto;
+    max-width: 420px;
+    padding: 0.5rem 1rem;
+    text-align: center;
+}
+
+.form-document-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.form-document-meta-grid {
+    border-collapse: collapse;
+    width: 100%;
+
+    td {
+        border: 1px solid #adb5bd;
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.6rem;
+        vertical-align: top;
+    }
+}
+
+.form-document-meta-label {
+    background: #f8f9fa;
+    font-weight: 600;
+    width: 14%;
+    white-space: nowrap;
+}
+
+.form-document-meta-value {
+    width: 19%;
+}
+
+.form-document-context-row {
+    border: 1px solid #adb5bd;
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+
+    p {
+        margin-bottom: 0.25rem;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+}
+
+.form-document-ledger-table {
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+    width: 100%;
+
+    th,
+    td {
+        border: 1px solid #adb5bd;
+        padding: 0.4rem 0.55rem;
+        vertical-align: top;
+    }
+
+    thead th {
+        background: #ececec;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    tfoot td {
+        background: #f8f9fa;
+        font-weight: 700;
+    }
+}
+
+.form-document-amount-words {
+    border: 1px solid #adb5bd;
+    font-size: 0.8125rem;
+    margin-bottom: 0.75rem;
+    padding: 0.55rem 0.75rem;
+}
+
+.form-document-amount-words-label {
+    font-weight: 600;
+    margin-right: 0.35rem;
+}
+
+.form-document-signatures {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.form-document-signature-cell {
+    flex: 1;
+    min-width: 0;
+}
+
+.form-document-signature-line {
+    border-top: 1px solid #495057;
+    margin-bottom: 0.35rem;
+    min-height: 2.5rem;
+}
+
+.form-document-signature-label {
+    color: #495057;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.form-document-party-box {
+    border: 1px solid #adb5bd;
+    padding: 0.65rem 0.75rem;
+}
+
+.form-document-party-box-title {
+    color: #495057;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+}
+
+.form-document-party-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.form-document-party-meta {
+    color: #495057;
+    font-size: 0.8125rem;
+    margin-bottom: 0;
+}
+
+.form-document-receipt-body {
+    border: 1px solid #adb5bd;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+    padding: 0.85rem 1rem;
+    text-align: center;
+}
+
+.form-document-receipt-amount {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.form-document-summary-box {
+    border: 1px solid #adb5bd;
+    margin-left: auto;
+    max-width: 360px;
+    width: 100%;
+
+    table {
+        border-collapse: collapse;
+        margin-bottom: 0;
+        width: 100%;
+    }
+
+    td {
+        border-bottom: 1px solid #dee2e6;
+        font-size: 0.8125rem;
+        padding: 0.4rem 0.65rem;
+    }
+
+    tr:last-child td {
+        background: #f8f9fa;
+        border-bottom: none;
+        font-weight: 700;
+    }
+
+    td:last-child {
+        text-align: right;
+        white-space: nowrap;
+    }
+}
+
+.form-document-disclaimer {
+    color: #6c757d;
+    font-size: 0.75rem;
+    font-style: italic;
+    margin-bottom: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.form-document-note {
+    border: 1px dashed #adb5bd;
+    color: #495057;
+    font-size: 0.8125rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.75rem;
+}
+
+@media print {
+    .form-document-print,
+    .form-document-print-area,
+    #document-print-area.form-document-print-area {
+        border: 2px solid #000 !important;
+        box-shadow: none !important;
+    }
+}

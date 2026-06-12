@@ -4,9 +4,12 @@ namespace App\Http\Resources\Admin\Purchase;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Admin\Concerns\MapsPartyFields;
 
 class DebitNoteResource extends JsonResource
 {
+    use MapsPartyFields;
+
     public function toArray(Request $request): array
     {
         $totals = $this->calculateTotals();
@@ -17,8 +20,10 @@ class DebitNoteResource extends JsonResource
             'debit_note_date' => $this->debit_note_date?->format('Y-m-d') ?? '',
             'bill_id' => $this->bill_id ?? '',
             'bill_no' => $this->bill?->bill_no ?? '',
+            'bill_date' => $this->bill?->bill_date ?? '',
             'party_id' => $this->party_id ?? '',
             'party_name' => $this->party?->name ?? '',
+            ...$this->mapPartyFields($this->party),
             'remarks' => $this->remarks ?? '',
             'fiscal_year_id' => $this->fiscal_year_id ?? '',
             'create_user_id' => $this->create_user_id ?? '',

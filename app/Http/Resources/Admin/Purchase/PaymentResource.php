@@ -4,9 +4,12 @@ namespace App\Http\Resources\Admin\Purchase;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Admin\Concerns\MapsPartyFields;
 
 class PaymentResource extends JsonResource
 {
+    use MapsPartyFields;
+
     public function toArray(Request $request): array
     {
         return [
@@ -15,6 +18,7 @@ class PaymentResource extends JsonResource
             'payment_date' => $this->payment_date ?? '',
             'party_id' => $this->party_id ?? '',
             'party_name' => $this->party?->name ?? '',
+            ...$this->mapPartyFields($this->party),
             'payment_mode_id' => $this->payment_mode_id ?? '',
             'payment_mode_name' => $this->paymentMode?->name ?? '',
             'account_id' => $this->account_id ?? '',
