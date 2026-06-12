@@ -34,15 +34,20 @@ const stockColumns = [
 ];
 
 const baseColumns = [
-    { title: "SKU", dataIndex: "code", sorter: true },
-    { title: "Product Name", dataIndex: "name", key: "Product", sorter: true },
+    {
+        title: "Item",
+        dataIndex: "name",
+        key: "Product",
+        sorter: sortByString((r) => r.name),
+    },
     typeColumn,
     { title: "Category", dataIndex: "category", sorter: true },
     { title: "Brand", dataIndex: "brand", sorter: true },
     {
-        title: "Price",
-        customRender: ({ record }) => formatMoney(record.defaultVariant?.sales_price),
-        sorter: true,
+        title: "Purchase",
+        key: "purchase_price",
+        dataIndex: "purchase_price",
+        sorter: sortByNumber((r) => r.defaultVariant?.purchase_price),
     },
     {
         title: "VAT",
@@ -87,4 +92,26 @@ export function createRowActions({ onEdit, onDelete }) {
 
 export function formatProductType(type) {
     return type === "service" ? "Service" : "Product";
+}
+
+export function formatHsnLabel(productType) {
+    return productType === "service" ? "SAC" : "HSN";
+}
+
+/**
+ * @param {number|string|null|undefined} price
+ * @param {string|null|undefined} unit
+ * @returns {{ price: string, unit: string|null }}
+ */
+export function formatPriceWithUnit(price, unit) {
+    const formatted = formatMoney(price);
+
+    if (formatted === "—") {
+        return { price: "—", unit: null };
+    }
+
+    return {
+        price: formatted,
+        unit: unit ? String(unit).trim() || null : null,
+    };
 }

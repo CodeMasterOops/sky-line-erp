@@ -101,11 +101,25 @@
                     :loading="products.loading" @change="handleTableChange">
                     <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'Product'">
-                            <div class="productimgname">
-                                <a href="javascript:void(0);" class="avatar avatar-md me-2">
+                            <div class="productimgname d-flex align-items-start">
+                                <a href="javascript:void(0);" class="avatar avatar-md me-2 flex-shrink-0">
                                     <img :src="record.image || 'https://placehold.co/40x40'" alt="product">
                                 </a>
-                                <a href="javascript:void(0);">{{ record.name }}</a>
+                                <div class="min-w-0">
+                                    <a href="javascript:void(0);" class="fw-medium d-block text-truncate">
+                                        {{ record.name }}
+                                    </a>
+                                    <div v-if="record.code || record.hsn_code" class="small text-muted">
+                                        <span v-if="record.code">
+                                            Code: <span class="font-monospace">{{ record.code }}</span>
+                                        </span>
+                                        <span v-if="record.code && record.hsn_code" class="mx-1">·</span>
+                                        <span v-if="record.hsn_code">
+                                            {{ formatHsnLabel(record.product_type) }}:
+                                            <span class="font-monospace">{{ record.hsn_code }}</span>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </template>
 
@@ -127,6 +141,16 @@
                         <template v-else-if="column.key === 'total_inventory_value'">
                             <template v-if="record.product_type === 'service'">—</template>
                             <template v-else>{{ formatMoney(record.total_inventory_value) }}</template>
+                        </template>
+
+                        <template v-else-if="column.key === 'purchase_price'">
+                            <template v-if="record.product_type === 'service'">—</template>
+                            <template v-else>
+                                <div>{{ purchasePriceDisplay(record).price }}</div>
+                                <div v-if="purchasePriceDisplay(record).unit" class="small text-muted">
+                                    / {{ purchasePriceDisplay(record).unit }}
+                                </div>
+                            </template>
                         </template>
 
                         <template v-else-if="column.key === 'tax'">
@@ -161,7 +185,13 @@ import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { formatMoney } from '@/helpers/formatMoney.js';
-import { getProductColumns, createRowActions, formatProductType } from './tableConfig.js';
+import {
+    getProductColumns,
+    createRowActions,
+    formatProductType,
+    formatHsnLabel,
+    formatPriceWithUnit,
+} from './tableConfig.js';
 import { flattenCategoriesWithOutline, formatCategoryDisplayName } from '@/helpers/categoryTree.js';
 
 const router = useRouter();
@@ -262,5 +292,9 @@ function formatProductTax(record) {
         return `${t.name} (${Number(rate)}%)`;
     }
     return t.name;
+}
+
+function purchasePriceDisplay(record) {
+    return formatPriceWithUnit(record.defaultVariant?.purchase_price, record.unit);
 }
 </script>
