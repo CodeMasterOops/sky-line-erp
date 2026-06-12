@@ -1,0 +1,54 @@
+.document-print-area {
+    .document-print-logo .white-logo {
+        display: none;
+    }
+}
+
+@media print {
+    .sidebar,
+    .header,
+    .page-header,
+    .footer,
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .page-wrapper,
+    .page-wrapper .content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .document-print-area,
+    #document-print-area,
+    #report-print-area {
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+    }
+
+    .document-print-area .card-body,
+    #document-print-area .card-body,
+    #report-print-area .card-body {
+        padding: 0 !important;
+    }
+
+    .document-print-logo .white-logo {
+        display: none !important;
+    }
+
+    .document-print-logo .dark-logo {
+        display: block !important;
+    }
+
+    @page {
+        margin: 12mm;
+        size: A4 portrait;
+    }
+}

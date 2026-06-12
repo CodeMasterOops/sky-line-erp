@@ -74,6 +74,7 @@
         @created="fetchQuotations"
     />
     <EditQuotation v-model:quotation_id="edit_quotation_id" />
+    <QuotationDetailModal v-model:detail-quotation-id="detail_quotation_id" />
 </template>
 
 <script setup>
@@ -85,6 +86,7 @@ import CreateQuotation from './Create.vue';
 import CreateSalesOrder from '@/views/admin/sales/sales-order/Create.vue';
 import CreateInvoice from '@/views/admin/sales/invoice/Create.vue';
 import EditQuotation from './Edit.vue';
+import QuotationDetailModal from './DetailModal.vue';
 import { useQuotationStore } from '@/stores/admin/sales/quotation.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
@@ -97,6 +99,7 @@ const { quotations } = storeToRefs(quotationStore);
 const createModalOpened = ref(false);
 const salesOrderModalOpened = ref(false);
 const edit_quotation_id = ref('');
+const detail_quotation_id = ref('');
 const invoiceModalOpened = ref(false);
 const salesOrderQuotationId = ref('');
 const invoiceQuotationId = ref('');
@@ -157,7 +160,10 @@ const handleConvertToSale = (id) => {
     salesOrderModalOpened.value = true;
 };
 
+const viewQuotation = (id) => { detail_quotation_id.value = String(id); };
+
 const rowActions = createRowActions({
+    onView: viewQuotation,
     onEdit: editQuotation,
     onConvertSale: handleConvertToSale,
     onConvertInvoice: convertToInvoice,

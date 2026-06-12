@@ -1,7 +1,7 @@
 <template>
     <PageHeader title="VAT Return (D3 / Anusuchi 13)" subtitle="Nepal IRD VAT Return" hide-action-buttons />
 
-    <div class="card border-0 mb-3">
+    <div class="card border-0 mb-3 no-print">
         <div class="card-body pb-1">
             <div class="row align-items-end">
                 <div class="col-md-3">
@@ -39,7 +39,13 @@
         </div>
     </div>
 
-    <div v-if="data.period" class="row g-3 mb-3">
+    <ReportPrintShell
+        v-if="data.period"
+        report-title="VAT Return (D3 / Anusuchi 13)"
+        :subtitle="data.period?.label || ''"
+        landscape
+    >
+    <div class="row g-3 mb-3">
         <div class="col-md-12">
             <div class="card border-0">
                 <div class="card-header">
@@ -217,8 +223,9 @@
             </div>
         </div>
     </div>
+    </ReportPrintShell>
 
-    <div v-if="data.period" class="d-flex justify-content-center gap-3 mb-4">
+    <div v-if="data.period" class="d-flex justify-content-center gap-3 mb-4 no-print">
         <button
             class="btn btn-danger"
             @click="exportD3Csv('combined')"
@@ -237,6 +244,7 @@ import {ref, onMounted} from 'vue';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
 import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 useAccountingReportStore();
 

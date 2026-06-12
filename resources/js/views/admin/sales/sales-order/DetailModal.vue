@@ -7,31 +7,25 @@
         title="Sales order detail">
         <template #modal-body>
             <VLoader v-if="order.loading" loader-type="progress"/>
-            <div v-else-if="detailData.id" class="card border-0 shadow-none mb-0">
-                <div class="card-body p-0">
-                    <div class="sales-details-items d-flex flex-wrap gap-3 mb-4">
-                        <div class="details-item">
-                            <h6>Customer</h6>
-                            <p class="mb-0">{{ detailData.party_name || '—' }}</p>
-                        </div>
-                        <div class="details-item">
-                            <h6>Order</h6>
-                            <p class="mb-0">
-                                {{ detailData.order_no }}<br>
-                                {{ detailData.order_date }}<br>
-                                <span
-                                    class="badge"
-                                    :class="detailData.status === 'approved' ? 'bg-success' : 'bg-secondary'">
-                                    {{ detailData.status }}
-                                </span>
-                            </p>
-                        </div>
-                        <div class="details-item">
-                            <h6>Remarks</h6>
-                            <p class="mb-0">{{ detailData.remarks || '—' }}</p>
-                        </div>
-                    </div>
-                    <h5 class="order-text mb-3">Order summary</h5>
+            <DocumentPrintLayout
+                v-else-if="detailData.id"
+                document-title="Sales Order"
+                :document-no="detailData.order_no || ''"
+                :document-date="detailData.order_date || ''"
+            >
+                <template #header-meta>
+                    <span class="badge" :class="detailData.status === 'approved' ? 'bg-success' : 'bg-secondary'">
+                        {{ detailData.status }}
+                    </span>
+                </template>
+
+                <template #parties>
+                    <DocumentPrintParties :party-name="detailData.party_name" />
+                </template>
+
+                <template #body>
+                    <p v-if="detailData.remarks" class="mb-3"><strong>Remarks:</strong> {{ detailData.remarks }}</p>
+                    <h5 class="order-text mb-3">Line items</h5>
                     <div class="table-responsive no-pagination">
                         <table class="table datanew table-bordered mb-0">
                             <thead>
@@ -40,7 +34,7 @@
                                 <th>Product</th>
                                 <th>Qty</th>
                                 <th>Rate</th>
-                                <th title="Line discount (amount)">Line disc.</th>
+                                <th>Line disc.</th>
                                 <th>Tax</th>
                             </tr>
                             </thead>
@@ -56,35 +50,28 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="row mt-3">
-                        <div class="col-lg-6 ms-auto">
-                            <div class="total-order w-100 max-widthauto m-auto mb-2">
-                                <ul>
-                                    <li>
-                                        <h4>Sub total</h4>
-                                        <h5>{{ formatMoney(detailData.subtotal) }}</h5>
-                                    </li>
-                                    <li v-if="detailData.order_discount_amount != null && Number(detailData.order_discount_amount) !== 0">
-                                        <h4>Order discount</h4>
-                                        <h5>{{ formatMoney(detailData.order_discount_amount) }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Discount (total)</h4>
-                                        <h5>{{ formatMoney(detailData.discount_total) }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Tax</h4>
-                                        <h5>{{ formatMoney(detailData.tax_total) }}</h5>
-                                    </li>
-                                    <li>
-                                        <h4>Grand total</h4>
-                                        <h5>{{ formatMoney(detailData.grand_total) }}</h5>
-                                    </li>
-                                </ul>
-                            </div>
+                </template>
+
+                <template #totals>
+                    <div class="col-lg-6 ms-auto">
+                        <div class="total-order w-100 max-widthauto m-auto mb-2">
+                            <ul>
+                                <li><h4>Sub total</h4><h5>{{ formatMoney(detailData.subtotal) }}</h5></li>
+                                <li v-if="detailData.order_discount_amount != null && Number(detailData.order_discount_amount) !== 0">
+                                    <h4>Order discount</h4>
+                                    <h5>{{ formatMoney(detailData.order_discount_amount) }}</h5>
+                                </li>
+                                <li><h4>Discount (total)</h4><h5>{{ formatMoney(detailData.discount_total) }}</h5></li>
+                                <li><h4>Tax</h4><h5>{{ formatMoney(detailData.tax_total) }}</h5></li>
+                                <li><h4>Grand total</h4><h5>{{ formatMoney(detailData.grand_total) }}</h5></li>
+                            </ul>
                         </div>
                     </div>
-                </div>
+                </template>
+            </DocumentPrintLayout>
+
+            <div v-if="detailData.id && !order.loading" class="d-flex flex-wrap gap-2 mt-3 no-print">
+                <DocumentPrintButton target="#document-print-area" title="Sales Order" label="Print" button-class="btn-sm" />
             </div>
         </template>
     </VModal>
@@ -95,35 +82,27 @@ import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, watch} from 'vue';
 import {storeToRefs} from 'pinia';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
+import {useCompanyBranding} from '@/composables/useCompanyBranding.js';
+import DocumentPrintLayout from '@/components/print/DocumentPrintLayout.vue';
+import DocumentPrintParties from '@/components/print/DocumentPrintParties.vue';
+import DocumentPrintButton from '@/components/print/DocumentPrintButton.vue';
 
 const salesOrderStore = useSalesOrderStore();
 const {order} = storeToRefs(salesOrderStore);
+const {ensureBranding} = useCompanyBranding();
 
 const detailOrderId = defineModel('detailOrderId', {type: String, default: ''});
-
 const detailData = computed(() => order.value.data || {});
 
-watch(
-    () => detailOrderId.value,
-    (id) => {
-        if (id) {
-            salesOrderStore.getOrder(id);
-        }
+watch(() => detailOrderId.value, async (id) => {
+    if (id) {
+        await ensureBranding();
+        salesOrderStore.getOrder(id);
     }
-);
+});
 
-const closeModal = () => {
-    detailOrderId.value = '';
-};
-
-
-const productLabel = (item) => {
-    if (item.product_variant?.name) {
-        return item.product_variant.name;
-    }
-    return '—';
-};
-
+const closeModal = () => { detailOrderId.value = ''; };
+const productLabel = (item) => item.product_variant?.name || '—';
 const taxLabel = (item) => {
     if (item.tax?.name) {
         const r = item.tax.rate != null ? `${item.tax.rate}%` : '';
@@ -131,5 +110,4 @@ const taxLabel = (item) => {
     }
     return '—';
 };
-
 </script>

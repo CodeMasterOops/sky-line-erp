@@ -1,7 +1,7 @@
 <template>
     <PageHeader title="Tax Report" subtitle="Financial report" hide-action-buttons />
 
-    <div class="card border-0">
+    <div class="card border-0 no-print">
         <div class="card-body pb-1">
             <form @submit.prevent="onSubmit">
                 <div class="row align-items-end">
@@ -65,11 +65,8 @@
         </div>
     </div>
 
-    <div class="card table-list-card no-search">
-        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-            <div>
-                <h4>Sales Tax Report</h4>
-            </div>
+    <ReportPrintShell report-title="Sales Tax Report" subtitle="Sales tax summary">
+        <div class="d-flex justify-content-end mb-2 no-print">
             <VExport
                 title="tax-report"
                 target="tax-report-table"
@@ -77,7 +74,6 @@
                 btn-class="btn btn-sm btn-outline-success"
             />
         </div>
-        <div class="card-body">
             <div class="table-responsive">
                 <table id="tax-report-table" class="table datatable">
                     <thead class="thead-light">
@@ -108,8 +104,7 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
+    </ReportPrintShell>
 </template>
 
 <script setup>
@@ -117,6 +112,7 @@ import {onMounted, ref} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import {formatMoney} from '@/helpers/formatMoney.js';
+import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 const dateRangeInput = ref(null);
 const selectedStore = ref('All');

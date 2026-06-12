@@ -53,6 +53,13 @@
                             <div class="action-table-data">
                                 <div class="edit-delete-action">
                                     <a
+                                        class="me-2 p-2"
+                                        href="javascript:void(0);"
+                                        title="View / Print"
+                                        @click="viewVoucher(record.id)">
+                                        <i class="ti ti-printer"></i>
+                                    </a>
+                                    <a
                                         v-if="record.status === 'draft'"
                                         class="me-2 edit-icon p-2"
                                         href="javascript:void(0);"
@@ -82,6 +89,7 @@
 
     <CreateReceiptVoucher v-model:create-modal-opened="createModalOpened"/>
     <EditReceiptVoucher v-model:voucher_id="edit_voucher_id"/>
+    <ReceiptVoucherDetailModal v-model:detail-voucher-id="detail_voucher_id" />
 </template>
 
 <script setup>
@@ -94,6 +102,7 @@ import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
 import CreateReceiptVoucher from './Create.vue';
 import EditReceiptVoucher from './Edit.vue';
+import ReceiptVoucherDetailModal from './DetailModal.vue';
 import {useReceiptVoucherStore} from '@/stores/admin/accounting/receipt-voucher.js';
 import {adToBsDate} from "@/helpers/helper.js";
 
@@ -103,6 +112,7 @@ const {vouchers} = storeToRefs(receiptVoucherStore);
 
 const createModalOpened = ref(false);
 const edit_voucher_id = ref('');
+const detail_voucher_id = ref('');
 
 const filter = reactive({
     search: '',
@@ -164,6 +174,10 @@ const debouncedFetch = debounce(() => {
 watch(() => [filter.page, filter.limit], () => {
     fetchVouchers();
 });
+
+const viewVoucher = (id) => {
+    detail_voucher_id.value = String(id);
+};
 
 const editVoucher = (id) => {
     edit_voucher_id.value = id;

@@ -14,7 +14,7 @@ class DebitNoteResource extends JsonResource
         return [
             'id' => $this->id ?? '',
             'debit_note_no' => $this->debit_note_no ?? '',
-            'debit_note_date' => $this->debit_note_date ?? '',
+            'debit_note_date' => $this->debit_note_date?->format('Y-m-d') ?? '',
             'bill_id' => $this->bill_id ?? '',
             'bill_no' => $this->bill?->bill_no ?? '',
             'party_id' => $this->party_id ?? '',

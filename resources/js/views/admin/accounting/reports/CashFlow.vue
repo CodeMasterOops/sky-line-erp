@@ -1,7 +1,7 @@
 <template>
     <PageHeader hide-action-buttons title="Cash Flow Statement" subtitle="Indirect Method" />
 
-    <div class="card border-0 mb-3">
+    <div class="card border-0 mb-3 no-print">
         <div class="card-body pb-1">
             <div class="row align-items-end">
                 <div class="col-md-3">
@@ -39,11 +39,11 @@
         </div>
     </div>
 
-    <div v-if="data.period" class="card border-0">
-        <div class="card-header">
-            <h5 class="mb-0">Cash Flow Statement – {{ data.period?.label }}</h5>
-        </div>
-        <div class="card-body">
+    <ReportPrintShell
+        v-if="data.period"
+        report-title="Cash Flow Statement"
+        :subtitle="data.period?.label || ''"
+    >
             <table class="table">
                 <tbody>
                     <tr class="table-secondary">
@@ -82,14 +82,13 @@
                 </tbody>
             </table>
 
-            <div class="alert alert-info mt-3">
+            <div class="alert alert-info mt-3 no-print">
                 <i class="ti ti-info-circle me-2"></i>
                 Cash flow is calculated using the indirect method based on account group classifications (Income/Expenses → Operating; Assets → Investing; Liabilities/Equity → Financing).
             </div>
-        </div>
-    </div>
+    </ReportPrintShell>
 
-    <div v-else-if="!loading" class="text-center text-muted py-5">
+    <div v-else-if="!loading" class="text-center text-muted py-5 no-print">
         <i class="ti ti-chart-bar display-4 d-block mb-3"></i>
         Select a period and click Generate to view the Cash Flow Statement.
     </div>
@@ -100,6 +99,7 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 const filters = ref({ fiscal_year_id: null, start_date: null, end_date: null });
 const loading = ref(false);

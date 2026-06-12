@@ -1,7 +1,7 @@
 <template>
     <PageHeader hide-action-buttons title="Accounts Receivable Aging" subtitle="Outstanding invoices by age" />
 
-    <div class="card border-0 mb-3">
+    <div class="card border-0 mb-3 no-print">
         <div class="card-body pb-1">
             <div class="row align-items-end">
                 <div class="col-md-4">
@@ -22,60 +22,61 @@
         </div>
     </div>
 
-    <div v-if="buckets" class="row g-3 mb-3">
-        <div class="col" v-for="(b, key) in bucketLabels" :key="key">
-            <div class="card border-0" :class="b.bg">
-                <div class="card-body text-center p-3">
-                    <div class="text-muted small">{{ b.label }}</div>
-                    <div class="fw-bold">{{ formatMoney(buckets[key]) }}</div>
+    <ReportPrintShell
+        v-if="rows.length || buckets"
+        report-title="Accounts Receivable Aging"
+        :subtitle="data.as_of ? `As of ${data.as_of}` : ''"
+        landscape
+    >
+        <div v-if="buckets" class="row g-3 mb-3">
+            <div class="col" v-for="(b, key) in bucketLabels" :key="key">
+                <div class="card border-0" :class="b.bg">
+                    <div class="card-body text-center p-3">
+                        <div class="text-muted small">{{ b.label }}</div>
+                        <div class="fw-bold">{{ formatMoney(buckets[key]) }}</div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="card border-0">
-        <div class="card-header">
-            <h6 class="mb-0">Outstanding Invoices {{ data.as_of ? '– As of ' + data.as_of : '' }}</h6>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Invoice No</th>
+                        <th>Customer</th>
+                        <th>Invoice Date</th>
+                        <th>Due Date</th>
+                        <th class="text-end">Days Overdue</th>
+                        <th class="text-end">Outstanding (NPR)</th>
+                        <th>Bucket</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-if="!rows.length && !loading">
+                        <td colspan="7" class="text-center text-muted py-4">No outstanding invoices found.</td>
+                    </tr>
+                    <tr v-for="row in rows" :key="row.invoice_no">
+                        <td>{{ row.invoice_no }}</td>
+                        <td>{{ row.party_name }}</td>
+                        <td>{{ row.invoice_date }}</td>
+                        <td>{{ row.due_date }}</td>
+                        <td class="text-end" :class="row.days_overdue > 0 ? 'text-danger' : ''">{{ row.days_overdue }}</td>
+                        <td class="text-end fw-semibold">{{ formatMoney(row.outstanding) }}</td>
+                        <td><span class="badge" :class="bucketBadge(row.bucket)">{{ bucketDisplay(row.bucket) }}</span></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Invoice No</th>
-                            <th>Customer</th>
-                            <th>Invoice Date</th>
-                            <th>Due Date</th>
-                            <th class="text-end">Days Overdue</th>
-                            <th class="text-end">Outstanding (NPR)</th>
-                            <th>Bucket</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="!rows.length && !loading">
-                            <td colspan="7" class="text-center text-muted py-4">No outstanding invoices found.</td>
-                        </tr>
-                        <tr v-for="row in rows" :key="row.invoice_no">
-                            <td>{{ row.invoice_no }}</td>
-                            <td>{{ row.party_name }}</td>
-                            <td>{{ row.invoice_date }}</td>
-                            <td>{{ row.due_date }}</td>
-                            <td class="text-end" :class="row.days_overdue > 0 ? 'text-danger' : ''">{{ row.days_overdue }}</td>
-                            <td class="text-end fw-semibold">{{ formatMoney(row.outstanding) }}</td>
-                            <td><span class="badge" :class="bucketBadge(row.bucket)">{{ bucketDisplay(row.bucket) }}</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    </ReportPrintShell>
 </template>
 
 <script setup>
-import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {ref} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 const filters = ref({ end_date: new Date().toISOString().split('T')[0] });
 const loading = ref(false);
@@ -105,7 +106,6 @@ const loadReport = async () => {
         loading.value = false;
     }
 };
-
 
 const bucketDisplay = (key) => {
     const map = { current: 'Current', '1_30': '1-30d', '31_60': '31-60d', '61_90': '61-90d', over_90: '90+d' };

@@ -1,20 +1,27 @@
 <template>
     <PageHeader :title="`Challan: ${challan?.challan_no || ''}`" subtitle="Delivery Challan Detail">
         <template #actions>
+            <DocumentPrintButton
+                v-if="challan"
+                target="#document-print-area"
+                title="Delivery Challan"
+                label="Print"
+                button-class="btn-outline-primary me-2"
+            />
             <router-link :to="{ name: 'admin.delivery-challan-list' }" class="btn btn-outline-secondary me-2">
                 <i class="ti ti-arrow-left me-1"></i> Back
             </router-link>
             <button
                 v-if="challan?.status === 'approved'"
                 v-can="'create_invoice'"
-                class="btn btn-primary me-2"
+                class="btn btn-primary me-2 no-print"
                 @click="openInvoiceModal">
                 <i class="ti ti-file-invoice me-1"></i> Create Invoice
             </button>
             <button
                 v-if="challan?.status === 'draft'"
                 v-can="'approve_delivery_challan'"
-                class="btn btn-success"
+                class="btn btn-success no-print"
                 @click="approve"
                 :disabled="approving">
                 <span v-if="approving" class="spinner-border spinner-border-sm me-1"></span>
@@ -27,94 +34,77 @@
         <span class="spinner-border"></span>
     </div>
 
-    <div v-else-if="challan">
-        <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <div class="card border-0">
-                    <div class="card-body">
-                        <table class="table table-sm table-borderless mb-0">
-                            <tbody>
-                                <tr><td class="text-muted">Challan No</td><td class="fw-semibold">{{ challan.challan_no }}</td></tr>
-                                <tr><td class="text-muted">Customer</td><td>{{ challan.party?.name || '-' }}</td></tr>
-                                <tr><td class="text-muted">Warehouse</td><td>{{ challan.warehouse?.name || '-' }}</td></tr>
-                                <tr><td class="text-muted">Date</td><td>{{ formatDate(challan.challan_date) }}</td></tr>
-                                <tr><td class="text-muted">Receiver</td><td>{{ challan.receiver_name || '-' }}</td></tr>
-                                <tr><td class="text-muted">Delivery Address</td><td>{{ challan.delivery_address || '-' }}</td></tr>
-                                <tr v-if="challan.sales_order_id">
-                                    <td class="text-muted">Sales Order</td>
-                                    <td>#{{ challan.sales_order_id }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="text-muted">Status</td>
-                                    <td>
-                                        <span class="badge" :class="challan.status === 'approved' ? 'bg-success' : 'bg-warning text-dark'">
-                                            {{ challan.status }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card border-0">
-                    <div class="card-body">
-                        <table class="table table-sm table-borderless mb-0">
-                            <tbody>
-                                <tr><td class="text-muted">Created By</td><td>{{ challan.create_user?.name || '-' }}</td></tr>
-                                <tr><td class="text-muted">Approved By</td><td>{{ challan.approve_user?.name || '-' }}</td></tr>
-                                <tr><td class="text-muted">Approved At</td><td>{{ formatDate(challan.approved_at) }}</td></tr>
-                                <tr><td class="text-muted">Remarks</td><td>{{ challan.remarks || '-' }}</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <DocumentPrintLayout
+        v-else-if="challan"
+        document-title="Delivery Challan"
+        :document-no="challan.challan_no || ''"
+        :document-date="formatDate(challan.challan_date)"
+    >
+        <template #header-meta>
+            <span class="badge" :class="challan.status === 'approved' ? 'bg-success' : 'bg-warning text-dark'">
+                {{ challan.status }}
+            </span>
+        </template>
 
-        <div class="card border-0 mb-4">
-            <div class="card-header"><h6 class="mb-0">Items</h6></div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-sm datanew table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>#</th>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th class="text-end">Qty</th>
-                                <th class="text-end">Rate</th>
-                                <th class="text-end">Total</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="(item, idx) in challan.challan_items" :key="item.id">
-                                <td>{{ idx + 1 }}</td>
-                                <td>{{ item.product_variant?.product?.name || item.product_variant?.name }}</td>
-                                <td>{{ item.product_variant?.sku || '-' }}</td>
-                                <td class="text-end">{{ item.quantity }}</td>
-                                <td class="text-end">{{ formatMoney(item.rate) }}</td>
-                                <td class="text-end fw-semibold">{{ formatMoney(item.quantity * item.rate) }}</td>
-                                <td>{{ item.remarks || '-' }}</td>
-                            </tr>
-                        </tbody>
-                        <tfoot class="table-secondary fw-bold">
-                            <tr>
-                                <td colspan="5">Grand Total</td>
-                                <td class="text-end">{{ formatMoney(grandTotal) }}</td>
-                                <td></td>
-                            </tr>
-                        </tfoot>
-                    </table>
+        <template #parties>
+            <DocumentPrintParties
+                :party-name="challan.party?.name"
+                :party-address="challan.delivery_address"
+            />
+        </template>
+
+        <template #body>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Warehouse:</strong> {{ challan.warehouse?.name || '—' }}</p>
+                    <p class="mb-1"><strong>Receiver:</strong> {{ challan.receiver_name || '—' }}</p>
+                    <p v-if="challan.sales_order_id" class="mb-0"><strong>Sales Order:</strong> #{{ challan.sales_order_id }}</p>
+                </div>
+                <div class="col-md-6 no-print">
+                    <p class="mb-1"><strong>Created By:</strong> {{ challan.create_user?.name || '—' }}</p>
+                    <p class="mb-1"><strong>Approved By:</strong> {{ challan.approve_user?.name || '—' }}</p>
+                    <p class="mb-0"><strong>Approved At:</strong> {{ formatDate(challan.approved_at) }}</p>
                 </div>
             </div>
-        </div>
+            <p v-if="challan.remarks" class="mb-3"><strong>Remarks:</strong> {{ challan.remarks }}</p>
 
-        <div v-if="challan.status === 'approved' && stockMovements.length" class="card border-0">
-            <div class="card-header"><h6 class="mb-0">Stock Movements</h6></div>
-            <div class="card-body">
+            <h6 class="mb-2">Items</h6>
+            <div class="table-responsive">
+                <table class="table table-sm datanew table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Rate</th>
+                            <th class="text-end">Total</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(item, idx) in challan.challan_items" :key="item.id">
+                            <td>{{ idx + 1 }}</td>
+                            <td>{{ item.product_variant?.product?.name || item.product_variant?.name }}</td>
+                            <td>{{ item.product_variant?.sku || '—' }}</td>
+                            <td class="text-end">{{ item.quantity }}</td>
+                            <td class="text-end">{{ formatMoney(item.rate) }}</td>
+                            <td class="text-end fw-semibold">{{ formatMoney(item.quantity * item.rate) }}</td>
+                            <td>{{ item.remarks || '—' }}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <td colspan="5">Grand Total</td>
+                            <td class="text-end">{{ formatMoney(grandTotal) }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div v-if="challan.status === 'approved' && stockMovements.length" class="mt-4 no-print">
+                <h6 class="mb-2">Stock Movements</h6>
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead class="table-light">
@@ -134,8 +124,8 @@
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
+        </template>
+    </DocumentPrintLayout>
 
     <CreateInvoice
         v-model:create-modal-opened="invoiceModalOpened"
@@ -144,17 +134,22 @@
 </template>
 
 <script setup>
-import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, ref, onMounted} from 'vue';
 import {useRoute} from 'vue-router';
 import showErrors from '@/helpers/showErrors.js';
 import {toast} from '@/helpers/toast.js';
 import {formatDate} from '@/helpers/helper.js';
 import {useDeliveryChallanStore} from '@/stores/admin/inventory/delivery-challan.js';
+import {useCompanyBranding} from '@/composables/useCompanyBranding.js';
 import CreateInvoice from '@/views/admin/sales/invoice/Create.vue';
+import DocumentPrintLayout from '@/components/print/DocumentPrintLayout.vue';
+import DocumentPrintParties from '@/components/print/DocumentPrintParties.vue';
+import DocumentPrintButton from '@/components/print/DocumentPrintButton.vue';
 
 const route = useRoute();
 const deliveryChallanStore = useDeliveryChallanStore();
+const {ensureBranding} = useCompanyBranding();
 
 const challan = ref(null);
 const loading = ref(false);
@@ -174,6 +169,7 @@ const grandTotal = computed(() =>
 const loadChallan = async () => {
     loading.value = true;
     try {
+        await ensureBranding();
         const res = await deliveryChallanStore.getChallan(route.params.id);
         challan.value = res.data.data;
     } catch (e) {
@@ -195,7 +191,6 @@ const approve = async () => {
         approving.value = false;
     }
 };
-
 
 const openInvoiceModal = () => {
     invoiceDeliveryChallanId.value = String(challan.value.id);

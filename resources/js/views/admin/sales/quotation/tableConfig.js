@@ -9,6 +9,7 @@ export const quotationColumns = [
 
 /**
  * @param {{
+ *   onView: Function,
  *   onEdit: Function,
  *   onConvertSale: Function,
  *   onConvertInvoice: Function,
@@ -17,6 +18,7 @@ export const quotationColumns = [
  * }} handlers
  */
 export function createRowActions({
+    onView,
     onEdit,
     onConvertSale,
     onConvertInvoice,
@@ -24,6 +26,12 @@ export function createRowActions({
     onDelete,
 }) {
     return [
+        {
+            key: "view",
+            icon: "ti-printer",
+            title: "View / Print",
+            handler: (record) => onView(record.id),
+        },
         {
             key: "edit",
             icon: "ti-edit",
