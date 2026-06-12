@@ -34,6 +34,7 @@ export const usePosStore = defineStore('pos', {
         customersLoading: false,
 
         warehouses: [],
+        categories: [],
         taxes: [],
         paymentModes: [],
         heldOrders: [],
@@ -186,6 +187,15 @@ export const usePosStore = defineStore('pos', {
             try {
                 const res = await apiAdmin('pos/warehouses');
                 this.warehouses = res.data.data;
+            } catch (err) {
+                showErrors(err);
+            }
+        },
+
+        async fetchCategories() {
+            try {
+                const res = await apiAdmin('pos/categories');
+                this.categories = res.data.data;
             } catch (err) {
                 showErrors(err);
             }

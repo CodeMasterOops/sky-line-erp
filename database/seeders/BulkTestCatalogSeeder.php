@@ -143,19 +143,43 @@ class BulkTestCatalogSeeder extends Seeder
             ]
         );
 
-        $categoryNames = ['General', 'Beverages', 'Grocery'];
         $categoryIds = [];
-        foreach ($categoryNames as $name) {
-            $categoryIds[] = ProductCategory::firstOrCreate(
+        $parents = [
+            'General' => [],
+            'Beverages' => ['Soft Drinks', 'Water'],
+            'Grocery' => ['Staples'],
+        ];
+
+        foreach ($parents as $parentName => $children) {
+            $parent = ProductCategory::firstOrCreate(
                 [
                     'company_id' => $companyId,
-                    'name' => $name,
+                    'parent_id' => null,
+                    'name' => $parentName,
                 ],
                 [
-                    'parent_id' => null,
                     'description' => null,
                 ]
-            )->id;
+            );
+
+            if ($children === []) {
+                $categoryIds[] = $parent->id;
+
+                continue;
+            }
+
+            foreach ($children as $childName) {
+                $categoryIds[] = ProductCategory::firstOrCreate(
+                    [
+                        'company_id' => $companyId,
+                        'parent_id' => $parent->id,
+                        'name' => $childName,
+                    ],
+                    [
+                        'description' => null,
+                    ]
+                )->id;
+            }
         }
 
         $vatTax = Tax::query()

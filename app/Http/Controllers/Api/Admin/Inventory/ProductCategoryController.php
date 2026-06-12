@@ -17,6 +17,9 @@ class ProductCategoryController extends Controller
     public function index(Request $request)
     {
         $productCategories = ProductCategory::query()
+            ->with('parent:id,name')
+            ->withCount('children')
+            ->orderByRaw('parent_id is null desc')
             ->orderBy('name')
             ->paginate($request->integer('limit', 25));
 
@@ -29,6 +32,8 @@ class ProductCategoryController extends Controller
     public function store(ProductCategoryRequest $request)
     {
         $productCategory = ProductCategory::create($request->validated());
+        $productCategory->load('parent:id,name');
+        $productCategory->loadCount('children');
 
         return response()->json([
             'data' => ProductCategoryResource::make($productCategory),
@@ -41,6 +46,9 @@ class ProductCategoryController extends Controller
      */
     public function show(ProductCategory $productCategory)
     {
+        $productCategory->load('parent:id,name');
+        $productCategory->loadCount('children');
+
         return ProductCategoryResource::make($productCategory);
     }
 
@@ -50,6 +58,8 @@ class ProductCategoryController extends Controller
     public function update(ProductCategoryRequest $request, ProductCategory $productCategory)
     {
         $productCategory->update($request->validated());
+        $productCategory->load('parent:id,name');
+        $productCategory->loadCount('children');
 
         return response()->json([
             'data' => ProductCategoryResource::make($productCategory),
@@ -62,6 +72,18 @@ class ProductCategoryController extends Controller
      */
     public function destroy(ProductCategory $productCategory)
     {
+        if ($productCategory->children()->exists()) {
+            return response()->json([
+                'message' => __('Cannot delete a category that has subcategories. Remove or reassign them first.'),
+            ], 422);
+        }
+
+        if ($productCategory->products()->exists()) {
+            return response()->json([
+                'message' => __('Cannot delete a category assigned to products.'),
+            ], 422);
+        }
+
         $productCategory->delete();
 
         return response()->json([

@@ -89,7 +89,7 @@
                             </div>
                             <div class="col">
                                 <VMultiselect id="product_category_id" v-model="form.product_category_id"
-                                    :options="productCategories.data" label="Category" required
+                                    :options="leafCategoryOptions" label="Category" required
                                     @validate="validateField('product_category_id')"
                                     :error="errors.product_category_id" />
                             </div>
@@ -483,7 +483,7 @@ const settingStore = useSettingStore();
 const taxStore = useTaxStore();
 
 const { units } = storeToRefs(unitStore);
-const { productCategories } = storeToRefs(categoryStore);
+const { leafOptionsTree: leafCategoryOptions } = storeToRefs(categoryStore);
 const { brands } = storeToRefs(brandStore);
 const { attributes } = storeToRefs(attributeStore);
 const { product } = storeToRefs(productStore);

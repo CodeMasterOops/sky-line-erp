@@ -24,7 +24,7 @@ class ProductExportGenerator implements ExportGeneratorInterface
 
         $query = Product::query()
             ->with([
-                'productCategory:id,name',
+                'productCategory.parent:id,name',
                 'unit:id,name,code',
                 'brand:id,name,code',
                 'tax:id,name',
@@ -54,7 +54,7 @@ class ProductExportGenerator implements ExportGeneratorInterface
                     $product->product_type?->value,
                     $product->hsn_code,
                     $product->description,
-                    $product->productCategory?->name,
+                    $product->productCategory?->fullPath(),
                     $product->unit?->name,
                     $product->brand?->name,
                     $product->tax?->name,

@@ -33,6 +33,7 @@ class ProductResource extends JsonResource
             'min_stock_level' => $this->min_stock_level ?? 0,
             'description' => $this->description ?? '',
             'category' => $this->productCategory ? $this->productCategory->name : '',
+            'category_path' => $this->productCategory ? $this->productCategory->fullPath() : '',
             'brand' => $this->brand ? $this->brand->name : '',
             'unit' => $this->unit ? $this->unit->name : '',
             'total_stock' => $this->product_type === ProductTypeEnum::SERVICE ? null : $stock['total_stock'],

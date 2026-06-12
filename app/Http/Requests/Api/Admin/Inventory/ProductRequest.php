@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 use App\Models\Tax;
 use App\Tenancy\TRule;
 use App\Enums\ProductTypeEnum;
+use App\Models\ProductCategory;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -49,7 +50,20 @@ class ProductRequest extends FormRequest
     public function rules(): array
     {
         $validations = [
-            'product_category_id' => ['required', TRule::exists('product_categories', 'id')->withoutTrashed()],
+            'product_category_id' => [
+                'required',
+                TRule::exists('product_categories', 'id')->withoutTrashed(),
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    $category = ProductCategory::query()->whereKey($value)->first();
+                    if (! $category || ! $category->isLeaf()) {
+                        $fail(__('Products must be assigned to a subcategory (leaf category).'));
+                    }
+                },
+            ],
             'product_type' => ['required', Rule::enum(ProductTypeEnum::class)],
             'image' => ['nullable', 'image'],
             'unit_id' => ['required', TRule::exists('units', 'id')->withoutTrashed()],

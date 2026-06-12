@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
 use App\Models\AccountSetting;
 use App\Models\ProductVariant;
+use App\Models\ProductCategory;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -23,6 +24,7 @@ use App\Services\Accounting\GlAccountConfigGuard;
 use App\Http\Requests\Api\Admin\PosCheckoutRequest;
 use App\Services\Accounting\InvoiceGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
+use App\Http\Resources\Admin\Inventory\ProductCategoryResource;
 
 class PosController extends Controller
 {
@@ -33,6 +35,23 @@ class PosController extends Controller
         private DocumentNumberGenerator $documentNumberGenerator,
         private GlAccountConfigGuard $glAccountGuard,
     ) {}
+
+    /**
+     * Category tree for POS filtering.
+     */
+    public function categories()
+    {
+        $categories = ProductCategory::query()
+            ->with('parent:id,name')
+            ->withCount('children')
+            ->orderByRaw('parent_id is null desc')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'data' => ProductCategoryResource::collection($categories),
+        ]);
+    }
 
     /**
      * Products list optimised for POS – all variants with stock per warehouse.
@@ -46,7 +65,7 @@ class PosController extends Controller
         $query = Product::query()
             ->physical()
             ->with([
-                'productCategory:id,name',
+                'productCategory.parent:id,name',
                 'variants' => function ($q) use ($warehouseId) {
                     $q->with([
                         'stocks' => fn ($sq) => $sq->when($warehouseId, fn ($s) => $s->where('warehouse_id', $warehouseId)),
@@ -80,7 +99,7 @@ class PosController extends Controller
                     'purchase_price' => $variant->purchase_price ?? 0,
                     'image' => $product->image,
                     'category_id' => $product->product_category_id,
-                    'category_name' => $product->productCategory?->name ?? '',
+                    'category_name' => $product->productCategory?->fullPath() ?? '',
                     'unit_id' => $product->unit_id,
                     'stock' => (float) $stock,
                     'is_default' => $variant->is_default,

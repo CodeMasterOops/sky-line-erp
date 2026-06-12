@@ -64,10 +64,11 @@
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
                                 @click="setFilter('product_category_id', '')">All Categories</a>
                         </li>
-                        <li v-for="category in categoryList" :key="category.id">
+                        <li v-for="category in categoryFilterOptions" :key="category.id">
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('product_category_id', category.id, category.name)">
-                                {{ category.name }}
+                                :style="{ paddingLeft: `${0.75 + category.depth * 1}rem` }"
+                                @click="setFilter('product_category_id', category.id, category.label)">
+                                {{ category.label }}
                             </a>
                         </li>
                     </ul>
@@ -161,6 +162,7 @@ import { useTablePagination } from '@/composables/useTablePagination.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { formatMoney } from '@/helpers/formatMoney.js';
 import { getProductColumns, createRowActions, formatProductType } from './tableConfig.js';
+import { flattenCategoriesWithOutline, formatCategoryDisplayName } from '@/helpers/categoryTree.js';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -173,7 +175,13 @@ const { productCategories: categories } = storeToRefs(categoryStore);
 const { brands: brandList } = storeToRefs(brandStore);
 
 const brands = computed(() => brandList.value.data || []);
-const categoryList = computed(() => categories.value.data || []);
+const categoryFilterOptions = computed(() =>
+    flattenCategoriesWithOutline(categories.value.data || []).map((category) => ({
+        id: category.id,
+        depth: category.depth,
+        label: formatCategoryDisplayName(category),
+    })),
+);
 
 const selectedCategoryName = ref('');
 const selectedBrandName = ref('');

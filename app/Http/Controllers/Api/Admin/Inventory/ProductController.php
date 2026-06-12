@@ -93,7 +93,7 @@ class ProductController extends Controller
         }
 
         $products = Product::with([
-            'productCategory',
+            'productCategory.parent',
             'brand',
             'unit',
             'tax',
@@ -159,6 +159,7 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load([
+            'productCategory.parent',
             'tax',
             'variants.variantOptions.attribute',
             'variants.stocks.warehouse',
