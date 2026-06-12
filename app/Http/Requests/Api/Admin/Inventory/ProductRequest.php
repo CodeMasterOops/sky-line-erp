@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 use App\Models\Tax;
 use App\Tenancy\TRule;
 use App\Enums\ProductTypeEnum;
+use App\Models\ProductVariant;
 use App\Models\ProductCategory;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -38,6 +39,7 @@ class ProductRequest extends FormRequest
                         continue;
                     }
                     $variants[$i]['sku'] = null;
+                    $variants[$i]['barcode'] = null;
                     if (! isset($row['purchase_price']) || $row['purchase_price'] === '') {
                         $variants[$i]['purchase_price'] = 0;
                     }
@@ -136,6 +138,46 @@ class ProductRequest extends FormRequest
                 },
             ],
             'variants.*.sku' => ['nullable'],
+            'variants.*.barcode' => [
+                'nullable',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null || $value === '') {
+                        return;
+                    }
+
+                    if ($this->input('product_type') === ProductTypeEnum::SERVICE->value) {
+                        $fail(__('Services cannot have a barcode.'));
+
+                        return;
+                    }
+
+                    preg_match('/variants\.(\d+)\.barcode/', $attribute, $matches);
+                    $index = (int) ($matches[1] ?? 0);
+                    $variants = $this->input('variants', []);
+                    $variantId = is_array($variants[$index] ?? null) ? ($variants[$index]['id'] ?? null) : null;
+
+                    foreach ($variants as $i => $row) {
+                        if ($i === $index || ! is_array($row)) {
+                            continue;
+                        }
+                        if (($row['barcode'] ?? '') === $value) {
+                            $fail(__('The barcode has already been taken.'));
+
+                            return;
+                        }
+                    }
+
+                    $query = ProductVariant::query()->where('barcode', $value);
+                    if ($variantId) {
+                        $query->where('id', '!=', $variantId);
+                    }
+                    if ($query->exists()) {
+                        $fail(__('The barcode has already been taken.'));
+                    }
+                },
+            ],
             'variants.*.sales_price' => ['required', 'numeric'],
             'variants.*.purchase_price' => [
                 Rule::requiredIf(fn () => $this->input('product_type') !== ProductTypeEnum::SERVICE->value),

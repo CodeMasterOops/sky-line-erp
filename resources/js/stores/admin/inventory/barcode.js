@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAdminAuthStore } from '@/stores/admin/auth';
 
 const FORMATS  = ['code128', 'ean13', 'qr'];
-const SOURCES  = ['sku', 'code', 'custom'];
+const SOURCES  = ['barcode', 'sku', 'code', 'custom'];
 const PAPERS   = ['a4', 'letter', 'roll'];
 
 export const useBarcodeStore = defineStore('barcode', () => {
@@ -33,9 +33,10 @@ export const useBarcodeStore = defineStore('barcode', () => {
 
     // ---------- helpers ----------
     const resolveValue = (variant, source, customValue) => {
+        if (source === 'barcode') return variant.barcode || variant.sku || variant.product_code || '';
         if (source === 'sku')    return variant.sku        || variant.product_code || '';
         if (source === 'code')   return variant.product_code || variant.sku        || '';
-        return customValue || variant.sku || variant.product_code || '';
+        return customValue || variant.barcode || variant.sku || variant.product_code || '';
     };
 
     // ---------- actions ----------
@@ -44,10 +45,11 @@ export const useBarcodeStore = defineStore('barcode', () => {
      * Add a product variant to the label list.
      * If the same variant already exists (same id + source), increment qty instead.
      */
-    const addVariant = (variant, { format = 'code128', source = 'sku', customValue = '' } = {}) => {
-        const value    = resolveValue(variant, source, customValue);
+    const addVariant = (variant, { format = 'code128', source = null, customValue = '' } = {}) => {
+        const resolvedSource = source ?? (variant.barcode ? 'barcode' : 'sku');
+        const value    = resolveValue(variant, resolvedSource, customValue);
         const existing = items.value.find(
-            (i) => i.variantId === variant.id && i.source === source && i.customValue === customValue
+            (i) => i.variantId === variant.id && i.source === resolvedSource && i.customValue === customValue
         );
 
         if (existing) {
@@ -61,8 +63,9 @@ export const useBarcodeStore = defineStore('barcode', () => {
             name:        variant.name || '',
             price:       variant.sales_price != null ? String(variant.sales_price) : '',
             sku:         variant.sku         || '',
+            barcode:     variant.barcode     || '',
             productCode: variant.product_code || '',
-            source,
+            source:      resolvedSource,
             customValue,
             value,
             format:      FORMATS.includes(format) ? format : 'code128',
@@ -81,7 +84,7 @@ export const useBarcodeStore = defineStore('barcode', () => {
 
         if (field === 'source' || field === 'customValue') {
             item.value = resolveValue(
-                { sku: item.sku, product_code: item.productCode },
+                { sku: item.sku, barcode: item.barcode, product_code: item.productCode },
                 item.source,
                 item.customValue,
             );

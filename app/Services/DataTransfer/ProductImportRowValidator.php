@@ -142,6 +142,7 @@ class ProductImportRowValidator implements ImportRowValidatorInterface
                 ? (float) $row['min_stock_level'] : 0,
             'variant' => [
                 'sku' => $row['sku'] ?? null,
+                'barcode' => $row['barcode'] ?? null,
                 'sales_price' => (float) ($row['sales_price'] ?? 0),
                 'purchase_price' => (float) ($row['purchase_price'] ?? 0),
                 'is_default' => filter_var($row['is_default'] ?? true, FILTER_VALIDATE_BOOLEAN),

@@ -1,2 +1,2 @@
-name,code,product_type,category,unit,sales_price,purchase_price,sku
-Sample Product,SP-001,product,General,Piece,100,80,SKU-001
+name,code,product_type,category,unit,sales_price,purchase_price,sku,barcode
+Sample Product,SP-001,product,General,Piece,100,80,SKU-001,8901234567890

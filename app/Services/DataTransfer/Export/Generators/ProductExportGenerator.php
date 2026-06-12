@@ -50,6 +50,7 @@ class ProductExportGenerator implements ExportGeneratorInterface
                         (string) $product->reorder_quantity,
                         (string) $product->min_stock_level,
                         $variant->sku,
+                        $variant->barcode,
                         (string) $variant->sales_price,
                         (string) $variant->purchase_price,
                         $variant->is_default ? '1' : '0',

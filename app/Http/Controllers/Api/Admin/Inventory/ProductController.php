@@ -54,7 +54,8 @@ class ProductController extends Controller
 
         if ($barcode !== '') {
             $query->where(function ($sub) use ($barcode) {
-                $sub->where('sku', $barcode)
+                $sub->where('barcode', $barcode)
+                    ->orWhere('sku', $barcode)
                     ->orWhereHas('product', function ($product) use ($barcode) {
                         $product->where('code', $barcode);
                     });
@@ -62,7 +63,8 @@ class ProductController extends Controller
         } elseif (mb_strlen($q) >= 2) {
             $like = '%'.$q.'%';
             $query->where(function ($sub) use ($like) {
-                $sub->where('sku', 'like', $like)
+                $sub->where('barcode', 'like', $like)
+                    ->orWhere('sku', 'like', $like)
                     ->orWhereHas('product', function ($product) use ($like) {
                         $product->where('name', 'like', $like)
                             ->orWhere('code', 'like', $like);
@@ -140,6 +142,7 @@ class ProductController extends Controller
                 $productVariant = $product->variants()->create([
                     'company_id' => $product->company_id,
                     'sku' => $variant['sku'] ?? null,
+                    'barcode' => $variant['barcode'] ?? null,
                     'sales_price' => $variant['sales_price'] ?? 0,
                     'purchase_price' => $variant['purchase_price'] ?? 0,
                     'is_default' => $hasVariants ? $variant['is_default'] : true,
@@ -201,6 +204,7 @@ class ProductController extends Controller
                     if ($productVariant) {
                         $productVariant->update([
                             'sku' => $variant['sku'] ?? null,
+                            'barcode' => $variant['barcode'] ?? null,
                             'sales_price' => $variant['sales_price'] ?? 0,
                             'purchase_price' => $variant['purchase_price'] ?? 0,
                             'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
@@ -211,6 +215,7 @@ class ProductController extends Controller
                     $productVariant = $product->variants()->create([
                         'company_id' => $product->company_id,
                         'sku' => $variant['sku'] ?? null,
+                        'barcode' => $variant['barcode'] ?? null,
                         'sales_price' => $variant['sales_price'] ?? 0,
                         'purchase_price' => $variant['purchase_price'] ?? 0,
                         'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,

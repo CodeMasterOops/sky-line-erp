@@ -116,21 +116,8 @@
                                     @validate="validateField('tax_id')"
                                     :error="errors.tax_id" />
                             </div>
-                            <div v-if="isPhysicalProduct" class="col">
-                                <label class="form-label" for="product-item-barcode">
-                                    Item barcode
-                                    <VRequiredMark />
-                                </label>
-                                <div class="input-group product-form-input-group">
-                                    <input id="product-item-barcode" v-model="itemBarcode" type="text"
-                                        class="form-control" placeholder="Scan or generate" autocomplete="off">
-                                    <button type="button" class="btn btn-primary" @click="generateItemBarcode">
-                                        Generate
-                                    </button>
-                                </div>
-                            </div>
 
-                            <div v-if="isPhysicalProduct" class="col">
+                            <div class="col">
                                 <VInput input-type="number" id="reorder_quantity" v-model="form.reorder_quantity"
                                     label="Reorder quantity" :required="isPhysicalProduct"
                                     @validate="validateField('reorder_quantity')" :error="errors.reorder_quantity" />
@@ -352,6 +339,7 @@
                                                         {{ attr.attr_name }}
                                                     </th>
                                                     <th>SKU <VRequiredMark /></th>
+                                                    <th>Barcode</th>
                                                     <th class="text-end" title="Default purchase; actual cost comes from received stock">
                                                         Purchase Price (Default) <VRequiredMark /></th>
                                                     <th class="text-end" title="Default selling price for sales and purchase screens">
@@ -370,6 +358,24 @@
                                                             input-class="form-control form-control-sm py-1" required
                                                             @validate="validateField(`variants[${index}].sku`)"
                                                             :error="errors[`variants[${index}].sku`]" />
+                                                    </td>
+                                                    <td>
+                                                        <div class="input-group input-group-sm product-form-input-group">
+                                                            <input v-model="form.variants[index].barcode" type="text"
+                                                                class="form-control form-control-sm py-1"
+                                                                placeholder="EAN / UPC / Code128"
+                                                                autocomplete="off"
+                                                                @blur="validateField(`variants[${index}].barcode`)">
+                                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                                title="Generate barcode"
+                                                                @click="generateVariantBarcode(index)">
+                                                                <i class="ti ti-barcode"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div v-if="errors[`variants[${index}].barcode`]"
+                                                            class="text-danger small mt-1">
+                                                            {{ errors[`variants[${index}].barcode`] }}
+                                                        </div>
                                                     </td>
                                                     <td class="text-end">
                                                         <VInput input-type="number"
@@ -402,6 +408,24 @@
                                     <VInput id="sku" v-model="form.variants[0].sku" label="SKU"
                                         @validate="validateField(`variants[0].sku`)"
                                         :error="errors[`variants[0].sku`]" />
+                                </div>
+                                <div v-if="isPhysicalProduct" class="col">
+                                    <label class="form-label" for="variant-barcode-0">
+                                        Barcode
+                                    </label>
+                                    <div class="input-group product-form-input-group">
+                                        <input id="variant-barcode-0" v-model="form.variants[0].barcode" type="text"
+                                            class="form-control" placeholder="EAN / UPC / Code128" autocomplete="off"
+                                            @blur="validateField('variants[0].barcode')">
+                                        <button type="button" class="btn btn-outline-secondary" title="Generate barcode"
+                                            @click="generateVariantBarcode(0)">
+                                            <i class="ti ti-barcode"></i> Generate
+                                        </button>
+                                    </div>
+                                    <div v-if="errors['variants[0].barcode']" class="text-danger small mt-1">
+                                        {{ errors['variants[0].barcode'] }}
+                                    </div>
+                                    <div class="form-text">SKU is your internal ID. Barcode is the scannable label.</div>
                                 </div>
                                 <div class="col">
                                     <VInput input-type="number" id="purchase_price"
@@ -530,8 +554,6 @@ const ready = ref(props.mode === 'create');
 const isHydrating = ref(false);
 const hydratedForProductId = ref(null);
 
-const itemBarcode = ref('');
-
 const isPhysicalProduct = computed(() => form.product_type === 'product');
 const isVariableProduct = computed(() => isPhysicalProduct.value && form.has_variants === true);
 const hasAttributesConfigured = computed(() => Array.isArray(attributes.value?.data) && attributes.value.data.length > 0);
@@ -564,6 +586,9 @@ function mergeHydratedVariantIds(idMap) {
             row.id = hit.id;
             if (hit.sku != null) {
                 row.sku = hit.sku;
+            }
+            if (hit.barcode != null) {
+                row.barcode = hit.barcode;
             }
             row.sales_price = hit.sales_price != null ? String(hit.sales_price) : '';
             row.purchase_price = hit.purchase_price != null ? String(hit.purchase_price) : '';
@@ -606,6 +631,7 @@ async function hydrateFromProduct(data) {
             idMap.set(buildVariantComboKey(avIds), {
                 id: v.id,
                 sku: v.sku,
+                barcode: v.barcode,
                 sales_price: v.sales_price,
                 purchase_price: v.purchase_price,
                 is_default: v.is_default,
@@ -647,6 +673,7 @@ async function hydrateFromProduct(data) {
                 form.variants = [{
                     id: src.id,
                     sku: src.sku ?? '',
+                    barcode: src.barcode ?? '',
                     sales_price: src.sales_price != null ? String(src.sales_price) : '',
                     purchase_price: src.purchase_price != null ? String(src.purchase_price) : '',
                     is_default: src.is_default ?? true,
@@ -662,14 +689,15 @@ async function hydrateFromProduct(data) {
     }
 }
 
-const generateItemBarcode = () => {
+const generateVariantBarcode = (index) => {
     const segment = Math.random().toString(36).substring(2, 12).toUpperCase();
-    itemBarcode.value = `BC-${segment}`;
+    form.variants[index].barcode = `BC-${segment}`;
 };
 
 const addVariants = () => {
     form.variants.push({
         sku: '',
+        barcode: '',
         sales_price: '',
         purchase_price: '',
         is_default: false,
@@ -814,6 +842,7 @@ watch(() => selectedVariants.value, () => {
         cList.push({
             value_labels: cmb.map(attr => attributeValues(attr.attr_id, attr.value_id)?.value || ''),
             sku: '',
+            barcode: '',
             sales_price: '',
             purchase_price: '',
             is_default: index === 0,
@@ -934,6 +963,7 @@ const validations = object({
             object({
                 id: mixed().nullable(),
                 sku: string().nullable(),
+                barcode: string().nullable(),
                 sales_price: string().required('Selling price is required.'),
                 purchase_price: string().nullable(),
                 attribute_values: array().nullable(),
@@ -985,6 +1015,7 @@ function buildPayload() {
     const variants = form.variants.map((v) => {
         const row = {
             sku: isService ? null : v.sku,
+            barcode: isService ? null : (v.barcode || null),
             sales_price: v.sales_price,
             purchase_price: isService && !String(v.purchase_price ?? '').trim() ? 0 : v.purchase_price,
             is_default: v.is_default,
@@ -1103,7 +1134,6 @@ function resetForm() {
     selectedVariants.value = [];
     variantColumnAttributes.value = [];
     errors.value = {};
-    itemBarcode.value = '';
     hydratedForProductId.value = null;
     if (!isEdit.value) {
         addVariants();

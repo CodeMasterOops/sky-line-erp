@@ -19,6 +19,7 @@ class ProductVariant extends Model
         'company_id',
         'product_id',
         'sku',
+        'barcode',
         'sales_price',
         'purchase_price',
         'is_default',

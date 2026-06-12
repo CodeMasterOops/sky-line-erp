@@ -51,6 +51,7 @@ return [
         'reorder_quantity',
         'min_stock_level',
         'sku',
+        'barcode',
         'sales_price',
         'purchase_price',
         'is_default',
