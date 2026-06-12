@@ -1,29 +1,105 @@
 @use "../utils/mixins";
 @use "../utils/variables";
 
-.sale-widget {
-    .sale-icon {
+.stat-card {
+    border: 1px solid variables.$border-color;
+    box-shadow: none;
+    background: variables.$white;
+    transition: border-color 0.2s ease;
+
+    &:hover {
+        border-color: rgba(variables.$primary, 0.2);
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    &__icon {
         width: 44px;
         height: 44px;
-        @include mixins.rounded(8px);
+        @include mixins.rounded(10px);
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+        font-size: 1.25rem;
+
+        &--sm {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+        }
     }
-    .badge {
-        font-size: variables.$font-size-10;
+
+    &__label {
+        font-size: variables.$font-size-13;
+        color: variables.$text-muted;
+        font-weight: variables.$font-weight-medium;
+    }
+
+    &__value {
+        font-size: 1.375rem;
+        font-weight: variables.$font-weight-bold;
+        color: variables.$title-color;
+        line-height: 1.25;
+    }
+
+    &__meta {
+        margin-top: 1rem;
+        padding-top: 0.875rem;
+        border-top: 1px solid variables.$border-color;
+        font-size: variables.$font-size-12;
+        color: variables.$text-muted;
+    }
+
+    &__link {
+        font-size: variables.$font-size-12;
+        font-weight: variables.$font-weight-medium;
+        color: variables.$primary;
+        text-decoration: none;
+
+        &:hover {
+            text-decoration: underline;
+        }
     }
 }
-.revenue-widget {
-    .revenue-icon {
-        width: 36px;
-        height: 36px;
-        @include mixins.rounded(8px);
-        display: flex;
+
+.chart-stat {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid variables.$border-color;
+    @include mixins.rounded(8px);
+    background: variables.$white;
+
+    &__label {
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
+        gap: 0.375rem;
+        font-size: variables.$font-size-12;
+        color: variables.$text-muted;
+        font-weight: variables.$font-weight-medium;
+    }
+
+    &__dot {
+        width: 8px;
+        height: 8px;
+        @include mixins.rounded(50%);
         flex-shrink: 0;
+
+        &--purchase {
+            background: #17c653;
+        }
+
+        &--sales {
+            background: variables.$primary;
+        }
+    }
+
+    &__value {
+        font-size: 1.125rem;
+        font-weight: variables.$font-weight-bold;
+        color: variables.$title-color;
     }
 }
 .sell-product {
@@ -43,6 +119,9 @@
     align-items: center;
     justify-content: center;
     @include mixins.rounded(8px);
+    background: variables.$white !important;
+    border: 1px solid variables.$border-color;
+    color: variables.$gray-600;
 }
 .item-list {
     p {
@@ -71,7 +150,27 @@
     }
 }
 .info-item {
+    padding: 1rem;
+    border: 1px solid variables.$border-color;
     @include mixins.rounded(8px);
+    background: variables.$white;
+
+    &__icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.625rem;
+        line-height: 1;
+    }
+
+    &__label {
+        font-size: variables.$font-size-13;
+        color: variables.$text-muted;
+        margin-bottom: 0.25rem;
+    }
+
+    &__value {
+        font-weight: variables.$font-weight-bold;
+        color: variables.$title-color;
+    }
 }
 #customer-chart {
     margin: 0;

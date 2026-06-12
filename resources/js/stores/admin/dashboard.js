@@ -54,8 +54,8 @@ export const useAdminDashboardStore = defineStore('adminDashboard', {
             const d = state.dashboard.data;
             return [
                 {label: 'Total Sales',           value: d.total_sales,           icon: 'ti-file-text',     color: 'primary'},
-                {label: 'Total Sales Return',     value: d.total_sales_return,    icon: 'ti-repeat',        color: 'secondary'},
-                {label: 'Total Purchase',         value: d.total_purchase,        icon: 'ti-gift',          color: 'teal'},
+                {label: 'Total Sales Return',     value: d.total_sales_return,    icon: 'ti-repeat',        color: 'orange'},
+                {label: 'Total Purchase',         value: d.total_purchase,        icon: 'ti-gift',          color: 'success'},
                 {label: 'Total Purchase Return',  value: d.total_purchase_return, icon: 'ti-brand-pocket',  color: 'info'},
             ];
         },

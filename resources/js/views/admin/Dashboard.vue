@@ -2,8 +2,8 @@
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
     <div class="mb-3">
       <h1 class="mb-1">Welcome, Admin</h1>
-      <p class="fw-medium">
-        You have <span class="text-primary fw-bold">{{ dash.orders_today }}</span> Order(s) Today
+      <p class="fw-medium text-muted mb-0">
+        Overview of your sales, purchases, inventory, and financial performance.
       </p>
     </div>
     <div class="input-icon-start position-relative mb-3">
@@ -23,16 +23,16 @@
   <template v-else>
 
     <!-- Summary cards – Sales / Returns / Purchase / Purchase Return -->
-    <div class="row">
+    <div class="row g-3">
       <div v-for="card in summaryCards" :key="card.label" class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div :class="`card bg-${card.color} sale-widget flex-fill`">
-          <div class="card-body d-flex align-items-center">
-            <span :class="`sale-icon bg-white text-${card.color}`">
-              <i :class="`ti ${card.icon} fs-24`"></i>
+        <div class="card stat-card flex-fill">
+          <div class="card-body d-flex align-items-center gap-3">
+            <span :class="`stat-card__icon bg-soft-${card.color} text-${card.color}`">
+              <i :class="`ti ${card.icon}`"></i>
             </span>
-            <div class="ms-2">
-              <p class="text-white mb-1">{{ card.label }}</p>
-              <h4 class="text-white">{{ formatMoney(card.value) }}</h4>
+            <div class="min-w-0">
+              <p class="stat-card__label mb-1">{{ card.label }}</p>
+              <h4 class="stat-card__value mb-0">{{ formatMoney(card.value) }}</h4>
             </div>
           </div>
         </div>
@@ -40,82 +40,82 @@
     </div>
 
     <!-- Revenue widgets row -->
-    <div class="row">
+    <div class="row g-3">
       <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card revenue-widget flex-fill">
+        <div class="card stat-card flex-fill">
           <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+            <div class="d-flex align-items-start justify-content-between gap-3">
               <div>
-                <h4 class="mb-1">{{ formatMoney(profit) }}</h4>
-                <p>Profit</p>
+                <p class="stat-card__label mb-1">Profit</p>
+                <h4 class="stat-card__value mb-0">{{ formatMoney(profit) }}</h4>
               </div>
-              <span class="revenue-icon bg-cyan-transparent text-cyan">
-                <i class="fa-solid fa-layer-group fs-16"></i>
+              <span class="stat-card__icon stat-card__icon--sm bg-cyan-transparent text-cyan">
+                <i class="fa-solid fa-layer-group"></i>
               </span>
             </div>
-            <div class="d-flex align-items-center justify-content-between">
-              <p class="mb-0 fs-13 text-muted">Sales – Purchase</p>
-              <router-link :to="{ name: 'admin.profit-and-loss' }" class="text-decoration-underline fs-13 fw-medium">View All</router-link>
+            <div class="stat-card__meta d-flex align-items-center justify-content-between">
+              <span>Sales – Purchase</span>
+              <router-link :to="{ name: 'admin.profit-and-loss' }" class="stat-card__link">View All</router-link>
             </div>
           </div>
         </div>
       </div>
 
       <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card revenue-widget flex-fill">
+        <div class="card stat-card flex-fill">
           <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+            <div class="d-flex align-items-start justify-content-between gap-3">
               <div>
-                <h4 class="mb-1">{{ dash.suppliers_count }}</h4>
-                <p>Suppliers</p>
+                <p class="stat-card__label mb-1">Suppliers</p>
+                <h4 class="stat-card__value mb-0">{{ dash.suppliers_count }}</h4>
               </div>
-              <span class="revenue-icon bg-teal-transparent text-teal">
-                <i class="ti ti-chart-pie fs-16"></i>
+              <span class="stat-card__icon stat-card__icon--sm bg-teal-transparent text-teal">
+                <i class="ti ti-chart-pie"></i>
               </span>
             </div>
-            <div class="d-flex align-items-center justify-content-between">
-              <p class="mb-0 fs-13 text-muted">Active supplier parties</p>
-              <router-link :to="{ name: 'admin.party-list', query: { type: 'supplier' } }" class="text-decoration-underline fs-13 fw-medium">View All</router-link>
+            <div class="stat-card__meta d-flex align-items-center justify-content-between">
+              <span>Active supplier parties</span>
+              <router-link :to="{ name: 'admin.party-list', query: { type: 'supplier' } }" class="stat-card__link">View All</router-link>
             </div>
           </div>
         </div>
       </div>
 
       <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card revenue-widget flex-fill">
+        <div class="card stat-card flex-fill">
           <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+            <div class="d-flex align-items-start justify-content-between gap-3">
               <div>
-                <h4 class="mb-1">{{ dash.customers_count }}</h4>
-                <p>Customers</p>
+                <p class="stat-card__label mb-1">Customers</p>
+                <h4 class="stat-card__value mb-0">{{ dash.customers_count }}</h4>
               </div>
-              <span class="revenue-icon bg-orange-transparent text-orange">
-                <i class="ti ti-lifebuoy fs-16"></i>
+              <span class="stat-card__icon stat-card__icon--sm bg-soft-orange text-orange">
+                <i class="ti ti-lifebuoy"></i>
               </span>
             </div>
-            <div class="d-flex align-items-center justify-content-between">
-              <p class="mb-0 fs-13 text-muted">Active customer parties</p>
-              <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="text-decoration-underline fs-13 fw-medium">View All</router-link>
+            <div class="stat-card__meta d-flex align-items-center justify-content-between">
+              <span>Active customer parties</span>
+              <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="stat-card__link">View All</router-link>
             </div>
           </div>
         </div>
       </div>
 
       <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card revenue-widget flex-fill">
+        <div class="card stat-card flex-fill">
           <div class="card-body">
-            <div class="d-flex align-items-center justify-content-between mb-3 pb-3 border-bottom">
+            <div class="d-flex align-items-start justify-content-between gap-3">
               <div>
-                <h4 class="mb-1">{{ dash.products_count }}</h4>
-                <p>Products</p>
+                <p class="stat-card__label mb-1">Products</p>
+                <h4 class="stat-card__value mb-0">{{ dash.products_count }}</h4>
               </div>
-              <span class="revenue-icon bg-indigo-transparent text-indigo">
-                <i class="ti ti-hash fs-16"></i>
+              <span class="stat-card__icon stat-card__icon--sm bg-soft-indigo text-indigo">
+                <i class="ti ti-hash"></i>
               </span>
             </div>
-            <div class="d-flex align-items-center justify-content-between">
-              <p class="mb-0 fs-13 text-muted">Catalogue items</p>
-              <router-link :to="{ name: 'admin.product-list' }" class="text-decoration-underline fs-13 fw-medium">View All</router-link>
+            <div class="stat-card__meta d-flex align-items-center justify-content-between">
+              <span>Catalogue items</span>
+              <router-link :to="{ name: 'admin.product-list' }" class="stat-card__link">View All</router-link>
             </div>
           </div>
         </div>
@@ -128,23 +128,23 @@
         <div class="card flex-fill">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-primary fs-16 me-2"><i class="ti ti-shopping-cart"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-shopping-cart"></i></span>
               <h5 class="card-title mb-0">Sales &amp; Purchase (Last 12 Months)</h5>
             </div>
           </div>
           <div class="card-body pb-0">
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <div class="border p-2 br-8">
-                <p class="d-inline-flex align-items-center mb-1">
-                  <i class="ti ti-circle-filled fs-8 text-primary-300 me-1"></i>Total Purchase
+            <div class="d-flex align-items-stretch gap-2 mb-3">
+              <div class="chart-stat">
+                <p class="chart-stat__label mb-1">
+                  <span class="chart-stat__dot chart-stat__dot--purchase"></span>Total Purchase
                 </p>
-                <h4>{{ formatMoney(dash.total_purchase) }}</h4>
+                <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_purchase) }}</h5>
               </div>
-              <div class="border p-2 br-8">
-                <p class="d-inline-flex align-items-center mb-1">
-                  <i class="ti ti-circle-filled fs-8 text-primary me-1"></i>Total Sales
+              <div class="chart-stat">
+                <p class="chart-stat__label mb-1">
+                  <span class="chart-stat__dot chart-stat__dot--sales"></span>Total Sales
                 </p>
-                <h4>{{ formatMoney(dash.total_sales) }}</h4>
+                <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_sales) }}</h5>
               </div>
             </div>
             <apexchart
@@ -163,31 +163,31 @@
         <div class="card flex-fill">
           <div class="card-header">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-info fs-16 me-2"><i class="ti ti-info-circle"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-info-circle"></i></span>
               <h5 class="card-title mb-0">Overall Information</h5>
             </div>
           </div>
           <div class="card-body">
             <div class="row g-3">
               <div class="col-md-4">
-                <div class="info-item border bg-light p-3 text-center">
-                  <div class="mb-3 text-info fs-24"><i class="ti ti-user-check"></i></div>
-                  <p class="mb-1">Suppliers</p>
-                  <h5>{{ dash.suppliers_count }}</h5>
+                <div class="info-item text-center">
+                  <div class="info-item__icon text-info"><i class="ti ti-user-check"></i></div>
+                  <p class="info-item__label mb-1">Suppliers</p>
+                  <h5 class="info-item__value mb-0">{{ dash.suppliers_count }}</h5>
                 </div>
               </div>
               <div class="col-md-4">
-                <div class="info-item border bg-light p-3 text-center">
-                  <div class="mb-3 text-orange fs-24"><i class="ti ti-users"></i></div>
-                  <p class="mb-1">Customer</p>
-                  <h5>{{ dash.customers_count }}</h5>
+                <div class="info-item text-center">
+                  <div class="info-item__icon text-orange"><i class="ti ti-users"></i></div>
+                  <p class="info-item__label mb-1">Customer</p>
+                  <h5 class="info-item__value mb-0">{{ dash.customers_count }}</h5>
                 </div>
               </div>
               <div class="col-md-4">
-                <div class="info-item border bg-light p-3 text-center">
-                  <div class="mb-3 text-teal fs-24"><i class="ti ti-shopping-cart"></i></div>
-                  <p class="mb-1">Today's Orders</p>
-                  <h5>{{ dash.orders_today }}</h5>
+                <div class="info-item text-center">
+                  <div class="info-item__icon text-teal"><i class="ti ti-shopping-cart"></i></div>
+                  <p class="info-item__label mb-1">Today's Invoices</p>
+                  <h5 class="info-item__value mb-0">{{ dash.orders_today }}</h5>
                 </div>
               </div>
             </div>
@@ -204,7 +204,7 @@
         <div class="card flex-fill">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-pink fs-16 me-2"><i class="ti ti-box"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-box"></i></span>
               <h5 class="card-title mb-0">Top Selling Products</h5>
             </div>
           </div>
@@ -235,7 +235,7 @@
         <div class="card flex-fill">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-danger fs-16 me-2"><i class="ti ti-alert-triangle"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-alert-triangle"></i></span>
               <h5 class="card-title mb-0">Low Stock Products</h5>
             </div>
             <router-link :to="{ name: 'admin.reorder-alerts' }" class="fs-13 fw-medium text-decoration-underline">View All</router-link>
@@ -267,7 +267,7 @@
         <div class="card flex-fill">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-pink fs-16 me-2"><i class="ti ti-box"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-box"></i></span>
               <h5 class="card-title mb-0">Recent Sales</h5>
             </div>
           </div>
@@ -306,7 +306,7 @@
         <div class="card flex-fill">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-danger fs-16 me-2"><i class="ti ti-alert-triangle"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-chart-bar"></i></span>
               <h5 class="card-title mb-0">Sales vs Expenses (Last 12 Months)</h5>
             </div>
           </div>
@@ -327,7 +327,7 @@
         <div class="card flex-fill">
           <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-orange fs-16 me-2"><i class="ti ti-flag"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-flag"></i></span>
               <h5 class="card-title mb-0">Recent Transactions</h5>
             </div>
           </div>
@@ -438,7 +438,7 @@
         <div class="card flex-fill">
           <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div class="d-inline-flex align-items-center">
-              <span class="title-icon bg-soft-orange fs-16 me-2"><i class="ti ti-users"></i></span>
+              <span class="title-icon fs-16 me-2"><i class="ti ti-users"></i></span>
               <h5 class="card-title mb-0">Top Customers</h5>
             </div>
             <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="fs-13 fw-medium text-decoration-underline">View All</router-link>
@@ -457,7 +457,7 @@
                     <p class="d-inline-flex align-items-center">
                       <i class="ti ti-map-pin me-1"></i>{{ customer.address || '–' }}
                     </p>
-                    <p>{{ customer.order_count }} Orders</p>
+                    <p>{{ customer.order_count }} {{ customer.order_count === 1 ? 'Invoice' : 'Invoices' }}</p>
                   </div>
                 </div>
               </div>
