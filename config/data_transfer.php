@@ -61,4 +61,23 @@ return [
         'warehouse',
         'quantity',
     ],
+
+    'warehouse_fields' => [
+        'name',
+        'code',
+        'parent',
+        'phone',
+        'address',
+    ],
+
+    'party_fields' => [
+        'name',
+        'code',
+        'phone',
+        'email',
+        'pan',
+        'address',
+        'credit_limit',
+        'is_active',
+    ],
 ];

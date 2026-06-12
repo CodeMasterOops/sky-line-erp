@@ -1,0 +1,3 @@
+name,code,phone,email,pan,address,credit_limit,is_active
+Acme Supplies,SUP-001,9801111111,acme@example.com,123456789,Thamel,50000,1
+Beta Traders,,9802222222,beta@example.com,,Patan,0,1

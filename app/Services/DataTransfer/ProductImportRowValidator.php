@@ -3,14 +3,32 @@
 namespace App\Services\DataTransfer;
 
 use Illuminate\Support\Facades\Validator;
+use App\Services\DataTransfer\Import\ImportRowValidatorInterface;
 
-class ProductImportRowValidator
+class ProductImportRowValidator implements ImportRowValidatorInterface
 {
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array<string, mixed>  $context
+     * @return array{normalized: array<string, mixed>, errors: list<string>}
+     */
+    public function validate(array $row, mixed $lookups, array $context = []): array
+    {
+        if (! $lookups instanceof ProductImportLookupCache) {
+            return [
+                'normalized' => $row,
+                'errors' => ['Invalid lookup cache for product import.'],
+            ];
+        }
+
+        return $this->validateProduct($row, $lookups);
+    }
+
     /**
      * @param  array<string, mixed>  $row
      * @return array{normalized: array<string, mixed>, errors: list<string>}
      */
-    public function validate(array $row, ProductImportLookupCache $lookups): array
+    private function validateProduct(array $row, ProductImportLookupCache $lookups): array
     {
         $errors = [];
 

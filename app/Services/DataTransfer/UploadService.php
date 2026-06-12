@@ -18,6 +18,7 @@ class UploadService
         User $user,
         DataTransferEntityTypeEnum $entityType,
         ?int $branchId = null,
+        array $importOptions = [],
     ): DataTransferJob {
         $disk = config('data_transfer.disk', 'local');
         $maxBytes = (int) config('data_transfer.max_upload_bytes', 20 * 1024 * 1024);
@@ -58,9 +59,9 @@ class UploadService
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
             'file_hash' => $hash,
-            'options' => [
+            'options' => array_merge([
                 'duplicate_mode' => 'update',
-            ],
+            ], $importOptions),
         ]);
     }
 

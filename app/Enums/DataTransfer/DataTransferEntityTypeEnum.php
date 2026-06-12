@@ -5,6 +5,7 @@ namespace App\Enums\DataTransfer;
 enum DataTransferEntityTypeEnum: string
 {
     case Product = 'product';
+    case Warehouse = 'warehouse';
     case Party = 'party';
     case Stock = 'stock';
     case Invoice = 'invoice';

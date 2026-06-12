@@ -1,0 +1,3 @@
+name,code,parent,phone,address
+Main Warehouse,WH-MAIN,,9800000001,Block A
+Sub Warehouse,WH-SUB,Main Warehouse,9800000002,Block B
