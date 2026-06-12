@@ -1,426 +1,268 @@
 <template>
-  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
-    <div class="mb-3">
-      <h1 class="mb-1">Welcome, Admin</h1>
-      <p class="fw-medium text-muted mb-0">
-        Overview of your sales, purchases, inventory, and financial performance.
-      </p>
-    </div>
-    <div class="input-icon-start position-relative mb-3">
-      <span class="input-icon-addon fs-16 text-gray-9">
-        <i class="ti ti-calendar"></i>
-      </span>
-      <input type="text" class="form-control date-range bookingrange" ref="dateRangeInput"
-        placeholder="Select Date Range" />
-    </div>
-  </div>
-
-  <!-- Loading skeleton -->
-  <div v-if="dashboardStore.isLoading" class="text-center py-5">
-    <span class="spinner-border text-primary"></span>
-  </div>
-
-  <template v-else>
-
-    <!-- Summary cards – Sales / Returns / Purchase / Purchase Return -->
-    <div class="row g-3">
-      <div v-for="card in summaryCards" :key="card.label" class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card stat-card flex-fill">
-          <div class="card-body d-flex align-items-center gap-3">
-            <span :class="`stat-card__icon bg-soft-${card.color} text-${card.color}`">
-              <i :class="`ti ${card.icon}`"></i>
-            </span>
-            <div class="min-w-0">
-              <p class="stat-card__label mb-1">{{ card.label }}</p>
-              <h4 class="stat-card__value mb-0">{{ formatMoney(card.value) }}</h4>
-            </div>
-          </div>
-        </div>
+  <div class="dashboard-page">
+    <header class="dashboard-header">
+      <div>
+        <h1 class="dashboard-header__title mb-1">Welcome, Admin</h1>
+        <p class="dashboard-header__subtitle mb-0">
+          Overview of your sales, purchases, inventory, and financial performance.
+        </p>
       </div>
+      <div class="input-icon-start position-relative dashboard-header__filter">
+        <span class="input-icon-addon fs-16 text-gray-9">
+          <i class="ti ti-calendar"></i>
+        </span>
+        <input
+          type="text"
+          class="form-control date-range bookingrange"
+          ref="dateRangeInput"
+          placeholder="Select Date Range"
+        />
+      </div>
+    </header>
+
+    <div v-if="dashboardStore.isLoading" class="dashboard-loading">
+      <span class="spinner-border text-primary"></span>
     </div>
 
-    <!-- Revenue widgets row -->
-    <div class="row g-3">
-      <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card stat-card flex-fill">
-          <div class="card-body">
-            <div class="d-flex align-items-start justify-content-between gap-3">
-              <div>
-                <p class="stat-card__label mb-1">Profit</p>
-                <h4 class="stat-card__value mb-0">{{ formatMoney(profit) }}</h4>
-              </div>
-              <span class="stat-card__icon stat-card__icon--sm bg-cyan-transparent text-cyan">
-                <i class="fa-solid fa-layer-group"></i>
-              </span>
-            </div>
-            <div class="stat-card__meta d-flex align-items-center justify-content-between">
-              <span>Sales – Purchase</span>
-              <router-link :to="{ name: 'admin.profit-and-loss' }" class="stat-card__link">View All</router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card stat-card flex-fill">
-          <div class="card-body">
-            <div class="d-flex align-items-start justify-content-between gap-3">
-              <div>
-                <p class="stat-card__label mb-1">Suppliers</p>
-                <h4 class="stat-card__value mb-0">{{ dash.suppliers_count }}</h4>
-              </div>
-              <span class="stat-card__icon stat-card__icon--sm bg-teal-transparent text-teal">
-                <i class="ti ti-chart-pie"></i>
-              </span>
-            </div>
-            <div class="stat-card__meta d-flex align-items-center justify-content-between">
-              <span>Active supplier parties</span>
-              <router-link :to="{ name: 'admin.party-list', query: { type: 'supplier' } }" class="stat-card__link">View All</router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card stat-card flex-fill">
-          <div class="card-body">
-            <div class="d-flex align-items-start justify-content-between gap-3">
-              <div>
-                <p class="stat-card__label mb-1">Customers</p>
-                <h4 class="stat-card__value mb-0">{{ dash.customers_count }}</h4>
-              </div>
-              <span class="stat-card__icon stat-card__icon--sm bg-soft-orange text-orange">
-                <i class="ti ti-lifebuoy"></i>
-              </span>
-            </div>
-            <div class="stat-card__meta d-flex align-items-center justify-content-between">
-              <span>Active customer parties</span>
-              <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="stat-card__link">View All</router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-xl-3 col-sm-6 col-12 d-flex">
-        <div class="card stat-card flex-fill">
-          <div class="card-body">
-            <div class="d-flex align-items-start justify-content-between gap-3">
-              <div>
-                <p class="stat-card__label mb-1">Products</p>
-                <h4 class="stat-card__value mb-0">{{ dash.products_count }}</h4>
-              </div>
-              <span class="stat-card__icon stat-card__icon--sm bg-soft-indigo text-indigo">
-                <i class="ti ti-hash"></i>
-              </span>
-            </div>
-            <div class="stat-card__meta d-flex align-items-center justify-content-between">
-              <span>Catalogue items</span>
-              <router-link :to="{ name: 'admin.product-list' }" class="stat-card__link">View All</router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sales & Purchase chart + Overall info -->
-    <div class="row">
-      <div class="col-xxl-8 col-xl-7 col-sm-12 col-12 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-shopping-cart"></i></span>
-              <h5 class="card-title mb-0">Sales &amp; Purchase (Last 12 Months)</h5>
-            </div>
-          </div>
-          <div class="card-body pb-0">
-            <div class="d-flex align-items-stretch gap-2 mb-3">
-              <div class="chart-stat">
-                <p class="chart-stat__label mb-1">
-                  <span class="chart-stat__dot chart-stat__dot--purchase"></span>Total Purchase
-                </p>
-                <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_purchase) }}</h5>
-              </div>
-              <div class="chart-stat">
-                <p class="chart-stat__label mb-1">
-                  <span class="chart-stat__dot chart-stat__dot--sales"></span>Total Sales
-                </p>
-                <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_sales) }}</h5>
-              </div>
-            </div>
-            <apexchart
-              v-if="chartsReady && hasSalesChartData"
-              type="bar"
-              height="245"
-              :options="salesChartOptions"
-              :series="salesChartSeries"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Overall info -->
-      <div class="col-xxl-4 col-xl-5 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-info-circle"></i></span>
-              <h5 class="card-title mb-0">Overall Information</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-md-4">
-                <div class="info-item text-center">
-                  <div class="info-item__icon text-info"><i class="ti ti-user-check"></i></div>
-                  <p class="info-item__label mb-1">Suppliers</p>
-                  <h5 class="info-item__value mb-0">{{ dash.suppliers_count }}</h5>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="info-item text-center">
-                  <div class="info-item__icon text-orange"><i class="ti ti-users"></i></div>
-                  <p class="info-item__label mb-1">Customer</p>
-                  <h5 class="info-item__value mb-0">{{ dash.customers_count }}</h5>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="info-item text-center">
-                  <div class="info-item__icon text-teal"><i class="ti ti-shopping-cart"></i></div>
-                  <p class="info-item__label mb-1">Today's Invoices</p>
-                  <h5 class="info-item__value mb-0">{{ dash.orders_today }}</h5>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Top Selling / Low Stock / Recent Sales -->
-    <div class="row">
-
-      <!-- Top Selling Products -->
-      <div class="col-xxl-4 col-md-6 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-box"></i></span>
-              <h5 class="card-title mb-0">Top Selling Products</h5>
-            </div>
-          </div>
-          <div class="card-body sell-product">
-            <div v-if="!dash.top_selling_products.length" class="text-muted text-center py-3">No data</div>
-            <div v-for="(product, idx) in dash.top_selling_products" :key="product.id"
-              :class="idx < dash.top_selling_products.length - 1 ? 'd-flex align-items-center justify-content-between border-bottom' : 'd-flex align-items-center justify-content-between'">
-              <div class="d-flex align-items-center py-2">
-                <span class="avatar avatar-lg bg-light text-primary d-inline-flex align-items-center justify-content-center">
-                  <i class="ti ti-package fs-20"></i>
+    <template v-else>
+      <!-- Financial overview -->
+      <section class="dashboard-section">
+        <div class="row g-2">
+          <div class="col-xxl-4 col-lg-6 col-12 d-flex">
+            <div class="card stat-card stat-card--featured flex-fill">
+              <div class="card-body d-flex align-items-center gap-2">
+                <span class="stat-card__icon">
+                  <i class="ti ti-report-money"></i>
                 </span>
-                <div class="ms-2">
-                  <h6 class="fw-bold mb-1">{{ product.name }}</h6>
-                  <div class="d-flex align-items-center item-list">
-                    <p>{{ product.category_name || '–' }}</p>
-                    <p>{{ product.sold_qty }}+ Sales</p>
+                <div class="min-w-0 flex-fill">
+                  <p class="stat-card__label mb-0">Estimated Profit</p>
+                  <h4 class="stat-card__value mb-0">{{ formatMoney(profit) }}</h4>
+                </div>
+                <router-link :to="{ name: 'admin.profit-and-loss' }" class="stat-card__link flex-shrink-0">P&amp;L</router-link>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-for="card in summaryCards"
+            :key="card.label"
+            class="col-xxl-2 col-lg-6 col-12 d-flex"
+          >
+            <div class="card stat-card flex-fill">
+              <div class="card-body d-flex align-items-center gap-2">
+                <span :class="`stat-card__icon bg-soft-${card.color} text-${card.color}`">
+                  <i :class="`ti ${card.icon}`"></i>
+                </span>
+                <div class="min-w-0">
+                  <p class="stat-card__label mb-0">{{ card.label }}</p>
+                  <h4 class="stat-card__value mb-0">{{ formatMoney(card.value) }}</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Business snapshot -->
+      <section class="dashboard-section">
+        <div class="row g-2">
+          <div
+            v-for="metric in businessMetrics"
+            :key="metric.label"
+            class="col-xl-3 col-sm-6 col-12 d-flex"
+          >
+            <div class="card stat-card flex-fill">
+              <div class="card-body d-flex align-items-center gap-2">
+                <span :class="`stat-card__icon stat-card__icon--sm ${metric.iconBg} ${metric.iconColor}`">
+                  <i :class="`ti ${metric.icon}`"></i>
+                </span>
+                <div class="min-w-0 flex-fill">
+                  <p class="stat-card__label mb-0">{{ metric.label }}</p>
+                  <h4 class="stat-card__value mb-0">{{ metric.displayValue }}</h4>
+                </div>
+                <router-link :to="metric.route" class="stat-card__link flex-shrink-0">View</router-link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Analytics -->
+      <section class="dashboard-section">
+        <div class="row g-2">
+          <div class="col-xxl-7 col-xl-12 d-flex">
+            <div class="card dashboard-panel flex-fill">
+              <div class="card-header dashboard-panel__header">
+                <div class="d-inline-flex align-items-center">
+                  <span class="title-icon fs-16 me-2"><i class="ti ti-report-analytics"></i></span>
+                  <h5 class="card-title mb-0">Sales &amp; Purchase</h5>
+                </div>
+              </div>
+              <div class="card-body pb-0">
+                <div class="d-flex align-items-stretch gap-2 mb-3 flex-wrap">
+                  <div class="chart-stat">
+                    <p class="chart-stat__label mb-1">
+                      <span class="chart-stat__dot chart-stat__dot--sales"></span>Total Sales
+                    </p>
+                    <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_sales) }}</h5>
+                  </div>
+                  <div class="chart-stat">
+                    <p class="chart-stat__label mb-1">
+                      <span class="chart-stat__dot chart-stat__dot--purchase"></span>Total Purchase
+                    </p>
+                    <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_purchase) }}</h5>
                   </div>
                 </div>
+                <apexchart
+                  v-if="chartsReady && hasSalesChartData"
+                  type="bar"
+                  height="280"
+                  :options="salesChartOptions"
+                  :series="salesChartSeries"
+                />
               </div>
-              <span class="badge bg-outline-success badge-xs d-inline-flex align-items-center">{{ formatMoney(product.sold_amount) }}</span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Low Stock Products -->
-      <div class="col-xxl-4 col-md-6 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-alert-triangle"></i></span>
-              <h5 class="card-title mb-0">Low Stock Products</h5>
-            </div>
-            <router-link :to="{ name: 'admin.reorder-alerts' }" class="fs-13 fw-medium text-decoration-underline">View All</router-link>
-          </div>
-          <div class="card-body">
-            <div v-if="!dash.low_stock_products.length" class="text-muted text-center py-3">All products above minimum level</div>
-            <div v-for="product in dash.low_stock_products" :key="`${product.sku}-${product.warehouse_name}`"
-              class="d-flex align-items-center justify-content-between mb-4">
-              <div class="d-flex align-items-center">
-                <span class="avatar avatar-lg bg-light text-danger d-inline-flex align-items-center justify-content-center">
-                  <i class="ti ti-alert-triangle fs-20"></i>
-                </span>
-                <div class="ms-2">
-                  <h6 class="fw-bold mb-1">{{ product.product_name }}</h6>
-                  <p class="fs-13">{{ product.warehouse_name }}</p>
+          <div class="col-xxl-5 col-xl-12 d-flex">
+            <div class="card dashboard-panel flex-fill">
+              <div class="card-header dashboard-panel__header">
+                <div class="d-inline-flex align-items-center">
+                  <span class="title-icon fs-16 me-2"><i class="ti ti-chart-line"></i></span>
+                  <h5 class="card-title mb-0">Sales vs Expenses</h5>
                 </div>
               </div>
-              <div class="text-end">
-                <p class="fs-13 mb-1">In Stock</p>
-                <h6 class="text-orange fw-medium">{{ product.quantity }}</h6>
+              <div class="card-body pb-0">
+                <apexchart
+                  v-if="chartsReady && hasExpensesChartData"
+                  type="bar"
+                  height="340"
+                  :options="expensesChartOptions"
+                  :series="expensesChartSeries"
+                />
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Recent Sales (Invoices) -->
-      <div class="col-xxl-4 col-md-12 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-box"></i></span>
-              <h5 class="card-title mb-0">Recent Sales</h5>
-            </div>
-          </div>
-          <div class="card-body">
-            <div v-if="!dash.recent_transactions.invoices.length" class="text-muted text-center py-3">No recent invoices</div>
-            <div v-for="(inv, idx) in dash.recent_transactions.invoices" :key="inv.id"
-              :class="idx < dash.recent_transactions.invoices.length - 1 ? 'd-flex align-items-center justify-content-between mb-4' : 'd-flex align-items-center justify-content-between mb-0'">
-              <div class="d-flex align-items-center">
-                <span class="avatar avatar-lg bg-light text-primary d-inline-flex align-items-center justify-content-center">
-                  <i class="ti ti-file-text fs-20"></i>
-                </span>
-                <div class="ms-2">
-                  <h6 class="fw-bold mb-1">{{ inv.party_name || '–' }}</h6>
-                  <div class="d-flex align-items-center item-list">
-                    <p>{{ inv.invoice_no }}</p>
-                    <p class="text-gray-9">{{ formatMoney(inv.total) }}</p>
-                  </div>
-                </div>
-              </div>
-              <div class="text-end">
-                <p class="fs-13 mb-1">{{ inv.invoice_date }}</p>
-                <span :class="`badge ${statusBadge(inv.status)} badge-xs d-inline-flex align-items-center`">
-                  <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(inv.status) }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Expenses chart + Recent Transactions -->
-    <div class="row">
-      <!-- Expenses chart -->
-      <div class="col-xl-6 col-sm-12 col-12 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-chart-bar"></i></span>
-              <h5 class="card-title mb-0">Sales vs Expenses (Last 12 Months)</h5>
-            </div>
-          </div>
-          <div class="card-body pb-0">
-            <apexchart
-              v-if="chartsReady && hasExpensesChartData"
-              type="bar"
-              height="290"
-              :options="expensesChartOptions"
-              :series="expensesChartSeries"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Transactions tabs -->
-      <div class="col-xl-6 col-sm-12 col-12 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-flag"></i></span>
-              <h5 class="card-title mb-0">Recent Transactions</h5>
-            </div>
-          </div>
+      <!-- Recent activity -->
+      <section class="dashboard-section">
+        <div class="card dashboard-panel">
           <div class="card-body p-0">
             <ul class="nav nav-tabs nav-justified transaction-tab">
-              <li class="nav-item"><a class="nav-link active" href="#sale" data-bs-toggle="tab">Sale</a></li>
-              <li class="nav-item"><a class="nav-link" href="#purchase-transaction" data-bs-toggle="tab">Purchase</a></li>
-              <li class="nav-item"><a class="nav-link" href="#quotation" data-bs-toggle="tab">Quotation</a></li>
+              <li class="nav-item"><a class="nav-link active" href="#sale" data-bs-toggle="tab">Sales</a></li>
+              <li class="nav-item"><a class="nav-link" href="#purchase-transaction" data-bs-toggle="tab">Purchases</a></li>
+              <li class="nav-item"><a class="nav-link" href="#quotation" data-bs-toggle="tab">Quotations</a></li>
               <li class="nav-item"><a class="nav-link" href="#expenses" data-bs-toggle="tab">Expenses</a></li>
             </ul>
             <div class="tab-content">
-              <!-- Sale tab -->
               <div class="tab-pane show active" id="sale">
                 <div class="table-responsive">
-                  <table class="table table-borderless custom-table">
+                  <table class="table table-borderless custom-table mb-0">
                     <thead class="thead-light">
-                      <tr><th>Date</th><th>Customer</th><th>Status</th><th>Total</th></tr>
+                      <tr><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total</th></tr>
                     </thead>
                     <tbody>
                       <tr v-if="!dash.recent_transactions.invoices.length">
-                        <td colspan="4" class="text-center text-muted">No records</td>
+                        <td colspan="4" class="text-center text-muted py-4">No recent invoices</td>
                       </tr>
                       <tr v-for="row in dash.recent_transactions.invoices" :key="row.id">
                         <td>{{ row.invoice_date }}</td>
-                        <td><span class="fw-semibold">{{ row.party_name || '–' }}</span><br><small class="text-orange">{{ row.invoice_no }}</small></td>
-                        <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
+                        <td>
+                          <span class="fw-semibold">{{ row.party_name || '–' }}</span>
+                          <br><small class="text-muted">{{ row.invoice_no }}</small>
+                        </td>
+                        <td>
+                          <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
+                            <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}
+                          </span>
+                        </td>
+                        <td class="fw-bold text-gray-9 text-end">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              <!-- Purchase tab -->
               <div class="tab-pane fade" id="purchase-transaction">
                 <div class="table-responsive">
-                  <table class="table table-borderless custom-table">
+                  <table class="table table-borderless custom-table mb-0">
                     <thead class="thead-light">
-                      <tr><th>Date</th><th>Supplier</th><th>Status</th><th>Total</th></tr>
+                      <tr><th>Date</th><th>Supplier</th><th>Status</th><th class="text-end">Total</th></tr>
                     </thead>
                     <tbody>
                       <tr v-if="!dash.recent_transactions.bills.length">
-                        <td colspan="4" class="text-center text-muted">No records</td>
+                        <td colspan="4" class="text-center text-muted py-4">No recent bills</td>
                       </tr>
                       <tr v-for="row in dash.recent_transactions.bills" :key="row.id">
                         <td>{{ row.bill_date }}</td>
-                        <td><span class="fw-semibold">{{ row.party_name || '–' }}</span><br><small class="text-orange">{{ row.bill_no }}</small></td>
-                        <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
+                        <td>
+                          <span class="fw-semibold">{{ row.party_name || '–' }}</span>
+                          <br><small class="text-muted">{{ row.bill_no }}</small>
+                        </td>
+                        <td>
+                          <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
+                            <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}
+                          </span>
+                        </td>
+                        <td class="fw-bold text-gray-9 text-end">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              <!-- Quotation tab -->
               <div class="tab-pane" id="quotation">
                 <div class="table-responsive">
-                  <table class="table table-borderless custom-table">
+                  <table class="table table-borderless custom-table mb-0">
                     <thead class="thead-light">
-                      <tr><th>Date</th><th>Customer</th><th>Status</th><th>Total</th></tr>
+                      <tr><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total</th></tr>
                     </thead>
                     <tbody>
                       <tr v-if="!dash.recent_transactions.quotations.length">
-                        <td colspan="4" class="text-center text-muted">No records</td>
+                        <td colspan="4" class="text-center text-muted py-4">No recent quotations</td>
                       </tr>
                       <tr v-for="row in dash.recent_transactions.quotations" :key="row.id">
                         <td>{{ row.quotation_date }}</td>
-                        <td><span class="fw-semibold">{{ row.party_name || '–' }}</span><br><small class="text-orange">{{ row.quotation_no }}</small></td>
-                        <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
+                        <td>
+                          <span class="fw-semibold">{{ row.party_name || '–' }}</span>
+                          <br><small class="text-muted">{{ row.quotation_no }}</small>
+                        </td>
+                        <td>
+                          <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
+                            <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}
+                          </span>
+                        </td>
+                        <td class="fw-bold text-gray-9 text-end">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              <!-- Expenses tab -->
               <div class="tab-pane fade" id="expenses">
                 <div class="table-responsive">
-                  <table class="table table-borderless custom-table">
+                  <table class="table table-borderless custom-table mb-0">
                     <thead class="thead-light">
-                      <tr><th>Date</th><th>Expense No</th><th>Status</th><th>Total</th></tr>
+                      <tr><th>Date</th><th>Expense</th><th>Status</th><th class="text-end">Total</th></tr>
                     </thead>
                     <tbody>
                       <tr v-if="!dash.recent_transactions.expenses.length">
-                        <td colspan="4" class="text-center text-muted">No records</td>
+                        <td colspan="4" class="text-center text-muted py-4">No recent expenses</td>
                       </tr>
                       <tr v-for="row in dash.recent_transactions.expenses" :key="row.id">
                         <td>{{ row.date }}</td>
-                        <td><span class="fw-semibold">{{ row.expense_no }}</span><br><small class="text-orange">{{ row.party_name || '–' }}</small></td>
-                        <td><span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`"><i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}</span></td>
-                        <td class="fw-bold text-gray-9">{{ formatMoney(row.total) }}</td>
+                        <td>
+                          <span class="fw-semibold">{{ row.expense_no }}</span>
+                          <br><small class="text-muted">{{ row.party_name || '–' }}</small>
+                        </td>
+                        <td>
+                          <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
+                            <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}
+                          </span>
+                        </td>
+                        <td class="fw-bold text-gray-9 text-end">{{ formatMoney(row.total) }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -429,52 +271,119 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Top Customers -->
-    <div class="row">
-      <div class="col-xxl-6 col-md-6 d-flex">
-        <div class="card flex-fill">
-          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div class="d-inline-flex align-items-center">
-              <span class="title-icon fs-16 me-2"><i class="ti ti-users"></i></span>
-              <h5 class="card-title mb-0">Top Customers</h5>
+      <!-- Insights -->
+      <section class="dashboard-section dashboard-section--last">
+        <div class="row g-2">
+          <div class="col-xxl-4 col-md-6 d-flex">
+            <div class="card dashboard-panel flex-fill">
+              <div class="card-header dashboard-panel__header d-flex justify-content-between align-items-center">
+                <div class="d-inline-flex align-items-center">
+                  <span class="title-icon fs-16 me-2"><i class="ti ti-trending-up"></i></span>
+                  <h5 class="card-title mb-0">Top Selling Products</h5>
+                </div>
+              </div>
+              <div class="card-body sell-product">
+                <div v-if="!dash.top_selling_products.length" class="dashboard-empty">No sales data yet</div>
+                <div
+                  v-for="(product, idx) in dash.top_selling_products"
+                  :key="product.id"
+                  :class="idx < dash.top_selling_products.length - 1 ? 'dashboard-list-item' : 'dashboard-list-item dashboard-list-item--last'"
+                >
+                  <div class="d-flex align-items-center min-w-0">
+                    <span class="dashboard-list-item__avatar text-primary">
+                      <i class="ti ti-box"></i>
+                    </span>
+                    <div class="ms-2 min-w-0">
+                      <h6 class="dashboard-list-item__title mb-1">{{ product.name }}</h6>
+                      <div class="d-flex align-items-center item-list">
+                        <p>{{ product.category_name || '–' }}</p>
+                        <p>{{ product.sold_qty }} sold</p>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="badge bg-outline-success badge-xs flex-shrink-0">{{ formatMoney(product.sold_amount) }}</span>
+                </div>
+              </div>
             </div>
-            <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="fs-13 fw-medium text-decoration-underline">View All</router-link>
           </div>
-          <div class="card-body">
-            <div v-if="!dash.top_customers.length" class="text-muted text-center py-3">No data</div>
-            <div v-for="(customer, idx) in dash.top_customers" :key="customer.id"
-              :class="idx < dash.top_customers.length - 1 ? 'd-flex align-items-center justify-content-between border-bottom mb-3 pb-3' : 'd-flex align-items-center justify-content-between'">
-              <div class="d-flex align-items-center">
-                <span class="avatar avatar-lg bg-light text-primary d-inline-flex align-items-center justify-content-center">
-                  <i class="ti ti-user fs-20"></i>
-                </span>
-                <div class="ms-2">
-                  <h6 class="fs-14 fw-medium mb-1">{{ customer.name }}</h6>
-                  <div class="d-flex align-items-center item-list">
-                    <p class="d-inline-flex align-items-center">
-                      <i class="ti ti-map-pin me-1"></i>{{ customer.address || '–' }}
-                    </p>
-                    <p>{{ customer.order_count }} {{ customer.order_count === 1 ? 'Invoice' : 'Invoices' }}</p>
+
+          <div class="col-xxl-4 col-md-6 d-flex">
+            <div class="card dashboard-panel flex-fill">
+              <div class="card-header dashboard-panel__header d-flex justify-content-between align-items-center">
+                <div class="d-inline-flex align-items-center">
+                  <span class="title-icon fs-16 me-2"><i class="ti ti-package-off"></i></span>
+                  <h5 class="card-title mb-0">Low Stock Products</h5>
+                </div>
+                <router-link :to="{ name: 'admin.reorder-alerts' }" class="stat-card__link">View all</router-link>
+              </div>
+              <div class="card-body">
+                <div v-if="!dash.low_stock_products.length" class="dashboard-empty">All products above minimum level</div>
+                <div
+                  v-for="(product, idx) in dash.low_stock_products"
+                  :key="`${product.sku}-${product.warehouse_name}`"
+                  :class="idx < dash.low_stock_products.length - 1 ? 'dashboard-list-item' : 'dashboard-list-item dashboard-list-item--last'"
+                >
+                  <div class="d-flex align-items-center min-w-0">
+                    <span class="dashboard-list-item__avatar text-danger">
+                      <i class="ti ti-package"></i>
+                    </span>
+                    <div class="ms-2 min-w-0">
+                      <h6 class="dashboard-list-item__title mb-1">{{ product.product_name }}</h6>
+                      <p class="dashboard-list-item__meta mb-0">{{ product.warehouse_name }}</p>
+                    </div>
+                  </div>
+                  <div class="text-end flex-shrink-0">
+                    <p class="dashboard-list-item__meta mb-1">In stock</p>
+                    <h6 class="text-orange fw-semibold mb-0">{{ product.quantity }}</h6>
                   </div>
                 </div>
               </div>
-              <div class="text-end">
-                <h5>{{ formatMoney(customer.total_amount) }}</h5>
+            </div>
+          </div>
+
+          <div class="col-xxl-4 col-md-12 d-flex">
+            <div class="card dashboard-panel flex-fill">
+              <div class="card-header dashboard-panel__header d-flex justify-content-between align-items-center">
+                <div class="d-inline-flex align-items-center">
+                  <span class="title-icon fs-16 me-2"><i class="ti ti-users"></i></span>
+                  <h5 class="card-title mb-0">Top Customers</h5>
+                </div>
+                <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="stat-card__link">View all</router-link>
+              </div>
+              <div class="card-body">
+                <div v-if="!dash.top_customers.length" class="dashboard-empty">No customer data yet</div>
+                <div
+                  v-for="(customer, idx) in dash.top_customers"
+                  :key="customer.id"
+                  :class="idx < dash.top_customers.length - 1 ? 'dashboard-list-item' : 'dashboard-list-item dashboard-list-item--last'"
+                >
+                  <div class="d-flex align-items-center min-w-0">
+                    <span class="dashboard-list-item__avatar text-primary">
+                      <i class="ti ti-user-circle"></i>
+                    </span>
+                    <div class="ms-2 min-w-0">
+                      <h6 class="dashboard-list-item__title mb-1">{{ customer.name }}</h6>
+                      <div class="d-flex align-items-center item-list">
+                        <p class="text-truncate">{{ customer.address || '–' }}</p>
+                        <p>{{ customer.order_count }} {{ customer.order_count === 1 ? 'invoice' : 'invoices' }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <h6 class="mb-0 flex-shrink-0">{{ formatMoney(customer.total_amount) }}</h6>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-  </template>
+      </section>
+    </template>
+  </div>
 </template>
 
 <script setup>
-import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {ref, computed, onMounted, watch, nextTick} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
@@ -493,6 +402,45 @@ const profit = computed(() => {
     return Math.max(0, (d.total_sales - d.total_sales_return) - (d.total_purchase - d.total_purchase_return));
 });
 
+const businessMetrics = computed(() => {
+    const d = dashboardStore.dashboard.data;
+
+    return [
+        {
+            label: 'Suppliers',
+            displayValue: d.suppliers_count,
+            icon: 'ti-truck',
+            iconBg: 'bg-teal-transparent',
+            iconColor: 'text-teal',
+            route: {name: 'admin.party-list', query: {type: 'supplier'}},
+        },
+        {
+            label: 'Customers',
+            displayValue: d.customers_count,
+            icon: 'ti-users',
+            iconBg: 'bg-soft-orange',
+            iconColor: 'text-orange',
+            route: {name: 'admin.party-list', query: {type: 'customer'}},
+        },
+        {
+            label: 'Products',
+            displayValue: d.products_count,
+            icon: 'ti-box',
+            iconBg: 'bg-soft-indigo',
+            iconColor: 'text-indigo',
+            route: {name: 'admin.product-list'},
+        },
+        {
+            label: "Today's Invoices",
+            displayValue: d.orders_today,
+            icon: 'ti-file-invoice',
+            iconBg: 'bg-soft-primary',
+            iconColor: 'text-primary',
+            route: {name: 'admin.invoice-list'},
+        },
+    ];
+});
+
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : '–';
 
 const statusBadge = (status) => {
@@ -509,7 +457,6 @@ const statusBadge = (status) => {
 
 const chartData = computed(() => dashboardStore.dashboard.data.chart_data ?? {});
 
-/** Sales & Purchase chart built from API chart_data */
 const salesChartOptions = computed(() => ({
     chart: {
         type: 'bar',
@@ -527,7 +474,6 @@ const salesChartSeries = computed(() => [
     {name: 'Purchase', data: chartData.value.purchases || []},
 ]);
 
-/** Sales vs Expenses chart */
 const expensesChartOptions = computed(() => ({
     chart: {
         type: 'bar',

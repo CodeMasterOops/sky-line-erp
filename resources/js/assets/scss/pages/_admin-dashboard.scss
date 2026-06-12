@@ -1,6 +1,109 @@
 @use "../utils/mixins";
 @use "../utils/variables";
 
+.dashboard-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+
+    .card {
+        margin-bottom: 0;
+    }
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    &__title {
+        font-size: 1.5rem;
+        font-weight: variables.$font-weight-bold;
+        color: variables.$title-color;
+    }
+
+    &__subtitle {
+        font-size: variables.$font-size-14;
+        color: variables.$text-muted;
+        max-width: 36rem;
+    }
+
+    &__filter {
+        min-width: 240px;
+    }
+}
+
+.dashboard-loading {
+    display: flex;
+    justify-content: center;
+    padding: 4rem 0;
+}
+
+.dashboard-section {
+    &--last {
+        margin-bottom: 0;
+    }
+}
+
+.dashboard-panel {
+    border: 1px solid variables.$border-color;
+    box-shadow: none;
+
+    &__header {
+        background: transparent;
+        border-bottom: 1px solid variables.$border-color;
+        padding: 0.75rem 1rem;
+    }
+}
+
+.dashboard-empty {
+    text-align: center;
+    color: variables.$text-muted;
+    font-size: variables.$font-size-13;
+    padding: 1.5rem 0;
+}
+
+.dashboard-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.875rem;
+    margin-bottom: 0.875rem;
+    border-bottom: 1px solid variables.$border-color;
+
+    &--last {
+        padding-bottom: 0;
+        margin-bottom: 0;
+        border-bottom: 0;
+    }
+
+    &__avatar {
+        width: 40px;
+        height: 40px;
+        @include mixins.rounded(8px);
+        background: variables.$light;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1.125rem;
+    }
+
+    &__title {
+        font-size: variables.$font-size-14;
+        font-weight: variables.$font-weight-semibold;
+        color: variables.$title-color;
+    }
+
+    &__meta {
+        font-size: variables.$font-size-12;
+        color: variables.$text-muted;
+    }
+}
+
 .stat-card {
     border: 1px solid variables.$border-color;
     box-shadow: none;
@@ -12,23 +115,23 @@
     }
 
     .card-body {
-        padding: 1.25rem;
+        padding: 0.75rem 1rem;
     }
 
     &__icon {
-        width: 44px;
-        height: 44px;
-        @include mixins.rounded(10px);
+        width: 38px;
+        height: 38px;
+        @include mixins.rounded(8px);
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 1.25rem;
+        font-size: 1.125rem;
 
         &--sm {
-            width: 36px;
-            height: 36px;
-            font-size: 1rem;
+            width: 34px;
+            height: 34px;
+            font-size: 0.9375rem;
         }
     }
 
@@ -39,18 +142,42 @@
     }
 
     &__value {
-        font-size: 1.375rem;
+        font-size: 1.125rem;
         font-weight: variables.$font-weight-bold;
         color: variables.$title-color;
-        line-height: 1.25;
+        line-height: 1.2;
     }
 
-    &__meta {
-        margin-top: 1rem;
-        padding-top: 0.875rem;
-        border-top: 1px solid variables.$border-color;
-        font-size: variables.$font-size-12;
-        color: variables.$text-muted;
+    &--featured {
+        border-color: variables.$primary;
+        background: variables.$primary;
+
+        &:hover {
+            border-color: variables.$primary;
+        }
+
+        .stat-card__label {
+            color: rgba(variables.$white, 0.8);
+        }
+
+        .stat-card__value {
+            color: variables.$white;
+        }
+
+        .stat-card__icon {
+            background: rgba(variables.$white, 0.18);
+            color: variables.$white;
+        }
+
+        .stat-card__link {
+            color: variables.$white;
+            opacity: 0.9;
+
+            &:hover {
+                color: variables.$white;
+                opacity: 1;
+            }
+        }
     }
 
     &__link {
@@ -67,7 +194,7 @@
 
 .chart-stat {
     flex: 1;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     border: 1px solid variables.$border-color;
     @include mixins.rounded(8px);
     background: variables.$white;
@@ -149,29 +276,6 @@
         }
     }
 }
-.info-item {
-    padding: 1rem;
-    border: 1px solid variables.$border-color;
-    @include mixins.rounded(8px);
-    background: variables.$white;
-
-    &__icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.625rem;
-        line-height: 1;
-    }
-
-    &__label {
-        font-size: variables.$font-size-13;
-        color: variables.$text-muted;
-        margin-bottom: 0.25rem;
-    }
-
-    &__value {
-        font-weight: variables.$font-weight-bold;
-        color: variables.$title-color;
-    }
-}
 #customer-chart {
     margin: 0;
     padding: 0;
@@ -228,20 +332,26 @@
 }
 .transaction-tab {
     &.nav-tabs {
-        padding: 0 16px;
+        padding: 0 1.25rem;
+        border-bottom: 1px solid variables.$border-color;
+        background: variables.$light;
+
         li {
             a {
-                font-size: variables.$font-size-14;
+                font-size: variables.$font-size-13;
                 font-weight: variables.$font-weight-semibold;
-                color: variables.$gray-900;
+                color: variables.$gray-600;
                 border: 0;
                 border-radius: 0;
-                border-bottom: 2px solid variables.$white;
+                border-bottom: 2px solid transparent;
+                padding: 0.625rem 0.75rem;
+
                 &.active, &:hover {
-                    color: variables.$orange !important;
+                    color: variables.$primary !important;
                     border-color: variables.$primary;
+                    background: transparent;
                 }
-            } 
+            }
         }
     }
 }
