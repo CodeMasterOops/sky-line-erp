@@ -8,14 +8,17 @@ use App\Models\Product;
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Models\Warehouse;
+use App\Models\PosSession;
 use App\Enums\PartyTypeEnum;
 use App\Models\PosHeldOrder;
 use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
 use App\Models\AccountSetting;
 use App\Models\ProductVariant;
+use App\Models\PosCashMovement;
 use App\Models\ProductCategory;
 use App\Jobs\SyncInvoiceToIrdJob;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
@@ -165,6 +168,7 @@ class PosController extends Controller
                 'name' => $party->name,
                 'phone' => $party->phone,
                 'email' => $party->email,
+                'pan' => $party->pan ?? '',
                 'discount_type' => $party->discount?->type ?? '',
                 'discount_value' => $party->discount?->value ?? '',
             ]),
@@ -429,48 +433,13 @@ class PosController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'receiptAllocations.receipt',
         ]);
 
-        $warehouseNames = $invoice->invoiceItems
-            ->loadMissing('warehouse')
-            ->pluck('warehouse.name')
-            ->filter()
-            ->unique()
-            ->values();
-        $subtotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->quantity * (float) $item->rate);
-        $lineDiscountTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->discount_amount);
-        $taxTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->tax_amount);
-        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
-        $grandTotal = $subtotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
-
-        $responseData = [
-            'id' => $invoice->id,
-            'invoice_no' => $invoice->invoice_no,
-            'receipt_no' => $invoice->receipt_no ?? null,
-            'receipt_id' => $invoice->receipt_id ?? null,
-            'invoice_date' => $invoice->invoice_date,
-            'party_id' => $invoice->party_id,
-            'party_name' => $invoice->party?->name ?? 'Walk-in Customer',
-            'warehouse_name' => $warehouseNames->count() === 1
-                ? ($warehouseNames->first() ?? '')
-                : ($warehouseNames->count() > 1 ? 'Multiple warehouses' : ''),
-            'warehouses' => $warehouseNames->all(),
-            'subtotal' => round($subtotal, 2),
-            'line_discount_total' => round($lineDiscountTotal, 2),
-            'order_discount_amount' => round($orderDiscountAmount, 2),
-            'tax_total' => round($taxTotal, 2),
-            'grand_total' => round($grandTotal, 2),
-            'payment_method' => $request->payment_method,
-            'items' => $invoice->invoiceItems->map(fn ($item) => [
-                'name' => $item->productVariant?->product?->name ?? '',
-                'warehouse_name' => $item->warehouse?->name ?? '',
-                'quantity' => $item->quantity,
-                'rate' => $item->rate,
-                'tax_amount' => $item->tax_amount,
-                'discount_amount' => $item->discount_amount,
-                'total' => ($item->quantity * $item->rate) - $item->discount_amount + $item->tax_amount,
-            ]),
-        ];
+        $responseData = $this->buildReceiptData($invoice, $request->payment_method);
+        $firstReceipt = $invoice->receiptAllocations->first()?->receipt;
+        $responseData['receipt_no'] = $firstReceipt?->receipt_no ?? null;
+        $responseData['receipt_id'] = $firstReceipt?->id ?? null;
 
         return response()->json([
             'data' => $responseData,
@@ -527,6 +496,169 @@ class PosController extends Controller
         return response()->json(['message' => 'Held order deleted']);
     }
 
+    // ─── Till / Cash Register ──────────────────────────────────────────────
+
+    /**
+     * Return the currently open session for this user, or null.
+     */
+    public function currentSession(): JsonResponse
+    {
+        $session = $this->getOpenSession();
+
+        return response()->json([
+            'data' => $session ? $this->formatSession($session) : null,
+        ]);
+    }
+
+    /**
+     * Open a new till session.
+     */
+    public function openTill(Request $request): JsonResponse
+    {
+        $request->validate([
+            'opening_cash' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $user = auth('admin')->user();
+
+        $existing = $this->getOpenSession();
+        if ($existing) {
+            return response()->json([
+                'data' => $this->formatSession($existing),
+                'message' => 'A session is already open.',
+            ]);
+        }
+
+        $session = PosSession::create([
+            'company_id' => $user->company_id,
+            'user_id' => $user->id,
+            'opening_cash' => (float) $request->opening_cash,
+            'status' => 'open',
+            'opened_at' => now(),
+        ]);
+
+        return response()->json([
+            'data' => $this->formatSession($session),
+            'message' => 'Till opened successfully.',
+        ], 201);
+    }
+
+    /**
+     * Close the current till session with a Z-Report snapshot.
+     */
+    public function closeTill(Request $request): JsonResponse
+    {
+        $request->validate([
+            'closing_cash' => ['required', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $session = $this->getOpenSession();
+        if (! $session) {
+            return response()->json(['message' => 'No open till session found.'], 422);
+        }
+
+        $summary = $this->buildTillSummaryData($session);
+        $expectedCash = $summary['expected_cash'];
+        $closingCash = (float) $request->closing_cash;
+
+        $session->update([
+            'closing_cash' => $closingCash,
+            'expected_cash' => $expectedCash,
+            'cash_difference' => round($closingCash - $expectedCash, 2),
+            'notes' => $request->notes,
+            'status' => 'closed',
+            'closed_at' => now(),
+        ]);
+
+        return response()->json([
+            'data' => array_merge($this->formatSession($session->fresh()), ['summary' => $summary]),
+            'message' => 'Till closed successfully.',
+        ]);
+    }
+
+    /**
+     * Record a cash-in or cash-out movement against the open session.
+     */
+    public function cashMovement(Request $request): JsonResponse
+    {
+        $request->validate([
+            'type' => ['required', 'in:cash_in,cash_out'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $session = $this->getOpenSession();
+        if (! $session) {
+            return response()->json(['message' => 'No open till session. Open the till first.'], 422);
+        }
+
+        $user = auth('admin')->user();
+
+        $movement = PosCashMovement::create([
+            'pos_session_id' => $session->id,
+            'company_id' => $user->company_id,
+            'user_id' => $user->id,
+            'type' => $request->type,
+            'amount' => (float) $request->amount,
+            'reason' => $request->reason,
+        ]);
+
+        return response()->json([
+            'data' => $this->formatMovement($movement),
+            'message' => ucfirst(str_replace('_', ' ', $request->type)).' recorded.',
+        ], 201);
+    }
+
+    /**
+     * Return live Z-Report data for the current open session.
+     */
+    public function tillSummary(): JsonResponse
+    {
+        $session = $this->getOpenSession();
+        if (! $session) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json([
+            'data' => array_merge(
+                $this->formatSession($session),
+                $this->buildTillSummaryData($session),
+            ),
+        ]);
+    }
+
+    // ─── Receipt Data (reprint) ────────────────────────────────────────────
+
+    /**
+     * Return full receipt data for an existing invoice (used for reprinting).
+     */
+    public function receiptData(Invoice $invoice): JsonResponse
+    {
+        abort_unless(
+            $invoice->company_id === auth('admin')->user()->company_id,
+            403,
+        );
+
+        $invoice->load([
+            'party',
+            'discount',
+            'invoiceItems.productVariant.product',
+            'invoiceItems.unit',
+            'invoiceItems.tax',
+            'invoiceItems.warehouse',
+            'receiptAllocations.receipt',
+        ]);
+
+        $paymentMethod = $invoice->receiptAllocations->first()?->receipt?->payment_method ?? 'cash';
+        $data = $this->buildReceiptData($invoice, $paymentMethod);
+        $firstReceipt = $invoice->receiptAllocations->first()?->receipt;
+        $data['receipt_no'] = $firstReceipt?->receipt_no ?? null;
+        $data['receipt_id'] = $firstReceipt?->id ?? null;
+
+        return response()->json(['data' => $data]);
+    }
+
     // -----------------------------------------------------------------------
 
     private function resolveOrderDiscountAmount(float $sumLineNet, string $type, float $value): float
@@ -554,6 +686,129 @@ class PosController extends Controller
             'cash' => $setting->cash_sales_account_id,
             default => $setting->bank_sales_account_id,
         };
+    }
+
+    private function getOpenSession(): ?PosSession
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        return PosSession::where('company_id', $companyId)
+            ->where('status', 'open')
+            ->latest()
+            ->first();
+    }
+
+    private function formatSession(PosSession $session): array
+    {
+        return [
+            'id' => $session->id,
+            'status' => $session->status,
+            'opening_cash' => (float) $session->opening_cash,
+            'closing_cash' => $session->closing_cash !== null ? (float) $session->closing_cash : null,
+            'expected_cash' => $session->expected_cash !== null ? (float) $session->expected_cash : null,
+            'cash_difference' => $session->cash_difference !== null ? (float) $session->cash_difference : null,
+            'notes' => $session->notes,
+            'opened_at' => $session->opened_at?->toDateTimeString(),
+            'closed_at' => $session->closed_at?->toDateTimeString(),
+            'user_name' => $session->user?->name ?? '',
+        ];
+    }
+
+    private function formatMovement(PosCashMovement $movement): array
+    {
+        return [
+            'id' => $movement->id,
+            'type' => $movement->type,
+            'amount' => (float) $movement->amount,
+            'reason' => $movement->reason,
+            'created_at' => $movement->created_at?->toDateTimeString(),
+        ];
+    }
+
+    /** @return array{cash_sales: float, sales_by_method: array<string,float>, cash_ins: float, cash_outs: float, expected_cash: float, movements: list<array<string,mixed>>} */
+    private function buildTillSummaryData(PosSession $session): array
+    {
+        $companyId = $session->company_id;
+
+        // Sales grouped by payment method since session opened
+        $salesByMethod = DB::table('receipts as r')
+            ->join('receipt_allocations as ra', 'ra.receipt_id', '=', 'r.id')
+            ->where('r.company_id', $companyId)
+            ->where('r.status', StatusEnum::APPROVED->value)
+            ->where('r.created_at', '>=', $session->opened_at)
+            ->whereNull('r.deleted_at')
+            ->whereNull('ra.deleted_at')
+            ->groupBy('r.payment_method')
+            ->selectRaw('r.payment_method, ROUND(SUM(ra.amount), 2) as total')
+            ->get()
+            ->mapWithKeys(fn ($row) => [$row->payment_method => (float) $row->total])
+            ->all();
+
+        $cashSales = $salesByMethod['cash'] ?? 0.0;
+
+        // Cash movements
+        $movements = $session->cashMovements()->latest()->get();
+        $cashIns = $movements->where('type', 'cash_in')->sum('amount');
+        $cashOuts = $movements->where('type', 'cash_out')->sum('amount');
+        $expectedCash = round((float) $session->opening_cash + $cashSales + $cashIns - $cashOuts, 2);
+
+        return [
+            'cash_sales' => round($cashSales, 2),
+            'sales_by_method' => $salesByMethod,
+            'cash_ins' => round((float) $cashIns, 2),
+            'cash_outs' => round((float) $cashOuts, 2),
+            'expected_cash' => $expectedCash,
+            'movements' => $movements->map(fn ($m) => $this->formatMovement($m))->values()->all(),
+        ];
+    }
+
+    private function buildReceiptData(Invoice $invoice, string $paymentMethod): array
+    {
+        $warehouseNames = $invoice->invoiceItems
+            ->pluck('warehouse.name')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $subtotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->quantity * (float) $item->rate);
+        $lineDiscountTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->discount_amount);
+        $taxTotal = $invoice->invoiceItems->sum(fn ($item) => (float) $item->tax_amount);
+        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
+        $taxableAmount = $subtotal - $lineDiscountTotal - $orderDiscountAmount;
+        $grandTotal = $taxableAmount + $taxTotal;
+
+        return [
+            'id' => $invoice->id,
+            'invoice_no' => $invoice->invoice_no,
+            'invoice_date' => $invoice->invoice_date,
+            'invoice_date_bs' => $invoice->invoice_date_bs,
+            'party_id' => $invoice->party_id,
+            'party_name' => $invoice->party?->name ?? 'Walk-in Customer',
+            'party_pan' => $invoice->party?->pan ?? null,
+            'warehouse_name' => $warehouseNames->count() === 1
+                ? ($warehouseNames->first() ?? '')
+                : ($warehouseNames->count() > 1 ? 'Multiple warehouses' : ''),
+            'warehouses' => $warehouseNames->all(),
+            'subtotal' => round($subtotal, 2),
+            'line_discount_total' => round($lineDiscountTotal, 2),
+            'order_discount_amount' => round($orderDiscountAmount, 2),
+            'taxable_amount' => round($taxableAmount, 2),
+            'tax_total' => round($taxTotal, 2),
+            'grand_total' => round($grandTotal, 2),
+            'payment_method' => $paymentMethod,
+            'items' => $invoice->invoiceItems->map(fn ($item) => [
+                'name' => $item->productVariant?->product?->name ?? '',
+                'sku' => $item->productVariant?->sku ?? '',
+                'warehouse_name' => $item->warehouse?->name ?? '',
+                'quantity' => $item->quantity,
+                'rate' => $item->rate,
+                'tax_name' => $item->tax?->name ?? '',
+                'tax_rate' => (float) ($item->tax?->rate ?? 0),
+                'tax_amount' => $item->tax_amount,
+                'discount_amount' => $item->discount_amount,
+                'total' => ($item->quantity * $item->rate) - $item->discount_amount + $item->tax_amount,
+            ])->values()->all(),
+        ];
     }
 
     private function formatHeldOrder(PosHeldOrder $order): array

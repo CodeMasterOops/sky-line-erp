@@ -41,6 +41,9 @@ export const usePosStore = defineStore('pos', {
         todaySummary: { sale_count: 0, sale_total: 0, profit: 0, cogs: 0 },
         lastSale: null,
 
+        tillSession: null,
+        tillSessionLoading: false,
+
         checkoutLoading: false,
         holdLoading: false,
         initialized: false,
@@ -142,6 +145,7 @@ export const usePosStore = defineStore('pos', {
                 this.fetchTaxes(),
                 this.fetchPaymentModes(),
                 this.fetchTodaySummary(),
+                this.fetchTillSession(),
             ]);
             this.initialized = true;
         },
@@ -533,6 +537,40 @@ export const usePosStore = defineStore('pos', {
             } catch (err) {
                 showErrors(err);
             }
+        },
+
+        async fetchTillSession() {
+            this.tillSessionLoading = true;
+            try {
+                const res = await apiAdmin('pos/till/current');
+                this.tillSession = res.data.data;
+            } catch (err) {
+                showErrors(err);
+            } finally {
+                this.tillSessionLoading = false;
+            }
+        },
+
+        async openTill(openingCash) {
+            const res = await apiAdmin('pos/till/open', 'post', { opening_cash: openingCash });
+            this.tillSession = res.data.data;
+            return res.data;
+        },
+
+        async closeTill(closingCash, notes = '') {
+            const res = await apiAdmin('pos/till/close', 'post', { closing_cash: closingCash, notes });
+            this.tillSession = null;
+            return res.data;
+        },
+
+        async addCashMovement(type, amount, reason = '') {
+            const res = await apiAdmin('pos/till/cash-movement', 'post', { type, amount, reason });
+            return res.data;
+        },
+
+        async fetchTillSummary() {
+            const res = await apiAdmin('pos/till/summary');
+            return res.data.data;
         },
     },
 });

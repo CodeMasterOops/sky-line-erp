@@ -132,6 +132,13 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         Route::get('customers', 'customers')->name('customers');
         Route::get('warehouses', 'warehouses')->name('warehouses');
         Route::get('today-summary', 'todaySummary')->name('today-summary');
+        Route::get('receipt/{invoice}', 'receiptData')->name('receipt');
+        // Till management
+        Route::get('till/current', 'currentSession')->name('till.current');
+        Route::post('till/open', 'openTill')->name('till.open');
+        Route::post('till/close', 'closeTill')->name('till.close');
+        Route::post('till/cash-movement', 'cashMovement')->name('till.cash-movement');
+        Route::get('till/summary', 'tillSummary')->name('till.summary');
         Route::post('checkout', 'checkout')->name('checkout');
         Route::post('hold', 'holdOrder')->name('hold');
         Route::get('held-orders', 'heldOrders')->name('held-orders');

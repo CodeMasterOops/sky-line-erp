@@ -368,12 +368,15 @@
     :held-orders="posStore.heldOrders"
     :today-summary="posStore.todaySummary"
     :payment-modes="posStore.paymentModes"
+    :till-session="posStore.tillSession"
     @checkout="processCheckout"
     @clear-cart="onNextOrder"
     @hold="onHold"
     @restore-held-order="onRestoreHeldOrder"
     @delete-held-order="onDeleteHeldOrder"
     @customer-created="onCustomerCreated"
+    @till-opened="onTillOpened"
+    @till-closed="onTillClosed"
   ></pos-two-modal>
 
   <WarehousePickerModal
@@ -437,6 +440,14 @@ export default {
   async mounted() {
     await this.posStore.init();
     this.$refs.productSearch?.focus();
+    // Prompt cashier to open till if no active session
+    if (!this.posStore.tillSession) {
+      await this.$nextTick();
+      const tillOpenEl = document.getElementById('till-open');
+      if (tillOpenEl) {
+        Modal.getOrCreateInstance(tillOpenEl).show();
+      }
+    }
   },
 
   methods: {
@@ -674,6 +685,14 @@ export default {
       this.posStore.customers.unshift(customer);
       this.posStore.setCustomer(customer);
       this.selectedCustomerOption = customer.id;
+    },
+
+    onTillOpened(session) {
+      this.posStore.tillSession = session;
+    },
+
+    onTillClosed() {
+      this.posStore.tillSession = null;
     },
   },
 };

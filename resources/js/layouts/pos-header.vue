@@ -38,6 +38,21 @@
         </router-link>
       </li>
 
+      <!-- Till Status -->
+      <li class="nav-item">
+        <a
+          href="javascript:void(0);"
+          data-bs-toggle="modal"
+          :data-bs-target="posStore.tillSession ? '#cash-register' : '#till-open'"
+          class="btn btn-sm d-inline-flex align-items-center gap-1"
+          :class="posStore.tillSession ? 'btn-success' : 'btn-outline-danger'"
+          style="font-size:0.75rem;"
+        >
+          <i :class="posStore.tillSession ? 'ti ti-lock-open' : 'ti ti-lock'"></i>
+          <span class="d-none d-md-inline">{{ posStore.tillSession ? 'Till Open' : 'Open Till' }}</span>
+        </a>
+      </li>
+
       <!-- Calculator -->
       <li class="nav-item nav-item-box">
         <a

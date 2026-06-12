@@ -435,3 +435,231 @@ it('checkout supports multiple warehouses on one order', function () {
     expect($invoice->invoiceItems->pluck('warehouse_id')->sort()->values()->all())
         ->toBe([$this->warehouse->id, $this->warehouseB->id]);
 });
+
+it('returns invoice_date_bs and taxable_amount in checkout response', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $cashAccount = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash BS',
+        'code' => 'CASH-BS',
+    ]);
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
+    ]);
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'order_discount_type' => 'fixed',
+        'order_discount_value' => 5,
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'warehouse_id' => $this->warehouse->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]));
+
+    $response->assertCreated();
+    expect($response->json('data'))->toHaveKeys(['invoice_date_bs', 'taxable_amount', 'party_pan']);
+    expect((float) $response->json('data.taxable_amount'))->toBe(95.0);
+});
+
+it('returns customer pan in pos customers list', function () {
+    $party = Party::create([
+        'company_id' => $this->company->id,
+        'type' => PartyTypeEnum::CUSTOMER,
+        'name' => 'PAN Customer',
+        'code' => 'PAN-C1',
+        'pan' => '123456789',
+        'is_active' => true,
+    ]);
+
+    $response = $this->getJson('/api/admin/pos/customers?search=PAN Customer');
+
+    $response->assertSuccessful();
+    $customer = collect($response->json('data'))->firstWhere('id', $party->id);
+    expect($customer['pan'])->toBe('123456789');
+});
+
+// ─── Till / Cash Register ─────────────────────────────────────────────────────
+
+it('opens a new till session with the supplied opening cash', function () {
+    $response = $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 500]);
+
+    $response->assertCreated();
+    expect($response->json('data.status'))->toBe('open');
+    expect((float) $response->json('data.opening_cash'))->toBe(500.0);
+    expect($response->json('data.closed_at'))->toBeNull();
+
+    expect(\App\Models\PosSession::count())->toBe(1);
+});
+
+it('returns the existing session when a till is already open', function () {
+    $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 100])->assertCreated();
+
+    $response = $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 999]);
+
+    $response->assertOk();
+    expect(\App\Models\PosSession::count())->toBe(1);
+    expect((float) $response->json('data.opening_cash'))->toBe(100.0);
+});
+
+it('rejects open-till when opening_cash is missing', function () {
+    $response = $this->postJson('/api/admin/pos/till/open', []);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['opening_cash']);
+});
+
+it('returns null from current-session when no till is open', function () {
+    $response = $this->getJson('/api/admin/pos/till/current');
+
+    $response->assertOk();
+    expect($response->json('data'))->toBeNull();
+});
+
+it('returns the open session from current-session endpoint', function () {
+    $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 250])->assertCreated();
+
+    $response = $this->getJson('/api/admin/pos/till/current');
+
+    $response->assertOk();
+    expect($response->json('data.status'))->toBe('open');
+    expect((float) $response->json('data.opening_cash'))->toBe(250.0);
+});
+
+it('records a cash-in movement against the open session', function () {
+    $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 200])->assertCreated();
+
+    $response = $this->postJson('/api/admin/pos/till/cash-movement', [
+        'type' => 'cash_in',
+        'amount' => 50,
+        'reason' => 'Petty cash top-up',
+    ]);
+
+    $response->assertCreated();
+    expect($response->json('data.type'))->toBe('cash_in');
+    expect((float) $response->json('data.amount'))->toBe(50.0);
+    expect(\App\Models\PosCashMovement::count())->toBe(1);
+});
+
+it('records a cash-out movement against the open session', function () {
+    $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 300])->assertCreated();
+
+    $response = $this->postJson('/api/admin/pos/till/cash-movement', [
+        'type' => 'cash_out',
+        'amount' => 75,
+        'reason' => 'Float withdrawal',
+    ]);
+
+    $response->assertCreated();
+    expect($response->json('data.type'))->toBe('cash_out');
+    expect((float) $response->json('data.amount'))->toBe(75.0);
+});
+
+it('rejects a cash movement when no till is open', function () {
+    $response = $this->postJson('/api/admin/pos/till/cash-movement', [
+        'type' => 'cash_in',
+        'amount' => 50,
+    ]);
+
+    $response->assertUnprocessable();
+});
+
+it('rejects a cash movement with an invalid type', function () {
+    $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 100])->assertCreated();
+
+    $response = $this->postJson('/api/admin/pos/till/cash-movement', [
+        'type' => 'transfer',
+        'amount' => 50,
+    ]);
+
+    $response->assertUnprocessable();
+    $response->assertJsonValidationErrors(['type']);
+});
+
+it('closes the till and calculates expected cash and difference correctly', function () {
+    $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 1000])->assertCreated();
+
+    // Cash in 200, cash out 50 → expected = 1000 + 0 (no sales) + 200 - 50 = 1150
+    $this->postJson('/api/admin/pos/till/cash-movement', ['type' => 'cash_in', 'amount' => 200, 'reason' => 'top up']);
+    $this->postJson('/api/admin/pos/till/cash-movement', ['type' => 'cash_out', 'amount' => 50, 'reason' => 'withdrawal']);
+
+    $response = $this->postJson('/api/admin/pos/till/close', [
+        'closing_cash' => 1200,
+        'notes' => 'End of day',
+    ]);
+
+    $response->assertOk();
+    expect($response->json('data.status'))->toBe('closed');
+    expect((float) $response->json('data.expected_cash'))->toBe(1150.0);
+    expect((float) $response->json('data.closing_cash'))->toBe(1200.0);
+    expect((float) $response->json('data.cash_difference'))->toBe(50.0);
+    expect($response->json('data.closed_at'))->not->toBeNull();
+
+    expect(\App\Models\PosSession::where('status', 'closed')->count())->toBe(1);
+});
+
+it('returns 422 when closing a till with no open session', function () {
+    $response = $this->postJson('/api/admin/pos/till/close', ['closing_cash' => 500]);
+
+    $response->assertUnprocessable();
+});
+
+it('returns null from till summary when no session is open', function () {
+    $response = $this->getJson('/api/admin/pos/till/summary');
+
+    $response->assertOk();
+    expect($response->json('data'))->toBeNull();
+});
+
+it('till summary reflects cash movements correctly', function () {
+    $this->postJson('/api/admin/pos/till/open', ['opening_cash' => 500])->assertCreated();
+    $this->postJson('/api/admin/pos/till/cash-movement', ['type' => 'cash_in', 'amount' => 100, 'reason' => 'top-up']);
+    $this->postJson('/api/admin/pos/till/cash-movement', ['type' => 'cash_out', 'amount' => 30, 'reason' => 'petty']);
+
+    $response = $this->getJson('/api/admin/pos/till/summary');
+
+    $response->assertOk();
+    expect($response->json('data.status'))->toBe('open');
+    expect((float) $response->json('data.cash_ins'))->toBe(100.0);
+    expect((float) $response->json('data.cash_outs'))->toBe(30.0);
+    // expected = 500 + 0 (no cash sales) + 100 - 30 = 570
+    expect((float) $response->json('data.expected_cash'))->toBe(570.0);
+    expect($response->json('data.movements'))->toHaveCount(2);
+});
+
+it('returns receipt data for reprinting an existing invoice', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $cashAccount = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash Reprint',
+        'code' => 'CASH-RP',
+    ]);
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
+    ]);
+
+    $checkoutRes = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this));
+    $checkoutRes->assertCreated();
+    $invoiceId = $checkoutRes->json('data.id');
+
+    $response = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
+
+    $response->assertSuccessful();
+    expect($response->json('data'))->toHaveKeys([
+        'invoice_no', 'invoice_date_bs', 'taxable_amount', 'grand_total', 'items',
+    ]);
+    expect($response->json('data.grand_total'))->toBe($checkoutRes->json('data.grand_total'));
+});
