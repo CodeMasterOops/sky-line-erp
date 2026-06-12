@@ -98,6 +98,11 @@ class Invoice extends Model
         return $this->hasMany(ReceiptAllocation::class);
     }
 
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(CreditNote::class);
+    }
+
     public function stockMovements(): MorphMany
     {
         return $this->morphMany(StockMovement::class, 'reference');

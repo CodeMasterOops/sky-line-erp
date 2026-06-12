@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\BillItem;
 use App\Enums\StatusEnum;
 use App\Models\Warehouse;
+use App\Models\CreditNote;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
 use App\Enums\PartyTypeEnum;
@@ -662,4 +663,407 @@ it('returns receipt data for reprinting an existing invoice', function () {
         'invoice_no', 'invoice_date_bs', 'taxable_amount', 'grand_total', 'items',
     ]);
     expect($response->json('data.grand_total'))->toBe($checkoutRes->json('data.grand_total'));
+});
+
+it('receipt item data includes ids required for the return flow', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $cashAccount = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash Item IDs',
+        'code' => 'CASH-IID',
+    ]);
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
+    ]);
+
+    $checkoutRes = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this));
+    $checkoutRes->assertCreated();
+    $invoiceId = $checkoutRes->json('data.id');
+
+    $response = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
+    $response->assertSuccessful();
+
+    $item = $response->json('data.items.0');
+    expect($item)->toHaveKeys(['id', 'product_variant_id', 'warehouse_id']);
+    expect($item['product_variant_id'])->toBe($this->variant->id);
+    expect($item['warehouse_id'])->toBe($this->warehouse->id);
+});
+
+// ─── Return / Refund ─────────────────────────────────────────────────────────
+
+function setupReturnAccounts(object $test, string $suffix = ''): Account
+{
+    $account = Account::create([
+        'company_id' => $test->company->id,
+        'account_group_id' => null,
+        'name' => 'Return Account '.$suffix,
+        'code' => 'RETURN-'.$suffix,
+    ]);
+    AccountSetting::create([
+        'company_id' => $test->company->id,
+        'cash_sales_account_id' => $account->id,
+        'bank_sales_account_id' => $account->id,
+        'customer_account_id' => $account->id,
+        'sales_account_id' => $account->id,
+    ]);
+
+    return $account;
+}
+
+it('processes a pos return and creates an approved credit note', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'A');
+
+    $checkoutRes = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this));
+    $checkoutRes->assertCreated();
+    $invoiceId = $checkoutRes->json('data.id');
+    $receiptRes = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
+    $item = $receiptRes->json('data.items.0');
+
+    $response = $this->postJson('/api/admin/pos/return', [
+        'invoice_id' => $invoiceId,
+        'reason' => 'Defective item',
+        'items' => [[
+            'invoice_item_id' => $item['id'],
+            'product_variant_id' => $item['product_variant_id'],
+            'warehouse_id' => $item['warehouse_id'],
+            'quantity' => 1,
+            'rate' => $item['rate'],
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    $response->assertCreated();
+    expect($response->json('data'))->toHaveKeys(['credit_note_no', 'refund_total', 'invoice_no', 'items']);
+    expect((float) $response->json('data.refund_total'))->toBe(100.0);
+
+    $creditNote = CreditNote::first();
+    expect($creditNote)->not->toBeNull();
+    expect($creditNote->status->value)->toBe('approved');
+    expect($creditNote->invoice_id)->toBe($invoiceId);
+    expect($creditNote->remarks)->toBe('Defective item');
+});
+
+it('return restores stock to the warehouse', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'B');
+
+    // Sell 2 units → stock becomes 3
+    $checkoutRes = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'warehouse_id' => $this->warehouse->id,
+            'quantity' => 2,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]));
+    $checkoutRes->assertCreated();
+    $invoiceId = $checkoutRes->json('data.id');
+
+    $stockBefore = Stock::withoutGlobalScopes()
+        ->where('company_id', $this->company->id)
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->value('quantity');
+    expect($stockBefore)->toBe(3);
+
+    $receiptRes = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
+    $item = $receiptRes->json('data.items.0');
+
+    // Return 1 unit → stock should become 4
+    $this->postJson('/api/admin/pos/return', [
+        'invoice_id' => $invoiceId,
+        'items' => [[
+            'invoice_item_id' => $item['id'],
+            'product_variant_id' => $item['product_variant_id'],
+            'warehouse_id' => $item['warehouse_id'],
+            'quantity' => 1,
+            'rate' => $item['rate'],
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ])->assertCreated();
+
+    $stockAfter = Stock::withoutGlobalScopes()
+        ->where('company_id', $this->company->id)
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->value('quantity');
+    expect($stockAfter)->toBe(4);
+});
+
+it('return rejects an invoice that belongs to a different company', function () {
+    $otherFiscalYear = FiscalYear::create([
+        'year_name' => '2027', 'year_code' => '27',
+        'start_date' => '2027-01-01', 'end_date' => '2027-12-31',
+    ]);
+    $otherCompany = Company::create([
+        'fiscal_year_id' => $otherFiscalYear->id,
+        'company_name' => 'Other Co',
+        'code' => 'OC',
+        'inventory_costing_method' => \App\Enums\InventoryCostingMethodEnum::FIFO,
+    ]);
+
+    $otherUser = User::create([
+        'company_id' => $otherCompany->id,
+        'name' => 'Other User',
+        'email' => 'other-'.uniqid().'@example.com',
+        'password' => bcrypt('password'),
+        'user_type' => UserTypeEnum::ADMIN,
+    ]);
+
+    $otherWarehouse = Warehouse::create([
+        'company_id' => $otherCompany->id,
+        'name' => 'Other WH',
+        'code' => 'OWH',
+    ]);
+
+    $otherAccount = Account::create([
+        'company_id' => $otherCompany->id,
+        'account_group_id' => null,
+        'name' => 'Other Cash',
+        'code' => 'OCASH',
+    ]);
+    AccountSetting::create([
+        'company_id' => $otherCompany->id,
+        'cash_sales_account_id' => $otherAccount->id,
+        'customer_account_id' => $otherAccount->id,
+        'sales_account_id' => $otherAccount->id,
+    ]);
+
+    $otherProduct = Product::create([
+        'company_id' => $otherCompany->id,
+        'name' => 'Other Widget',
+        'code' => 'OW1',
+    ]);
+    $otherVariant = ProductVariant::create([
+        'company_id' => $otherCompany->id,
+        'product_id' => $otherProduct->id,
+        'sku' => 'SKU-OTH-1',
+        'sales_price' => 100,
+        'is_default' => true,
+    ]);
+
+    // Create an invoice belonging to the other company by acting as that user
+    Sanctum::actingAs($otherUser, ['*'], 'admin');
+    seedVariantStock((object) [
+        'company' => $otherCompany,
+        'fiscalYear' => $otherFiscalYear,
+        'user' => $otherUser,
+        'warehouse' => $otherWarehouse,
+        'variant' => $otherVariant,
+    ], $otherWarehouse->id, 5, $otherVariant);
+
+    $otherCheckout = $this->postJson('/api/admin/pos/checkout', [
+        'payment_method' => 'cash',
+        'order_discount_type' => 'fixed',
+        'order_discount_value' => 0,
+        'items' => [[
+            'product_variant_id' => $otherVariant->id,
+            'warehouse_id' => $otherWarehouse->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+    $otherCheckout->assertCreated();
+    $otherInvoiceId = $otherCheckout->json('data.id');
+
+    // Now act as original company user and try to return the other company's invoice
+    Sanctum::actingAs($this->user, ['*'], 'admin');
+
+    $response = $this->postJson('/api/admin/pos/return', [
+        'invoice_id' => $otherInvoiceId,
+        'items' => [[
+            'invoice_item_id' => null,
+            'product_variant_id' => $otherVariant->id,
+            'warehouse_id' => $otherWarehouse->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    // Tenant scope hides the invoice entirely → 404 (not 403, which would reveal it exists)
+    $response->assertNotFound();
+});
+
+// ─── Transactions endpoint ────────────────────────────────────────────────────
+
+it('transactions endpoint returns invoices for today by default', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'TX1');
+
+    $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this))->assertCreated();
+
+    $response = $this->getJson('/api/admin/pos/transactions');
+
+    $response->assertSuccessful();
+    expect($response->json('data'))->toHaveCount(1);
+    expect($response->json('meta.total'))->toBe(1);
+
+    $txn = $response->json('data.0');
+    expect($txn)->toHaveKeys(['id', 'invoice_no', 'invoice_date', 'party_name', 'grand_total', 'payment_method', 'has_returns']);
+    expect($txn['payment_method'])->toBe('cash');
+    expect($txn['has_returns'])->toBeFalse();
+    expect((float) $txn['grand_total'])->toBe(100.0);
+});
+
+it('transactions endpoint marks has_returns true when a credit note exists', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'TX2');
+
+    $checkoutRes = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this))->assertCreated();
+    $invoiceId = $checkoutRes->json('data.id');
+
+    $receiptRes = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
+    $item = $receiptRes->json('data.items.0');
+
+    $this->postJson('/api/admin/pos/return', [
+        'invoice_id' => $invoiceId,
+        'items' => [[
+            'invoice_item_id' => $item['id'],
+            'product_variant_id' => $item['product_variant_id'],
+            'warehouse_id' => $item['warehouse_id'],
+            'quantity' => 1,
+            'rate' => $item['rate'],
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ])->assertCreated();
+
+    $response = $this->getJson('/api/admin/pos/transactions');
+
+    $response->assertSuccessful();
+    expect($response->json('data.0.has_returns'))->toBeTrue();
+});
+
+it('transactions endpoint filters by search term on invoice number', function () {
+    seedVariantStock($this, $this->warehouse->id, 10);
+    setupReturnAccounts($this, 'TX3');
+
+    $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this))->assertCreated();
+    $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this))->assertCreated();
+
+    $firstInvoiceNo = Invoice::latest()->skip(1)->value('invoice_no');
+
+    $response = $this->getJson('/api/admin/pos/transactions?search='.urlencode($firstInvoiceNo));
+
+    $response->assertSuccessful();
+    expect($response->json('meta.total'))->toBe(1);
+    expect($response->json('data.0.invoice_no'))->toBe($firstInvoiceNo);
+});
+
+it('transactions endpoint returns empty for a date with no sales', function () {
+    $response = $this->getJson('/api/admin/pos/transactions?date_from=2000-01-01&date_to=2000-01-01');
+
+    $response->assertSuccessful();
+    expect($response->json('data'))->toBe([]);
+    expect($response->json('meta.total'))->toBe(0);
+});
+
+it('transactions endpoint respects pagination', function () {
+    seedVariantStock($this, $this->warehouse->id, 20);
+    setupReturnAccounts($this, 'TX4');
+
+    for ($i = 0; $i < 5; $i++) {
+        $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this))->assertCreated();
+    }
+
+    $response = $this->getJson('/api/admin/pos/transactions?limit=2&page=1');
+    $response->assertSuccessful();
+    expect($response->json('data'))->toHaveCount(2);
+    expect($response->json('meta.total'))->toBe(5);
+    expect($response->json('meta.pages'))->toBe(3);
+});
+
+// ─── Nepal Features: Credit Sale & Split Payment ─────────────────────────────
+
+it('credit sale creates an approved invoice with no receipt', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'CR1');
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'credit',
+    ]));
+
+    $response->assertCreated();
+    expect($response->json('data.payment_method'))->toBe('credit');
+    expect($response->json('data.payments'))->toBe([]);
+
+    $invoice = Invoice::first();
+    expect($invoice->status->value)->toBe('approved');
+    // No receipt should be created for a credit sale
+    expect(\App\Models\Receipt::count())->toBe(0);
+});
+
+it('credit sale shows up in transactions as credit payment method', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'CR2');
+
+    $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'credit',
+    ]))->assertCreated();
+
+    $response = $this->getJson('/api/admin/pos/transactions');
+    $response->assertSuccessful();
+    expect($response->json('data.0.payment_method'))->toBe('credit');
+});
+
+it('split payment creates two receipts allocated to the invoice', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'SP1');
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'cash',
+        'payments' => [
+            ['method' => 'cash', 'amount' => 60],
+            ['method' => 'card', 'amount' => 40],
+        ],
+    ]));
+
+    $response->assertCreated();
+    expect($response->json('data.payment_method'))->toBe('split');
+    expect($response->json('data.payments'))->toHaveCount(2);
+
+    expect(\App\Models\Receipt::count())->toBe(2);
+
+    $invoice = Invoice::first();
+    expect($invoice->receiptAllocations)->toHaveCount(2);
+    $allocated = $invoice->receiptAllocations->sum('amount');
+    expect(round((float) $allocated, 2))->toBe(100.0);
+});
+
+it('split payment receipt data shows individual payments on reprint', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+    setupReturnAccounts($this, 'SP2');
+
+    $checkoutRes = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'cash',
+        'payments' => [
+            ['method' => 'cash', 'amount' => 70],
+            ['method' => 'card', 'amount' => 30],
+        ],
+    ]));
+    $checkoutRes->assertCreated();
+    $invoiceId = $checkoutRes->json('data.id');
+
+    $response = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
+    $response->assertSuccessful();
+
+    expect($response->json('data.payment_method'))->toBe('split');
+    $payments = collect($response->json('data.payments'));
+    expect($payments)->toHaveCount(2);
+    expect((float) $payments->firstWhere('method', 'cash')['amount'])->toBe(70.0);
+    expect((float) $payments->firstWhere('method', 'card')['amount'])->toBe(30.0);
 });

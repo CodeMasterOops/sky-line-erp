@@ -56,6 +56,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    categoryId: {
+        type: Number,
+        default: null,
+    },
 });
 
 const emit = defineEmits(['select']);
@@ -94,7 +98,7 @@ const runSearch = async (q, { barcode = false } = {}) => {
         const res = await productStore.searchProductVariants(
             barcode
                 ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0 }
-                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0 }
+                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, category_id: props.categoryId }
         );
         searchResults.value = res.data ?? [];
     } catch {

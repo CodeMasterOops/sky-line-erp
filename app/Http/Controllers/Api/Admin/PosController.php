@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Models\Warehouse;
+use App\Models\CreditNote;
 use App\Models\PosSession;
 use App\Enums\PartyTypeEnum;
 use App\Models\PosHeldOrder;
@@ -27,13 +28,19 @@ use App\Services\Accounting\GlAccountConfigGuard;
 use App\Http\Requests\Api\Admin\PosCheckoutRequest;
 use App\Services\Accounting\InvoiceGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
+use App\Services\Accounting\CreditNoteGlPostingService;
+use App\Services\Inventory\SalesReturnUnitCostResolver;
+use App\Services\Inventory\InventoryLayerReceiptService;
 use App\Http\Resources\Admin\Inventory\ProductCategoryResource;
 
 class PosController extends Controller
 {
     public function __construct(
         private InventoryLayerIssueService $inventoryIssue,
+        private InventoryLayerReceiptService $inventoryReceipt,
         private InvoiceGlPostingService $invoiceGl,
+        private CreditNoteGlPostingService $creditNoteGl,
+        private SalesReturnUnitCostResolver $salesReturnCostResolver,
         private NepaliDateService $nepaliDate,
         private DocumentNumberGenerator $documentNumberGenerator,
         private GlAccountConfigGuard $glAccountGuard,
@@ -63,6 +70,7 @@ class PosController extends Controller
     {
         $warehouseId = $request->integer('warehouse_id');
         $categoryId = $request->integer('category_id');
+        $limit = $request->integer('limit');
         $search = trim((string) $request->get('search', ''));
 
         $query = Product::query()
@@ -87,7 +95,7 @@ class PosController extends Controller
             });
         }
 
-        $products = $query->latest('id')->get();
+        $products = $limit > 0 ? $query->latest('id')->limit($limit)->get() : $query->latest('id')->get();
 
         $data = $products->flatMap(function ($product) {
             return $product->variants->map(function ($variant) use ($product) {
@@ -263,7 +271,7 @@ class PosController extends Controller
             );
             $this->glAccountGuard->assertSalesPostable($hasTax);
 
-            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $accountId, $yearCode) {
+            $invoice = DB::transaction(function () use ($request, $user, $company, $fiscalYearId, $today, $yearCode, $accountSetting) {
                 // See InvoiceService for the lock-inside-transaction concurrency note.
                 $invoiceNo = $this->documentNumberGenerator->fiscalYear(
                     Invoice::class,
@@ -373,39 +381,61 @@ class PosController extends Controller
                 $orderDiscountAmount = (float) ($invoice->discount?->amount ?? $orderDiscountAmount);
                 $grandTotal = $subtotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
 
-                // Create receipt if we have an account to credit
-                if ($accountId && $grandTotal > 0) {
-                    $receiptNo = $this->documentNumberGenerator->fiscalYear(
-                        Receipt::class,
-                        'RC-',
-                        $fiscalYearId,
-                        $yearCode,
-                    );
-
-                    $receipt = Receipt::create([
-                        'company_id' => $company->id,
-                        'fiscal_year_id' => $fiscalYearId,
-                        'party_id' => $request->party_id ?? null,
-                        'receipt_no' => $receiptNo,
-                        'receipt_date' => $today,
-                        'payment_method' => $request->payment_method,
-                        'account_id' => $accountId,
-                        'remarks' => 'POS Payment - '.$invoiceNo,
-                        'create_user_id' => $user->id,
-                        'approve_user_id' => $user->id,
-                        'approved_at' => now(),
-                        'status' => StatusEnum::APPROVED->value,
-                    ]);
-
-                    $receipt->allocations()->create([
-                        'invoice_id' => $invoice->id,
-                        'amount' => round($grandTotal, 2),
-                    ]);
-
-                    $invoice->setAttribute('receipt_no', $receipt->receipt_no);
-                    $invoice->setAttribute('receipt_id', $receipt->id);
-                    $invoice->setAttribute('grand_total', round($grandTotal, 2));
+                // Build payment entries: split payments override single payment_method
+                $payments = $request->payments ?? null;
+                if (! $payments && strtolower($request->payment_method) !== 'credit') {
+                    $payments = [['method' => $request->payment_method, 'amount' => $grandTotal]];
                 }
+
+                $firstReceipt = null;
+                if ($payments && $grandTotal > 0) {
+                    $remaining = round($grandTotal, 2);
+                    foreach ($payments as $payment) {
+                        $method = strtolower($payment['method']);
+                        $payAccountId = $this->resolveAccountId($method, $accountSetting);
+                        if (! $payAccountId) {
+                            continue;
+                        }
+                        $payAmount = min(round((float) $payment['amount'], 2), $remaining);
+                        if ($payAmount <= 0) {
+                            continue;
+                        }
+
+                        $receiptNo = $this->documentNumberGenerator->fiscalYear(
+                            Receipt::class,
+                            'RC-',
+                            $fiscalYearId,
+                            $yearCode,
+                        );
+
+                        $receipt = Receipt::create([
+                            'company_id' => $company->id,
+                            'fiscal_year_id' => $fiscalYearId,
+                            'party_id' => $request->party_id ?? null,
+                            'receipt_no' => $receiptNo,
+                            'receipt_date' => $today,
+                            'payment_method' => $method,
+                            'account_id' => $payAccountId,
+                            'remarks' => 'POS Payment - '.$invoiceNo,
+                            'create_user_id' => $user->id,
+                            'approve_user_id' => $user->id,
+                            'approved_at' => now(),
+                            'status' => StatusEnum::APPROVED->value,
+                        ]);
+
+                        $receipt->allocations()->create([
+                            'invoice_id' => $invoice->id,
+                            'amount' => $payAmount,
+                        ]);
+
+                        $firstReceipt ??= $receipt;
+                        $remaining -= $payAmount;
+                    }
+                }
+
+                $invoice->setAttribute('receipt_no', $firstReceipt?->receipt_no);
+                $invoice->setAttribute('receipt_id', $firstReceipt?->id);
+                $invoice->setAttribute('grand_total', round($grandTotal, 2));
 
                 return $invoice;
             });
@@ -436,10 +466,21 @@ class PosController extends Controller
             'receiptAllocations.receipt',
         ]);
 
-        $responseData = $this->buildReceiptData($invoice, $request->payment_method);
-        $firstReceipt = $invoice->receiptAllocations->first()?->receipt;
+        $receipts = $invoice->receiptAllocations->map(fn ($a) => $a->receipt)->filter();
+        $displayMethod = match (true) {
+            $receipts->isEmpty() => 'credit',
+            $receipts->pluck('payment_method')->unique()->count() > 1 => 'split',
+            default => $receipts->first()?->payment_method ?? $request->payment_method,
+        };
+        $responseData = $this->buildReceiptData($invoice, $displayMethod);
+        $firstReceipt = $receipts->first();
         $responseData['receipt_no'] = $firstReceipt?->receipt_no ?? null;
         $responseData['receipt_id'] = $firstReceipt?->id ?? null;
+        $responseData['payments'] = $receipts->map(fn ($r) => [
+            'method' => $r->payment_method,
+            'amount' => (float) ($invoice->receiptAllocations->firstWhere('receipt_id', $r->id)?->amount ?? 0),
+            'receipt_no' => $r->receipt_no,
+        ])->values()->all();
 
         return response()->json([
             'data' => $responseData,
@@ -628,6 +669,234 @@ class PosController extends Controller
         ]);
     }
 
+    // ─── Recent Transactions ──────────────────────────────────────────────────
+
+    /**
+     * Paginated invoice list for the POS "recent transactions" panel.
+     * Adds payment_method (from first receipt) and has_returns flag.
+     */
+    public function transactions(Request $request): JsonResponse
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $today = now()->toDateString();
+
+        $dateFrom = $request->get('date_from', $today);
+        $dateTo = $request->get('date_to', $today);
+        $search = trim((string) $request->get('search', ''));
+        $limit = min((int) $request->get('limit', 50), 200);
+        $page = max((int) $request->get('page', 1), 1);
+        $offset = ($page - 1) * $limit;
+
+        $grandTotalSub = DB::table('invoice_items as ii')
+            ->selectRaw('ii.invoice_id, ROUND(SUM(ii.quantity * ii.rate) - SUM(ii.discount_amount) + SUM(ii.tax_amount), 2) as grand_total')
+            ->whereNull('ii.deleted_at')
+            ->groupBy('ii.invoice_id');
+
+        $paymentSub = DB::table('receipts as r')
+            ->join('receipt_allocations as ra', 'ra.receipt_id', '=', 'r.id')
+            ->selectRaw('ra.invoice_id, r.payment_method')
+            ->where('r.status', StatusEnum::APPROVED->value)
+            ->whereNull('r.deleted_at')
+            ->whereNull('ra.deleted_at');
+
+        $query = DB::table('invoices as inv')
+            ->leftJoinSub($grandTotalSub, 'totals', 'totals.invoice_id', '=', 'inv.id')
+            ->leftJoinSub($paymentSub, 'pay', 'pay.invoice_id', '=', 'inv.id')
+            ->leftJoin('parties as p', 'p.id', '=', 'inv.party_id')
+            ->selectRaw('
+                inv.id,
+                inv.invoice_no,
+                inv.invoice_date,
+                inv.invoice_date_bs,
+                inv.party_id,
+                p.name as party_name,
+                COALESCE(totals.grand_total, 0) as grand_total,
+                pay.payment_method,
+                EXISTS(
+                    SELECT 1 FROM credit_notes cn
+                    WHERE cn.invoice_id = inv.id
+                      AND cn.deleted_at IS NULL
+                ) as has_returns
+            ')
+            ->where('inv.company_id', $companyId)
+            ->where('inv.status', StatusEnum::APPROVED->value)
+            ->whereNull('inv.deleted_at')
+            ->whereBetween('inv.invoice_date', [$dateFrom, $dateTo]);
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('inv.invoice_no', 'like', $like)
+                    ->orWhere('p.name', 'like', $like)
+                    ->orWhereRaw('CAST(COALESCE(totals.grand_total, 0) AS CHAR) LIKE ?', [$like]);
+            });
+        }
+
+        $total = (clone $query)->count();
+        $rows = $query->orderByDesc('inv.invoice_date')
+            ->orderByDesc('inv.id')
+            ->offset($offset)
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'data' => $rows->map(fn ($row) => [
+                'id' => $row->id,
+                'invoice_no' => $row->invoice_no,
+                'invoice_date' => $row->invoice_date,
+                'invoice_date_bs' => $row->invoice_date_bs,
+                'party_name' => $row->party_name ?? 'Walk-in Customer',
+                'grand_total' => (float) $row->grand_total,
+                'payment_method' => $row->payment_method ?? 'credit',
+                'has_returns' => (bool) $row->has_returns,
+                'status' => 'approved',
+            ]),
+            'meta' => [
+                'total' => $total,
+                'page' => $page,
+                'limit' => $limit,
+                'pages' => (int) ceil($total / max($limit, 1)),
+            ],
+        ]);
+    }
+
+    // ─── Return / Refund ──────────────────────────────────────────────────────
+
+    /**
+     * Process a POS return: creates an auto-approved credit note, restores inventory, posts GL.
+     */
+    public function processReturn(Request $request): JsonResponse
+    {
+        $request->validate([
+            'invoice_id' => ['required', 'integer', 'exists:invoices,id'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.invoice_item_id' => ['nullable', 'integer'],
+            'items.*.product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
+            'items.*.warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.rate' => ['required', 'numeric', 'min:0'],
+            'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user = auth('admin')->user();
+        $invoice = Invoice::findOrFail($request->invoice_id);
+
+        abort_unless($invoice->company_id === $user->company_id, 403);
+        abort_unless($invoice->status === StatusEnum::APPROVED, 422, 'Can only return items from approved invoices.');
+
+        $company = $user->company;
+        $fiscalYearId = $company->fiscal_year_id;
+
+        try {
+            $creditNote = DB::transaction(function () use ($request, $invoice, $user, $company, $fiscalYearId) {
+                $creditNoteNo = $this->documentNumberGenerator->fiscalYear(
+                    CreditNote::class,
+                    'CN-',
+                    $fiscalYearId,
+                    $company->fiscalYear?->year_code,
+                );
+
+                $creditNote = CreditNote::create([
+                    'company_id' => $user->company_id,
+                    'fiscal_year_id' => $fiscalYearId,
+                    'party_id' => $invoice->party_id,
+                    'invoice_id' => $invoice->id,
+                    'credit_note_no' => $creditNoteNo,
+                    'credit_note_date' => now()->toDateString(),
+                    'remarks' => $request->reason,
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED,
+                ]);
+
+                foreach ($request->items as $item) {
+                    $creditNote->creditNoteItems()->create([
+                        'invoice_item_id' => $item['invoice_item_id'] ?? null,
+                        'product_variant_id' => $item['product_variant_id'],
+                        'warehouse_id' => $item['warehouse_id'],
+                        'quantity' => (int) $item['quantity'],
+                        'rate' => (float) $item['rate'],
+                        'tax_amount' => (float) ($item['tax_amount'] ?? 0),
+                        'discount_amount' => (float) ($item['discount_amount'] ?? 0),
+                    ]);
+                }
+
+                $creditNote->load('creditNoteItems.productVariant.product');
+
+                foreach ($creditNote->creditNoteItems as $creditItem) {
+                    $qty = (int) $creditItem->quantity;
+                    if ($qty <= 0 || $creditItem->productVariant?->isService()) {
+                        continue;
+                    }
+
+                    $unitCost = $this->salesReturnCostResolver->resolve(
+                        $company,
+                        $creditNote->invoice_id,
+                        $creditItem->product_variant_id,
+                        $creditItem->warehouse_id,
+                        $creditItem->invoice_item_id,
+                    );
+
+                    $this->inventoryReceipt->receive(
+                        $company,
+                        $creditNote,
+                        $creditItem->product_variant_id,
+                        $creditItem->warehouse_id,
+                        $qty,
+                        $unitCost,
+                        ChangeTypeEnum::RETURN_IN,
+                        $user->id,
+                        $creditNote->remarks,
+                        null,
+                    );
+                }
+
+                $this->creditNoteGl->postFromCreditNote($creditNote);
+
+                return $creditNote;
+            });
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $creditNote->load([
+            'party',
+            'invoice',
+            'creditNoteItems.productVariant.product',
+            'creditNoteItems.warehouse',
+        ]);
+
+        $refundTotal = $creditNote->creditNoteItems->sum(
+            fn ($i) => round(((float) $i->quantity * (float) $i->rate) - (float) $i->discount_amount + (float) $i->tax_amount, 2)
+        );
+
+        return response()->json([
+            'data' => [
+                'id' => $creditNote->id,
+                'credit_note_no' => $creditNote->credit_note_no,
+                'credit_note_date' => $creditNote->credit_note_date,
+                'invoice_no' => $creditNote->invoice?->invoice_no,
+                'party_name' => $creditNote->party?->name ?? 'Walk-in Customer',
+                'refund_total' => round($refundTotal, 2),
+                'reason' => $creditNote->remarks,
+                'items' => $creditNote->creditNoteItems->map(fn ($i) => [
+                    'name' => $i->productVariant?->product?->name ?? '',
+                    'sku' => $i->productVariant?->sku ?? '',
+                    'warehouse_name' => $i->warehouse?->name ?? '',
+                    'quantity' => $i->quantity,
+                    'rate' => (float) $i->rate,
+                    'tax_amount' => (float) $i->tax_amount,
+                    'discount_amount' => (float) $i->discount_amount,
+                    'total' => round(((float) $i->quantity * (float) $i->rate) - (float) $i->discount_amount + (float) $i->tax_amount, 2),
+                ])->values(),
+            ],
+            'message' => 'Return processed successfully.',
+        ], 201);
+    }
+
     // ─── Receipt Data (reprint) ────────────────────────────────────────────
 
     /**
@@ -650,11 +919,21 @@ class PosController extends Controller
             'receiptAllocations.receipt',
         ]);
 
-        $paymentMethod = $invoice->receiptAllocations->first()?->receipt?->payment_method ?? 'cash';
-        $data = $this->buildReceiptData($invoice, $paymentMethod);
-        $firstReceipt = $invoice->receiptAllocations->first()?->receipt;
+        $receipts = $invoice->receiptAllocations->map(fn ($a) => $a->receipt)->filter();
+        $displayMethod = match (true) {
+            $receipts->isEmpty() => 'credit',
+            $receipts->pluck('payment_method')->unique()->count() > 1 => 'split',
+            default => $receipts->first()?->payment_method ?? 'cash',
+        };
+        $firstReceipt = $receipts->first();
+        $data = $this->buildReceiptData($invoice, $displayMethod);
         $data['receipt_no'] = $firstReceipt?->receipt_no ?? null;
         $data['receipt_id'] = $firstReceipt?->id ?? null;
+        $data['payments'] = $receipts->map(fn ($r) => [
+            'method' => $r->payment_method,
+            'amount' => (float) ($invoice->receiptAllocations->firstWhere('receipt_id', $r->id)?->amount ?? 0),
+            'receipt_no' => $r->receipt_no,
+        ])->values()->all();
 
         return response()->json(['data' => $data]);
     }
@@ -684,6 +963,7 @@ class PosController extends Controller
 
         return match (strtolower($paymentMethod)) {
             'cash' => $setting->cash_sales_account_id,
+            'credit' => null, // No receipt — invoice left as open receivable
             default => $setting->bank_sales_account_id,
         };
     }
@@ -797,6 +1077,9 @@ class PosController extends Controller
             'grand_total' => round($grandTotal, 2),
             'payment_method' => $paymentMethod,
             'items' => $invoice->invoiceItems->map(fn ($item) => [
+                'id' => $item->id,
+                'product_variant_id' => $item->product_variant_id,
+                'warehouse_id' => $item->warehouse_id,
                 'name' => $item->productVariant?->product?->name ?? '',
                 'sku' => $item->productVariant?->sku ?? '',
                 'warehouse_name' => $item->warehouse?->name ?? '',

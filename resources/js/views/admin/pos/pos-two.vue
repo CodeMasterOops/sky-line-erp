@@ -37,14 +37,92 @@
               </div>
             </div>
 
-            <!-- Product Search -->
-            <div class="mb-3 position-relative">
-              <ProductVariantSearchInput
-                ref="productSearch"
-                physical-only
-                placeholder="Search product by name, SKU or scan barcode — Enter to add"
-                @select="onVariantSelected"
-              />
+            <!-- Category Quick-Filter Tabs -->
+            <div v-if="posStore.categories.length" class="pos-category-tabs mb-2">
+              <button
+                type="button"
+                class="pos-category-tab"
+                :class="{ active: selectedCategoryId === null }"
+                @click="selectedCategoryId = null"
+              >All</button>
+              <button
+                v-for="cat in posStore.categories"
+                :key="cat.id"
+                type="button"
+                class="pos-category-tab"
+                :class="{ active: selectedCategoryId === cat.id }"
+                @click="selectedCategoryId = cat.id"
+              >{{ cat.name }}</button>
+            </div>
+
+            <!-- Product Search + grid toggle -->
+            <div class="mb-2 d-flex gap-2 align-items-center">
+              <div class="flex-grow-1 position-relative">
+                <ProductVariantSearchInput
+                  ref="productSearch"
+                  physical-only
+                  placeholder="Search product by name, SKU or scan barcode — Enter to add  [F2]"
+                  :category-id="selectedCategoryId"
+                  @select="onVariantSelected"
+                />
+              </div>
+              <button
+                type="button"
+                class="pos-grid-toggle flex-shrink-0 mt-4"
+                :class="{ 'is-on': showGrid }"
+                title="Toggle product grid"
+                @click="showGrid = !showGrid"
+              >
+                <i class="ti ti-layout-grid"></i>
+              </button>
+            </div>
+
+            <!-- Product Quick-Add Grid -->
+            <div v-if="showGrid" class="pos-grid mb-3">
+              <div v-if="posStore.gridLoading" class="pos-grid__loading">
+                <div v-for="n in 8" :key="n" class="pos-grid-card pos-grid-card--skeleton">
+                  <div class="pos-grid-card__img-placeholder"></div>
+                  <div class="pos-grid-card__body">
+                    <div class="pos-grid-card__skeleton-line"></div>
+                    <div class="pos-grid-card__skeleton-line short"></div>
+                  </div>
+                </div>
+              </div>
+              <template v-else-if="posStore.gridProducts.length">
+                <button
+                  v-for="product in posStore.gridProducts"
+                  :key="product.id"
+                  type="button"
+                  class="pos-grid-card"
+                  :class="{
+                    'is-out': product.stock <= 0,
+                    'is-low': product.stock > 0 && product.stock <= 5,
+                  }"
+                  @click="onVariantSelected(product)"
+                >
+                  <div class="pos-grid-card__img">
+                    <img v-if="product.image" :src="product.image" :alt="product.name" />
+                    <i v-else class="ti ti-package"></i>
+                  </div>
+                  <div class="pos-grid-card__body">
+                    <div class="pos-grid-card__name">{{ product.name }}</div>
+                    <div class="pos-grid-card__price">{{ formatMoney(product.sales_price) }}</div>
+                    <span
+                      class="pos-grid-card__stock"
+                      :class="{
+                        'out': product.stock <= 0,
+                        'low': product.stock > 0 && product.stock <= 5,
+                      }"
+                    >
+                      {{ product.stock <= 0 ? 'Out' : product.stock <= 5 ? `Low: ${product.stock}` : `${product.stock}` }}
+                    </span>
+                  </div>
+                </button>
+              </template>
+              <div v-else class="pos-grid__empty">
+                <i class="ti ti-box-off"></i>
+                <span>No products found</span>
+              </div>
             </div>
 
             <!-- Line Items Table -->
@@ -92,15 +170,19 @@
                         </div>
                       </td>
                       <td class="pos-col-qty">
-                        <input
-                          type="number"
-                          class="form-control form-control-sm pos-cart-input pos-cart-input--qty text-center"
-                          :class="{ 'is-invalid': item.stock !== null && item.quantity > item.stock }"
-                          :value="item.quantity"
-                          min="1"
-                          :max="item.stock ?? undefined"
-                          @change="e => posStore.setCartItemQty(item.lineKey, parseInt(e.target.value) || 1)"
-                        />
+                        <div class="pos-qty-group">
+                          <button type="button" class="pos-qty-btn" @click="posStore.setCartItemQty(item.lineKey, Math.max(1, item.quantity - 1))">−</button>
+                          <input
+                            type="number"
+                            class="form-control form-control-sm pos-cart-input pos-cart-input--qty text-center"
+                            :class="{ 'is-invalid': item.stock !== null && item.quantity > item.stock }"
+                            :value="item.quantity"
+                            min="1"
+                            :max="item.stock ?? undefined"
+                            @change="e => posStore.setCartItemQty(item.lineKey, parseInt(e.target.value) || 1)"
+                          />
+                          <button type="button" class="pos-qty-btn" @click="posStore.setCartItemQty(item.lineKey, item.quantity + 1)">+</button>
+                        </div>
                       </td>
                       <td class="pos-col-rate">
                         <input
@@ -322,14 +404,48 @@
             <div class="d-flex flex-column gap-2 pb-2">
               <button
                 type="button"
-                class="btn btn-success w-100 btn-lg fw-bold"
+                class="btn btn-success w-100 btn-lg fw-bold d-flex align-items-center justify-content-center gap-2"
                 :disabled="!posStore.canCheckout || posStore.checkoutLoading"
                 @click="openPaymentModal"
               >
-                <span v-if="posStore.checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
-                <i v-else class="ti ti-cash-banknote me-1"></i>
-                {{ posStore.checkoutLoading ? 'Processing...' : `Pay  ${formatMoney(posStore.grandTotal)}` }}
+                <span v-if="posStore.checkoutLoading" class="spinner-border spinner-border-sm"></span>
+                <i v-else class="ti ti-cash-banknote"></i>
+                <span>{{ posStore.checkoutLoading ? 'Processing...' : `Pay  ${formatMoney(posStore.grandTotal)}` }}</span>
+                <kbd class="pos-kbd ms-auto opacity-75">F4</kbd>
               </button>
+              <!-- Credit Sale + Split Payment shortcuts -->
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-warning flex-fill"
+                  data-bs-toggle="modal"
+                  data-bs-target="#credit-sale"
+                  :disabled="!posStore.canCheckout || posStore.checkoutLoading"
+                  title="Sell on credit (Udhaaro)"
+                >
+                  <i class="ti ti-clock-dollar me-1"></i>Credit
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-info flex-fill"
+                  data-bs-toggle="modal"
+                  data-bs-target="#split-payment"
+                  :disabled="!posStore.canCheckout || posStore.checkoutLoading"
+                  title="Split across multiple payment methods"
+                >
+                  <i class="ti ti-arrows-split me-1"></i>Split
+                </button>
+                <button
+                  type="button"
+                  class="btn flex-fill"
+                  :class="posStore.hasVat ? 'btn-primary' : 'btn-outline-secondary'"
+                  :disabled="!posStore.cart.length"
+                  @click="toggleVat"
+                  title="Toggle VAT (13%) on all items"
+                >
+                  <i class="ti ti-receipt-tax me-1"></i>VAT
+                </button>
+              </div>
               <div class="d-flex gap-2">
                 <button
                   type="button"
@@ -424,7 +540,15 @@ export default {
       selectedCustomerOption: null,
       selectedPaymentMethod: 'cash',
       pendingVariant: null,
+      selectedCategoryId: null,
+      showGrid: true,
     };
+  },
+
+  watch: {
+    selectedCategoryId(categoryId) {
+      this.posStore.fetchGridProducts(categoryId);
+    },
   },
 
   computed: {
@@ -439,6 +563,7 @@ export default {
 
   async mounted() {
     await this.posStore.init();
+    this.posStore.fetchGridProducts(null);
     this.$refs.productSearch?.focus();
     // Prompt cashier to open till if no active session
     if (!this.posStore.tillSession) {
@@ -448,10 +573,59 @@ export default {
         Modal.getOrCreateInstance(tillOpenEl).show();
       }
     }
+    document.addEventListener('keydown', this.onGlobalKeydown);
+  },
+
+  beforeUnmount() {
+    document.removeEventListener('keydown', this.onGlobalKeydown);
   },
 
   methods: {
     formatMoney,
+
+    onGlobalKeydown(e) {
+      // Ignore when typing inside an input/textarea/select (except F-keys)
+      const inField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+
+      if (e.key === 'F2') {
+        e.preventDefault();
+        this.$refs.productSearch?.focus();
+        return;
+      }
+
+      if (e.key === 'F4') {
+        e.preventDefault();
+        if (this.posStore.canCheckout && !this.posStore.checkoutLoading) {
+          this.openPaymentModal();
+        }
+        return;
+      }
+
+      if (e.key === 'F8') {
+        e.preventDefault();
+        if (this.posStore.canCheckout) {
+          Modal.getOrCreateInstance(document.getElementById('hold-order')).show();
+        }
+        return;
+      }
+
+      if (inField) {
+        return;
+      }
+
+      // +/= → increment last cart item qty
+      if ((e.key === '+' || e.key === '=' || e.key === 'NumpadAdd') && this.posStore.cart.length) {
+        const last = this.posStore.cart[this.posStore.cart.length - 1];
+        this.posStore.setCartItemQty(last.lineKey, last.quantity + 1);
+        return;
+      }
+
+      // - → decrement last cart item qty
+      if ((e.key === '-' || e.key === 'NumpadSubtract') && this.posStore.cart.length) {
+        const last = this.posStore.cart[this.posStore.cart.length - 1];
+        this.posStore.setCartItemQty(last.lineKey, Math.max(1, last.quantity - 1));
+      }
+    },
 
     calcLineTotal(item, index) {
       const calcItem = {
@@ -621,12 +795,12 @@ export default {
       }
     },
 
-    async processCheckout(paymentMethod) {
+    async processCheckout(paymentMethod, splitPayments = null) {
       if (!this.posStore.cart.length) {
         return;
       }
       try {
-        await this.posStore.checkout(paymentMethod ?? this.selectedPaymentMethod);
+        await this.posStore.checkout(paymentMethod ?? this.selectedPaymentMethod, splitPayments);
         useToast().success('Sale completed successfully!');
         const el = document.getElementById('payment-completed');
         if (el) {
@@ -643,6 +817,16 @@ export default {
     onNextOrder() {
       this.selectedCustomerOption = null;
       this.$refs.productSearch?.focus();
+    },
+
+    toggleVat() {
+      if (!this.posStore.taxes.length) {
+        useToast().warning('No tax rates configured. Add a 13% VAT tax in Settings first.');
+        return;
+      }
+      this.posStore.toggleVat();
+      const msg = this.posStore.hasVat ? 'VAT (13%) added to all items' : 'VAT removed from all items';
+      useToast().info(msg);
     },
 
     voidOrder() {
@@ -754,7 +938,7 @@ export default {
 }
 
 .pos-col-qty {
-  width: 4.5rem;
+  width: 7.5rem;
 }
 
 .pos-col-rate {
@@ -933,5 +1117,257 @@ export default {
 
 :deep(.pos-line-discount-group .v-discount-type-toggle) {
   flex-shrink: 0;
+}
+
+/* Category quick-filter tabs */
+.pos-category-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: none;
+}
+
+.pos-category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pos-category-tab {
+  background: var(--bs-white);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 999px;
+  color: var(--bs-body-color);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.75rem;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.pos-category-tab:hover {
+  background: var(--bs-light);
+  border-color: var(--bs-secondary-color);
+}
+
+.pos-category-tab.active {
+  background: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: #fff;
+}
+
+/* Quick qty ±1 buttons */
+.pos-qty-group {
+  align-items: center;
+  display: flex;
+  gap: 0.2rem;
+  justify-content: center;
+}
+
+.pos-qty-btn {
+  background: var(--bs-light);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.35rem;
+  color: var(--bs-body-color);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 700;
+  height: 1.75rem;
+  line-height: 1;
+  padding: 0 0.35rem;
+  transition: all 0.12s;
+}
+
+.pos-qty-btn:hover {
+  background: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: #fff;
+}
+
+/* Grid toggle button */
+.pos-grid-toggle {
+  align-items: center;
+  background: var(--bs-white);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.45rem;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  display: flex;
+  font-size: 1rem;
+  height: 38px;
+  justify-content: center;
+  transition: all 0.15s;
+  width: 38px;
+}
+
+.pos-grid-toggle:hover {
+  border-color: var(--bs-primary);
+  color: var(--bs-primary);
+}
+
+.pos-grid-toggle.is-on {
+  background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.08);
+  border-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.4);
+  color: var(--bs-primary);
+}
+
+/* Product quick-add grid */
+.pos-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  max-height: 260px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.pos-grid__loading {
+  display: contents;
+}
+
+.pos-grid__empty {
+  align-items: center;
+  color: var(--bs-secondary-color);
+  display: flex;
+  font-size: 0.8125rem;
+  gap: 0.4rem;
+  grid-column: 1 / -1;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+.pos-grid-card {
+  align-items: center;
+  background: var(--bs-white);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.5rem 0.35rem 0.4rem;
+  text-align: center;
+  transition: border-color 0.12s, box-shadow 0.12s, background 0.12s;
+}
+
+.pos-grid-card:hover {
+  background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.04);
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb, 13, 110, 253), 0.12);
+}
+
+.pos-grid-card:active {
+  background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.1);
+  transform: scale(0.97);
+}
+
+.pos-grid-card.is-out {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.pos-grid-card__img {
+  align-items: center;
+  border-radius: 0.35rem;
+  color: var(--bs-secondary-color);
+  display: flex;
+  font-size: 1.5rem;
+  height: 44px;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+}
+
+.pos-grid-card__img img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.pos-grid-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-top: 0.3rem;
+  width: 100%;
+}
+
+.pos-grid-card__name {
+  color: var(--bs-body-color);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.pos-grid-card__price {
+  color: var(--bs-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pos-grid-card__stock {
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.35rem;
+  background: rgba(var(--bs-success-rgb, 25, 135, 84), 0.1);
+  color: var(--bs-success);
+}
+
+.pos-grid-card__stock.low {
+  background: rgba(var(--bs-warning-rgb, 255, 193, 7), 0.15);
+  color: #b45309;
+}
+
+.pos-grid-card__stock.out {
+  background: rgba(var(--bs-danger-rgb, 220, 53, 69), 0.1);
+  color: var(--bs-danger);
+}
+
+/* Skeleton loader */
+.pos-grid-card--skeleton {
+  animation: gridSkeletonPulse 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.pos-grid-card__img-placeholder {
+  background: var(--bs-light);
+  border-radius: 0.35rem;
+  height: 44px;
+  width: 100%;
+}
+
+.pos-grid-card__skeleton-line {
+  background: var(--bs-light);
+  border-radius: 4px;
+  height: 8px;
+  margin: 0.15rem auto;
+  width: 85%;
+}
+
+.pos-grid-card__skeleton-line.short {
+  width: 55%;
+}
+
+@keyframes gridSkeletonPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+/* Keyboard shortcut badge */
+.pos-kbd {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 0.25rem;
+  color: inherit;
+  font-family: monospace;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.3rem;
 }
 </style>

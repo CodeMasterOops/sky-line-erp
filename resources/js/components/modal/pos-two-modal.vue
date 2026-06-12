@@ -142,6 +142,120 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
+       CREDIT SALE (UDHAARO)
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="modal fade modal-default" id="credit-sale" aria-labelledby="credit-sale">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="ti ti-clock-dollar me-2 text-warning"></i>Credit Sale (Udhaaro)</h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="bg-light br-10 p-4 text-center mb-3">
+            <p class="mb-1 text-muted">Amount Due on Credit</p>
+            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
+          </div>
+          <div v-if="selectedCustomer" class="alert alert-info py-2">
+            <i class="ti ti-user me-1"></i>
+            Credit to: <strong>{{ selectedCustomer.name }}</strong>
+          </div>
+          <div v-else class="alert alert-warning py-2">
+            <i class="ti ti-alert-triangle me-1"></i>
+            No customer selected — credit will be posted to the walk-in account.
+          </div>
+          <p class="text-muted small mb-0">No receipt will be issued. The outstanding balance will appear in the customer's account.</p>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-md btn-warning" @click="doCheckout('credit')">
+            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
+            <i class="ti ti-clock-dollar me-1"></i>Confirm Credit Sale
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SPLIT PAYMENT
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="modal fade modal-default" id="split-payment" aria-labelledby="split-payment">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="ti ti-arrows-split me-2 text-primary"></i>Split Payment</h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="text-muted">Total Due:</span>
+            <span class="fw-bold fs-5">{{ formatMoney(grandTotal) }}</span>
+          </div>
+
+          <div v-for="(pay, idx) in splitPayments" :key="idx" class="d-flex align-items-center gap-2 mb-2">
+            <select class="form-select form-select-sm" v-model="pay.method" style="width:120px; flex-shrink:0;">
+              <option value="cash">Cash</option>
+              <option value="card">Card</option>
+              <option value="esewa">eSewa</option>
+              <option value="khalti">Khalti</option>
+              <option value="fonepay">FonePay</option>
+              <option value="bank">Bank Transfer</option>
+            </select>
+            <input
+              type="number"
+              class="form-control form-control-sm"
+              v-model.number="pay.amount"
+              min="0"
+              step="0.01"
+              placeholder="Amount"
+            />
+            <button
+              v-if="splitPayments.length > 1"
+              type="button"
+              class="btn btn-xs btn-outline-danger"
+              @click="splitPayments.splice(idx, 1)"
+            ><i class="ti ti-trash"></i></button>
+          </div>
+
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-1" @click="splitPayments.push({ method: 'cash', amount: '' })">
+            <i class="ti ti-plus me-1"></i>Add Payment
+          </button>
+
+          <div class="mt-3 pt-3 border-top d-flex justify-content-between">
+            <span class="text-muted">Allocated:</span>
+            <span :class="splitAllocated >= grandTotal ? 'text-success fw-bold' : 'text-danger fw-bold'">
+              {{ formatMoney(splitAllocated) }}
+            </span>
+          </div>
+          <div v-if="splitAllocated > grandTotal" class="text-muted small">
+            Change: {{ formatMoney(splitAllocated - grandTotal) }}
+          </div>
+          <div v-if="splitAllocated < grandTotal" class="text-danger small">
+            Short by {{ formatMoney(grandTotal - splitAllocated) }}
+          </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-md btn-primary"
+            :disabled="splitAllocated < grandTotal"
+            @click="doSplitCheckout()"
+          >
+            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
+            <i class="ti ti-arrows-split me-1"></i>Confirm Split Payment
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
        PAYMENT COMPLETED
   ════════════════════════════════════════════════════════════════ -->
   <div class="modal fade modal-default" id="payment-completed" aria-labelledby="payment-completed">
@@ -238,7 +352,20 @@
               </div>
               <div class="pos-receipt__info-row">
                 <span>Payment</span>
-                <strong class="text-capitalize">{{ activeReceipt?.payment_method ?? '—' }}</strong>
+                <span>
+                  <template v-if="activeReceipt?.payment_method === 'credit'">
+                    <strong class="text-warning">CREDIT (Udhaaro)</strong>
+                  </template>
+                  <template v-else-if="activeReceipt?.payments?.length > 1">
+                    <div v-for="p in activeReceipt.payments" :key="p.method" class="d-flex justify-content-between">
+                      <span class="text-capitalize me-2">{{ p.method }}</span>
+                      <strong>{{ formatMoney(p.amount) }}</strong>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <strong class="text-capitalize">{{ activeReceipt?.payment_method ?? '—' }}</strong>
+                  </template>
+                </span>
               </div>
             </section>
 
@@ -469,55 +596,293 @@
        RECENT TRANSACTIONS
   ════════════════════════════════════════════════════════════════ -->
   <div class="modal fade pos-modal" id="recents" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
       <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Recent Transactions</h5>
+        <div class="modal-header pb-2">
+          <div>
+            <h5 class="modal-title mb-0">Recent Transactions</h5>
+            <small v-if="recentMeta.total > 0" class="text-muted">
+              {{ recentMeta.total }} result{{ recentMeta.total !== 1 ? 's' : '' }}
+            </small>
+          </div>
           <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">×</span>
           </button>
         </div>
-        <div class="modal-body">
+
+        <!-- Filters -->
+        <div class="modal-body pt-2 pb-1 border-bottom">
+          <!-- Date preset tabs -->
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+            <div class="btn-group btn-group-sm" role="group">
+              <button
+                v-for="preset in recentPresets"
+                :key="preset.value"
+                type="button"
+                class="btn"
+                :class="recentDatePreset === preset.value ? 'btn-primary' : 'btn-outline-secondary'"
+                @click="setRecentPreset(preset.value)"
+              >{{ preset.label }}</button>
+            </div>
+            <template v-if="recentDatePreset === 'custom'">
+              <input
+                type="date"
+                class="form-control form-control-sm"
+                style="width:140px;"
+                v-model="recentDateFrom"
+                @change="loadRecentTransactions"
+              />
+              <span class="text-muted">–</span>
+              <input
+                type="date"
+                class="form-control form-control-sm"
+                style="width:140px;"
+                v-model="recentDateTo"
+                @change="loadRecentTransactions"
+              />
+            </template>
+          </div>
+          <!-- Search -->
+          <div class="input-group input-group-sm" style="max-width:320px;">
+            <span class="input-group-text"><i class="ti ti-search"></i></span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Invoice no, customer, amount…"
+              v-model="recentSearch"
+              @input="onRecentSearchInput"
+            />
+            <button
+              v-if="recentSearch"
+              type="button"
+              class="btn btn-outline-secondary"
+              @click="recentSearch = ''; loadRecentTransactions()"
+            ><i class="ti ti-x"></i></button>
+          </div>
+        </div>
+
+        <div class="modal-body py-0" style="max-height:55vh; overflow-y:auto;">
           <div v-if="recentLoading" class="text-center py-4">
             <div class="spinner-border text-primary"></div>
           </div>
           <div v-else-if="!recentTransactions.length" class="text-center py-4 text-muted">
             <i class="ti ti-receipt-off fs-32 d-block mb-2"></i>
-            No recent transactions today
+            No transactions found
           </div>
-          <div v-else class="table-responsive">
-            <table class="table table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>Invoice No</th>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th class="text-end">Total</th>
-                  <th>Status</th>
-                  <th class="text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="txn in recentTransactions" :key="txn.id">
-                  <td class="fw-semibold">{{ txn.invoice_no }}</td>
-                  <td>{{ txn.party_name || 'Walk-in Customer' }}</td>
-                  <td>{{ txn.invoice_date }}</td>
-                  <td class="text-end fw-semibold">{{ formatMoney(txn.grand_total) }}</td>
-                  <td><span class="badge bg-success">{{ txn.status }}</span></td>
-                  <td class="text-center">
-                    <button
-                      class="btn btn-xs btn-outline-primary"
-                      :disabled="reprintLoading === txn.id"
-                      @click="reprintTransaction(txn)"
-                    >
-                      <span v-if="reprintLoading === txn.id" class="spinner-border spinner-border-sm"></span>
-                      <i v-else class="ti ti-printer"></i>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <table v-else class="table table-hover align-middle mb-0">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th>Invoice No</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Payment</th>
+                <th class="text-end">Total</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="txn in recentTransactions" :key="txn.id">
+                <td>
+                  <span class="fw-semibold">{{ txn.invoice_no }}</span>
+                  <span
+                    v-if="txn.has_returns"
+                    class="badge bg-warning text-dark ms-1"
+                    title="Has returns"
+                    style="font-size:0.65rem;"
+                  >RETURNED</span>
+                </td>
+                <td>{{ txn.party_name }}</td>
+                <td>
+                  <span>{{ txn.invoice_date }}</span>
+                  <small v-if="txn.invoice_date_bs" class="d-block text-muted" style="font-size:0.7rem;">{{ txn.invoice_date_bs }}</small>
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    :class="{
+                      'bg-success': txn.payment_method === 'cash',
+                      'bg-info': txn.payment_method === 'card',
+                      'bg-warning text-dark': txn.payment_method === 'credit',
+                      'bg-primary': txn.payment_method === 'split',
+                      'bg-secondary': !['cash','card','credit','split'].includes(txn.payment_method),
+                    }"
+                    style="font-size:0.7rem; text-transform:capitalize;"
+                  >{{ txn.payment_method }}</span>
+                </td>
+                <td class="text-end fw-semibold">{{ formatMoney(txn.grand_total) }}</td>
+                <td class="text-center" style="white-space:nowrap;">
+                  <button
+                    class="btn btn-xs btn-outline-primary"
+                    :disabled="reprintLoading === txn.id"
+                    @click="reprintTransaction(txn)"
+                    title="Reprint receipt"
+                  >
+                    <span v-if="reprintLoading === txn.id" class="spinner-border spinner-border-sm"></span>
+                    <i v-else class="ti ti-printer"></i>
+                  </button>
+                  <button
+                    class="btn btn-xs btn-outline-danger ms-1"
+                    :disabled="returnLoading === txn.id"
+                    @click="startReturn(txn)"
+                    title="Return items"
+                  >
+                    <span v-if="returnLoading === txn.id" class="spinner-border spinner-border-sm"></span>
+                    <i v-else class="ti ti-arrow-back-up"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="recentMeta.pages > 1" class="modal-body pt-2 pb-2 d-flex align-items-center justify-content-between border-top">
+          <small class="text-muted">Page {{ recentMeta.page }} of {{ recentMeta.pages }}</small>
+          <div class="d-flex gap-1">
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              :disabled="recentMeta.page <= 1"
+              @click="recentPage--; loadRecentTransactions()"
+            ><i class="ti ti-chevron-left"></i></button>
+            <button
+              class="btn btn-sm btn-outline-secondary"
+              :disabled="recentMeta.page >= recentMeta.pages"
+              @click="recentPage++; loadRecentTransactions()"
+            ><i class="ti ti-chevron-right"></i></button>
           </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       POS RETURN
+  ════════════════════════════════════════════════════════════════ -->
+  <div class="modal fade pos-modal" id="pos-return" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="ti ti-arrow-back-up me-2 text-danger"></i>
+            Process Return
+            <small v-if="returnInvoice" class="text-muted ms-2">— {{ returnInvoice.invoice_no }}</small>
+          </h5>
+          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Return result (shown after success) -->
+          <div v-if="returnResult" class="text-center py-3">
+            <div class="mb-3">
+              <i class="ti ti-check-circle text-success" style="font-size:3rem;"></i>
+            </div>
+            <h5 class="fw-bold text-success mb-1">Return Processed</h5>
+            <p class="text-muted mb-1">Credit Note: <strong>{{ returnResult.credit_note_no }}</strong></p>
+            <p class="mb-3">Refund Amount: <strong class="text-danger fs-5">{{ formatMoney(returnResult.refund_total) }}</strong></p>
+            <div class="table-responsive mb-3">
+              <table class="table table-sm align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Item</th>
+                    <th class="text-end">Qty</th>
+                    <th class="text-end">Rate</th>
+                    <th class="text-end">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in returnResult.items" :key="item.sku">
+                    <td>{{ item.name }}<br><small class="text-muted">{{ item.warehouse_name }}</small></td>
+                    <td class="text-end">{{ item.quantity }}</td>
+                    <td class="text-end">{{ formatMoney(item.rate) }}</td>
+                    <td class="text-end fw-semibold">{{ formatMoney(item.total) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+
+          <!-- Return form -->
+          <div v-else-if="returnInvoice">
+            <div class="alert alert-light border mb-3 py-2">
+              <div class="row g-2 text-sm">
+                <div class="col-4"><span class="text-muted">Invoice:</span> <strong>{{ returnInvoice.invoice_no }}</strong></div>
+                <div class="col-4"><span class="text-muted">Customer:</span> {{ returnInvoice.party_name }}</div>
+                <div class="col-4"><span class="text-muted">Total:</span> {{ formatMoney(returnInvoice.grand_total) }}</div>
+              </div>
+            </div>
+
+            <p class="text-muted small mb-2">Set return quantity to <strong>0</strong> for items you don't want to return.</p>
+
+            <div class="table-responsive mb-3">
+              <table class="table table-sm align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Item</th>
+                    <th class="text-end">Orig. Qty</th>
+                    <th class="text-end">Rate</th>
+                    <th style="width:110px;" class="text-center">Return Qty</th>
+                    <th class="text-end">Refund</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, idx) in returnItems" :key="idx">
+                    <td>
+                      <span class="fw-semibold">{{ item.name }}</span>
+                      <small class="text-muted d-block">{{ item.warehouse_name }}</small>
+                    </td>
+                    <td class="text-end">{{ item.quantity }}</td>
+                    <td class="text-end">{{ formatMoney(item.rate) }}</td>
+                    <td class="text-center">
+                      <input
+                        type="number"
+                        class="form-control form-control-sm text-center"
+                        v-model.number="item.returnQty"
+                        min="0"
+                        :max="item.quantity"
+                        style="width:80px; display:inline-block;"
+                      />
+                    </td>
+                    <td class="text-end fw-semibold" :class="item.returnQty > 0 ? 'text-danger' : 'text-muted'">
+                      {{ item.returnQty > 0 ? formatMoney(item.returnQty * item.rate) : '—' }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr class="table-light fw-bold">
+                    <td colspan="4" class="text-end">Estimated Refund:</td>
+                    <td class="text-end text-danger">{{ formatMoney(returnItems.reduce((s, i) => s + i.returnQty * i.rate, 0)) }}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Reason <small class="text-muted">(optional)</small></label>
+              <input type="text" class="form-control" v-model="returnReason" placeholder="e.g. Defective item, Customer changed mind…" maxlength="500" />
+            </div>
+          </div>
+
+          <div v-else class="text-center py-4">
+            <div class="spinner-border text-primary"></div>
+          </div>
+
+        </div>
+        <div class="modal-footer" v-if="returnInvoice && !returnResult">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            :disabled="returnSaving || returnItems.every(i => i.returnQty === 0)"
+            @click="submitReturn"
+          >
+            <span v-if="returnSaving" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="ti ti-arrow-back-up me-1"></i>
+            Process Return
+          </button>
         </div>
       </div>
     </div>
@@ -1189,7 +1554,7 @@ export default {
     tillSession:     { type: Object, default: null },
   },
 
-  emits: ['checkout', 'clear-cart', 'hold', 'restore-held-order', 'delete-held-order', 'customer-created', 'till-opened', 'till-closed'],
+  emits: ['checkout', 'clear-cart', 'hold', 'restore-held-order', 'delete-held-order', 'customer-created', 'till-opened', 'till-closed', 'vat-toggle'],
 
   data() {
     return {
@@ -1199,6 +1564,19 @@ export default {
       customerSaving: false,
       recentLoading: false,
       recentTransactions: [],
+      recentMeta: { total: 0, page: 1, limit: 50, pages: 1 },
+      recentPage: 1,
+      recentDatePreset: 'today',
+      recentDateFrom: new Date().toISOString().slice(0, 10),
+      recentDateTo: new Date().toISOString().slice(0, 10),
+      recentSearch: '',
+      recentSearchTimer: null,
+      recentPresets: [
+        { value: 'today', label: 'Today' },
+        { value: 'yesterday', label: 'Yesterday' },
+        { value: 'week', label: 'Last 7 Days' },
+        { value: 'custom', label: 'Custom' },
+      ],
       reprintSale: null,
       reprintLoading: null,
       newCustomer: { name: '', phone: '', email: '', address: '' },
@@ -1228,6 +1606,16 @@ export default {
       // Cash register summary data
       tillSummaryData: null,
       tillSummaryLoading: false,
+      // Split payment
+      splitPayments: [{ method: 'cash', amount: '' }, { method: 'card', amount: '' }],
+      splitTotal: 0,
+      // Return flow
+      returnLoading: null,
+      returnInvoice: null,
+      returnItems: [],
+      returnReason: '',
+      returnSaving: false,
+      returnResult: null,
     };
   },
 
@@ -1260,6 +1648,10 @@ export default {
       const expected = this.tillCloseData?.expected_cash ?? 0;
 
       return Math.round((Number(this.tillClosingCash) - expected) * 100) / 100;
+    },
+
+    splitAllocated() {
+      return Math.round(this.splitPayments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0) * 100) / 100;
     },
   },
 
@@ -1296,19 +1688,25 @@ export default {
       this.reprintSale = null;
     },
 
-    async doCheckout() {
+    async doCheckout(overrideMethod = null, splitPayments = null) {
       if (this.loading) { return; }
       this.loading = true;
       try {
-        await this.$emit('checkout', this.paymentMethod);
-        ['#payment-cash', '#payment-card', '#scan-payment', '#payment-generic'].forEach(sel => {
-          const el = document.querySelector(sel);
-          if (el) { Modal.getInstance(el)?.hide(); }
+        this.$emit('checkout', overrideMethod ?? this.paymentMethod, splitPayments);
+        ['payment-cash', 'payment-card', 'scan-payment', 'payment-generic', 'credit-sale', 'split-payment'].forEach(id => {
+          this.closeModal(id);
         });
         this.cashTendered = 0;
       } finally {
         this.loading = false;
       }
+    },
+
+    doSplitCheckout() {
+      const payments = this.splitPayments
+        .filter(p => parseFloat(p.amount) > 0)
+        .map(p => ({ method: p.method, amount: parseFloat(p.amount) }));
+      this.doCheckout('cash', payments);
     },
 
     doHold() {
@@ -1327,17 +1725,9 @@ export default {
         return;
       }
 
-      printWindow.document.open();
-      printWindow.document.write(`<!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <title>Receipt ${this.activeReceipt?.invoice_no ?? ''}</title>
-            <style>${RECEIPT_PRINT_STYLES}</style>
-          </head>
-          <body>${area.outerHTML}</body>
-        </html>`);
-      printWindow.document.close();
+      const doc = printWindow.document;
+      doc.head.innerHTML = `<meta charset="utf-8"><title>Receipt ${this.activeReceipt?.invoice_no ?? ''}</title><style>${RECEIPT_PRINT_STYLES}</style>`;
+      doc.body.innerHTML = area.outerHTML;
 
       const runPrint = () => {
         const images = Array.from(printWindow.document.images ?? []);
@@ -1382,18 +1772,65 @@ export default {
         const res = await apiAdmin(`pos/receipt/${txn.id}`);
         this.reprintSale = res.data.data;
         this.customerPan = this.reprintSale?.party_pan ?? '';
-        const recentsEl = document.getElementById('recents');
-        if (recentsEl) { Modal.getInstance(recentsEl)?.hide(); }
-        await this.$nextTick();
-        const printEl = document.getElementById('print-receipt');
-        if (printEl) {
-          const modal = Modal.getInstance(printEl) ?? new Modal(printEl);
-          modal.show();
-        }
+        this.closeModal('recents', () => this.openModal('print-receipt'));
       } catch (err) {
         showErrors(err);
       } finally {
         this.reprintLoading = null;
+      }
+    },
+
+    async startReturn(txn) {
+      this.returnLoading = txn.id;
+      this.returnInvoice = null;
+      this.returnItems = [];
+      this.returnResult = null;
+      this.returnReason = '';
+      try {
+        const res = await apiAdmin(`pos/receipt/${txn.id}`);
+        this.returnInvoice = res.data.data;
+        this.returnItems = res.data.data.items.map(item => ({ ...item, returnQty: 0 }));
+        this.closeModal('recents', () => this.openModal('pos-return'));
+      } catch (err) {
+        showErrors(err);
+      } finally {
+        this.returnLoading = null;
+      }
+    },
+
+    async submitReturn() {
+      if (this.returnSaving) { return; }
+
+      const items = this.returnItems
+        .filter(i => i.returnQty > 0)
+        .map(i => ({
+          invoice_item_id: i.id ?? null,
+          product_variant_id: i.product_variant_id,
+          warehouse_id: i.warehouse_id,
+          quantity: i.returnQty,
+          rate: i.rate,
+          tax_amount: i.tax_amount ?? 0,
+          discount_amount: 0,
+        }));
+
+      if (!items.length) {
+        useToast().warning('Please set a return quantity for at least one item.');
+        return;
+      }
+
+      this.returnSaving = true;
+      try {
+        const res = await apiAdmin('pos/return', 'post', {
+          invoice_id: this.returnInvoice.id,
+          items,
+          reason: this.returnReason || null,
+        });
+        this.returnResult = res.data.data;
+        useToast().success(res.data.message ?? 'Return processed successfully.');
+      } catch (err) {
+        showErrors(err);
+      } finally {
+        this.returnSaving = false;
       }
     },
 
@@ -1412,14 +1849,37 @@ export default {
         const customer = res.data.data;
         this.$emit('customer-created', customer);
         useToast().success('Customer created successfully');
-        const el = document.getElementById('create');
-        Modal.getInstance(el)?.hide();
+        this.closeModal('create');
         this.newCustomer = { name: '', phone: '', email: '', address: '' };
       } catch (err) {
         showErrors(err);
       } finally {
         this.customerSaving = false;
       }
+    },
+
+    closeModal(id, then = null) {
+      const el = document.getElementById(id);
+      if (!el) {
+        then?.();
+        return;
+      }
+      Modal.getOrCreateInstance(el).hide();
+      el.addEventListener('hidden.bs.modal', () => {
+        // Only force-clean when no other modal is still open
+        if (!document.querySelector('.modal.show')) {
+          document.querySelectorAll('.modal-backdrop').forEach((b) => b.remove());
+          document.body.classList.remove('modal-open');
+          document.body.style.paddingRight = '';
+          document.body.style.overflow = '';
+        }
+        then?.();
+      }, { once: true });
+    },
+
+    openModal(id) {
+      const el = document.getElementById(id);
+      if (el) { Modal.getOrCreateInstance(el).show(); }
     },
 
     async doOpenTill() {
@@ -1429,8 +1889,7 @@ export default {
         const res = await apiAdmin('pos/till/open', 'post', { opening_cash: this.tillOpeningCash ?? 0 });
         this.$emit('till-opened', res.data.data);
         useToast().success(res.data.message ?? 'Till opened');
-        const el = document.getElementById('till-open');
-        Modal.getInstance(el)?.hide();
+        this.closeModal('till-open');
         this.tillOpeningCash = 0;
       } catch (err) {
         showErrors(err);
@@ -1449,8 +1908,7 @@ export default {
           reason: this.movementReason || null,
         });
         useToast().success(res.data.message ?? 'Movement recorded');
-        const el = document.getElementById('cash-movement');
-        Modal.getInstance(el)?.hide();
+        this.closeModal('cash-movement');
         this.movementAmount = null;
         this.movementReason = '';
       } catch (err) {
@@ -1497,8 +1955,7 @@ export default {
         });
         this.$emit('till-closed', res.data.data);
         useToast().success('Till closed successfully');
-        const el = document.getElementById('till-close');
-        Modal.getInstance(el)?.hide();
+        this.closeModal('till-close');
         this.tillCloseData = null;
         this.tillClosingCash = null;
         this.tillCloseNotes = '';
@@ -1509,12 +1966,47 @@ export default {
       }
     },
 
+    setRecentPreset(preset) {
+      this.recentDatePreset = preset;
+      this.recentPage = 1;
+      if (preset !== 'custom') {
+        const today = new Date();
+        const fmt = d => d.toISOString().slice(0, 10);
+        if (preset === 'today') {
+          this.recentDateFrom = this.recentDateTo = fmt(today);
+        } else if (preset === 'yesterday') {
+          const y = new Date(today); y.setDate(y.getDate() - 1);
+          this.recentDateFrom = this.recentDateTo = fmt(y);
+        } else if (preset === 'week') {
+          const w = new Date(today); w.setDate(w.getDate() - 6);
+          this.recentDateFrom = fmt(w);
+          this.recentDateTo = fmt(today);
+        }
+        this.loadRecentTransactions();
+      }
+    },
+
+    onRecentSearchInput() {
+      clearTimeout(this.recentSearchTimer);
+      this.recentSearchTimer = setTimeout(() => {
+        this.recentPage = 1;
+        this.loadRecentTransactions();
+      }, 350);
+    },
+
     async loadRecentTransactions() {
       this.recentLoading = true;
       try {
-        const today = new Date().toISOString().slice(0, 10);
-        const res = await apiAdmin(`invoice?status=approved&date_from=${today}&date_to=${today}&limit=50`);
+        const params = new URLSearchParams({
+          date_from: this.recentDateFrom,
+          date_to: this.recentDateTo,
+          limit: String(this.recentMeta.limit),
+          page: String(this.recentPage),
+        });
+        if (this.recentSearch) { params.set('search', this.recentSearch); }
+        const res = await apiAdmin(`pos/transactions?${params}`);
         this.recentTransactions = res.data.data ?? [];
+        this.recentMeta = { ...this.recentMeta, ...(res.data.meta ?? {}), page: this.recentPage };
       } catch (err) {
         showErrors(err);
       } finally {

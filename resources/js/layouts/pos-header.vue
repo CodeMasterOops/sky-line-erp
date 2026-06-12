@@ -39,17 +39,20 @@
       </li>
 
       <!-- Till Status -->
-      <li class="nav-item">
+      <li
+        class="nav-item nav-item-box pos-till-nav"
+        data-bs-toggle="tooltip"
+        data-bs-placement="bottom"
+        :data-bs-title="posStore.tillSession ? 'Till Open — click to manage' : 'Till Closed — click to open'"
+      >
         <a
           href="javascript:void(0);"
           data-bs-toggle="modal"
           :data-bs-target="posStore.tillSession ? '#cash-register' : '#till-open'"
-          class="btn btn-sm d-inline-flex align-items-center gap-1"
-          :class="posStore.tillSession ? 'btn-success' : 'btn-outline-danger'"
-          style="font-size:0.75rem;"
+          :class="posStore.tillSession ? 'pos-till-open' : 'pos-till-closed'"
         >
           <i :class="posStore.tillSession ? 'ti ti-lock-open' : 'ti ti-lock'"></i>
-          <span class="d-none d-md-inline">{{ posStore.tillSession ? 'Till Open' : 'Open Till' }}</span>
+          <span v-if="!posStore.tillSession" class="pos-till-pulse"></span>
         </a>
       </li>
 
@@ -286,3 +289,46 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+/* Open state — green tint matching success */
+.pos-till-open {
+  color: #28a745 !important;
+}
+
+/* Closed state — danger red */
+.pos-till-closed {
+  color: #dc3545 !important;
+  position: relative;
+}
+
+/* Pulsing dot when till is closed */
+.pos-till-pulse {
+  background: #dc3545;
+  border-radius: 50%;
+  display: block;
+  height: 7px;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 7px;
+}
+
+.pos-till-pulse::after {
+  animation: tillPulse 1.4s ease-out infinite;
+  border: 2px solid #dc3545;
+  border-radius: 50%;
+  content: '';
+  display: block;
+  height: 100%;
+  left: -2px;
+  position: absolute;
+  top: -2px;
+  width: 100%;
+}
+
+@keyframes tillPulse {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+</style>
