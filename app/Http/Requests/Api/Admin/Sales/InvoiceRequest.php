@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Sales;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use App\Enums\TaxTypeEnum;
+use App\Enums\ChargeTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use Illuminate\Validation\Rule;
 use App\Http\Validation\ProductLineRules;
@@ -70,6 +71,13 @@ class InvoiceRequest extends FormRequest
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
+            'charges' => ['nullable', 'array'],
+            'charges.*.name' => ['required_with:charges.*', 'string', 'max:100'],
+            'charges.*.charge_type' => ['required_with:charges.*', Rule::enum(ChargeTypeEnum::class)],
+            'charges.*.account_id' => ['required_with:charges.*', TRule::exists('accounts', 'id')],
+            'charges.*.amount' => ['required_with:charges.*', 'numeric', 'min:0'],
+            'charges.*.tax_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
+            'charges.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

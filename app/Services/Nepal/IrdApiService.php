@@ -60,7 +60,7 @@ class IrdApiService
             ];
         }
 
-        $invoice->loadMissing(['invoiceItems.tax', 'party', 'fiscalYear', 'discount']);
+        $invoice->loadMissing(['invoiceItems.tax', 'party', 'fiscalYear', 'discount', 'charges']);
 
         $payload = $this->buildInvoicePayload($invoice, $company);
 
@@ -139,7 +139,10 @@ class IrdApiService
             $exemptAmount = max(0, round($exemptAmount - $orderDiscountAmount * ($exemptAmount / $totalBase), 2));
             $zeroRatedAmount = max(0, round($zeroRatedAmount - $orderDiscountAmount * ($zeroRatedAmount / $totalBase), 2));
         }
-        $grandTotal = round($vatTaxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount, 2);
+        $chargesTotal = $invoice->relationLoaded('charges')
+            ? round((float) $invoice->charges->sum(fn ($c) => (float) $c->amount + (float) $c->tax_amount), 2)
+            : 0;
+        $grandTotal = round($vatTaxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount + $chargesTotal, 2);
 
         $items = $invoice->invoiceItems->map(function ($item) {
             return [

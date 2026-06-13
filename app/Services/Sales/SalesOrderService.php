@@ -69,6 +69,8 @@ readonly class SalesOrderService
                 }
             }
 
+            $this->syncCharges($order, $formData['charges'] ?? []);
+
             return $order;
         });
     }
@@ -115,7 +117,28 @@ readonly class SalesOrderService
                     );
                 }
             }
+
+            $this->syncCharges($salesOrder, $formData['charges'] ?? []);
         });
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $charges
+     */
+    private function syncCharges(SalesOrder $salesOrder, array $charges): void
+    {
+        $salesOrder->charges()->delete();
+
+        foreach ($charges as $charge) {
+            $salesOrder->charges()->create([
+                'name' => $charge['name'],
+                'charge_type' => $charge['charge_type'],
+                'account_id' => $charge['account_id'],
+                'amount' => $charge['amount'] ?? 0,
+                'tax_id' => $charge['tax_id'] ?? null,
+                'tax_amount' => $charge['tax_amount'] ?? 0,
+            ]);
+        }
     }
 
     public function approveSalesOrder(SalesOrder $salesOrder): void

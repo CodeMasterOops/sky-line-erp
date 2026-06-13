@@ -48,20 +48,24 @@ class CreditNoteGlPostingService
             return;
         }
 
-        $creditNote->loadMissing('creditNoteItems', 'discount');
+        $creditNote->loadMissing('creditNoteItems', 'discount', 'charges');
 
         $lineBase = (float) $creditNote->creditNoteItems
             ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount);
         $orderDiscountAmount = (float) ($creditNote->discount?->amount ?? 0);
         $salesBase = round($lineBase - $orderDiscountAmount, 2);
         $vatAmount = round((float) $creditNote->creditNoteItems->sum('tax_amount'), 2);
-        $grandTotal = round($salesBase + $vatAmount, 2);
+
+        $chargesBase = round((float) $creditNote->charges->sum('amount'), 2);
+        $chargesVat = round((float) $creditNote->charges->sum('tax_amount'), 2);
+
+        $grandTotal = round($salesBase + $vatAmount + $chargesBase + $chargesVat, 2);
 
         if ($grandTotal <= 0) {
             return;
         }
 
-        $this->glAccountGuard->assertSalesPostable($vatAmount > 0);
+        $this->glAccountGuard->assertSalesPostable($vatAmount > 0 || $chargesVat > 0);
         $this->periodGuard->assertPostable($creditNote->company_id, $creditNote->fiscal_year_id, $creditNote->credit_note_date);
 
         $settings = AccountSetting::withoutGlobalScopes()
@@ -92,7 +96,7 @@ class CreditNoteGlPostingService
         $voucherNo = 'SRET-JV-'.$creditNote->id.($yearCode ? '/'.$yearCode : '');
 
         DB::transaction(function () use (
-            $creditNote, $grandTotal, $salesBase, $vatAmount,
+            $creditNote, $grandTotal, $salesBase, $vatAmount, $chargesVat,
             $receivableAccountId, $salesAccountId, $vatAccountId,
             $user, $company, $voucherNo
         ) {
@@ -112,7 +116,7 @@ class CreditNoteGlPostingService
                 'status' => StatusEnum::APPROVED,
             ]);
 
-            // DR Sales Revenue — reverse the recognised sale (net of VAT)
+            // DR Sales Revenue — reverse the recognised sale (line items, net of VAT)
             JournalItem::create([
                 'journal_id' => $journal->id,
                 'account_id' => $salesAccountId,
@@ -121,20 +125,36 @@ class CreditNoteGlPostingService
                 'remarks' => 'Sales return – '.$creditNote->credit_note_no,
             ]);
 
-            // DR VAT Output — reverse the output VAT charged on the sale
-            if ($vatAmount > 0 && $vatAccountId) {
+            // DR per-charge income accounts — reverse recognised charge revenue
+            foreach ($creditNote->charges as $charge) {
+                $chargeAmount = round((float) $charge->amount, 2);
+                if ($chargeAmount > 0) {
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $charge->account_id,
+                        'dr_amount' => $chargeAmount,
+                        'cr_amount' => 0,
+                        'remarks' => $charge->name.' reversed – '.$creditNote->credit_note_no,
+                    ]);
+                }
+            }
+
+            // DR VAT Output — reverse line VAT + charges VAT
+            $totalVatAmount = round($vatAmount + $chargesVat, 2);
+
+            if ($totalVatAmount > 0 && $vatAccountId) {
                 JournalItem::create([
                     'journal_id' => $journal->id,
                     'account_id' => $vatAccountId,
-                    'dr_amount' => $vatAmount,
+                    'dr_amount' => $totalVatAmount,
                     'cr_amount' => 0,
                     'remarks' => 'VAT reversed – '.$creditNote->credit_note_no,
                 ]);
-            } elseif ($vatAmount > 0) {
+            } elseif ($totalVatAmount > 0) {
                 JournalItem::withoutGlobalScopes()
                     ->where('journal_id', $journal->id)
                     ->where('account_id', $salesAccountId)
-                    ->increment('dr_amount', $vatAmount);
+                    ->increment('dr_amount', $totalVatAmount);
             }
 
             // CR Accounts Receivable — reduce what the customer owes

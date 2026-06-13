@@ -69,6 +69,8 @@ readonly class QuotationService
                 }
             }
 
+            $this->syncCharges($quotation, $formData['charges'] ?? []);
+
             return $quotation;
         });
     }
@@ -115,7 +117,28 @@ readonly class QuotationService
                     );
                 }
             }
+
+            $this->syncCharges($quotation, $formData['charges'] ?? []);
         });
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $charges
+     */
+    private function syncCharges(Quotation $quotation, array $charges): void
+    {
+        $quotation->charges()->delete();
+
+        foreach ($charges as $charge) {
+            $quotation->charges()->create([
+                'name' => $charge['name'],
+                'charge_type' => $charge['charge_type'],
+                'account_id' => $charge['account_id'],
+                'amount' => $charge['amount'] ?? 0,
+                'tax_id' => $charge['tax_id'] ?? null,
+                'tax_amount' => $charge['tax_amount'] ?? 0,
+            ]);
+        }
     }
 
     public function approveQuotation(Quotation $quotation): void

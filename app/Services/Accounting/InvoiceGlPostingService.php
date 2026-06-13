@@ -47,14 +47,16 @@ class InvoiceGlPostingService
             return;
         }
 
-        $invoice->loadMissing(['invoiceItems', 'discount']);
+        $invoice->loadMissing(['invoiceItems', 'discount', 'charges']);
 
         $hasTax = $invoice->invoiceItems
             ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
             ->sum('tax_amount') > 0;
 
+        $chargesHaveTax = (float) $invoice->charges->sum('tax_amount') > 0;
+
         // Throws ValidationException when required accounts are not configured.
-        $this->glAccountGuard->assertSalesPostable($hasTax);
+        $this->glAccountGuard->assertSalesPostable($hasTax || $chargesHaveTax);
 
         $settings = AccountSetting::withoutGlobalScopes()
             ->where('company_id', $invoice->company_id)
@@ -78,7 +80,11 @@ class InvoiceGlPostingService
 
         $orderDiscountAmount = round((float) ($invoice->discount?->amount ?? 0), 2);
         $salesBase = round($vatTaxableBase + $nonVatBase - $orderDiscountAmount, 2);
-        $grandTotal = round($salesBase + $vatAmount, 2);
+
+        $chargesBase = round((float) $invoice->charges->sum('amount'), 2);
+        $chargesVat = round((float) $invoice->charges->sum('tax_amount'), 2);
+
+        $grandTotal = round($salesBase + $vatAmount + $chargesBase + $chargesVat, 2);
 
         if ($grandTotal <= 0) {
             return;
@@ -110,7 +116,7 @@ class InvoiceGlPostingService
         $voucherNo = 'SALE-JV-'.$invoice->id.($yearCode ? '/'.$yearCode : '');
 
         DB::transaction(function () use (
-            $invoice, $grandTotal, $salesBase, $vatAmount,
+            $invoice, $grandTotal, $salesBase, $vatAmount, $chargesVat,
             $receivableAccountId, $salesAccountId, $vatAccountId,
             $user, $company, $voucherNo
         ) {
@@ -141,7 +147,7 @@ class InvoiceGlPostingService
                 'remarks' => 'Accounts receivable – '.$invoice->invoice_no,
             ]);
 
-            // CR Sales Revenue — net of VAT
+            // CR Sales Revenue — net of VAT (line items only)
             JournalItem::create([
                 'journal_id' => $journal->id,
                 'account_id' => $salesAccountId,
@@ -150,24 +156,39 @@ class InvoiceGlPostingService
                 'remarks' => 'Sales revenue – '.$invoice->invoice_no,
             ]);
 
-            // CR VAT Output — only when VAT amount > 0 and vat_account is configured.
-            // GlAccountConfigGuard ensures vat_account_id is set when hasTax is true,
-            // so the elseif branch here is only reached for edge cases (e.g. VAT rounding
-            // producing a tiny amount when assertSalesPostable was called with hasTax=false).
-            if ($vatAmount > 0 && $vatAccountId) {
+            // CR per-charge income accounts
+            foreach ($invoice->charges as $charge) {
+                $chargeAmount = round((float) $charge->amount, 2);
+                if ($chargeAmount > 0) {
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $charge->account_id,
+                        'dr_amount' => 0,
+                        'cr_amount' => $chargeAmount,
+                        'remarks' => $charge->name.' – '.$invoice->invoice_no,
+                    ]);
+                }
+            }
+
+            // CR VAT Output — line VAT + charges VAT combined
+            $totalVatAmount = round($vatAmount + $chargesVat, 2);
+
+            // GlAccountConfigGuard ensures vat_account_id is set when assertSalesPostable
+            // receives true, so the elseif branch handles only edge-case VAT rounding.
+            if ($totalVatAmount > 0 && $vatAccountId) {
                 JournalItem::create([
                     'journal_id' => $journal->id,
                     'account_id' => $vatAccountId,
                     'dr_amount' => 0,
-                    'cr_amount' => $vatAmount,
+                    'cr_amount' => $totalVatAmount,
                     'remarks' => 'Output VAT – '.$invoice->invoice_no,
                 ]);
-            } elseif ($vatAmount > 0) {
+            } elseif ($totalVatAmount > 0) {
                 // Fold residual VAT rounding into sales line to keep journal balanced.
                 JournalItem::withoutGlobalScopes()
                     ->where('journal_id', $journal->id)
                     ->where('account_id', $salesAccountId)
-                    ->increment('cr_amount', $vatAmount);
+                    ->increment('cr_amount', $totalVatAmount);
             }
 
             $this->balanceGuard->assertBalanced($journal);

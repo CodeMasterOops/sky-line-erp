@@ -103,6 +103,8 @@ readonly class InvoiceService
                 }
             }
 
+            $this->syncCharges($invoice, $formData['charges'] ?? []);
+
             if ($status === StatusEnum::APPROVED->value) {
                 $invoice->refresh();
                 $this->createJournal($invoice);
@@ -168,6 +170,8 @@ readonly class InvoiceService
                     );
                 }
             }
+
+            $this->syncCharges($invoice, $formData['charges'] ?? []);
         });
     }
 
@@ -255,6 +259,25 @@ readonly class InvoiceService
     private function createJournal(Invoice $invoice): void
     {
         $this->invoiceGlService->postFromInvoice($invoice);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $charges
+     */
+    private function syncCharges(Invoice $invoice, array $charges): void
+    {
+        $invoice->charges()->delete();
+
+        foreach ($charges as $charge) {
+            $invoice->charges()->create([
+                'name' => $charge['name'],
+                'charge_type' => $charge['charge_type'],
+                'account_id' => $charge['account_id'],
+                'amount' => $charge['amount'] ?? 0,
+                'tax_id' => $charge['tax_id'] ?? null,
+                'tax_amount' => $charge['tax_amount'] ?? 0,
+            ]);
+        }
     }
 
     /**

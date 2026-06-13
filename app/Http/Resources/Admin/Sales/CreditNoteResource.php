@@ -41,6 +41,8 @@ class CreditNoteResource extends JsonResource
             'tax_total' => $totals['tax_total'],
             'grand_total' => $totals['grand_total'],
             'items' => CreditNoteItemResource::collection($this->whenLoaded('creditNoteItems')),
+            'charges' => CreditNoteChargeResource::collection($this->whenLoaded('charges')),
+            'charges_total' => $totals['charges_total'],
         ];
     }
 
@@ -48,13 +50,18 @@ class CreditNoteResource extends JsonResource
     {
         $orderDiscountAmount = (float) ($this->discount?->amount ?? 0);
 
+        $chargesTotal = $this->relationLoaded('charges')
+            ? round((float) $this->charges->sum(fn ($c) => (float) $c->amount + (float) $c->tax_amount), 2)
+            : 0;
+
         if (! $this->relationLoaded('creditNoteItems')) {
             return [
                 'subtotal' => 0,
                 'discount_total' => 0,
                 'order_discount_amount' => round($orderDiscountAmount, 2),
                 'tax_total' => 0,
-                'grand_total' => 0,
+                'charges_total' => $chargesTotal,
+                'grand_total' => $chargesTotal,
             ];
         }
 
@@ -69,13 +76,14 @@ class CreditNoteResource extends JsonResource
             $taxTotal += (float) $item->tax_amount;
         }
 
-        $grandTotal = $subtotal - $discountTotal - $orderDiscountAmount + $taxTotal;
+        $grandTotal = $subtotal - $discountTotal - $orderDiscountAmount + $taxTotal + $chargesTotal;
 
         return [
             'subtotal' => round($subtotal, 2),
             'discount_total' => round($discountTotal, 2),
             'order_discount_amount' => round($orderDiscountAmount, 2),
             'tax_total' => round($taxTotal, 2),
+            'charges_total' => $chargesTotal,
             'grand_total' => round($grandTotal, 2),
         ];
     }

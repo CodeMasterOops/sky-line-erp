@@ -74,6 +74,11 @@ class CreditNote extends Model
         return $this->hasMany(CreditNoteItem::class);
     }
 
+    public function charges(): HasMany
+    {
+        return $this->hasMany(CreditNoteCharge::class);
+    }
+
     public function stockMovements(): MorphMany
     {
         return $this->morphMany(StockMovement::class, 'reference');

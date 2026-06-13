@@ -34,6 +34,10 @@ class QuotationResource extends JsonResource
             'sales_order_count' => $this->whenCounted('salesOrders'),
             'invoice_count' => $this->whenCounted('invoices'),
             'items' => QuotationItemResource::collection($this->whenLoaded('quotationItems')),
+            'charges' => QuotationChargeResource::collection($this->whenLoaded('charges')),
+            'charges_total' => $this->relationLoaded('charges')
+                ? round((float) $this->charges->sum(fn ($c) => (float) $c->amount + (float) $c->tax_amount), 2)
+                : 0,
         ];
     }
 }

@@ -108,6 +108,8 @@ class CreditNoteController extends Controller
                     }
                 }
 
+                $this->syncCharges($creditNote, $formData['charges'] ?? []);
+
                 if ($status === StatusEnum::APPROVED->value) {
                     $creditNote->refresh();
                     $this->applyInventoryForApprovedCreditNote($creditNote, $user->company, $user);
@@ -130,6 +132,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([
@@ -150,6 +153,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'charges.tax',
         ]);
 
         return CreditNoteResource::make($creditNote);
@@ -216,6 +220,8 @@ class CreditNoteController extends Controller
                 }
             }
 
+            $this->syncCharges($creditNote, $formData['charges'] ?? []);
+
             return $creditNote;
         });
 
@@ -226,6 +232,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([
@@ -298,6 +305,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([
@@ -351,12 +359,32 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([
             'data' => CreditNoteResource::make($creditNote),
             'message' => 'Credit Note Approved Successfully',
         ]);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $charges
+     */
+    private function syncCharges(CreditNote $creditNote, array $charges): void
+    {
+        $creditNote->charges()->delete();
+
+        foreach ($charges as $charge) {
+            $creditNote->charges()->create([
+                'name' => $charge['name'],
+                'charge_type' => $charge['charge_type'],
+                'account_id' => $charge['account_id'],
+                'amount' => $charge['amount'] ?? 0,
+                'tax_id' => $charge['tax_id'] ?? null,
+                'tax_amount' => $charge['tax_amount'] ?? 0,
+            ]);
+        }
     }
 
     private function applyInventoryForApprovedCreditNote(CreditNote $creditNote, \App\Models\Company $company, \App\Models\User $user): void

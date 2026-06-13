@@ -64,6 +64,11 @@ class Quotation extends Model
         return $this->hasMany(QuotationItem::class);
     }
 
+    public function charges(): HasMany
+    {
+        return $this->hasMany(QuotationCharge::class);
+    }
+
     public function salesOrders(): HasMany
     {
         return $this->hasMany(SalesOrder::class);

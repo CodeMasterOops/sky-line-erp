@@ -46,6 +46,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([
@@ -68,6 +69,7 @@ class InvoiceController extends Controller
             'invoiceItems.tax',
             'invoiceItems.warehouse',
             'receiptAllocations.receipt',
+            'charges.tax',
         ]);
 
         return InvoiceResource::make($invoice);
@@ -100,6 +102,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([
@@ -155,6 +158,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([
@@ -191,6 +195,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'charges.tax',
         ]);
 
         return response()->json([

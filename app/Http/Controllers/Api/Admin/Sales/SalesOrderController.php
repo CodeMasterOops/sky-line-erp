@@ -47,6 +47,7 @@ class SalesOrderController extends Controller
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
+            'charges',
         ]);
 
         return response()->json([
@@ -89,6 +90,7 @@ class SalesOrderController extends Controller
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
+            'charges',
         ]);
 
         return SalesOrderResource::make($salesOrder);
@@ -114,6 +116,7 @@ class SalesOrderController extends Controller
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
+            'charges',
         ]);
 
         return response()->json([
@@ -162,6 +165,7 @@ class SalesOrderController extends Controller
             'salesOrderItems.productVariant.product',
             'salesOrderItems.unit',
             'salesOrderItems.tax',
+            'charges',
         ]);
 
         return response()->json([

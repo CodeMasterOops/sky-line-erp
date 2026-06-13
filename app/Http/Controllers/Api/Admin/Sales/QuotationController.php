@@ -43,6 +43,7 @@ class QuotationController extends Controller
             'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
+            'charges',
         ]);
 
         return response()->json([
@@ -61,6 +62,7 @@ class QuotationController extends Controller
             'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
+            'charges',
         ]);
 
         return QuotationResource::make($quotation);
@@ -84,6 +86,7 @@ class QuotationController extends Controller
             'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
+            'charges',
         ]);
 
         return response()->json([
@@ -130,6 +133,7 @@ class QuotationController extends Controller
             'discount', 'quotationItems.discount', 'quotationItems.productVariant.product',
             'quotationItems.unit',
             'quotationItems.tax',
+            'charges',
         ]);
 
         return response()->json([
