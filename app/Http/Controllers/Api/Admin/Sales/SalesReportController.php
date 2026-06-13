@@ -8,9 +8,12 @@ use App\Models\Invoice;
 use App\Enums\StatusEnum;
 use App\Models\InvoiceItem;
 use App\Enums\PartyTypeEnum;
+use App\Models\TdsDeduction;
 use Illuminate\Http\Request;
+use App\Enums\TaxLineTypeEnum;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
+use App\Models\ReceiptAllocation;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
@@ -404,6 +407,384 @@ class SalesReportController extends Controller
         }
 
         return $variant->sku ? 'Variant '.$variant->sku : 'Variant #'.$variant->id;
+    }
+
+    /**
+     * @Permissions("sales_aging_report", group="sales_report", desc="Sales Aging Report")
+     */
+    public function aging(Request $request)
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $asOf = $request->filled('as_of_date') ? Carbon::parse($request->as_of_date) : Carbon::today();
+
+        $invoices = Invoice::with(['party', 'invoiceItems', 'discount'])
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->get()
+            ->filter(function (Invoice $invoice) {
+                $totals = $this->calculateInvoiceTotals($invoice);
+                $paid = $invoice->receiptAllocations()->sum('amount');
+
+                return round($totals['grand_total'] - $paid, 2) > 0;
+            });
+
+        $rows = $invoices->map(function (Invoice $invoice) use ($asOf) {
+            $totals = $this->calculateInvoiceTotals($invoice);
+            $paid = round((float) $invoice->receiptAllocations()->sum('amount'), 2);
+            $outstanding = round($totals['grand_total'] - $paid, 2);
+            $dueDate = $invoice->due_date
+                ? Carbon::parse($invoice->due_date)
+                : Carbon::parse($invoice->invoice_date)->addDays(30);
+            $daysOverdue = (int) max(0, $asOf->diffInDays($dueDate, false) * -1);
+
+            return [
+                'invoice_no' => $invoice->invoice_no,
+                'party_id' => $invoice->party_id,
+                'party_name' => $invoice->party?->name ?? '-',
+                'invoice_date' => $invoice->invoice_date,
+                'due_date' => $dueDate->toDateString(),
+                'days_overdue' => $daysOverdue,
+                'outstanding' => $outstanding,
+                'bucket' => $this->agingBucket($daysOverdue),
+            ];
+        })->sortByDesc('days_overdue')->values();
+
+        return response()->json([
+            'data' => [
+                'as_of' => $asOf->toDateString(),
+                'rows' => $rows->all(),
+                'buckets' => [
+                    'current' => round($rows->where('bucket', 'current')->sum('outstanding'), 2),
+                    '1_30' => round($rows->where('bucket', '1_30')->sum('outstanding'), 2),
+                    '31_60' => round($rows->where('bucket', '31_60')->sum('outstanding'), 2),
+                    '61_90' => round($rows->where('bucket', '61_90')->sum('outstanding'), 2),
+                    'over_90' => round($rows->where('bucket', 'over_90')->sum('outstanding'), 2),
+                    'total' => round($rows->sum('outstanding'), 2),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @Permissions("party_statement_report", group="sales_report", desc="Party Statement")
+     */
+    public function partyStatement(Request $request)
+    {
+        $request->validate([
+            'party_id' => ['required', 'exists:parties,id'],
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date'],
+        ]);
+
+        $companyId = auth('admin')->user()->company_id;
+        $partyId = (int) $request->party_id;
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+
+        $party = Party::findOrFail($partyId);
+
+        $invoices = Invoice::with(['invoiceItems', 'discount'])
+            ->where('company_id', $companyId)
+            ->where('party_id', $partyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->whereBetween('invoice_date', [$fromDate, $toDate])
+            ->orderBy('invoice_date')
+            ->orderBy('id')
+            ->get();
+
+        $receipts = ReceiptAllocation::query()
+            ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
+            ->join('invoices', 'invoices.id', '=', 'receipt_allocations.invoice_id')
+            ->where('receipts.company_id', $companyId)
+            ->where('invoices.party_id', $partyId)
+            ->where('receipts.status', StatusEnum::APPROVED->value)
+            ->whereBetween('receipts.receipt_date', [$fromDate, $toDate])
+            ->select([
+                'receipt_allocations.*',
+                'receipts.receipt_no',
+                'receipts.receipt_date',
+                'invoices.invoice_no as ref_invoice_no',
+            ])
+            ->orderBy('receipts.receipt_date')
+            ->orderBy('receipts.id')
+            ->get();
+
+        $entries = collect();
+
+        foreach ($invoices as $invoice) {
+            $totals = $this->calculateInvoiceTotals($invoice);
+            $entries->push([
+                'date' => $invoice->invoice_date,
+                'type' => 'invoice',
+                'reference' => $invoice->invoice_no,
+                'description' => 'Invoice',
+                'debit' => $totals['grand_total'],
+                'credit' => 0,
+            ]);
+        }
+
+        foreach ($receipts as $receipt) {
+            $entries->push([
+                'date' => $receipt->receipt_date,
+                'type' => 'receipt',
+                'reference' => $receipt->receipt_no,
+                'description' => 'Receipt for '.$receipt->ref_invoice_no,
+                'debit' => 0,
+                'credit' => (float) $receipt->amount,
+            ]);
+        }
+
+        $entries = $entries->sortBy(['date', 'type'])->values();
+
+        $runningBalance = 0.0;
+        $rows = $entries->map(function (array $entry) use (&$runningBalance) {
+            $runningBalance += $entry['debit'] - $entry['credit'];
+
+            return array_merge($entry, ['balance' => round($runningBalance, 2)]);
+        });
+
+        return response()->json([
+            'data' => [
+                'party' => ['id' => $party->id, 'name' => $party->name, 'pan' => $party->pan ?? ''],
+                'period' => $this->buildPeriod($request),
+                'rows' => $rows->all(),
+                'summary' => [
+                    'total_invoiced' => round($rows->sum('debit'), 2),
+                    'total_received' => round($rows->sum('credit'), 2),
+                    'closing_balance' => round($runningBalance, 2),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @Permissions("vat_register_report", group="sales_report", desc="VAT Register (D1/D2)")
+     */
+    public function vatRegister(Request $request)
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+
+        $invoices = Invoice::with(['party', 'invoiceItems', 'discount'])
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->whereBetween('invoice_date', [$fromDate, $toDate])
+            ->orderBy('invoice_date')
+            ->orderBy('id')
+            ->get();
+
+        $taxable = collect();
+        $exempt = collect();
+        $zeroRated = collect();
+
+        foreach ($invoices as $invoice) {
+            $taxableAmount = 0.0;
+            $vatAmount = 0.0;
+            $exemptAmount = 0.0;
+            $zeroRatedAmount = 0.0;
+            $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
+            $itemCount = $invoice->invoiceItems->count();
+            $perItemDiscount = $itemCount > 0 ? $orderDiscountAmount / $itemCount : 0;
+
+            foreach ($invoice->invoiceItems as $item) {
+                $lineBase = ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount - $perItemDiscount;
+                $lineType = $item->tax_line_type ?? TaxLineTypeEnum::TAXABLE;
+
+                if ($lineType === TaxLineTypeEnum::TAXABLE || $lineType?->value === 'taxable') {
+                    $taxableAmount += $lineBase;
+                    $vatAmount += (float) $item->tax_amount;
+                } elseif ($lineType === TaxLineTypeEnum::EXEMPT || $lineType?->value === 'exempt') {
+                    $exemptAmount += $lineBase;
+                } elseif ($lineType === TaxLineTypeEnum::ZERO_RATED || $lineType?->value === 'zero_rated') {
+                    $zeroRatedAmount += $lineBase;
+                }
+            }
+
+            $row = [
+                'invoice_no' => $invoice->invoice_no,
+                'invoice_date' => $invoice->invoice_date,
+                'party_name' => $invoice->party?->name ?? '-',
+                'party_pan' => $invoice->party?->pan ?? '-',
+            ];
+
+            if ($taxableAmount > 0 || $vatAmount > 0) {
+                $taxable->push(array_merge($row, [
+                    'taxable_amount' => round($taxableAmount, 2),
+                    'vat_amount' => round($vatAmount, 2),
+                ]));
+            }
+
+            if ($exemptAmount > 0) {
+                $exempt->push(array_merge($row, ['amount' => round($exemptAmount, 2)]));
+            }
+
+            if ($zeroRatedAmount > 0) {
+                $zeroRated->push(array_merge($row, ['amount' => round($zeroRatedAmount, 2)]));
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'period' => $this->buildPeriod($request),
+                'taxable_sales' => $taxable->all(),
+                'exempt_sales' => $exempt->all(),
+                'zero_rated_sales' => $zeroRated->all(),
+                'totals' => [
+                    'taxable' => round($taxable->sum('taxable_amount'), 2),
+                    'vat' => round($taxable->sum('vat_amount'), 2),
+                    'exempt' => round($exempt->sum('amount'), 2),
+                    'zero_rated' => round($zeroRated->sum('amount'), 2),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @Permissions("tds_register_report", group="sales_report", desc="TDS Register")
+     */
+    public function tdsRegister(Request $request)
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+
+        $deductions = TdsDeduction::with(['party', 'fiscalYear'])
+            ->where('company_id', $companyId)
+            ->whereBetween('created_at', [$fromDate.' 00:00:00', $toDate.' 23:59:59'])
+            ->orderBy('created_at')
+            ->get();
+
+        $rows = $deductions->map(function (TdsDeduction $d, int $index) {
+            return [
+                'sn' => $index + 1,
+                'party_name' => $d->party?->name ?? '-',
+                'party_pan' => $d->party?->pan ?? '-',
+                'tds_category' => $d->tds_category?->value ?? '-',
+                'tds_category_label' => $d->tds_category?->label() ?? '-',
+                'base_amount' => (float) $d->base_amount,
+                'tds_rate' => (float) $d->tds_rate,
+                'tds_amount' => (float) $d->tds_amount,
+                'period_month' => $d->period_month,
+                'date' => $d->created_at?->toDateString(),
+            ];
+        })->values();
+
+        $byParty = $deductions->groupBy('party_id')->map(function ($group) {
+            $party = $group->first()?->party;
+
+            return [
+                'party_name' => $party?->name ?? '-',
+                'party_pan' => $party?->pan ?? '-',
+                'total_base' => round($group->sum('base_amount'), 2),
+                'total_tds' => round($group->sum('tds_amount'), 2),
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'data' => [
+                'period' => $this->buildPeriod($request),
+                'rows' => $rows->all(),
+                'by_party' => $byParty,
+                'summary' => [
+                    'total_base_amount' => round($deductions->sum('base_amount'), 2),
+                    'total_tds_amount' => round($deductions->sum('tds_amount'), 2),
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @Permissions("customer_outstanding_report", group="sales_report", desc="Customer Outstanding Report")
+     */
+    public function outstanding(Request $request)
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $asOf = $request->filled('as_of_date') ? Carbon::parse($request->as_of_date)->toDateString() : Carbon::today()->toDateString();
+
+        $invoices = Invoice::with(['party', 'invoiceItems', 'discount', 'receiptAllocations.receipt'])
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->where('invoice_date', '<=', $asOf)
+            ->get();
+
+        $grouped = $invoices->groupBy('party_id');
+
+        $rows = $grouped->map(function ($partyInvoices) {
+            $party = $partyInvoices->first()?->party;
+            $totalInvoiced = 0.0;
+            $totalReceived = 0.0;
+            $totalTdsDeducted = 0.0;
+            $oldestUnpaid = null;
+
+            foreach ($partyInvoices as $invoice) {
+                $totals = $this->calculateInvoiceTotals($invoice);
+                $totalInvoiced += $totals['grand_total'];
+
+                $paid = 0.0;
+                foreach ($invoice->receiptAllocations as $allocation) {
+                    if ($allocation->receipt?->status === StatusEnum::APPROVED) {
+                        $paid += (float) $allocation->amount;
+                        $totalTdsDeducted += (float) ($allocation->tds_deducted ?? 0);
+                    }
+                }
+                $totalReceived += $paid;
+
+                $due = $totals['grand_total'] - $paid;
+                if ($due > 0) {
+                    $date = $invoice->invoice_date;
+                    if ($oldestUnpaid === null || $date < $oldestUnpaid) {
+                        $oldestUnpaid = $date;
+                    }
+                }
+            }
+
+            return [
+                'party_id' => $party?->id,
+                'party_name' => $party?->name ?? '-',
+                'party_pan' => $party?->pan ?? '-',
+                'total_invoiced' => round($totalInvoiced, 2),
+                'total_received' => round($totalReceived, 2),
+                'tds_deducted' => round($totalTdsDeducted, 2),
+                'net_outstanding' => round($totalInvoiced - $totalReceived, 2),
+                'oldest_unpaid_date' => $oldestUnpaid,
+            ];
+        })->values()->filter(fn ($r) => $r['net_outstanding'] > 0)->sortByDesc('net_outstanding')->values();
+
+        return response()->json([
+            'data' => [
+                'as_of' => $asOf,
+                'rows' => $rows->all(),
+                'summary' => [
+                    'total_invoiced' => round($rows->sum('total_invoiced'), 2),
+                    'total_received' => round($rows->sum('total_received'), 2),
+                    'tds_deducted' => round($rows->sum('tds_deducted'), 2),
+                    'net_outstanding' => round($rows->sum('net_outstanding'), 2),
+                ],
+            ],
+        ]);
+    }
+
+    private function agingBucket(int $daysOverdue): string
+    {
+        if ($daysOverdue <= 0) {
+            return 'current';
+        }
+        if ($daysOverdue <= 30) {
+            return '1_30';
+        }
+        if ($daysOverdue <= 60) {
+            return '31_60';
+        }
+        if ($daysOverdue <= 90) {
+            return '61_90';
+        }
+
+        return 'over_90';
     }
 
     private function resolveFromDate(Request $request): Carbon

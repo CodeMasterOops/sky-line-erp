@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use App\Enums\PartyTypeEnum;
+use App\Enums\PaymentTermsEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -25,13 +26,19 @@ class Party extends Model
         'pan',
         'address',
         'credit_limit',
+        'payment_terms',
+        'credit_days',
+        'custom_days',
         'is_active',
     ];
 
     protected $casts = [
         'type' => PartyTypeEnum::class,
+        'payment_terms' => PaymentTermsEnum::class,
         'is_active' => 'boolean',
         'credit_limit' => 'float',
+        'credit_days' => 'integer',
+        'custom_days' => 'integer',
     ];
 
     public function scopeFilter($query, $param = [])

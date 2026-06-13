@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin;
 
 use App\Tenancy\TRule;
 use App\Enums\PartyTypeEnum;
+use App\Enums\PaymentTermsEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
@@ -22,6 +23,9 @@ class PartyRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'credit_limit' => ['nullable', 'numeric'],
+            'payment_terms' => ['nullable', Rule::enum(PaymentTermsEnum::class)],
+            'credit_days' => ['nullable', 'integer', 'min:0'],
+            'custom_days' => ['nullable', 'integer', 'min:1', 'required_if:payment_terms,custom'],
             'discount_type' => ['nullable', Rule::enum(AmountOrPercentDiscountTypeEnum::class)],
             'discount_value' => ['nullable', 'numeric', 'min:0'],
         ];

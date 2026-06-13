@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Models\Party;
 use App\Models\Invoice;
 use App\Enums\StatusEnum;
 use App\Models\Quotation;
@@ -11,6 +12,7 @@ use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
+use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalVoidService;
 use App\Services\Accounting\GlAccountConfigGuard;
 use App\Services\Accounting\InvoiceGlPostingService;
@@ -36,6 +38,8 @@ readonly class InvoiceService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
+
+        $this->assertCreditLimitNotExceeded($formData, $user->company_id);
 
         $invoice = DB::transaction(function () use ($formData, $reference, $user, $status, $fiscalYearId, $setting) {
             // Generated inside the transaction so the per-fiscal-year lock the
@@ -249,6 +253,61 @@ readonly class InvoiceService
                 $user->id,
                 $invoice->remarks,
             );
+        }
+    }
+
+    /**
+     * Prevent creating an invoice that would push the party's outstanding balance over their credit limit.
+     *
+     * @param  array<string, mixed>  $formData
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    private function assertCreditLimitNotExceeded(array $formData, int $companyId): void
+    {
+        $partyId = $formData['party_id'] ?? null;
+        if (! $partyId) {
+            return;
+        }
+
+        $party = Party::find($partyId);
+        if (! $party || $party->credit_limit <= 0) {
+            return;
+        }
+
+        $invoiceTotal = collect($formData['items'] ?? [])->sum(function (array $item) {
+            return ((float) $item['quantity'] * (float) $item['rate'])
+                + (float) ($item['tax_amount'] ?? 0)
+                - (float) ($item['discount_amount'] ?? 0);
+        });
+
+        $chargesTotal = collect($formData['charges'] ?? [])->sum(function (array $charge) {
+            return (float) ($charge['amount'] ?? 0) + (float) ($charge['tax_amount'] ?? 0);
+        });
+
+        $invoiceTotal += $chargesTotal;
+
+        $outstanding = Invoice::where('company_id', $companyId)
+            ->where('party_id', $partyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->get()
+            ->sum(function (Invoice $inv) {
+                $total = $inv->invoiceItems()->sum(DB::raw('(quantity * rate) + tax_amount - discount_amount'));
+                $paid = $inv->receiptAllocations()->sum('amount');
+
+                return max(0, $total - $paid);
+            });
+
+        if ($outstanding + $invoiceTotal > $party->credit_limit) {
+            throw ValidationException::withMessages([
+                'party_id' => sprintf(
+                    'Credit limit exceeded. Party credit limit: %s, Current outstanding: %s, This invoice: %s.',
+                    number_format($party->credit_limit, 2),
+                    number_format($outstanding, 2),
+                    number_format($invoiceTotal, 2),
+                ),
+            ]);
         }
     }
 

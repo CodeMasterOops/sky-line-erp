@@ -24,6 +24,11 @@ Route::prefix('sales-report')->as('sales-report.')->controller(SalesReportContro
     Route::get('dashboard', 'dashboard')->name('dashboard');
     Route::get('report', 'salesReport')->name('report');
     Route::get('sales-by-item', 'salesByItems')->name('sales-by-item');
+    Route::get('aging', 'aging')->name('aging');
+    Route::get('party-statement', 'partyStatement')->name('party-statement');
+    Route::get('vat-register', 'vatRegister')->name('vat-register');
+    Route::get('tds-register', 'tdsRegister')->name('tds-register');
+    Route::get('outstanding', 'outstanding')->name('outstanding');
 });
 
 // invoice

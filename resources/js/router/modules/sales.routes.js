@@ -95,4 +95,34 @@ export default [
         },
         component: () => import("@/views/admin/sales/advance-receipt/Index.vue"),
     },
+    {
+        path: "sales-aging",
+        name: "admin.sales-aging",
+        meta: { pageTitle: "AR Aging Report" },
+        component: () => import("@/views/admin/sales/AgingReport.vue"),
+    },
+    {
+        path: "party-statement",
+        name: "admin.party-statement",
+        meta: { pageTitle: "Party Statement" },
+        component: () => import("@/views/admin/sales/PartyStatement.vue"),
+    },
+    {
+        path: "vat-register",
+        name: "admin.vat-register",
+        meta: { pageTitle: "VAT Register" },
+        component: () => import("@/views/admin/sales/VatRegister.vue"),
+    },
+    {
+        path: "tds-register",
+        name: "admin.tds-register",
+        meta: { pageTitle: "TDS Register" },
+        component: () => import("@/views/admin/sales/TdsRegister.vue"),
+    },
+    {
+        path: "customer-outstanding",
+        name: "admin.customer-outstanding",
+        meta: { pageTitle: "Customer Outstanding" },
+        component: () => import("@/views/admin/sales/CustomerOutstanding.vue"),
+    },
 ];
