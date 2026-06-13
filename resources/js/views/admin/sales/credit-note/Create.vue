@@ -230,6 +230,10 @@
                             </div>
                         </div>
 
+                        <div class="col-12">
+                            <ChargesSection v-model:charges="form.charges" />
+                        </div>
+
                         <div class="col-lg-6 ms-auto">
                             <div class="card bg-light mb-4">
                                 <div class="card-body py-2">
@@ -265,9 +269,13 @@
                                         <span>Tax</span>
                                         <strong>{{ formatMoney(summary.tax) }}</strong>
                                     </div>
+                                    <div v-if="chargesTotal" class="d-flex justify-content-between">
+                                        <span>Charges</span>
+                                        <strong>{{ formatMoney(chargesTotal) }}</strong>
+                                    </div>
                                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Grand total</span>
-                                        <strong>{{ formatMoney(summary.grandTotal) }}</strong>
+                                        <strong>{{ formatMoney(summary.grandTotal + chargesTotal) }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -357,6 +365,7 @@ import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import CreateCustomer from '@/views/admin/party/Create.vue';
+import ChargesSection from '@/components/sales/ChargesSection.vue';
 
 const creditNoteStore = useCreditNoteStore();
 const partyStore = usePartyStore();
@@ -413,6 +422,7 @@ const getInitialState = () => ({
     order_discount_type: 'fixed',
     order_discount_value: '0',
     items: [],
+    charges: [],
 });
 
 const form = reactive({...getInitialState()});
@@ -647,6 +657,10 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     taxes,
 });
 
+const chargesTotal = computed(() =>
+    form.charges.reduce((sum, c) => sum + (Number(c.amount) || 0) + (Number(c.tax_amount) || 0), 0)
+);
+
 const lineQtyInt = (q) => {
     const n = parseInt(String(q ?? '0'), 10);
     return Number.isFinite(n) && n > 0 ? n : 1;
@@ -674,6 +688,14 @@ const buildCreditNotePayload = () => {
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
             discount_amount: String(lineDiscountMoneyFromItem(item)),
+        })),
+        charges: form.charges.map((c) => ({
+            name: c.name,
+            charge_type: c.charge_type,
+            account_id: c.account_id ? Number(c.account_id) : null,
+            amount: Number(c.amount) || 0,
+            tax_id: c.tax_id ? Number(c.tax_id) : null,
+            tax_amount: Number(c.tax_amount) || 0,
         })),
     };
 };
@@ -705,7 +727,7 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
-    Object.assign(form, getInitialState());
+    Object.assign(form, {...getInitialState(), charges: []});
     invoicePickOptions.value = [];
     loadedInvoice.value = null;
     invoiceLinePickSelection.value = '';

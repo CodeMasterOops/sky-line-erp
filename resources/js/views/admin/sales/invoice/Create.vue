@@ -184,6 +184,8 @@
                             </div>
                         </div>
 
+                        <ChargesSection v-model:charges="form.charges" />
+
                         <div class="col-lg-6 ms-auto">
                             <div class="card bg-light mb-4 inv-summary-card">
                                 <div class="card-body py-2">
@@ -219,9 +221,13 @@
                                         <span>Tax</span>
                                         <strong>{{ formatMoney(summary.tax) }}</strong>
                                     </div>
+                                    <div v-if="chargesTotal > 0" class="d-flex justify-content-between">
+                                        <span>Charges</span>
+                                        <strong>{{ formatMoney(chargesTotal) }}</strong>
+                                    </div>
                                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Grand total</span>
-                                        <strong>{{ formatMoney(summary.grandTotal) }}</strong>
+                                        <strong>{{ formatMoney(summary.grandTotal + chargesTotal) }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -275,7 +281,7 @@
 
 <script setup>
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
-import {reactive, ref, toRef, watch} from 'vue';
+import {computed, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -288,6 +294,7 @@ import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {useSalesOrderStore} from '@/stores/admin/sales/sales-order.js';
 import {useDeliveryChallanStore} from '@/stores/admin/inventory/delivery-challan.js';
+import ChargesSection from '@/components/sales/ChargesSection.vue';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {
     buildOrderAllocations,
@@ -385,6 +392,7 @@ const getInitialState = () => ({
     order_discount_type: 'fixed',
     order_discount_value: '0',
     items: [],
+    charges: [],
 });
 
 const form = reactive({...getInitialState()});
@@ -587,6 +595,10 @@ const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
+const chargesTotal = computed(() =>
+    form.charges.reduce((sum, c) => sum + (Number(c.amount) || 0) + (Number(c.tax_amount) || 0), 0),
+);
+
 const onLineTaxChange = (index, taxId) => {
     form.items[index].tax_id = taxId || '';
     validateField(`items[${index}].tax_id`);
@@ -663,6 +675,14 @@ const buildInvoicePayload = () => {
             line_discount_value: item.line_discount_value ?? '0',
             tax_amount: calcLineTax(item, index),
             discount_amount: String(lineDiscountMoneyFromItem(item)),
+        })),
+        charges: form.charges.map((c) => ({
+            name: c.name,
+            charge_type: c.charge_type,
+            account_id: c.account_id ? Number(c.account_id) : null,
+            amount: Number(c.amount) || 0,
+            tax_id: c.tax_id ? Number(c.tax_id) : null,
+            tax_amount: Number(c.tax_amount) || 0,
         })),
     };
 };

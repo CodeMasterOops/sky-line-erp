@@ -1,10 +1,11 @@
 import {defineStore} from "pinia";
-import {apiFront} from "@/helpers/api";
+import {apiAdmin, apiFront} from "@/helpers/api";
 import showErrors from "@/helpers/showErrors";
 
 export const useEnumStore = defineStore('enum', {
     state: () => ({
         journalTypes: [],
+        chargeTypes: [],
     }),
 
     actions: {
@@ -17,6 +18,16 @@ export const useEnumStore = defineStore('enum', {
                         showErrors(err);
                     })
             }
-        }
+        },
+
+        getChargeTypes() {
+            if (this.chargeTypes.length) {
+                return Promise.resolve();
+            }
+            return apiAdmin('enum/charge-types')
+                .then((res) => {
+                    this.chargeTypes = res.data.data;
+                }).catch(showErrors);
+        },
     }
 })

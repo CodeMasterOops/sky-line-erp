@@ -155,5 +155,7 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
     });
 
     // enum
-    Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {});
+    Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {
+        Route::get('charge-types', 'chargeTypes')->name('charge-types');
+    });
 });

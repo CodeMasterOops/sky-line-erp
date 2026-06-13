@@ -196,6 +196,8 @@
                             </div>
                         </div>
 
+                        <ChargesSection v-model:charges="form.charges" :disabled="!isDraft" />
+
                         <div class="col-lg-6 ms-auto">
                             <div class="card bg-light mb-0">
                                 <div class="card-body py-2">
@@ -236,9 +238,13 @@
                                         <span>Tax</span>
                                         <strong>{{ formatMoney(summary.tax) }}</strong>
                                     </div>
+                                    <div v-if="chargesTotal > 0" class="d-flex justify-content-between">
+                                        <span>Charges</span>
+                                        <strong>{{ formatMoney(chargesTotal) }}</strong>
+                                    </div>
                                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Grand total</span>
-                                        <strong>{{ formatMoney(summary.grandTotal) }}</strong>
+                                        <strong>{{ formatMoney(summary.grandTotal + chargesTotal) }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -290,6 +296,7 @@ import {storeToRefs} from 'pinia';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
+import ChargesSection from '@/components/sales/ChargesSection.vue';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
@@ -332,6 +339,7 @@ const initialState = {
     order_discount_type: 'fixed',
     order_discount_value: '0',
     items: [],
+    charges: [],
 };
 
 const form = reactive({...initialState});
@@ -439,6 +447,15 @@ watch(
                     ? String(item.line_discount_value)
                     : '0',
         }));
+
+        form.charges = (data.charges || []).map((c) => ({
+            name: c.name || '',
+            charge_type: c.charge_type || 'freight',
+            account_id: c.account_id ? String(c.account_id) : '',
+            amount: c.amount != null ? String(c.amount) : '0',
+            tax_id: c.tax_id ? String(c.tax_id) : '',
+            tax_amount: c.tax_amount != null ? String(c.tax_amount) : '0',
+        }));
     }
 );
 
@@ -470,6 +487,9 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     taxes,
 });
 
+const chargesTotal = computed(() =>
+    form.charges.reduce((sum, c) => sum + (Number(c.amount) || 0) + (Number(c.tax_amount) || 0), 0),
+);
 
 const lineQtyInt = (q) => {
     const n = parseInt(String(q ?? '0'), 10);
@@ -496,6 +516,14 @@ const buildQuotationPayload = () => {
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
             discount_amount: String(lineDiscountMoneyFromItem(item)),
+        })),
+        charges: form.charges.map((c) => ({
+            name: c.name,
+            charge_type: c.charge_type,
+            account_id: c.account_id ? Number(c.account_id) : null,
+            amount: Number(c.amount) || 0,
+            tax_id: c.tax_id ? Number(c.tax_id) : null,
+            tax_amount: Number(c.tax_amount) || 0,
         })),
     };
 };
@@ -526,7 +554,7 @@ const closeEditModal = () => {
 
 function resetForm() {
     createCustomerOpened.value = false;
-    Object.assign(form, {...initialState, items: []});
+    Object.assign(form, {...initialState, items: [], charges: []});
     errors.value = {};
 }
 </script>

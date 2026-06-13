@@ -136,6 +136,10 @@
                             </div>
                         </div>
 
+                        <div class="col-12">
+                            <ChargesSection v-model:charges="form.charges" />
+                        </div>
+
                         <div class="col-lg-6 ms-auto">
                             <div class="card bg-light mb-4">
                                 <div class="card-body py-2">
@@ -171,9 +175,13 @@
                                         <span>Tax</span>
                                         <strong>{{ formatMoney(summary.tax) }}</strong>
                                     </div>
+                                    <div v-if="chargesTotal" class="d-flex justify-content-between">
+                                        <span>Charges</span>
+                                        <strong>{{ formatMoney(chargesTotal) }}</strong>
+                                    </div>
                                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Grand total</span>
-                                        <strong>{{ formatMoney(summary.grandTotal) }}</strong>
+                                        <strong>{{ formatMoney(summary.grandTotal + chargesTotal) }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -219,7 +227,7 @@
 
 <script setup>
 import {formatMoney} from '@/helpers/formatMoney.js';
-import {reactive, ref, toRef, watch} from 'vue';
+import {computed, reactive, ref, toRef, watch} from 'vue';
 import debounce from 'lodash/debounce';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -238,6 +246,7 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import ChargesSection from '@/components/sales/ChargesSection.vue';
 
 const salesOrderStore = useSalesOrderStore();
 const quotationStore = useQuotationStore();
@@ -296,6 +305,7 @@ const getInitialState = () => ({
     order_discount_type: 'fixed',
     order_discount_value: '0',
     items: [],
+    charges: [],
 });
 
 const form = reactive({...getInitialState()});
@@ -422,6 +432,10 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     taxes,
 });
 
+const chargesTotal = computed(() =>
+    form.charges.reduce((sum, c) => sum + (Number(c.amount) || 0) + (Number(c.tax_amount) || 0), 0)
+);
+
 const buildOrderPayload = () => {
     syncTaxAmounts();
     return {
@@ -442,6 +456,14 @@ const buildOrderPayload = () => {
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
             discount_amount: String(lineDiscountMoneyFromItem(item)),
+        })),
+        charges: form.charges.map((c) => ({
+            name: c.name,
+            charge_type: c.charge_type,
+            account_id: c.account_id ? Number(c.account_id) : null,
+            amount: Number(c.amount) || 0,
+            tax_id: c.tax_id ? Number(c.tax_id) : null,
+            tax_amount: Number(c.tax_amount) || 0,
         })),
     };
 };
@@ -471,7 +493,7 @@ const closeCreateModal = () => {
 };
 
 function resetForm() {
-    Object.assign(form, getInitialState());
+    Object.assign(form, {...getInitialState(), charges: []});
     errors.value = {};
 }
 </script>

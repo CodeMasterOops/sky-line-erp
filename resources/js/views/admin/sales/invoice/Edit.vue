@@ -186,6 +186,8 @@
                     </button>
                 </div>
 
+                <ChargesSection v-model:charges="form.charges" :disabled="!isDraft" />
+
                 <div class="col-12">
                     <div class="card bg-light inv-edit-totals">
                         <div class="card-body py-2">
@@ -226,9 +228,13 @@
                                 <span>Tax</span>
                                 <strong>{{ formatMoney(summary.tax) }}</strong>
                             </div>
+                            <div v-if="chargesTotal > 0" class="d-flex justify-content-between">
+                                <span>Charges</span>
+                                <strong>{{ formatMoney(chargesTotal) }}</strong>
+                            </div>
                             <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                 <span>Grand Total</span>
-                                <strong>{{ formatMoney(summary.grandTotal) }}</strong>
+                                <strong>{{ formatMoney(summary.grandTotal + chargesTotal) }}</strong>
                             </div>
                         </div>
                     </div>
@@ -278,6 +284,7 @@ import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
+import ChargesSection from '@/components/sales/ChargesSection.vue';
 import {
     buildOrderAllocations,
     lineDiscountMoneyFromItem,
@@ -346,6 +353,7 @@ const initialState = {
     order_discount_type: 'fixed',
     order_discount_value: '0',
     items: [emptyLine()],
+    charges: [],
 };
 
 const form = reactive({...initialState});
@@ -413,6 +421,10 @@ const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
+const chargesTotal = computed(() =>
+    form.charges.reduce((sum, c) => sum + (Number(c.amount) || 0) + (Number(c.tax_amount) || 0), 0),
+);
+
 watch(() => edit_invoice_id.value, async (id) => {
     if (id) {
         isHydratingInvoice.value = true;
@@ -451,6 +463,16 @@ watch(() => edit_invoice_id.value, async (id) => {
             warehouse_name: item.warehouse?.name || '',
             stock_qty: null,
         }));
+
+        form.charges = (data.charges || []).map((c) => ({
+            name: c.name || '',
+            charge_type: c.charge_type || 'freight',
+            account_id: c.account_id ? String(c.account_id) : '',
+            amount: c.amount != null ? String(c.amount) : '0',
+            tax_id: c.tax_id ? String(c.tax_id) : '',
+            tax_amount: c.tax_amount != null ? String(c.tax_amount) : '0',
+        }));
+
         await nextTick();
         isHydratingInvoice.value = false;
     }
@@ -553,6 +575,14 @@ const buildUpdatePayload = () => {
             tax_amount: calcLineTax(item, index),
             discount_amount: String(lineDiscountMoneyFromItem(item)),
         })),
+        charges: form.charges.map((c) => ({
+            name: c.name,
+            charge_type: c.charge_type,
+            account_id: c.account_id ? Number(c.account_id) : null,
+            amount: Number(c.amount) || 0,
+            tax_id: c.tax_id ? Number(c.tax_id) : null,
+            tax_amount: Number(c.tax_amount) || 0,
+        })),
     };
 };
 
@@ -582,7 +612,7 @@ const closeEditModal = () => {
 
 function resetForm() {
     isHydratingInvoice.value = false;
-    Object.assign(form, {...initialState, items: [emptyLine()]});
+    Object.assign(form, {...initialState, items: [emptyLine()], charges: []});
     errors.value = {};
 }
 </script>
