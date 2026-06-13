@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasDiscount;
+use App\Enums\TaxLineTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,7 @@ class CreditNoteItem extends Model
         'rate',
         'tax_id',
         'tax_amount',
+        'tax_line_type',
         'discount_amount',
     ];
 
@@ -35,6 +37,7 @@ class CreditNoteItem extends Model
         'quantity' => 'integer',
         'rate' => 'float',
         'tax_amount' => 'float',
+        'tax_line_type' => TaxLineTypeEnum::class,
         'discount_amount' => 'float',
     ];
 

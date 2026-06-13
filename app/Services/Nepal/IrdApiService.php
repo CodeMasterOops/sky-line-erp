@@ -60,7 +60,7 @@ class IrdApiService
             ];
         }
 
-        $invoice->loadMissing(['invoiceItems.tax', 'party', 'fiscalYear']);
+        $invoice->loadMissing(['invoiceItems.tax', 'party', 'fiscalYear', 'discount']);
 
         $payload = $this->buildInvoicePayload($invoice, $company);
 
@@ -132,6 +132,13 @@ class IrdApiService
             ->where('tax_line_type', 'zero_rated')
             ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
 
+        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
+        $totalBase = $vatTaxableAmount + $exemptAmount + $zeroRatedAmount;
+        if ($totalBase > 0 && $orderDiscountAmount > 0) {
+            $vatTaxableAmount = max(0, round($vatTaxableAmount - $orderDiscountAmount * ($vatTaxableAmount / $totalBase), 2));
+            $exemptAmount = max(0, round($exemptAmount - $orderDiscountAmount * ($exemptAmount / $totalBase), 2));
+            $zeroRatedAmount = max(0, round($zeroRatedAmount - $orderDiscountAmount * ($zeroRatedAmount / $totalBase), 2));
+        }
         $grandTotal = round($vatTaxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount, 2);
 
         $items = $invoice->invoiceItems->map(function ($item) {
@@ -161,10 +168,10 @@ class IrdApiService
                                     : $invoice->invoice_date->toDateString(),
             'invoiceDateBs' => $bsDate,
             'customerName' => $invoice->party?->name ?? 'Cash Customer',
-            'vatTaxable' => round($vatTaxableAmount, 2),
+            'vatTaxable' => $vatTaxableAmount,
             'vatAmount' => round($vatAmount, 2),
-            'exemptAmount' => round($exemptAmount, 2),
-            'zeroRated' => round($zeroRatedAmount, 2),
+            'exemptAmount' => $exemptAmount,
+            'zeroRated' => $zeroRatedAmount,
             'grandTotal' => $grandTotal,
             'items' => $items,
         ];

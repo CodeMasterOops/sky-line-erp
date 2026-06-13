@@ -263,7 +263,9 @@ readonly class InvoiceService
         $this->assertGlAccountsConfigured($invoice);
         $this->periodGuard->assertPostable($invoice->company_id, $invoice->fiscal_year_id, $invoice->invoice_date);
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $invoice->company_id)
+            ->first();
 
         $journal = $invoice->journal()->create([
             'company_id' => $invoice->company_id,

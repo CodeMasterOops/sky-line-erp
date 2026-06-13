@@ -30,7 +30,7 @@ class SalesReportController extends Controller
             ->when($company?->fiscal_year_id, function (Builder $query) use ($company) {
                 $query->where('fiscal_year_id', $company->fiscal_year_id);
             })
-            ->with(['invoiceItems', 'receiptAllocations.receipt'])
+            ->with(['invoiceItems', 'receiptAllocations.receipt', 'discount'])
             ->get();
 
         return response()->json([
@@ -57,6 +57,7 @@ class SalesReportController extends Controller
         $invoices = $this->buildInvoiceQuery($request)
             ->with([
                 'party',
+                'discount',
                 'invoiceItems.productVariant.product',
                 'invoiceItems.productVariant.variantOptions.attribute',
                 'receiptAllocations.receipt',
@@ -257,15 +258,17 @@ class SalesReportController extends Controller
     private function calculateInvoiceTotals(Invoice $invoice): array
     {
         $subtotal = 0;
-        $discountTotal = 0;
+        $lineDiscountTotal = 0;
         $taxTotal = 0;
 
         foreach ($invoice->invoiceItems as $item) {
             $subtotal += (float) $item->quantity * (float) $item->rate;
-            $discountTotal += (float) $item->discount_amount;
+            $lineDiscountTotal += (float) $item->discount_amount;
             $taxTotal += (float) $item->tax_amount;
         }
 
+        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
+        $discountTotal = $lineDiscountTotal + $orderDiscountAmount;
         $grandTotal = $subtotal - $discountTotal + $taxTotal;
 
         return [

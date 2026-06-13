@@ -47,7 +47,7 @@ class InvoiceGlPostingService
             return;
         }
 
-        $invoice->loadMissing('invoiceItems');
+        $invoice->loadMissing(['invoiceItems', 'discount']);
 
         $hasTax = $invoice->invoiceItems
             ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
@@ -76,7 +76,8 @@ class InvoiceGlPostingService
             ->whereIn('tax_line_type', [TaxLineTypeEnum::EXEMPT, TaxLineTypeEnum::ZERO_RATED])
             ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount), 2);
 
-        $salesBase = round($vatTaxableBase + $nonVatBase, 2);
+        $orderDiscountAmount = round((float) ($invoice->discount?->amount ?? 0), 2);
+        $salesBase = round($vatTaxableBase + $nonVatBase - $orderDiscountAmount, 2);
         $grandTotal = round($salesBase + $vatAmount, 2);
 
         if ($grandTotal <= 0) {

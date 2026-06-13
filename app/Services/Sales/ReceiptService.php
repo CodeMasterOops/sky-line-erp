@@ -9,13 +9,17 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Accounting\PeriodLockGuard;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalBalanceGuard;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 readonly class ReceiptService
 {
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
+        private PeriodLockGuard $periodGuard,
+        private JournalBalanceGuard $balanceGuard,
     ) {}
 
     public function createReceipt(array $formData): Receipt
@@ -35,6 +39,7 @@ readonly class ReceiptService
                 $setting->fiscalYear?->year_code,
             );
             $receipt = Receipt::create([
+                'company_id' => $user->company->id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'receipt_no' => $receiptNo,
@@ -101,14 +106,29 @@ readonly class ReceiptService
         });
     }
 
-    private function createJournal(Receipt $receipt): void
+    public function createJournal(Receipt $receipt): void
     {
+        if ($receipt->journal()->withoutGlobalScopes()->exists()) {
+            return;
+        }
+
         $receipt->loadMissing('party:id,name', 'account')
             ->loadSum('allocations', 'amount');
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $receipt->company_id)
+            ->first();
+
+        if (! $accountSetting?->customer_account_id) {
+            throw ValidationException::withMessages([
+                'account_setting' => 'Cannot post receipt journal: Accounts Receivable account is not configured.',
+            ]);
+        }
+
+        $this->periodGuard->assertPostable($receipt->company_id, $receipt->fiscal_year_id, $receipt->receipt_date);
 
         $journal = $receipt->journal()->create([
+            'company_id' => $receipt->company_id,
             'fiscal_year_id' => $receipt->fiscal_year_id,
             'type' => JournalTypeEnum::RECEIPT->value,
             'voucher_no' => $receipt->receipt_no,
@@ -136,6 +156,8 @@ readonly class ReceiptService
             'cr_amount' => 0,
             'remarks' => 'To-'.($receipt->account->name ?? ''),
         ]);
+
+        $this->balanceGuard->assertBalanced($journal);
     }
 
     private function validatedAllocations(array $formData): Collection

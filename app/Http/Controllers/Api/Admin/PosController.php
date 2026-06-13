@@ -22,6 +22,7 @@ use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Sales\ReceiptService;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Accounting\GlAccountConfigGuard;
@@ -44,6 +45,7 @@ class PosController extends Controller
         private NepaliDateService $nepaliDate,
         private DocumentNumberGenerator $documentNumberGenerator,
         private GlAccountConfigGuard $glAccountGuard,
+        private ReceiptService $receiptService,
     ) {}
 
     /**
@@ -428,10 +430,16 @@ class PosController extends Controller
                             'amount' => $payAmount,
                         ]);
 
+                        $this->receiptService->createJournal($receipt);
+
                         $firstReceipt ??= $receipt;
                         $remaining -= $payAmount;
                     }
                 }
+
+                // Post invoice GL inside the transaction so any GL failure rolls back
+                // the invoice and receipts atomically.
+                $this->invoiceGl->postFromInvoice($invoice);
 
                 $invoice->setAttribute('receipt_no', $firstReceipt?->receipt_no);
                 $invoice->setAttribute('receipt_id', $firstReceipt?->id);
@@ -447,9 +455,6 @@ class PosController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
-
-        // Post GL for invoice
-        $this->invoiceGl->postFromInvoice($invoice->refresh());
 
         try {
             SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');

@@ -81,6 +81,12 @@ class ReceiptController extends Controller
      */
     public function destroy(Receipt $receipt)
     {
+        if ($receipt->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved receipts cannot be deleted. Void this receipt to reverse the GL entries.',
+            ], 422);
+        }
+
         $receipt->allocations()->delete();
         $receipt->delete();
 
