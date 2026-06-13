@@ -423,3 +423,178 @@ it('voiding a draft receipt returns 422', function () {
     $response->assertStatus(422);
     expect(Receipt::find($receipt->id))->not->toBeNull('Draft receipt must not be deleted');
 });
+
+// ─── P2-05: Expired quotation cannot be converted ────────────────────────────
+
+it('P2-05: expired quotation is rejected when creating a sales order', function () {
+    $quotation = Quotation::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'quotation_no' => 'QT-EXP-'.uniqid(),
+        'quotation_date' => now()->subDays(30)->toDateString(),
+        'expiry_date' => now()->subDay()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    $response = $this->postJson('/api/admin/sales-order', [
+        'order_date' => now()->toDateString(),
+        'party_id' => $this->party->id,
+        'quotation_id' => $quotation->id,
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    $response->assertStatus(422);
+    expect($response->json('errors.quotation_id.0') ?? $response->json('message'))
+        ->toContain('expired');
+});
+
+it('P2-05: valid (non-expired) quotation is accepted when creating a sales order', function () {
+    $quotation = Quotation::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'quotation_no' => 'QT-VALID-'.uniqid(),
+        'quotation_date' => now()->toDateString(),
+        'expiry_date' => now()->addDays(30)->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    $response = $this->postJson('/api/admin/sales-order', [
+        'order_date' => now()->toDateString(),
+        'party_id' => $this->party->id,
+        'quotation_id' => $quotation->id,
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    $response->assertSuccessful();
+});
+
+it('P2-05: expired quotation is rejected when creating an invoice', function () {
+    p2AccountSetting($this);
+
+    $quotation = Quotation::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'quotation_no' => 'QT-INVEXP-'.uniqid(),
+        'quotation_date' => now()->subDays(30)->toDateString(),
+        'expiry_date' => now()->subDay()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    $response = $this->postJson('/api/admin/invoice', [
+        'invoice_date' => now()->toDateString(),
+        'party_id' => $this->party->id,
+        'quotation_id' => $quotation->id,
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    $response->assertStatus(422);
+    expect($response->json('errors.quotation_id.0') ?? $response->json('message'))
+        ->toContain('expired');
+});
+
+// ─── P2-09: bijak_no is accepted and persisted ────────────────────────────────
+
+it('P2-09: bijak_no is stored on invoice creation', function () {
+    p2AccountSetting($this);
+
+    $response = $this->postJson('/api/admin/invoice', [
+        'invoice_date' => now()->toDateString(),
+        'party_id' => $this->party->id,
+        'bijak_no' => 'BJ-2081-001',
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    $response->assertSuccessful();
+
+    $invoice = Invoice::first();
+    expect($invoice->bijak_no)->toBe('BJ-2081-001');
+});
+
+// ─── P2-07: HasDiscount cascade deletion ─────────────────────────────────────
+
+it('P2-07: deleting a quotation also deletes its order-level discount', function () {
+    $quotation = Quotation::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'quotation_no' => 'QT-DISC-'.uniqid(),
+        'quotation_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    $quotation->saveDiscount('fixed', 50.0, 50.0);
+
+    $discountId = \App\Models\Discount::where('discountable_id', $quotation->id)
+        ->where('discountable_type', Quotation::class)
+        ->value('id');
+
+    expect($discountId)->not->toBeNull('Discount record must exist before deletion');
+
+    $quotation->delete();
+
+    expect(\App\Models\Discount::find($discountId))->toBeNull('Discount must be cascade-deleted with the quotation');
+});
+
+it('P2-07: deleting an invoice item also deletes its line discount', function () {
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-DISC-'.uniqid(),
+        'invoice_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    $item = $invoice->invoiceItems()->create([
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'quantity' => 1,
+        'rate' => 100,
+        'discount_amount' => 10,
+        'tax_amount' => 0,
+    ]);
+
+    $item->saveDiscount('fixed', 10.0, 10.0);
+
+    $discountId = \App\Models\Discount::where('discountable_id', $item->id)
+        ->where('discountable_type', \App\Models\InvoiceItem::class)
+        ->value('id');
+
+    expect($discountId)->not->toBeNull('Line discount must exist before deletion');
+
+    $item->delete();
+
+    expect(\App\Models\Discount::find($discountId))->toBeNull('Line discount must be cascade-deleted with the invoice item');
+});
