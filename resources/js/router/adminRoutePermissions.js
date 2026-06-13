@@ -15,6 +15,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.tax-list': 'list_tax',
     'admin.payment-mode-list': 'list_payment_mode',
     'admin.branch-list': 'list_branch',
+    'admin.branch-users': 'list_branch',
     'admin.role-list': 'list_role',
     'admin.role-create': 'create_role',
     'admin.role-edit': 'edit_role',

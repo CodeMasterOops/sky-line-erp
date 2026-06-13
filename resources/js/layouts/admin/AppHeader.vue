@@ -177,6 +177,7 @@ import {adToBsDate} from "@/helpers/helper.js";
 import {useBranchStore} from "@/stores/admin/settings/branch.js";
 import {useRoute} from "vue-router";
 import HeaderNotificationDropdown from "@/components/shared/HeaderNotificationDropdown.vue";
+import {watch} from "vue";
 
 const notificationStore = useAdminNotificationStore();
 const profileStore = useProfileStore();
@@ -238,11 +239,20 @@ const initFullScreen = () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
     profileStore.getProfile();
     notificationStore.getUnreadNotifications();
     adminSettingStore.getCurrentFiscalYear();
-    branchStore.ensureSelectedBranchLoaded();
+    await branchStore.ensureSelectedBranchLoaded();
+    if (branchStore.selectedBranchId) {
+        authStore.refreshPermissions();
+    }
+});
+
+watch(() => branchStore.selectedBranchId, (newId) => {
+    if (newId) {
+        authStore.refreshPermissions();
+    }
 });
 
 const {profile} = storeToRefs(profileStore);

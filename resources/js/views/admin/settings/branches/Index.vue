@@ -34,6 +34,11 @@
                                     </template>
                                     <template v-if="column.key === 'action'">
                                         <div class="d-flex gap-2">
+                                            <router-link
+                                                :to="{ name: 'admin.branch-users', params: { branchId: record.id } }"
+                                                class="text-primary"
+                                                title="Manage user assignments"
+                                            ><i class="ti ti-users"></i></router-link>
                                             <a href="#" @click.prevent="editBranch(record)"><i class="ti ti-edit"></i></a>
                                             <a href="#" @click.prevent="deleteBranch(record.id)" class="text-danger"><i class="ti ti-trash"></i></a>
                                         </div>

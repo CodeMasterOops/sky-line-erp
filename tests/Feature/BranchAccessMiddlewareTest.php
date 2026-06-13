@@ -10,7 +10,6 @@ use App\Enums\UserTypeEnum;
 use Laravel\Sanctum\Sanctum;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Config;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -127,19 +126,7 @@ it('rejects a non-existent branch id with 403', function () {
     ])->assertForbidden();
 });
 
-it('allows unassigned branch for regular user when isolation is disabled', function () {
-    Config::set('features.branch_isolation', false);
-
-    Sanctum::actingAs($this->regularUser, [], 'admin');
-
-    $this->getJson('/api/admin/branch/my-branches', [
-        'X-Branch-Id' => (string) $this->branchA->id,
-    ])->assertSuccessful();
-});
-
-it('blocks unassigned branch for regular user when isolation is enabled', function () {
-    Config::set('features.branch_isolation', true);
-
+it('blocks unassigned branch for regular user', function () {
     Sanctum::actingAs($this->regularUser, [], 'admin');
 
     $this->getJson('/api/admin/branch/my-branches', [
@@ -147,9 +134,7 @@ it('blocks unassigned branch for regular user when isolation is enabled', functi
     ])->assertForbidden();
 });
 
-it('allows admin to access any branch when isolation is enabled', function () {
-    Config::set('features.branch_isolation', true);
-
+it('allows admin to access any branch in the company', function () {
     Sanctum::actingAs($this->adminUser, [], 'admin');
 
     $this->getJson('/api/admin/branch/my-branches', [
@@ -157,9 +142,7 @@ it('allows admin to access any branch when isolation is enabled', function () {
     ])->assertSuccessful();
 });
 
-it('allows regular user with active assignment when isolation is enabled', function () {
-    Config::set('features.branch_isolation', true);
-
+it('allows regular user with an active branch assignment', function () {
     BranchUser::create([
         'company_id' => $this->company->id,
         'branch_id' => $this->branchA->id,
@@ -174,9 +157,7 @@ it('allows regular user with active assignment when isolation is enabled', funct
     ])->assertSuccessful();
 });
 
-it('blocks regular user with inactive assignment when isolation is enabled', function () {
-    Config::set('features.branch_isolation', true);
-
+it('blocks regular user with an inactive branch assignment', function () {
     BranchUser::create([
         'company_id' => $this->company->id,
         'branch_id' => $this->branchA->id,
@@ -192,8 +173,6 @@ it('blocks regular user with inactive assignment when isolation is enabled', fun
 });
 
 it('sets branch-specific permissions in TenantService when valid header provided', function () {
-    Sanctum::actingAs($this->regularUser, [], 'admin');
-
     $this->regularUser->roles()->attach($this->role->id);
 
     BranchUser::create([
@@ -203,6 +182,8 @@ it('sets branch-specific permissions in TenantService when valid header provided
         'role_id' => $this->role->id,
         'is_active' => true,
     ]);
+
+    Sanctum::actingAs($this->regularUser, [], 'admin');
 
     $this->getJson('/api/admin/branch/my-branches', [
         'X-Branch-Id' => (string) $this->branchA->id,

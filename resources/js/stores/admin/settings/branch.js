@@ -17,10 +17,35 @@ export const useBranchStore = defineStore('branch', {
         branch: {
             data: {},
             loading: false
-        }
+        },
+        accessibleBranches: {
+            data: [],
+            defaultBranchId: null,
+            loading: false,
+        },
     }),
 
     actions: {
+        getMyBranches() {
+            this.accessibleBranches.loading = true;
+            return apiAdmin(`${apiUrl}/my-branches`)
+                .then((res) => {
+                    this.accessibleBranches.data = res.data.data;
+                    this.accessibleBranches.defaultBranchId = res.data.default_branch_id ?? null;
+                }).catch(showErrors).finally(() => {
+                    this.accessibleBranches.loading = false;
+                });
+        },
+        autoSelectDefault() {
+            const defaultId = this.accessibleBranches.defaultBranchId;
+            if (!defaultId || this.selectedBranchId) {
+                return;
+            }
+            const branch = this.accessibleBranches.data.find(b => b.id === defaultId);
+            if (branch) {
+                this.setSelectedBranch(branch);
+            }
+        },
         getBranches({ filter } = {}) {
             const params = {
                 page: filter?.page ?? 1,

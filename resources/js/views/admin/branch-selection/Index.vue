@@ -22,15 +22,15 @@
                                         </h4>
                                     </div>
 
-                                    <div v-if="branches.loading" class="py-5 text-center text-muted">
+                                    <div v-if="accessibleBranches.loading" class="py-5 text-center text-muted">
                                         <div class="spinner-border spinner-border-sm text-primary me-2"></div>
                                         Loading branches...
                                     </div>
 
-                                    <template v-else-if="branches.data.length">
+                                    <template v-else-if="accessibleBranches.data.length">
                                         <div class="row g-3">
                                             <div
-                                                v-for="branch in branches.data"
+                                                v-for="branch in accessibleBranches.data"
                                                 :key="branch.id"
                                                 class="col-md-6"
                                             >
@@ -161,17 +161,19 @@ import { useRoute, useRouter } from 'vue-router';
 import showErrors from '@/helpers/showErrors';
 import { toast } from '@/helpers/toast';
 import { useBranchStore } from '@/stores/admin/settings/branch.js';
+import { useAdminAuthStore } from '@/stores/admin/auth.js';
 import { getAdminRoutePermission } from '@/router/adminRoutePermissions';
 import { satisfiesAdminRoutePermission } from '@/helpers/checkPermission';
 import appLogo from '@/assets/images/logo.svg';
 import appLogoWhite from '@/assets/images/logo-white.svg';
 
 const branchStore = useBranchStore();
+const authStore = useAdminAuthStore();
 const router = useRouter();
 const route = useRoute();
 const submitting = ref(false);
 
-const { branches, selectedBranchId } = storeToRefs(branchStore);
+const { accessibleBranches, selectedBranchId } = storeToRefs(branchStore);
 
 const currentYear = new Date().getFullYear();
 
@@ -185,10 +187,10 @@ const canOpenBranchSettings = computed(() =>
 );
 
 onMounted(async () => {
-    await branchStore.getBranches();
+    await branchStore.getMyBranches();
     await branchStore.ensureSelectedBranchLoaded();
 
-    if (!branches.value.data.length && canOpenBranchSettings.value) {
+    if (!accessibleBranches.value.data.length && canOpenBranchSettings.value) {
         await router.replace({ name: 'admin.branch-list' });
     }
 });
@@ -208,6 +210,7 @@ const continueWithSelection = async () => {
 
     submitting.value = true;
     try {
+        await authStore.refreshPermissions();
         toast(200, 'Branch selected successfully');
         goToRedirect();
     } catch (e) {

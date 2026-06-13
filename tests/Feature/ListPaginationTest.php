@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Brand;
 use App\Models\User;
+use App\Models\Brand;
 use App\Models\Company;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
@@ -17,7 +17,8 @@ function listPaginationWarmAllTablesCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
-        $tables[$table] = Schema::getColumnListing($table);
+        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+        $tables[$table] = Schema::getColumnListing($plainName);
     }
     Cache::forget('allTables');
     Cache::forever('allTables', $tables);

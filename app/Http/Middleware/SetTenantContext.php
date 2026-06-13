@@ -27,8 +27,7 @@ class SetTenantContext
                     abort(Response::HTTP_FORBIDDEN, 'You do not have access to this branch.');
                 }
 
-                // Enforce per-user branch access when isolation is enabled.
-                if (config('features.branch_isolation') && ! $this->accessService->canUserAccessBranch($user, $branchId)) {
+                if (! $this->accessService->canUserAccessBranch($user, $branchId)) {
                     \Illuminate\Support\Facades\Log::warning('branch-access-denied', [
                         'user_id' => $user->id,
                         'branch_id' => $branchId,

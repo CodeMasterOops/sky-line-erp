@@ -178,8 +178,10 @@ import { useYup } from "@/helpers/yup";
 import { object, string } from "yup";
 import showErrors from "@/helpers/showErrors";
 import { useAdminAuthStore } from "@/stores/admin/auth.js";
+import { useBranchStore } from "@/stores/admin/settings/branch.js";
 
 const authStore = useAdminAuthStore();
+const branchStore = useBranchStore();
 const router = useRouter()
 
 const form = reactive({
@@ -209,6 +211,8 @@ const login = async () => {
         isSubmitting.value = true;
         try {
             let res = await authStore.login(form);
+            await branchStore.getMyBranches();
+            branchStore.autoSelectDefault();
             await router.push({ name: 'admin.dashboard' });
             toast(res.status, res.data.message);
         } catch (e) {
