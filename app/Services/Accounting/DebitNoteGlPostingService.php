@@ -34,6 +34,7 @@ class DebitNoteGlPostingService
     public function isPosted(DebitNote $debitNote): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $debitNote->company_id)
             ->where('reference_type', $debitNote->getMorphClass())
             ->where('reference_id', $debitNote->id)
             ->where('type', JournalTypeEnum::DEBIT_NOTE->value)

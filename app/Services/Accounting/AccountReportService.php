@@ -316,44 +316,47 @@ class AccountReportService
     {
         $period = $this->resolvePeriod($request);
         $companyId = auth('admin')->user()->company_id;
+        $start = $period['start_date']->toDateString();
+        $end = $period['end_date']->toDateString();
 
-        $invoices = Invoice::with(['party', 'invoiceItems.tax'])
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereBetween('invoice_date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
-            ->orderBy('invoice_date')
-            ->orderBy('invoice_no')
+        $dbRows = DB::table('invoices')
+            ->leftJoin('parties', 'parties.id', '=', 'invoices.party_id')
+            ->leftJoin('invoice_items', function ($join) {
+                $join->on('invoice_items.invoice_id', '=', 'invoices.id')
+                    ->whereNull('invoice_items.deleted_at');
+            })
+            ->where('invoices.company_id', $companyId)
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->whereBetween('invoices.invoice_date', [$start, $end])
+            ->groupBy('invoices.id', 'invoices.invoice_no', 'invoices.bijak_no', 'invoices.invoice_date', 'parties.pan', 'parties.name')
+            ->orderBy('invoices.invoice_date')
+            ->orderBy('invoices.invoice_no')
+            ->select([
+                'invoices.invoice_no',
+                'invoices.bijak_no',
+                'invoices.invoice_date',
+                DB::raw("COALESCE(parties.name, '-') as buyer_name"),
+                DB::raw("COALESCE(parties.pan, '-') as buyer_pan"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as taxable_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN invoice_items.tax_amount ELSE 0 END) as vat_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'exempt' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as exempt_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'zero_rated' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as zero_rated_amount"),
+            ])
             ->get();
 
-        $rows = $invoices->map(function (Invoice $invoice) {
-            $taxableAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'taxable')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            $vatAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'taxable')
-                ->sum('tax_amount');
-
-            $exemptAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'exempt')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            $zeroRatedAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'zero_rated')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            return [
-                'date' => $invoice->invoice_date,
-                'bijak_no' => $invoice->bijak_no ?: $invoice->invoice_no,
-                'buyer_name' => $invoice->party?->name ?? '-',
-                'buyer_pan' => $invoice->party?->pan ?? '-',
-                'taxable_amount' => round((float) $taxableAmount, 2),
-                'vat_amount' => round((float) $vatAmount, 2),
-                'exempt_amount' => round((float) $exemptAmount, 2),
-                'zero_rated_amount' => round((float) $zeroRatedAmount, 2),
-                'total_amount' => round((float) ($taxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount), 2),
-            ];
-        })->values()->all();
+        $rows = $dbRows->map(fn ($row) => [
+            'date' => $row->invoice_date,
+            'bijak_no' => $row->bijak_no ?: $row->invoice_no,
+            'buyer_name' => $row->buyer_name,
+            'buyer_pan' => $row->buyer_pan,
+            'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
+            'vat_amount' => round((float) ($row->vat_amount ?? 0), 2),
+            'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
+            'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
+            'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
+        ])->values()->all();
 
         return [
             'period' => [
@@ -377,39 +380,45 @@ class AccountReportService
     {
         $period = $this->resolvePeriod($request);
         $companyId = auth('admin')->user()->company_id;
+        $start = $period['start_date']->toDateString();
+        $end = $period['end_date']->toDateString();
 
-        $bills = Bill::with(['party', 'billItems.tax'])
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereBetween('bill_date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
-            ->orderBy('bill_date')
-            ->orderBy('bill_no')
+        $dbRows = DB::table('bills')
+            ->leftJoin('parties', 'parties.id', '=', 'bills.party_id')
+            ->leftJoin('bill_items', function ($join) {
+                $join->on('bill_items.bill_id', '=', 'bills.id')
+                    ->whereNull('bill_items.deleted_at');
+            })
+            ->where('bills.company_id', $companyId)
+            ->where('bills.status', StatusEnum::APPROVED->value)
+            ->whereNull('bills.deleted_at')
+            ->whereBetween('bills.bill_date', [$start, $end])
+            ->groupBy('bills.id', 'bills.bill_no', 'bills.bill_date', 'parties.pan', 'parties.name')
+            ->orderBy('bills.bill_date')
+            ->orderBy('bills.bill_no')
+            ->select([
+                'bills.bill_no',
+                'bills.bill_date',
+                DB::raw("COALESCE(parties.name, '-') as supplier_name"),
+                DB::raw("COALESCE(parties.pan, '-') as supplier_pan"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as taxable_amount"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN bill_items.tax_amount ELSE 0 END) as input_vat"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'exempt' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as exempt_amount"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'zero_rated' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as zero_rated_amount"),
+            ])
             ->get();
 
-        $rows = $bills->map(function (Bill $bill) {
-            $taxableAmount = $bill->billItems
-                ->where('tax_line_type', 'taxable')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            $inputVat = $bill->billItems
-                ->where('tax_line_type', 'taxable')
-                ->sum('tax_amount');
-
-            $exemptAmount = $bill->billItems
-                ->where('tax_line_type', 'exempt')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            return [
-                'date' => $bill->bill_date,
-                'bill_no' => $bill->bill_no,
-                'supplier_name' => $bill->party?->name ?? '-',
-                'supplier_pan' => $bill->party?->pan ?? '-',
-                'taxable_amount' => round((float) $taxableAmount, 2),
-                'input_vat' => round((float) $inputVat, 2),
-                'exempt_amount' => round((float) $exemptAmount, 2),
-                'total_amount' => round((float) ($taxableAmount + $inputVat + $exemptAmount), 2),
-            ];
-        })->values()->all();
+        $rows = $dbRows->map(fn ($row) => [
+            'date' => $row->bill_date,
+            'bill_no' => $row->bill_no,
+            'supplier_name' => $row->supplier_name,
+            'supplier_pan' => $row->supplier_pan,
+            'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
+            'input_vat' => round((float) ($row->input_vat ?? 0), 2),
+            'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
+            'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
+            'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
+        ])->values()->all();
 
         return [
             'period' => [
@@ -423,6 +432,7 @@ class AccountReportService
                 'taxable_amount' => round(collect($rows)->sum('taxable_amount'), 2),
                 'input_vat' => round(collect($rows)->sum('input_vat'), 2),
                 'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
+                'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
                 'total_amount' => round(collect($rows)->sum('total_amount'), 2),
             ],
         ];

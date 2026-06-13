@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Accounting;
 
 use App\Models\Account;
+use App\Models\JournalItem;
 use App\Models\AccountGroup;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
@@ -30,11 +31,21 @@ class AccountController extends Controller
      */
     public function coa()
     {
-        $groups = AccountGroup::with(['accounts', 'childrenRecursive'])
-            ->whereNull('parent_id')
-            ->get();
+        // Load all groups and their accounts in 2 flat queries, then build the
+        // tree in PHP. This replaces the O(depth × breadth) N+1 that
+        // childrenRecursive triggers with exactly 2 queries.
+        $allGroups = AccountGroup::with('accounts')->get()->keyBy('id');
 
-        return AccountGroupTreeResource::collection($groups);
+        foreach ($allGroups as $group) {
+            $group->setRelation(
+                'childrenRecursive',
+                $allGroups->where('parent_id', $group->id)->values()
+            );
+        }
+
+        $roots = $allGroups->filter(fn ($g) => is_null($g->parent_id))->values();
+
+        return AccountGroupTreeResource::collection($roots);
     }
 
     /**
@@ -76,6 +87,17 @@ class AccountController extends Controller
      */
     public function destroy(Account $account)
     {
+        $journalCount = JournalItem::withoutGlobalScopes()
+            ->where('account_id', $account->id)
+            ->whereNull('deleted_at')
+            ->count();
+
+        if ($journalCount > 0) {
+            return response()->json([
+                'message' => "Cannot delete account '{$account->name}': it has {$journalCount} journal item(s). Deactivate it instead.",
+            ], 422);
+        }
+
         $account->delete();
 
         return response()->json([

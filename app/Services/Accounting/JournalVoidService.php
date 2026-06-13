@@ -20,9 +20,12 @@ class JournalVoidService
 {
     public function reverseForReference(Model $document): void
     {
+        $companyId = $document->company_id ?? null;
+
         $journals = Journal::withoutGlobalScopes()
             ->where('reference_type', $document->getMorphClass())
             ->where('reference_id', $document->getKey())
+            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
             ->whereNull('deleted_at')
             ->get();
 

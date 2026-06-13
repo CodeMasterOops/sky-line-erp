@@ -6,8 +6,8 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Services\AccountReportService;
 use App\Services\Nepal\NepaliDateService;
+use App\Services\Accounting\AccountReportService;
 
 /**
  * VAT D3 Return — generates the IRD-format D3 return export.
@@ -88,8 +88,9 @@ class VatD3Controller extends Controller
                     'party_name' => $row->party_name ?? 'Cash Customer',
                     'taxable_amount' => round($row->taxable_amount ?? 0, 2),
                     'vat_amount' => round($row->vat_amount ?? 0, 2),
+                    'zero_rated_amount' => round($row->zero_rated_amount ?? 0, 2),
                     'exempt_amount' => round($row->exempt_amount ?? 0, 2),
-                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
+                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->zero_rated_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
                 ];
             }
         }
@@ -113,8 +114,9 @@ class VatD3Controller extends Controller
                     'party_name' => $row->party_name ?? '',
                     'taxable_amount' => round($row->taxable_amount ?? 0, 2),
                     'vat_amount' => round($row->input_vat ?? 0, 2),
+                    'zero_rated_amount' => round($row->zero_rated_amount ?? 0, 2),
                     'exempt_amount' => round($row->exempt_amount ?? 0, 2),
-                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0), 2),
+                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->zero_rated_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
                 ];
             }
         }
@@ -139,11 +141,11 @@ class VatD3Controller extends Controller
             fputcsv($handle, ['Period (BS)', "{$startBs} to {$endBs}"]);
             fputcsv($handle, []);
 
-            // Column headers
+            // Column headers — IRD D3 format includes zero-rated (export) as a separate column
             fputcsv($handle, [
                 'Type', 'Invoice/Bill No', 'Date (AD)', 'Date (BS)',
                 'Party PAN', 'Party Name',
-                'Taxable Amount', 'VAT Amount', 'Exempt Amount', 'Total Amount',
+                'Taxable Amount', 'VAT Amount', 'Zero-Rated Amount', 'Exempt Amount', 'Total Amount',
             ]);
 
             foreach ($rows as $row) {
@@ -156,6 +158,7 @@ class VatD3Controller extends Controller
                     $row['party_name'],
                     $row['taxable_amount'],
                     $row['vat_amount'],
+                    $row['zero_rated_amount'],
                     $row['exempt_amount'],
                     $row['total_amount'],
                 ]);
@@ -167,6 +170,7 @@ class VatD3Controller extends Controller
                 'TOTAL', '', '', '', '', '',
                 round(array_sum(array_column($rows, 'taxable_amount')), 2),
                 round(array_sum(array_column($rows, 'vat_amount')), 2),
+                round(array_sum(array_column($rows, 'zero_rated_amount')), 2),
                 round(array_sum(array_column($rows, 'exempt_amount')), 2),
                 round(array_sum(array_column($rows, 'total_amount')), 2),
             ]);
@@ -200,6 +204,7 @@ class VatD3Controller extends Controller
                 'parties.name as party_name',
                 DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as taxable_amount"),
                 DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN invoice_items.tax_amount ELSE 0 END) as vat_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'zero_rated' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as zero_rated_amount"),
                 DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'exempt' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as exempt_amount"),
             ])
             ->get();
@@ -227,6 +232,7 @@ class VatD3Controller extends Controller
                 'parties.name as party_name',
                 DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as taxable_amount"),
                 DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN bill_items.tax_amount ELSE 0 END) as input_vat"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'zero_rated' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as zero_rated_amount"),
                 DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'exempt' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as exempt_amount"),
             ])
             ->get();

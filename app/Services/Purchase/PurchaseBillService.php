@@ -45,6 +45,7 @@ readonly class PurchaseBillService
     public function isPosted(Bill $bill): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $bill->company_id)
             ->where('reference_type', $bill->getMorphClass())
             ->where('reference_id', $bill->id)
             ->where('type', JournalTypeEnum::PURCHASE_BILL->value)

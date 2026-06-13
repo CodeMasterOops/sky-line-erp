@@ -41,6 +41,7 @@ readonly class ExpenseService
     public function isPosted(Expense $expense): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $expense->company_id)
             ->where('reference_type', $expense->getMorphClass())
             ->where('reference_id', $expense->id)
             ->where('type', JournalTypeEnum::EXPENSE->value)

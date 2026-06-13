@@ -144,12 +144,24 @@ class ClosingEntryService
      */
     private function nominalAccountIds(int $companyId): array
     {
-        $rootGroups = AccountGroup::withoutGlobalScopes()
+        // Load all groups + accounts in 2 flat queries, assemble tree in PHP
+        // to avoid the N+1 that childrenRecursive causes on deep COA trees.
+        $allGroups = AccountGroup::withoutGlobalScopes()
             ->where('company_id', $companyId)
-            ->whereNull('parent_id')
-            ->with(['accounts', 'childrenRecursive'])
+            ->with('accounts')
             ->get()
-            ->filter(fn (AccountGroup $group) => in_array(strtolower($group->name), ['income', 'expenses'], true));
+            ->keyBy('id');
+
+        foreach ($allGroups as $group) {
+            $group->setRelation('childrenRecursive', $allGroups->where('parent_id', $group->id)->values());
+        }
+
+        $rootGroups = $allGroups
+            ->filter(fn (AccountGroup $group) => is_null($group->parent_id))
+            ->filter(fn (AccountGroup $group) => in_array(strtolower($group->name), [
+                'income', 'incomes', 'revenue', 'revenues', 'other income',
+                'expense', 'expenses', 'expenditure', 'expenditures', 'costs', 'operating expenses',
+            ], true));
 
         $ids = [];
         foreach ($rootGroups as $group) {

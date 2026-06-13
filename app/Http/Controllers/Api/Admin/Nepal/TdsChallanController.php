@@ -77,6 +77,8 @@ class TdsChallanController extends Controller
                 'tds_deductions.base_amount',
                 'tds_deductions.tds_amount',
                 'tds_deductions.period_month',
+                'tds_deductions.deductible_type',
+                'tds_deductions.deductible_id',
                 DB::raw('COALESCE(journals.date, DATE(tds_deductions.created_at)) as effective_date'),
             ])
             ->orderBy('effective_date')

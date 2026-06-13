@@ -10,9 +10,12 @@ use App\Annotation\Permissions;
 use App\Models\RecurringJournal;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Accounting\PeriodLockGuard;
 
 class RecurringJournalController extends Controller
 {
+    public function __construct(private PeriodLockGuard $periodGuard) {}
+
     /**
      * @Permissions("list_recurring_journal", group="recurring_journal", desc="List Recurring Journals")
      */
@@ -153,13 +156,16 @@ class RecurringJournalController extends Controller
         }
 
         $company = auth('admin')->user()->company;
+        $postingDate = now()->toDateString();
 
-        $journal = DB::transaction(function () use ($recurringJournal, $company) {
+        $this->periodGuard->assertPostable($company->id, $company->fiscal_year_id, $postingDate);
+
+        $journal = DB::transaction(function () use ($recurringJournal, $company, $postingDate) {
             $journal = Journal::create([
                 'company_id' => $company->id,
                 'fiscal_year_id' => $company->fiscal_year_id,
                 'type' => JournalTypeEnum::RECURRING->value,
-                'date' => now()->toDateString(),
+                'date' => $postingDate,
                 'voucher_no' => 'REC-'.now()->format('YmdHis'),
                 'remarks' => $recurringJournal->name.': '.$recurringJournal->remarks,
                 'status' => StatusEnum::APPROVED->value,

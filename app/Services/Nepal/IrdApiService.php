@@ -66,6 +66,7 @@ class IrdApiService
 
         try {
             $response = Http::timeout(30)
+                ->retry(3, 2000, fn (\Throwable $e) => $e instanceof \Illuminate\Http\Client\ConnectionException)
                 ->withBasicAuth($company->ird_username, decrypt($company->ird_password))
                 ->post($this->baseUrl().'billing/invoice', $payload);
 
@@ -175,6 +176,15 @@ class IrdApiService
             && ! empty($company->ird_password)
             && ! empty($company->ird_branch_office)
             && ! empty($company->ird_unit_name)
-            && ! empty($company->ird_fiscal_device);
+            && $this->isValidFiscalDeviceId((string) ($company->ird_fiscal_device ?? ''));
+    }
+
+    /**
+     * IRD fiscal device IDs are alphanumeric strings (with optional hyphens/underscores),
+     * between 3 and 30 characters, as issued by the IRD office.
+     */
+    public function isValidFiscalDeviceId(string $deviceId): bool
+    {
+        return $deviceId !== '' && (bool) preg_match('/^[A-Za-z0-9\-_]{3,30}$/', $deviceId);
     }
 }

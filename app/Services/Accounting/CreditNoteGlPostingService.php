@@ -34,6 +34,7 @@ class CreditNoteGlPostingService
     public function isPosted(CreditNote $creditNote): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $creditNote->company_id)
             ->where('reference_type', $creditNote->getMorphClass())
             ->where('reference_id', $creditNote->id)
             ->where('type', JournalTypeEnum::CREDIT_NOTE->value)

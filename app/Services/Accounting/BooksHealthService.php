@@ -3,6 +3,8 @@
 namespace App\Services\Accounting;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * A real-time, company-wide "are my books sound?" snapshot for an admin health
@@ -24,6 +26,17 @@ class BooksHealthService
      * @return array{status:string, healthy:bool, checks:list<array<string,mixed>>, issues:list<string>}
      */
     public function snapshot(Request $request): array
+    {
+        $companyId = Auth::guard('admin')->user()?->company_id ?? 0;
+        $cacheKey = "books_health_{$companyId}";
+
+        return Cache::remember($cacheKey, 300, function () use ($request) {
+            return $this->compute($request);
+        });
+    }
+
+    /** @return array{status:string, healthy:bool, checks:list<array<string,mixed>>, issues:list<string>} */
+    private function compute(Request $request): array
     {
         $unbalanced = $this->accountReportService->unbalancedJournals($request);
         $unposted = $this->accountReportService->unpostedDocuments($request);
@@ -70,6 +83,11 @@ class BooksHealthService
             'checks' => $checks,
             'issues' => array_map(static fn (array $check): string => $check['label'], $failing),
         ];
+    }
+
+    public function invalidateCache(int $companyId): void
+    {
+        Cache::forget("books_health_{$companyId}");
     }
 
     /**
