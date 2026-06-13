@@ -48,7 +48,7 @@ class JournalVoucherRequest extends FormRequest
                 $totalCr += $cr;
             }
 
-            if ($totalDr <= 0 || $totalCr <= 0 || abs($totalDr - $totalCr) > 0.0001) {
+            if ($totalDr <= 0 || $totalCr <= 0 || abs($totalDr - $totalCr) > \App\Services\Accounting\JournalBalanceGuard::TOLERANCE) {
                 $validator->errors()->add('items', 'Total Dr amount must be equal to Total Cr amount.');
             }
         });

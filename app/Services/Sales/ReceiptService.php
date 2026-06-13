@@ -9,6 +9,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 readonly class ReceiptService
@@ -60,6 +61,12 @@ readonly class ReceiptService
 
     public function updateReceipt(array $formData, Receipt $receipt): void
     {
+        if ($receipt->status === StatusEnum::APPROVED) {
+            throw ValidationException::withMessages([
+                'status' => 'Approved receipts cannot be edited. Please void this receipt and create a new one.',
+            ]);
+        }
+
         $receiptNo = $formData['receipt_no'] ?? $receipt->receipt_no;
         $allocations = $this->validatedAllocations($formData);
 

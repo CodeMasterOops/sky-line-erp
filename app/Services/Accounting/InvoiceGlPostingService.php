@@ -10,6 +10,7 @@ use App\Enums\JournalTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Posts a balanced sales journal when an invoice is approved:
@@ -18,7 +19,9 @@ use Illuminate\Support\Facades\DB;
  *   CR  Sales Revenue       (sales_account_id)        — taxable base + exempt + zero-rated amounts
  *   CR  VAT Output          (vat_account_id)          — VAT on taxable lines only
  *
- * Silently skips posting when required account settings are not configured.
+ * Throws ValidationException when required account settings are not configured,
+ * so callers (invoice approval) surface a clear error instead of silently
+ * leaving an approved invoice without a GL journal.
  * Idempotent: will not post a second journal if one already exists for this invoice.
  */
 class InvoiceGlPostingService
@@ -26,6 +29,7 @@ class InvoiceGlPostingService
     public function __construct(
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
+        private GlAccountConfigGuard $glAccountGuard,
     ) {}
 
     /**
@@ -43,23 +47,22 @@ class InvoiceGlPostingService
             return;
         }
 
+        $invoice->loadMissing('invoiceItems');
+
+        $hasTax = $invoice->invoiceItems
+            ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
+            ->sum('tax_amount') > 0;
+
+        // Throws ValidationException when required accounts are not configured.
+        $this->glAccountGuard->assertSalesPostable($hasTax);
+
         $settings = AccountSetting::withoutGlobalScopes()
             ->where('company_id', $invoice->company_id)
             ->first();
 
-        if (! $settings) {
-            return;
-        }
-
         $receivableAccountId = $settings->customer_account_id;
         $salesAccountId = $settings->sales_account_id;
         $vatAccountId = $settings->vat_account_id;
-
-        if (! $receivableAccountId || ! $salesAccountId) {
-            return;
-        }
-
-        $invoice->loadMissing('invoiceItems');
 
         $vatTaxableBase = round((float) $invoice->invoiceItems
             ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
@@ -70,7 +73,7 @@ class InvoiceGlPostingService
             ->sum('tax_amount'), 2);
 
         $nonVatBase = round((float) $invoice->invoiceItems
-            ->whereIn('tax_line_type', [TaxLineTypeEnum::EXEMPT->value, TaxLineTypeEnum::ZERO_RATED->value])
+            ->whereIn('tax_line_type', [TaxLineTypeEnum::EXEMPT, TaxLineTypeEnum::ZERO_RATED])
             ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount), 2);
 
         $salesBase = round($vatTaxableBase + $nonVatBase, 2);
@@ -90,12 +93,16 @@ class InvoiceGlPostingService
                 ->first();
 
         if (! $user) {
-            return;
+            throw ValidationException::withMessages([
+                'account_setting' => 'Cannot post sales journal: no user found for this company.',
+            ]);
         }
 
         $company = \App\Models\Company::with('fiscalYear')->find($invoice->company_id);
         if (! $company || ! $company->fiscal_year_id) {
-            return;
+            throw ValidationException::withMessages([
+                'account_setting' => 'Cannot post sales journal: no active fiscal year is set for this company.',
+            ]);
         }
 
         $yearCode = $company->fiscalYear?->year_code ?? '';
@@ -142,7 +149,10 @@ class InvoiceGlPostingService
                 'remarks' => 'Sales revenue – '.$invoice->invoice_no,
             ]);
 
-            // CR VAT Output — only when VAT amount > 0 and vat_account is configured
+            // CR VAT Output — only when VAT amount > 0 and vat_account is configured.
+            // GlAccountConfigGuard ensures vat_account_id is set when hasTax is true,
+            // so the elseif branch here is only reached for edge cases (e.g. VAT rounding
+            // producing a tiny amount when assertSalesPostable was called with hasTax=false).
             if ($vatAmount > 0 && $vatAccountId) {
                 JournalItem::create([
                     'journal_id' => $journal->id,
@@ -152,7 +162,7 @@ class InvoiceGlPostingService
                     'remarks' => 'Output VAT – '.$invoice->invoice_no,
                 ]);
             } elseif ($vatAmount > 0) {
-                // No vat_account configured: fold VAT into sales line to keep journal balanced
+                // Fold residual VAT rounding into sales line to keep journal balanced.
                 JournalItem::withoutGlobalScopes()
                     ->where('journal_id', $journal->id)
                     ->where('account_id', $salesAccountId)

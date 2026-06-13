@@ -11,6 +11,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 readonly class PaymentService
@@ -70,6 +71,12 @@ readonly class PaymentService
 
     public function updatePayment(array $formData, Payment $payment): void
     {
+        if ($payment->status === StatusEnum::APPROVED) {
+            throw ValidationException::withMessages([
+                'status' => 'Approved payments cannot be edited. Please void this payment and create a new one.',
+            ]);
+        }
+
         $paymentNo = $formData['payment_no'] ?? $payment->payment_no;
         $allocations = $this->validatedAllocations($formData);
         $tdsData = $this->normalizeTdsData($formData, $allocations);
