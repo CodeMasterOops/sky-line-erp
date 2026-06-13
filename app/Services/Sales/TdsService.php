@@ -30,6 +30,11 @@ readonly class TdsService
             ? $tds->tds_category
             : TdsCategoryEnum::from($tds->tds_category);
 
+        $tdsRate = (float) $tds->rate;
+        $baseAmount = $tdsRate > 0
+            ? round((float) $allocation->tds_deducted * 100 / $tdsRate, 2)
+            : (float) $allocation->amount;
+
         return TdsDeduction::create([
             'company_id' => $receipt->company_id,
             'fiscal_year_id' => $receipt->fiscal_year_id,
@@ -37,7 +42,7 @@ readonly class TdsService
             'deductible_id' => $receipt->id,
             'party_id' => $receipt->party_id,
             'tds_category' => $category->value,
-            'base_amount' => (float) $allocation->amount,
+            'base_amount' => $baseAmount,
             'tds_rate' => $category->rate(),
             'tds_amount' => (float) $allocation->tds_deducted,
             'period_month' => now()->month,

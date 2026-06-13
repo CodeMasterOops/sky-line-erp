@@ -28,13 +28,15 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <VSelect
+                    <VMultiselect
                         id="party_id"
                         v-model="form.party_id"
                         :options="parties.data"
                         label="Customer"
+                        :filter-results="false"
                         @validate="validateField('party_id')"
                         required
+                        @search-change="debouncedPartySearch"
                         :error="errors.party_id"
                     />
                     <PartyMetaPanel
@@ -263,7 +265,7 @@
                                 <strong>{{ formatMoney(summary.totalDiscount) }}</strong>
                             </div>
                             <div class="d-flex justify-content-between">
-                                <span>Tax</span>
+                                <span>{{ form.tax_inclusive ? 'Tax (included)' : 'Tax' }}</span>
                                 <strong>{{ formatMoney(summary.tax) }}</strong>
                             </div>
                             <div v-if="chargesTotal > 0" class="d-flex justify-content-between">
@@ -272,7 +274,7 @@
                             </div>
                             <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                 <span>Grand Total</span>
-                                <strong>{{ formatMoney(summary.grandTotal + chargesTotal) }}</strong>
+                                <strong>{{ formatMoney(Number(summary.grandTotal) + chargesTotal) }}</strong>
                             </div>
                         </div>
                     </div>
@@ -328,6 +330,7 @@
 <script setup>
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, nextTick, onMounted, reactive, ref, toRef, watch} from 'vue';
+import debounce from 'lodash/debounce';
 import {apiAdmin} from '@/helpers/api.js';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -377,9 +380,19 @@ const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
 
+const debouncedPartySearch = debounce((query) => {
+    partyStore.getParties({
+        filter: {
+            type: 'customer',
+            limit: 50,
+            search: query || '',
+        },
+    });
+}, 300);
+
 onMounted(() => {
     productStore.getProductVariants();
-    partyStore.getParties({filter: {type: 'customer'}});
+    partyStore.getParties({filter: {type: 'customer', limit: 50, search: ''}});
     taxStore.getTaxes({ filter: { for: 'line_item' } });
     apiAdmin('tax?for=tds&limit=100').then((r) => { tdsTaxes.value = r.data.data ?? []; });
 });
@@ -499,6 +512,9 @@ watch(() => edit_invoice_id.value, async (id) => {
         form.party_id = data.party_id || '';
         form.bijak_no = data.bijak_no || '';
         form.remarks = data.remarks || '';
+        if (data.party_name) {
+            partyStore.getParties({filter: {type: 'customer', limit: 50, search: data.party_name}});
+        }
         form.tax_inclusive = !!data.tax_inclusive;
         form.status = data.status || 'draft';
         form.order_discount_type = data.order_discount_type || 'fixed';
@@ -516,7 +532,7 @@ watch(() => edit_invoice_id.value, async (id) => {
             unit_id: item.unit_id || '',
             quantity: item.quantity != null && item.quantity !== '' ? String(item.quantity) : '',
             rate: item.rate != null && item.rate !== '' ? String(item.rate) : '',
-            tax_id: item.tax_id || '',
+            tax_id: item.tax_id ? String(item.tax_id) : '',
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value:
                 item.line_discount_value != null && item.line_discount_value !== ''
@@ -654,6 +670,7 @@ const buildUpdatePayload = () => {
         invoice_date: form.invoice_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
+        bijak_no: form.bijak_no || null,
         remarks: form.remarks,
         tax_inclusive: form.tax_inclusive,
         order_discount_type: form.order_discount_type || 'fixed',

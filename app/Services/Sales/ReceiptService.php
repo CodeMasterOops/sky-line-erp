@@ -406,12 +406,19 @@ readonly class ReceiptService
             ->where('receipts.status', StatusEnum::APPROVED->value)
             ->groupBy('receipt_allocations.invoice_id');
 
+        $chargesSub = DB::table('invoice_charges')
+            ->selectRaw('invoice_id, SUM(amount) + SUM(tax_amount) as charges_total')
+            ->groupBy('invoice_id');
+
         $rows = DB::table('invoices')
             ->leftJoinSub($itemsSub, 'item_totals', function ($join) {
                 $join->on('invoices.id', '=', 'item_totals.invoice_id');
             })
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('invoices.id', '=', 'paid_totals.invoice_id');
+            })
+            ->leftJoinSub($chargesSub, 'charge_totals', function ($join) {
+                $join->on('invoices.id', '=', 'charge_totals.invoice_id');
             })
             ->leftJoin('discounts', function ($join) {
                 $join->on('invoices.id', '=', 'discounts.discountable_id')
@@ -428,6 +435,7 @@ readonly class ReceiptService
                 DB::raw('COALESCE(item_totals.subtotal, 0) as subtotal'),
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
                 DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
+                DB::raw('COALESCE(charge_totals.charges_total, 0) as charges_total'),
                 DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
             ])
             ->get();
@@ -435,7 +443,7 @@ readonly class ReceiptService
         $map = [];
         foreach ($rows as $row) {
             $orderDisc = (float) ($row->order_discount_amount ?? 0);
-            $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
+            $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total + (float) ($row->charges_total ?? 0);
             $paidTotal = (float) $row->paid_total;
             $due = max($grandTotal - $paidTotal, 0);
             $map[$row->id] = [

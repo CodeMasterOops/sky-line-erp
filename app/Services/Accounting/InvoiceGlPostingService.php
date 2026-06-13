@@ -66,9 +66,11 @@ class InvoiceGlPostingService
         $salesAccountId = $settings->sales_account_id;
         $vatAccountId = $settings->vat_account_id;
 
+        $taxInclusive = (bool) $invoice->tax_inclusive;
+
         $vatTaxableBase = round((float) $invoice->invoiceItems
             ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
-            ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount), 2);
+            ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount - ($taxInclusive ? (float) $item->tax_amount : 0)), 2);
 
         $vatAmount = round((float) $invoice->invoiceItems
             ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)

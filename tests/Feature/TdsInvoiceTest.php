@@ -214,6 +214,41 @@ it('does NOT post a TDS GL journal line when approving a service invoice', funct
     expect($journalItems)->toHaveCount(2);
 });
 
+it('rejects a non-TDS tax used as tds_id on invoice items', function () {
+    tdsInvSetupAccounts($this);
+
+    $vatTax = Tax::create([
+        'company_id' => $this->company->id,
+        'name' => 'VAT 13%',
+        'rate' => 13,
+        'type' => \App\Enums\TaxTypeEnum::VAT_STANDARD->value,
+        'is_system' => false,
+    ]);
+
+    $payload = [
+        'party_id' => $this->party->id,
+        'invoice_date' => '2026-06-13',
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'quantity' => 1,
+            'rate' => 10000,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+            'is_tds_applicable' => true,
+            'tds_id' => $vatTax->id,
+            'tds_base_amount' => 10000,
+            'tds_amount' => 1300,
+        ]],
+    ];
+
+    $response = $this->postJson('/api/admin/invoice', $payload);
+
+    $response->assertUnprocessable();
+    $errors = $response->json('errors');
+    $hasError = isset($errors['items.0.tds_id']) || isset($errors['items'][0]['tds_id']);
+    expect($hasError)->toBeTrue();
+});
+
 it('updates TDS fields on invoice items when editing', function () {
     tdsInvSetupAccounts($this);
 

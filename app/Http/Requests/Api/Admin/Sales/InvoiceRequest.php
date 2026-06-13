@@ -73,7 +73,19 @@ class InvoiceRequest extends FormRequest
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
             'items.*.is_tds_applicable' => ['nullable', 'boolean'],
-            'items.*.tds_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
+            'items.*.tds_id' => [
+                'nullable',
+                TRule::exists('taxes', 'id')->withoutTrashed(),
+                function ($_attribute, $value, $fail) {
+                    if ($value === null) {
+                        return;
+                    }
+                    $tax = \App\Models\Tax::withoutGlobalScopes()->find($value);
+                    if ($tax && $tax->type !== TaxTypeEnum::TDS) {
+                        $fail('The selected TDS tax must be of TDS type.');
+                    }
+                },
+            ],
             'items.*.tds_base_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tds_amount' => ['nullable', 'numeric', 'min:0'],
             'charges' => ['nullable', 'array'],

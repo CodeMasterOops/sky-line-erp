@@ -402,6 +402,86 @@ it('posts a balanced GL journal including per-charge CR lines when invoice is ap
     expect($totalDr)->toBe($totalCr);
 });
 
+it('posts correct GL amounts for a tax-inclusive invoice (VAT embedded in rate)', function () {
+    $group = AccountGroup::where('company_id', $this->company->id)->first();
+    $vatAccount = Account::create([
+        'company_id' => $this->company->id, 'account_group_id' => $group->id,
+        'name' => 'Output VAT', 'code' => 'VAT-'.uniqid(), 'is_active' => true,
+    ]);
+    AccountSetting::where('company_id', $this->company->id)
+        ->update(['vat_account_id' => $vatAccount->id]);
+
+    $tax = \App\Models\Tax::create([
+        'company_id' => $this->company->id,
+        'name' => 'VAT 13%',
+        'rate' => 13,
+        'type' => \App\Enums\TaxTypeEnum::VAT_STANDARD,
+        'is_system' => false,
+    ]);
+
+    $serviceProduct = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Consulting', 'code' => 'SVC2-'.uniqid(), 'product_type' => 'service',
+    ]);
+    $serviceVariant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $serviceProduct->id,
+        'sku' => 'SVSKU2-'.uniqid(), 'sales_price' => 113, 'is_default' => true,
+    ]);
+
+    // Rate 113 is tax-inclusive (100 net + 13 VAT at 13%).
+    // Back-calculated tax = 113 * 13 / 113 = 13.
+    $payload = [
+        'party_id' => $this->party->id,
+        'invoice_date' => now()->toDateString(),
+        'status' => 'approved',
+        'tax_inclusive' => true,
+        'items' => [[
+            'product_variant_id' => $serviceVariant->id,
+            'warehouse_id' => $this->warehouse->id,
+            'quantity' => 1,
+            'rate' => 113,
+            'tax_id' => $tax->id,
+            'tax_amount' => 13,
+            'discount_amount' => 0,
+            'tax_line_type' => 'taxable',
+        ]],
+        'charges' => [],
+    ];
+
+    $response = $this->postJson('/api/admin/invoice', $payload);
+    $response->assertCreated();
+
+    $invoiceId = $response->json('data.id');
+    $invoice = \App\Models\Invoice::find($invoiceId);
+
+    $journal = \App\Models\Journal::withoutGlobalScopes()
+        ->where('reference_id', $invoiceId)
+        ->where('reference_type', $invoice->getMorphClass())
+        ->first();
+
+    expect($journal)->not->toBeNull();
+
+    $items = \App\Models\JournalItem::where('journal_id', $journal->id)->get();
+
+    // DR AR = 113 (rate is already inclusive — no extra tax added on top)
+    $drAr = $items->where('account_id', $this->arAccount->id)->sum('dr_amount');
+    expect((float) $drAr)->toBe(113.0);
+
+    // CR Sales = 100 (113 rate − 13 embedded VAT)
+    $crSales = $items->where('account_id', $this->salesAccount->id)->sum('cr_amount');
+    expect((float) $crSales)->toBe(100.0);
+
+    // CR Output VAT = 13
+    $crVat = $items->where('account_id', $vatAccount->id)->sum('cr_amount');
+    expect((float) $crVat)->toBe(13.0);
+
+    // Journal must balance
+    $totalDr = round((float) $items->sum('dr_amount'), 2);
+    $totalCr = round((float) $items->sum('cr_amount'), 2);
+    expect($totalDr)->toBe($totalCr);
+});
+
 // ─── Enum ─────────────────────────────────────────────────────────────────────
 
 it('ChargeTypeEnum has all expected cases with correct values', function () {
@@ -439,4 +519,65 @@ it('InvoiceCharge casts charge_type to ChargeTypeEnum and belongs to Invoice', f
     expect($invoice->charges)->toHaveCount(1);
     expect((float) $invoice->charges->first()->amount)->toBe(150.0);
     expect($invoice->charges->first()->charge_type)->toBe(ChargeTypeEnum::Freight);
+});
+
+it('allows a receipt allocation for the full invoice amount including charges', function () {
+    // Items: 2 × 500 = 1000. Charge: 200. Total = 1200.
+    // Before the fix, the due-amount query ignored charges and returned 1000,
+    // so trying to allocate 1200 would fail with "exceeds invoice due amount".
+    $group = AccountGroup::where('company_id', $this->company->id)->first();
+    $cashAccount = Account::create([
+        'company_id' => $this->company->id, 'account_group_id' => $group->id,
+        'name' => 'Cash CHG', 'code' => 'CASHCHG-'.uniqid(), 'is_active' => true,
+    ]);
+
+    $serviceProduct = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Svc CHG', 'code' => 'SVCCHG-'.uniqid(), 'product_type' => 'service',
+    ]);
+    $serviceVariant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $serviceProduct->id,
+        'sku' => 'SVCHGSKU-'.uniqid(), 'sales_price' => 500, 'is_default' => true,
+    ]);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-CHGRCPT-'.uniqid(),
+        'invoice_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+    $invoice->invoiceItems()->create([
+        'product_variant_id' => $serviceVariant->id,
+        'quantity' => 2, 'rate' => 500, 'tax_amount' => 0, 'discount_amount' => 0,
+    ]);
+    InvoiceCharge::create([
+        'invoice_id' => $invoice->id, 'name' => 'Freight',
+        'charge_type' => ChargeTypeEnum::Freight->value,
+        'account_id' => $this->chargeAccount->id,
+        'amount' => 200, 'tax_amount' => 0,
+    ]);
+
+    // Allocate the full invoice total (items 1000 + charge 200 = 1200)
+    $response = $this->postJson('/api/admin/receipt', [
+        'party_id' => $this->party->id,
+        'receipt_date' => now()->toDateString(),
+        'payment_method' => 'cash',
+        'account_id' => $cashAccount->id,
+        'status' => StatusEnum::APPROVED->value,
+        'allocations' => [[
+            'invoice_id' => $invoice->id,
+            'amount' => 1200,
+        ]],
+    ]);
+
+    $response->assertCreated();
+    $receiptId = $response->json('data.id');
+    $allocated = \Illuminate\Support\Facades\DB::table('receipt_allocations')
+        ->where('receipt_id', $receiptId)
+        ->sum('amount');
+    expect((float) $allocated)->toBe(1200.0);
 });

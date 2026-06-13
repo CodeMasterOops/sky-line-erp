@@ -114,7 +114,7 @@
                     </div>
                     <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pe-3">
                         <p class="mb-0">Discount ({{ discountPercentLabel }})</p>
-                        <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.discount_total) }}</p>
+                        <p class="text-dark fw-medium mb-2">{{ formatMoney(Number(inv.discount_total || 0) + Number(inv.order_discount_amount || 0)) }}</p>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
                         <p class="mb-0">{{ taxSummaryLabel }}</p>
@@ -261,7 +261,7 @@ const invoiceForLabel = computed(() => {
 
 const discountPercentLabel = computed(() => {
     const sub = Number(inv.value.subtotal || 0);
-    const disc = Number(inv.value.discount_total || 0);
+    const disc = Number(inv.value.discount_total || 0) + Number(inv.value.order_discount_amount || 0);
     if (sub <= 0 || disc <= 0) {
         return '0%';
     }
@@ -269,8 +269,11 @@ const discountPercentLabel = computed(() => {
 });
 
 const taxSummaryLabel = computed(() => {
+    if (inv.value.tax_inclusive) {
+        return 'Tax (included)';
+    }
     const sub = Number(inv.value.subtotal || 0);
-    const disc = Number(inv.value.discount_total || 0);
+    const disc = Number(inv.value.discount_total || 0) + Number(inv.value.order_discount_amount || 0);
     const tax = Number(inv.value.tax_total || 0);
     const base = sub - disc;
     if (base > 0 && tax > 0) {

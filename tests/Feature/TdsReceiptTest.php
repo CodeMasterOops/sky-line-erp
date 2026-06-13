@@ -314,3 +314,55 @@ it('posts a standard 2-line journal when no TDS is deducted', function () {
 
     expect($items)->toHaveCount(2);
 });
+
+it('stores the correct TDS base_amount when the invoice also has VAT', function () {
+    ['cash' => $cash] = tdsRcpSetup($this);
+
+    $vatTax = Tax::create([
+        'company_id' => $this->company->id,
+        'name' => 'VAT 13%', 'rate' => 13,
+        'type' => TaxTypeEnum::VAT_STANDARD->value, 'is_system' => false,
+    ]);
+
+    // Service fee 10,000 + 13% VAT = 11,300 total. TDS 1.5% on 10,000 = 150.
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-TDSVAT-'.uniqid(),
+        'invoice_date' => '2026-06-13',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+    $invoice->invoiceItems()->create([
+        'product_variant_id' => $this->variant->id,
+        'quantity' => 1,
+        'rate' => 10000,
+        'tax_id' => $vatTax->id,
+        'tax_amount' => 1300,
+        'discount_amount' => 0,
+        'is_tds_applicable' => true,
+        'tds_id' => $this->tdsTax->id,
+        'tds_base_amount' => 10000,
+        'tds_amount' => 150,
+    ]);
+
+    $this->postJson('/api/admin/receipt', [
+        'party_id' => $this->party->id,
+        'receipt_date' => '2026-06-13',
+        'payment_method' => 'cash',
+        'account_id' => $cash->id,
+        'status' => StatusEnum::APPROVED->value,
+        'allocations' => [[
+            'invoice_id' => $invoice->id,
+            'amount' => 11300,
+            'tds_id' => $this->tdsTax->id,
+            'tds_deducted' => 150,
+        ]],
+    ])->assertCreated();
+
+    $deduction = TdsDeduction::withoutGlobalScopes()->where('party_id', $this->party->id)->first();
+    // base_amount must be the pre-VAT service fee (10,000), not the total invoice amount (11,300)
+    expect((float) $deduction->base_amount)->toBe(10000.0);
+    expect((float) $deduction->tds_amount)->toBe(150.0);
+});

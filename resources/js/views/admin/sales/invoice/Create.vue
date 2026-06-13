@@ -88,15 +88,7 @@
                                     <template
                                         v-for="(item, index) in form.items"
                                         :key="`n-${index}-${item.product_variant_id}-${item.warehouse_id}`">
-                                    <tr
-                                        v-memo="[
-                                            item.quantity,
-                                            item.rate,
-                                            item.line_discount_type,
-                                            item.line_discount_value,
-                                            item.tax_id,
-                                            item.warehouse_id,
-                                        ]">
+                                    <tr>
                                         <td>{{ index + 1 }}</td>
                                         <td class="inv-col-product">
                                             <div class="inv-line-product">
@@ -254,7 +246,7 @@
                                         <strong class="ms-auto">{{ formatMoney(summary.totalDiscount) }}</strong>
                                     </div>
                                     <div class="d-flex justify-content-between">
-                                        <span>Tax</span>
+                                        <span>{{ form.tax_inclusive ? 'Tax (included)' : 'Tax' }}</span>
                                         <strong>{{ formatMoney(summary.tax) }}</strong>
                                     </div>
                                     <div v-if="chargesTotal > 0" class="d-flex justify-content-between">
@@ -263,7 +255,7 @@
                                     </div>
                                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                                         <span>Grand total</span>
-                                        <strong>{{ formatMoney(summary.grandTotal + chargesTotal) }}</strong>
+                                        <strong>{{ formatMoney(Number(summary.grandTotal) + chargesTotal) }}</strong>
                                     </div>
                                 </div>
                             </div>
