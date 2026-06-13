@@ -23,6 +23,7 @@ class QuotationRequest extends FormRequest
             'expiry_date' => ['nullable', 'date', 'after_or_equal:quotation_date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
+            'tax_inclusive' => ['nullable', 'boolean'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'order_discount_value' => ['nullable', 'numeric', 'min:0'],

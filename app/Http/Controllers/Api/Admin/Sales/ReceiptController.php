@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin\Sales;
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
+use App\Models\ReceiptPayment;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Services\Sales\ReceiptService;
@@ -23,7 +24,7 @@ class ReceiptController extends Controller
     public function index(Request $request)
     {
         $receipts = Receipt::filter($request->all())
-            ->with(['party', 'account', 'allocations'])
+            ->with(['party', 'account', 'allocations', 'receiptPayments.account'])
             ->latest('receipt_date')
             ->paginate($request->limit ?? 25);
 
@@ -37,7 +38,7 @@ class ReceiptController extends Controller
     {
         $receipt = $this->receiptService->createReceipt($request->validated());
 
-        $receipt->load(['party', 'account', 'allocations.invoice']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
 
         return response()->json([
             'data' => ReceiptResource::make($receipt),
@@ -50,7 +51,7 @@ class ReceiptController extends Controller
      */
     public function show(Receipt $receipt)
     {
-        $receipt->load(['party', 'account', 'allocations.invoice']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
 
         return ReceiptResource::make($receipt);
     }
@@ -68,7 +69,7 @@ class ReceiptController extends Controller
 
         $this->receiptService->updateReceipt($request->validated(), $receipt);
 
-        $receipt->load(['party', 'account', 'allocations.invoice']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
 
         return response()->json([
             'data' => ReceiptResource::make($receipt),
@@ -121,11 +122,23 @@ class ReceiptController extends Controller
 
         $this->receiptService->approveReceipt($receipt);
 
-        $receipt->load(['party', 'account', 'allocations.invoice']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
 
         return response()->json([
             'data' => ReceiptResource::make($receipt),
             'message' => 'Receipt Approved Successfully',
+        ]);
+    }
+
+    /**
+     * @Permissions("clear_cheque", group="receipt", desc="Clear Cheque Payment")
+     */
+    public function clearCheque(ReceiptPayment $receiptPayment)
+    {
+        $this->receiptService->clearCheque($receiptPayment);
+
+        return response()->json([
+            'message' => 'Cheque marked as cleared successfully.',
         ]);
     }
 }

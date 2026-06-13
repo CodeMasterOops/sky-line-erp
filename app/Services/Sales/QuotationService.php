@@ -35,6 +35,7 @@ readonly class QuotationService
                 'quotation_date' => $formData['quotation_date'],
                 'expiry_date' => $formData['expiry_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
+                'tax_inclusive' => $formData['tax_inclusive'] ?? false,
                 'create_user_id' => $user->id,
                 'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
@@ -86,6 +87,7 @@ readonly class QuotationService
                 'quotation_date' => $formData['quotation_date'],
                 'expiry_date' => $formData['expiry_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
+                'tax_inclusive' => $formData['tax_inclusive'] ?? $quotation->tax_inclusive,
             ]);
 
             $quotation->quotationItems()->delete();

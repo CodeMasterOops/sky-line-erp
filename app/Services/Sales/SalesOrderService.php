@@ -35,6 +35,7 @@ readonly class SalesOrderService
                 'order_no' => $orderNo,
                 'order_date' => $formData['order_date'],
                 'remarks' => $formData['remarks'] ?? null,
+                'tax_inclusive' => $formData['tax_inclusive'] ?? false,
                 'create_user_id' => $user->id,
                 'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
@@ -86,6 +87,7 @@ readonly class SalesOrderService
                 'order_no' => $orderNo,
                 'order_date' => $formData['order_date'],
                 'remarks' => $formData['remarks'] ?? null,
+                'tax_inclusive' => $formData['tax_inclusive'] ?? $salesOrder->tax_inclusive,
             ]);
 
             if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {

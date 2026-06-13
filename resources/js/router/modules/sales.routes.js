@@ -87,4 +87,12 @@ export default [
         },
         component: () => import("@/views/admin/sales/tds-challan/View.vue"),
     },
+    {
+        path: "advance-receipt",
+        name: "admin.advance-receipt-list",
+        meta: {
+            pageTitle: "Advance Receipts",
+        },
+        component: () => import("@/views/admin/sales/advance-receipt/Index.vue"),
+    },
 ];

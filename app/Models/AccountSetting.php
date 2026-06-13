@@ -35,5 +35,6 @@ class AccountSetting extends Model
         'retained_earnings_account_id',
         'opening_stock_equity_account_id',
         'tds_receivable_account_id',
+        'advance_from_customers_account_id',
     ];
 }

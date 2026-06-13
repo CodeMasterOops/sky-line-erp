@@ -31,6 +31,21 @@ class ReceiptResource extends JsonResource
             'status' => $this->status?->value ?? '',
             'total_amount' => $this->calculateTotal(),
             'allocations' => ReceiptAllocationResource::collection($this->whenLoaded('allocations')),
+            'payments' => $this->when(
+                $this->relationLoaded('receiptPayments'),
+                fn () => $this->receiptPayments->map(fn ($p) => [
+                    'id' => $p->id,
+                    'payment_method' => $p->payment_method?->value ?? '',
+                    'payment_method_label' => $p->payment_method?->label() ?? '',
+                    'account_id' => $p->account_id ?? '',
+                    'account_name' => $p->account?->name ?? '',
+                    'amount' => (float) $p->amount,
+                    'reference_no' => $p->reference_no ?? '',
+                    'cheque_date' => $p->cheque_date?->toDateString() ?? null,
+                    'cheque_status' => $p->cheque_status?->value ?? null,
+                    'cheque_status_label' => $p->cheque_status?->label() ?? null,
+                ])
+            ),
         ];
     }
 

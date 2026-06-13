@@ -35,6 +35,7 @@ class SalesOrderRequest extends FormRequest
                 },
             ],
             'remarks' => ['nullable', 'string'],
+            'tax_inclusive' => ['nullable', 'boolean'],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'order_discount_value' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],

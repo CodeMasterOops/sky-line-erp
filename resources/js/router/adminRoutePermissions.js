@@ -27,6 +27,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.invoice-view': { any: ['list_invoice', 'show_invoice'] },
     'admin.credit-note-list': 'list_credit_note',
     'admin.receipt-list': 'list_receipt',
+    'admin.advance-receipt-list': 'list_advance_receipt',
     'admin.sales-returns': 'list_sales_order',
     'admin.quotation-list': 'list_quotation',
     'admin.sales-report': 'list_sales_order',

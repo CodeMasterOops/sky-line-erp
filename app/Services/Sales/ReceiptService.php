@@ -7,6 +7,9 @@ use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
+use App\Models\ReceiptPayment;
+use App\Enums\ChequeStatusEnum;
+use App\Enums\PaymentMethodEnum;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
@@ -42,15 +45,19 @@ readonly class ReceiptService
                 $fiscalYearId,
                 $setting->fiscalYear?->year_code,
             );
+
+            $legData = $this->resolvePaymentLegs($formData);
+            $firstLeg = $legData[0] ?? [];
+
             $receipt = Receipt::create([
                 'company_id' => $user->company->id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'receipt_no' => $receiptNo,
                 'receipt_date' => $formData['receipt_date'],
-                'payment_method' => $formData['payment_method'],
-                'account_id' => $formData['account_id'],
-                'reference_no' => $formData['reference_no'] ?? null,
+                'payment_method' => $firstLeg['payment_method'] ?? $formData['payment_method'] ?? null,
+                'account_id' => $firstLeg['account_id'] ?? $formData['account_id'] ?? null,
+                'reference_no' => $firstLeg['reference_no'] ?? $formData['reference_no'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
                 'create_user_id' => $user->id,
                 'approve_user_id' => $user->id,
@@ -58,6 +65,7 @@ readonly class ReceiptService
                 'status' => $status,
             ]);
 
+            $this->syncPaymentLegs($receipt, $legData);
             $receipt->allocations()->createMany($this->mapAllocations($allocations));
 
             if ($status === StatusEnum::APPROVED->value) {
@@ -81,17 +89,20 @@ readonly class ReceiptService
 
         DB::transaction(function () use ($receipt, $formData, $receiptNo) {
             $allocations = $this->validatedAllocations($formData);
+            $legData = $this->resolvePaymentLegs($formData);
+            $firstLeg = $legData[0] ?? [];
 
             $receipt->update([
                 'party_id' => $formData['party_id'] ?? null,
                 'receipt_no' => $receiptNo,
                 'receipt_date' => $formData['receipt_date'],
-                'payment_method' => $formData['payment_method'],
-                'account_id' => $formData['account_id'],
-                'reference_no' => $formData['reference_no'] ?? null,
+                'payment_method' => $firstLeg['payment_method'] ?? $formData['payment_method'] ?? $receipt->payment_method,
+                'account_id' => $firstLeg['account_id'] ?? $formData['account_id'] ?? $receipt->account_id,
+                'reference_no' => $firstLeg['reference_no'] ?? $formData['reference_no'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
             ]);
 
+            $this->syncPaymentLegs($receipt, $legData);
             $receipt->allocations()->delete();
             $receipt->allocations()->createMany($this->mapAllocations($allocations));
         });
@@ -128,13 +139,32 @@ readonly class ReceiptService
         });
     }
 
+    public function clearCheque(ReceiptPayment $payment): void
+    {
+        if ($payment->payment_method !== PaymentMethodEnum::Cheque) {
+            throw ValidationException::withMessages([
+                'payment_method' => 'Only cheque payments can be cleared.',
+            ]);
+        }
+
+        if ($payment->cheque_status === ChequeStatusEnum::Cleared) {
+            throw ValidationException::withMessages([
+                'cheque_status' => 'This cheque has already been cleared.',
+            ]);
+        }
+
+        DB::transaction(function () use ($payment) {
+            $payment->update(['cheque_status' => ChequeStatusEnum::Cleared]);
+        });
+    }
+
     public function createJournal(Receipt $receipt): void
     {
         if ($receipt->journal()->withoutGlobalScopes()->exists()) {
             return;
         }
 
-        $receipt->loadMissing('party:id,name', 'account', 'allocations');
+        $receipt->loadMissing('party:id,name', 'account', 'allocations', 'receiptPayments.account');
 
         $accountSetting = AccountSetting::withoutGlobalScopes()
             ->where('company_id', $receipt->company_id)
@@ -179,8 +209,20 @@ readonly class ReceiptService
             'remarks' => 'To-'.($receipt->party->name ?? ''),
         ]);
 
-        // DR Cash/Bank — net cash received after TDS
-        if ($netCashReceived > 0) {
+        // DR per payment leg — proportional share of net cash received
+        $legs = $receipt->receiptPayments->filter(fn ($leg) => (float) $leg->amount > 0);
+        if ($legs->isNotEmpty()) {
+            foreach ($legs as $leg) {
+                $legAmount = round((float) $leg->amount, 2);
+                $journal->journalItems()->create([
+                    'account_id' => $leg->account_id,
+                    'dr_amount' => $legAmount,
+                    'cr_amount' => 0,
+                    'remarks' => 'To-'.($leg->account->name ?? ''),
+                ]);
+            }
+        } elseif ($netCashReceived > 0) {
+            // Fallback: single DR line using legacy receipt.account_id
             $journal->journalItems()->create([
                 'account_id' => $receipt->account_id,
                 'dr_amount' => $netCashReceived,
@@ -206,6 +248,67 @@ readonly class ReceiptService
         }
 
         $this->balanceGuard->assertBalanced($journal);
+    }
+
+    /**
+     * Resolve payment legs from form data.
+     * If `payments` array is provided, use it. Otherwise fall back to legacy single-leg.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function resolvePaymentLegs(array $formData): array
+    {
+        if (! empty($formData['payments']) && is_array($formData['payments'])) {
+            return array_filter($formData['payments'], fn ($p) => (float) ($p['amount'] ?? 0) > 0);
+        }
+
+        // Legacy single payment — wrap in array, amount = net of TDS
+        if (! empty($formData['account_id'])) {
+            $totalAllocated = collect($formData['allocations'] ?? [])
+                ->sum(fn ($a) => (float) ($a['amount'] ?? 0));
+            $totalTdsDeducted = collect($formData['allocations'] ?? [])
+                ->sum(fn ($a) => (float) ($a['tds_deducted'] ?? 0));
+
+            return [[
+                'payment_method' => $formData['payment_method'] ?? PaymentMethodEnum::Cash->value,
+                'account_id' => $formData['account_id'],
+                'amount' => round($totalAllocated - $totalTdsDeducted, 2),
+                'reference_no' => $formData['reference_no'] ?? null,
+                'cheque_date' => null,
+                'cheque_status' => null,
+            ]];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $legs
+     */
+    private function syncPaymentLegs(Receipt $receipt, array $legs): void
+    {
+        $receipt->receiptPayments()->delete();
+
+        foreach ($legs as $leg) {
+            $chequeStatus = null;
+            if (! empty($leg['cheque_status'])) {
+                $chequeStatus = $leg['cheque_status'] instanceof ChequeStatusEnum
+                    ? $leg['cheque_status']->value
+                    : $leg['cheque_status'];
+            } elseif (($leg['payment_method'] ?? null) === PaymentMethodEnum::Cheque->value
+                || ($leg['payment_method'] ?? null) === 'cheque') {
+                $chequeStatus = ChequeStatusEnum::Pending->value;
+            }
+
+            $receipt->receiptPayments()->create([
+                'payment_method' => $leg['payment_method'],
+                'account_id' => $leg['account_id'],
+                'amount' => $leg['amount'],
+                'reference_no' => $leg['reference_no'] ?? null,
+                'cheque_date' => $leg['cheque_date'] ?? null,
+                'cheque_status' => $chequeStatus,
+            ]);
+        }
     }
 
     private function recordTdsDeductions(Receipt $receipt): void

@@ -281,6 +281,21 @@
                             </div>
                         </div>
 
+                        <div class="col-md-12">
+                            <div class="form-check form-switch mb-3">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="inv_tax_inclusive"
+                                    v-model="form.tax_inclusive"
+                                    @change="syncTaxAmounts"
+                                />
+                                <label class="form-check-label" for="inv_tax_inclusive">
+                                    Tax-inclusive pricing (rates include VAT)
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="col-12 text-end">
                             <button @click="closeCreateModal" class="btn btn-cancel add-cancel me-2" type="button">
                                 Cancel
@@ -428,6 +443,7 @@ const getInitialState = () => ({
     sales_order_id: '',
     bijak_no: '',
     remarks: '',
+    tax_inclusive: false,
     status: 'draft',
     order_discount_type: 'fixed',
     order_discount_value: '0',
@@ -522,6 +538,7 @@ async function hydrateFromReference(data, sourceIds) {
     form.quotation_id = sourceIds.quotation_id || '';
     form.sales_order_id = sourceIds.sales_order_id || '';
     form.remarks = data.remarks || '';
+    form.tax_inclusive = !!data.tax_inclusive;
 
     const items = data.items || [];
     const hasLineTypes = items.some((it) => it.line_discount_type != null);
@@ -730,6 +747,7 @@ const buildInvoicePayload = () => {
         sales_order_id: form.sales_order_id || null,
         bijak_no: form.bijak_no || null,
         remarks: form.remarks,
+        tax_inclusive: form.tax_inclusive,
         status: form.status,
         order_discount_type: form.order_discount_type || 'fixed',
         order_discount_value: form.order_discount_value ?? '0',

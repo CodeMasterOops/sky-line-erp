@@ -20,6 +20,8 @@ enum JournalTypeEnum: string
     case CREDIT_NOTE = 'credit-note';
     case DEBIT_NOTE = 'debit-note';
     case CLOSING_ENTRY = 'closing-entry';
+    case ADVANCE_RECEIPT = 'advance-receipt';
+    case ADVANCE_ADJUSTMENT = 'advance-adjustment';
 
     public function label(): string
     {
@@ -44,6 +46,8 @@ enum JournalTypeEnum: string
             self::CREDIT_NOTE => 'Credit Note (Sales Return)',
             self::DEBIT_NOTE => 'Debit Note (Purchase Return)',
             self::CLOSING_ENTRY => 'Year-End Closing Entry',
+            self::ADVANCE_RECEIPT => 'Customer Advance Receipt',
+            self::ADVANCE_ADJUSTMENT => 'Advance Adjustment to Invoice',
         };
     }
 

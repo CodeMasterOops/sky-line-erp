@@ -210,6 +210,22 @@
                             </div>
                         </div>
 
+                        <div class="col-md-12">
+                            <div class="form-check form-switch mb-3">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="so_edit_tax_inclusive"
+                                    v-model="form.tax_inclusive"
+                                    :disabled="!isDraft"
+                                    @change="syncTaxAmounts"
+                                />
+                                <label class="form-check-label" for="so_edit_tax_inclusive">
+                                    Tax-inclusive pricing (rates include VAT)
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="col-12 text-end">
                             <button @click="closeEditModal" class="btn btn-cancel add-cancel me-2" type="button">
                                 Cancel
@@ -273,6 +289,7 @@ const initialState = {
     order_date: '',
     party_id: '',
     remarks: '',
+    tax_inclusive: false,
     status: 'draft',
     order_discount_type: 'fixed',
     order_discount_value: '0',
@@ -376,6 +393,7 @@ watch(
         form.order_date = data.order_date || '';
         form.party_id = data.party_id || '';
         form.remarks = data.remarks || '';
+        form.tax_inclusive = !!data.tax_inclusive;
         form.status = data.status || 'draft';
         form.charges = (data.charges || []).map((c) => ({
             name: c.name || '',
@@ -427,6 +445,7 @@ const buildOrderPayload = () => {
         order_date: form.order_date,
         party_id: form.party_id || null,
         remarks: form.remarks,
+        tax_inclusive: form.tax_inclusive,
         status: form.status,
         order_discount_type: form.order_discount_type || 'fixed',
         order_discount_value: form.order_discount_value ?? '0',

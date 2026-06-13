@@ -57,6 +57,12 @@
                 "permission": "list_receipt"
             },
             {
+                "menuValue": "Advance Receipts",
+                "route": { "name": "admin.advance-receipt-list" },
+                "icon": "ti ti-cash-banknote",
+                "permission": "list_advance_receipt"
+            },
+            {
                 "menuValue": "Credit Notes",
                 "route": { "name": "admin.credit-note-list" },
                 "icon": "ti ti-receipt-refund",

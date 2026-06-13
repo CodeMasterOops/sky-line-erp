@@ -6,13 +6,14 @@ use App\Enums\StatusEnum;
 use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
+use App\Enums\PaymentMethodEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Receipt extends Model
+class AdvanceReceipt extends Model
 {
     use Auditable;
     use BranchTenant;
@@ -24,10 +25,12 @@ class Receipt extends Model
         'branch_id',
         'fiscal_year_id',
         'party_id',
-        'receipt_no',
-        'receipt_date',
+        'advance_no',
+        'advance_date',
         'payment_method',
         'account_id',
+        'amount',
+        'adjusted_amount',
         'reference_no',
         'remarks',
         'create_user_id',
@@ -36,19 +39,28 @@ class Receipt extends Model
         'status',
     ];
 
-    protected $casts = [
-        'fiscal_year_id' => 'integer',
-        'party_id' => 'integer',
-        'account_id' => 'integer',
-        'approved_at' => 'datetime',
-        'status' => StatusEnum::class,
-    ];
+    public function casts(): array
+    {
+        return [
+            'advance_date' => 'date',
+            'amount' => 'decimal:2',
+            'adjusted_amount' => 'decimal:2',
+            'payment_method' => PaymentMethodEnum::class,
+            'approved_at' => 'datetime',
+            'status' => StatusEnum::class,
+        ];
+    }
 
-    public function scopeFilter($query, $param = [])
+    public function getBalanceAttribute(): float
+    {
+        return round((float) $this->amount - (float) $this->adjusted_amount, 2);
+    }
+
+    public function scopeFilter($query, array $param = [])
     {
         if (! empty($param['search'])) {
             $key = '%'.trim($param['search']).'%';
-            $query->where('receipt_no', 'like', $key);
+            $query->where('advance_no', 'like', $key);
         }
 
         if (! empty($param['party_id'])) {
@@ -62,14 +74,9 @@ class Receipt extends Model
         return $query;
     }
 
-    public function allocations(): HasMany
+    public function adjustments(): HasMany
     {
-        return $this->hasMany(ReceiptAllocation::class);
-    }
-
-    public function receiptPayments(): HasMany
-    {
-        return $this->hasMany(ReceiptPayment::class);
+        return $this->hasMany(AdvanceAdjustment::class);
     }
 
     public function party(): BelongsTo

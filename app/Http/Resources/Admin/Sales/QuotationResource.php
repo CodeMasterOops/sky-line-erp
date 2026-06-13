@@ -21,6 +21,7 @@ class QuotationResource extends JsonResource
             'party_name' => $this->party?->name ?? '',
             ...$this->mapPartyFields($this->party),
             'remarks' => $this->remarks ?? '',
+            'tax_inclusive' => (bool) $this->tax_inclusive,
             'fiscal_year_id' => $this->fiscal_year_id ?? '',
             'create_user_id' => $this->create_user_id ?? '',
             'approve_user_id' => $this->approve_user_id ?? '',

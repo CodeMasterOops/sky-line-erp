@@ -43,6 +43,7 @@ class InvoiceRequest extends FormRequest
             'reference_type' => ['nullable', 'string', 'max:255', 'required_with:reference_id'],
             'reference_id' => ['nullable', 'integer', 'min:1', 'required_with:reference_type'],
             'remarks' => ['nullable', 'string'],
+            'tax_inclusive' => ['nullable', 'boolean'],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'order_discount_value' => ['nullable', 'numeric', 'min:0'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],

@@ -28,6 +28,7 @@ class Quotation extends Model
         'quotation_date',
         'expiry_date',
         'remarks',
+        'tax_inclusive',
         'create_user_id',
         'approve_user_id',
         'approved_at',
@@ -37,6 +38,7 @@ class Quotation extends Model
     protected $casts = [
         'fiscal_year_id' => 'integer',
         'party_id' => 'integer',
+        'tax_inclusive' => 'boolean',
         'approved_at' => 'datetime',
         'status' => StatusEnum::class,
     ];

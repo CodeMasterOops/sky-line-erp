@@ -288,6 +288,21 @@
                     />
                 </div>
 
+                <div class="col-md-12">
+                    <div class="form-check form-switch mb-3">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="inv_edit_tax_inclusive"
+                            v-model="form.tax_inclusive"
+                            @change="syncTaxAmounts"
+                        />
+                        <label class="form-check-label" for="inv_edit_tax_inclusive">
+                            Tax-inclusive pricing (rates include VAT)
+                        </label>
+                    </div>
+                </div>
+
                 <div class="col-12 text-end">
                     <button @click="closeEditModal" class="btn btn-danger me-1" type="button">
                         Close
@@ -396,6 +411,7 @@ const initialState = {
     party_id: '',
     bijak_no: '',
     remarks: '',
+    tax_inclusive: false,
     status: 'draft',
     order_discount_type: 'fixed',
     order_discount_value: '0',
@@ -483,6 +499,7 @@ watch(() => edit_invoice_id.value, async (id) => {
         form.party_id = data.party_id || '';
         form.bijak_no = data.bijak_no || '';
         form.remarks = data.remarks || '';
+        form.tax_inclusive = !!data.tax_inclusive;
         form.status = data.status || 'draft';
         form.order_discount_type = data.order_discount_type || 'fixed';
         const odv = data.order_discount_value;
@@ -638,6 +655,7 @@ const buildUpdatePayload = () => {
         due_date: form.due_date || null,
         party_id: form.party_id || null,
         remarks: form.remarks,
+        tax_inclusive: form.tax_inclusive,
         order_discount_type: form.order_discount_type || 'fixed',
         order_discount_value: form.order_discount_value ?? '0',
         items: form.items.map((item, index) => ({

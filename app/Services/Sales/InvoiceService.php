@@ -66,6 +66,7 @@ readonly class InvoiceService
                 'invoice_date_bs' => $invoiceDateBs,
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
+                'tax_inclusive' => $formData['tax_inclusive'] ?? false,
                 'create_user_id' => $user->id,
                 'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
@@ -140,6 +141,7 @@ readonly class InvoiceService
                 'invoice_date' => $formData['invoice_date'],
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
+                'tax_inclusive' => $formData['tax_inclusive'] ?? $invoice->tax_inclusive,
             ]);
 
             if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {

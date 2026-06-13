@@ -199,6 +199,21 @@
                             </div>
                         </div>
 
+                        <div class="col-md-12">
+                            <div class="form-check form-switch mb-3">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    id="so_tax_inclusive"
+                                    v-model="form.tax_inclusive"
+                                    @change="syncTaxAmounts"
+                                />
+                                <label class="form-check-label" for="so_tax_inclusive">
+                                    Tax-inclusive pricing (rates include VAT)
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="col-12 text-end">
                             <button @click="closeCreateModal" class="btn btn-cancel add-cancel me-2" type="button">
                                 Cancel
@@ -301,6 +316,7 @@ const getInitialState = () => ({
     party_id: '',
     quotation_id: '',
     remarks: '',
+    tax_inclusive: false,
     status: 'draft',
     order_discount_type: 'fixed',
     order_discount_value: '0',
@@ -320,6 +336,7 @@ const loadFromQuotation = async () => {
     form.party_id = data.party_id || '';
     form.quotation_id = quotationId.value;
     form.remarks = data.remarks || '';
+    form.tax_inclusive = !!data.tax_inclusive;
 
     const items = data.items || [];
     const hasLineTypes = items.some((it) => it.line_discount_type != null);
@@ -443,6 +460,7 @@ const buildOrderPayload = () => {
         party_id: form.party_id || null,
         quotation_id: form.quotation_id || null,
         remarks: form.remarks,
+        tax_inclusive: form.tax_inclusive,
         status: form.status,
         order_discount_type: form.order_discount_type || 'fixed',
         order_discount_value: form.order_discount_value ?? '0',

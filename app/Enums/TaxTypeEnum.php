@@ -8,6 +8,8 @@ enum TaxTypeEnum: string
     case VAT_EXEMPT = 'vat_exempt';
     case VAT_ZERO_RATED = 'vat_zero_rated';
     case TDS = 'tds';
+    case Excise = 'excise';
+    case Cess = 'cess';
 
     public function label(): string
     {
@@ -16,6 +18,8 @@ enum TaxTypeEnum: string
             self::VAT_EXEMPT => 'VAT Exempt',
             self::VAT_ZERO_RATED => 'VAT Zero Rated',
             self::TDS => 'TDS (Tax Deducted at Source)',
+            self::Excise => 'Excise Duty',
+            self::Cess => 'Cess',
         };
     }
 
@@ -27,5 +31,15 @@ enum TaxTypeEnum: string
     public function isTds(): bool
     {
         return $this === self::TDS;
+    }
+
+    public function isExcise(): bool
+    {
+        return $this === self::Excise;
+    }
+
+    public function isCess(): bool
+    {
+        return $this === self::Cess;
     }
 }

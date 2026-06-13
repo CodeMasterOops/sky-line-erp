@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\Sales\CreditNoteController;
 use App\Http\Controllers\Api\Admin\Sales\SalesOrderController;
 use App\Http\Controllers\Api\Admin\Sales\SalesReportController;
 use App\Http\Controllers\Api\Admin\Sales\TdsChallanController;
+use App\Http\Controllers\Api\Admin\Sales\AdvanceReceiptController;
 
 // quotation
 Route::post('quotation/{quotation}/approve', [QuotationController::class, 'approve'])->name('quotation.approve');
@@ -41,6 +42,7 @@ Route::apiResource('credit-note', CreditNoteController::class)->parameters([
 // receipt
 Route::post('receipt/{receipt}/approve', [ReceiptController::class, 'approve'])->name('receipt.approve');
 Route::post('receipt/{receipt}/void', [ReceiptController::class, 'void'])->name('receipt.void');
+Route::post('receipt-payment/{receiptPayment}/clear-cheque', [ReceiptController::class, 'clearCheque'])->name('receipt-payment.clear-cheque');
 Route::apiResource('receipt', ReceiptController::class);
 
 // tds challan
@@ -49,4 +51,13 @@ Route::post('tds-challan/{tdsChallan}/submit', [TdsChallanController::class, 'ma
 Route::get('tds-certificate/{party}/{month}', [TdsChallanController::class, 'generateCertificate'])->name('tds-certificate');
 Route::apiResource('tds-challan', TdsChallanController::class)->except(['update', 'destroy'])->parameters([
     'tds-challan' => 'tdsChallan',
+]);
+
+// advance receipts
+Route::get('advance-receipt-party-balance', [AdvanceReceiptController::class, 'partyBalance'])->name('advance-receipt.party-balance');
+Route::post('advance-receipt/{advanceReceipt}/approve', [AdvanceReceiptController::class, 'approve'])->name('advance-receipt.approve');
+Route::post('advance-receipt/{advanceReceipt}/void', [AdvanceReceiptController::class, 'void'])->name('advance-receipt.void');
+Route::post('advance-receipt/{advanceReceipt}/adjust', [AdvanceReceiptController::class, 'adjust'])->name('advance-receipt.adjust');
+Route::apiResource('advance-receipt', AdvanceReceiptController::class)->parameters([
+    'advance-receipt' => 'advanceReceipt',
 ]);
