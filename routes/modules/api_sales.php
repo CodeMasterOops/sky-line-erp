@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\Sales\QuotationController;
 use App\Http\Controllers\Api\Admin\Sales\CreditNoteController;
 use App\Http\Controllers\Api\Admin\Sales\SalesOrderController;
 use App\Http\Controllers\Api\Admin\Sales\SalesReportController;
+use App\Http\Controllers\Api\Admin\Sales\TdsChallanController;
 
 // quotation
 Route::post('quotation/{quotation}/approve', [QuotationController::class, 'approve'])->name('quotation.approve');
@@ -41,3 +42,11 @@ Route::apiResource('credit-note', CreditNoteController::class)->parameters([
 Route::post('receipt/{receipt}/approve', [ReceiptController::class, 'approve'])->name('receipt.approve');
 Route::post('receipt/{receipt}/void', [ReceiptController::class, 'void'])->name('receipt.void');
 Route::apiResource('receipt', ReceiptController::class);
+
+// tds challan
+Route::get('tds-deductions', [TdsChallanController::class, 'listDeductions'])->name('tds-deductions.index');
+Route::post('tds-challan/{tdsChallan}/submit', [TdsChallanController::class, 'markSubmitted'])->name('tds-challan.submit');
+Route::get('tds-certificate/{party}/{month}', [TdsChallanController::class, 'generateCertificate'])->name('tds-certificate');
+Route::apiResource('tds-challan', TdsChallanController::class)->except(['update', 'destroy'])->parameters([
+    'tds-challan' => 'tdsChallan',
+]);

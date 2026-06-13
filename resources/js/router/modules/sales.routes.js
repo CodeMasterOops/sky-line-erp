@@ -71,4 +71,20 @@ export default [
         },
         component: () => import("@/views/admin/sales/SalesByItem.vue"),
     },
+    {
+        path: "tds-challan",
+        name: "admin.tds-challan-list",
+        meta: {
+            pageTitle: "TDS Challans",
+        },
+        component: () => import("@/views/admin/sales/tds-challan/Index.vue"),
+    },
+    {
+        path: "tds-challan/:id",
+        name: "admin.tds-challan-view",
+        meta: {
+            pageTitle: "TDS Challan View",
+        },
+        component: () => import("@/views/admin/sales/tds-challan/View.vue"),
+    },
 ];

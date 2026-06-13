@@ -28,6 +28,8 @@ class ReceiptRequest extends FormRequest
             'allocations' => ['required', 'array', 'min:1'],
             'allocations.*.invoice_id' => ['required', TRule::exists('invoices', 'id')->withoutTrashed()],
             'allocations.*.amount' => ['required', 'numeric', 'min:0.01'],
+            'allocations.*.tds_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
+            'allocations.*.tds_deducted' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

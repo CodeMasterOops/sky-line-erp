@@ -22,6 +22,9 @@ class ReceiptAllocationResource extends JsonResource
                 ];
             }),
             'amount' => $this->amount ?? 0,
+            'tds_id' => $this->tds_id ?? null,
+            'tds_deducted' => $this->tds_deducted ?? 0,
+            'net_amount_received' => $this->net_amount_received ?? null,
         ];
     }
 }

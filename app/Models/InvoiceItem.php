@@ -25,6 +25,10 @@ class InvoiceItem extends Model
         'tax_amount',
         'discount_amount',
         'tax_line_type',
+        'is_tds_applicable',
+        'tds_id',
+        'tds_base_amount',
+        'tds_amount',
     ];
 
     protected $casts = [
@@ -38,6 +42,10 @@ class InvoiceItem extends Model
         'tax_amount' => 'float',
         'discount_amount' => 'float',
         'tax_line_type' => TaxLineTypeEnum::class,
+        'is_tds_applicable' => 'boolean',
+        'tds_id' => 'integer',
+        'tds_base_amount' => 'float',
+        'tds_amount' => 'float',
     ];
 
     public function invoice(): BelongsTo
@@ -68,5 +76,10 @@ class InvoiceItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function tds(): BelongsTo
+    {
+        return $this->belongsTo(Tax::class, 'tds_id');
     }
 }

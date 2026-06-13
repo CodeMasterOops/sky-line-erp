@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Models\Tax;
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Enums\JournalTypeEnum;
@@ -22,6 +23,7 @@ readonly class ReceiptService
         private PeriodLockGuard $periodGuard,
         private JournalBalanceGuard $balanceGuard,
         private JournalVoidService $journalVoid,
+        private TdsService $tdsService,
     ) {}
 
     public function createReceipt(array $formData): Receipt
@@ -60,6 +62,7 @@ readonly class ReceiptService
 
             if ($status === StatusEnum::APPROVED->value) {
                 $this->createJournal($receipt);
+                $this->recordTdsDeductions($receipt);
             }
 
             return $receipt;
@@ -106,6 +109,7 @@ readonly class ReceiptService
             ]);
 
             $this->createJournal($receipt);
+            $this->recordTdsDeductions($receipt);
         });
     }
 
@@ -130,8 +134,7 @@ readonly class ReceiptService
             return;
         }
 
-        $receipt->loadMissing('party:id,name', 'account')
-            ->loadSum('allocations', 'amount');
+        $receipt->loadMissing('party:id,name', 'account', 'allocations');
 
         $accountSetting = AccountSetting::withoutGlobalScopes()
             ->where('company_id', $receipt->company_id)
@@ -144,6 +147,15 @@ readonly class ReceiptService
         }
 
         $this->periodGuard->assertPostable($receipt->company_id, $receipt->fiscal_year_id, $receipt->receipt_date);
+
+        // AR credit = full allocation amounts (what the invoice was owed)
+        $totalAllocated = round((float) $receipt->allocations->sum('amount'), 2);
+
+        // TDS receivable = total TDS deducted by customer across all allocations
+        $totalTdsDeducted = round((float) $receipt->allocations->sum('tds_deducted'), 2);
+
+        // Cash/Bank DR = actual cash received (net of TDS)
+        $netCashReceived = round($totalAllocated - $totalTdsDeducted, 2);
 
         $journal = $receipt->journal()->create([
             'company_id' => $receipt->company_id,
@@ -159,23 +171,59 @@ readonly class ReceiptService
             'status' => StatusEnum::APPROVED->value,
         ]);
 
-        $receivedAmount = $receipt->allocations_sum_amount;
-
+        // CR Accounts Receivable — full invoice amounts allocated
         $journal->journalItems()->create([
             'account_id' => $accountSetting->customer_account_id,
             'dr_amount' => 0,
-            'cr_amount' => $receivedAmount,
+            'cr_amount' => $totalAllocated,
             'remarks' => 'To-'.($receipt->party->name ?? ''),
         ]);
 
-        $journal->journalItems()->create([
-            'account_id' => $receipt->account_id,
-            'dr_amount' => $receivedAmount,
-            'cr_amount' => 0,
-            'remarks' => 'To-'.($receipt->account->name ?? ''),
-        ]);
+        // DR Cash/Bank — net cash received after TDS
+        if ($netCashReceived > 0) {
+            $journal->journalItems()->create([
+                'account_id' => $receipt->account_id,
+                'dr_amount' => $netCashReceived,
+                'cr_amount' => 0,
+                'remarks' => 'To-'.($receipt->account->name ?? ''),
+            ]);
+        }
+
+        // DR TDS Receivable — TDS withheld by customer
+        if ($totalTdsDeducted > 0) {
+            if (! $accountSetting->tds_receivable_account_id) {
+                throw ValidationException::withMessages([
+                    'account_setting' => 'Cannot post TDS journal: TDS Receivable account is not configured.',
+                ]);
+            }
+
+            $journal->journalItems()->create([
+                'account_id' => $accountSetting->tds_receivable_account_id,
+                'dr_amount' => $totalTdsDeducted,
+                'cr_amount' => 0,
+                'remarks' => 'TDS withheld – '.$receipt->receipt_no,
+            ]);
+        }
 
         $this->balanceGuard->assertBalanced($journal);
+    }
+
+    private function recordTdsDeductions(Receipt $receipt): void
+    {
+        $receipt->loadMissing('allocations');
+
+        foreach ($receipt->allocations as $allocation) {
+            if ((float) $allocation->tds_deducted <= 0 || ! $allocation->tds_id) {
+                continue;
+            }
+
+            $tds = Tax::withoutGlobalScopes()->find($allocation->tds_id);
+            if (! $tds) {
+                continue;
+            }
+
+            $this->tdsService->recordDeductionOnReceipt($receipt, $allocation, $tds);
+        }
     }
 
     private function validatedAllocations(array $formData): Collection
@@ -194,6 +242,7 @@ readonly class ReceiptService
         foreach ($allocations as $allocation) {
             $invoiceId = (int) $allocation['invoice_id'];
             $amount = (float) $allocation['amount'];
+            $tdsDeducted = (float) ($allocation['tds_deducted'] ?? 0);
             $due = $dueMap[$invoiceId]['due_amount'] ?? null;
 
             if ($due === null) {
@@ -202,6 +251,10 @@ readonly class ReceiptService
 
             if ($amount > $due) {
                 $this->throwUnprocessableEntity('Allocation amount exceeds invoice due amount.');
+            }
+
+            if ($tdsDeducted > $amount) {
+                $this->throwUnprocessableEntity('TDS deducted cannot exceed the allocation amount.');
             }
         }
 
@@ -218,9 +271,15 @@ readonly class ReceiptService
     private function mapAllocations(Collection $allocations): array
     {
         return $allocations->map(function ($allocation) {
+            $tdsDeducted = (float) ($allocation['tds_deducted'] ?? 0);
+            $netReceived = (float) $allocation['amount'] - $tdsDeducted;
+
             return [
                 'invoice_id' => $allocation['invoice_id'],
                 'amount' => $allocation['amount'],
+                'tds_id' => $allocation['tds_id'] ?? null,
+                'tds_deducted' => $tdsDeducted,
+                'net_amount_received' => $netReceived,
             ];
         })->all();
     }

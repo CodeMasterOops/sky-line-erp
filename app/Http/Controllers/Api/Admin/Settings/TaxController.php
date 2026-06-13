@@ -22,6 +22,8 @@ class TaxController extends Controller
 
         if (in_array($request->query('for'), ['invoice', 'bill', 'line_item'])) {
             $query->lineItem();
+        } elseif ($request->query('for') === 'tds') {
+            $query->tds();
         }
 
         $taxes = $query->orderBy('name')->paginate($request->integer('limit', 25));

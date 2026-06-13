@@ -92,6 +92,10 @@ readonly class InvoiceService
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
+                    'is_tds_applicable' => $item['is_tds_applicable'] ?? false,
+                    'tds_id' => $item['tds_id'] ?? null,
+                    'tds_base_amount' => $item['tds_base_amount'] ?? 0,
+                    'tds_amount' => $item['tds_amount'] ?? 0,
                 ]);
 
                 if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
@@ -160,6 +164,10 @@ readonly class InvoiceService
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
+                    'is_tds_applicable' => $item['is_tds_applicable'] ?? false,
+                    'tds_id' => $item['tds_id'] ?? null,
+                    'tds_base_amount' => $item['tds_base_amount'] ?? 0,
+                    'tds_amount' => $item['tds_amount'] ?? 0,
                 ]);
 
                 if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {

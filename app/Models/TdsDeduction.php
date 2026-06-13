@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\MultiTenant;
 use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -24,6 +25,7 @@ class TdsDeduction extends Model
         'tds_amount',
         'period_month',
         'journal_id',
+        'receipt_allocation_id',
     ];
 
     protected $casts = [
@@ -51,5 +53,15 @@ class TdsDeduction extends Model
     public function journal(): BelongsTo
     {
         return $this->belongsTo(Journal::class);
+    }
+
+    public function receiptAllocation(): BelongsTo
+    {
+        return $this->belongsTo(ReceiptAllocation::class);
+    }
+
+    public function challanItem(): HasOne
+    {
+        return $this->hasOne(TdsChallanItem::class);
     }
 }

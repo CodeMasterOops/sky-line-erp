@@ -68,9 +68,10 @@
                             </tr>
                             </thead>
                             <tbody>
-                            <tr
+                            <template
                                 v-for="(item, index) in form.items"
                                 :key="item.id != null && item.id !== '' ? `line-${item.id}` : `new-${index}-${item.product_variant_id}-${item.warehouse_id}`">
+                            <tr>
                                 <td>{{ index + 1 }}</td>
                                 <td class="inv-col-product">
                                     <template v-if="isDraft">
@@ -174,6 +175,43 @@
                                     </button>
                                 </td>
                             </tr>
+                            <tr v-if="item.is_service" class="inv-tds-row">
+                                <td></td>
+                                <td colspan="7" class="py-1">
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <div class="form-check mb-0">
+                                            <input
+                                                type="checkbox"
+                                                class="form-check-input"
+                                                :id="`tds_applicable_${index}`"
+                                                v-model="form.items[index].is_tds_applicable"
+                                                :disabled="!isDraft"
+                                                @change="onTdsToggle(index)"
+                                            />
+                                            <label :for="`tds_applicable_${index}`" class="form-check-label small text-secondary">
+                                                TDS Applicable
+                                            </label>
+                                        </div>
+                                        <template v-if="item.is_tds_applicable">
+                                            <select
+                                                class="form-select form-select-sm inv-tds-select"
+                                                :value="item.tds_id ?? ''"
+                                                :disabled="!isDraft"
+                                                @change="onTdsTaxChange(index, $event.target.value)">
+                                                <option value="">Select TDS category</option>
+                                                <option v-for="t in tdsTaxes" :key="t.id" :value="t.id">
+                                                    {{ t.name }} ({{ t.rate }}%)
+                                                </option>
+                                            </select>
+                                            <span class="small text-secondary">
+                                                Base: <strong>{{ formatMoney(Number(item.tds_base_amount) || 0) }}</strong>
+                                                &nbsp;TDS: <strong class="text-warning">{{ formatMoney(Number(item.tds_amount) || 0) }}</strong>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </td>
+                            </tr>
+                            </template>
                             </tbody>
                         </table>
                     </div>
@@ -275,6 +313,7 @@
 <script setup>
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, nextTick, onMounted, reactive, ref, toRef, watch} from 'vue';
+import {apiAdmin} from '@/helpers/api.js';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {array, object, string} from 'yup';
@@ -305,6 +344,8 @@ const productStore = useProductStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
 
+const tdsTaxes = ref([]);
+
 const {
     warehousePickerRef,
     resolveWarehouse,
@@ -325,6 +366,7 @@ onMounted(() => {
     productStore.getProductVariants();
     partyStore.getParties({filter: {type: 'customer'}});
     taxStore.getTaxes({ filter: { for: 'line_item' } });
+    apiAdmin('tax?for=tds&limit=100').then((r) => { tdsTaxes.value = r.data.data ?? []; });
 });
 
 const emptyLine = () => ({
@@ -341,6 +383,11 @@ const emptyLine = () => ({
     warehouse_id: '',
     warehouse_name: '',
     stock_qty: null,
+    is_service: false,
+    is_tds_applicable: false,
+    tds_id: '',
+    tds_base_amount: '0',
+    tds_amount: '0',
 });
 
 const initialState = {
@@ -462,6 +509,10 @@ watch(() => edit_invoice_id.value, async (id) => {
             warehouse_id: item.warehouse_id || '',
             warehouse_name: item.warehouse?.name || '',
             stock_qty: null,
+            is_tds_applicable: !!item.is_tds_applicable,
+            tds_id: item.tds_id ? String(item.tds_id) : '',
+            tds_base_amount: item.tds_base_amount != null ? String(item.tds_base_amount) : '0',
+            tds_amount: item.tds_amount != null ? String(item.tds_amount) : '0',
         }));
 
         form.charges = (data.charges || []).map((c) => ({
@@ -552,6 +603,33 @@ const onLineTaxChange = (index, taxId) => {
     validateField(`items[${index}].tax_id`);
 };
 
+function onTdsToggle(index) {
+    const item = form.items[index];
+    if (!item.is_tds_applicable) {
+        item.tds_id = '';
+        item.tds_base_amount = '0';
+        item.tds_amount = '0';
+    }
+}
+
+function onTdsTaxChange(index, tdsId) {
+    form.items[index].tds_id = tdsId || '';
+    recalcTds(index);
+}
+
+function recalcTds(index) {
+    const item = form.items[index];
+    if (!item.is_tds_applicable || !item.tds_id) {
+        item.tds_base_amount = '0';
+        item.tds_amount = '0';
+        return;
+    }
+    const tax = tdsTaxes.value.find((t) => String(t.id) === String(item.tds_id));
+    const base = Math.max(0, Number(item.rate) * Number(item.quantity));
+    item.tds_base_amount = String(base);
+    item.tds_amount = tax ? String(Math.round(base * (tax.rate / 100) * 100) / 100) : '0';
+}
+
 const buildUpdatePayload = () => {
     syncTaxAmounts();
 
@@ -574,6 +652,10 @@ const buildUpdatePayload = () => {
             line_discount_value: item.line_discount_value ?? '0',
             tax_amount: calcLineTax(item, index),
             discount_amount: String(lineDiscountMoneyFromItem(item)),
+            is_tds_applicable: item.is_service ? (item.is_tds_applicable ?? false) : false,
+            tds_id: (item.is_service && item.is_tds_applicable && item.tds_id) ? Number(item.tds_id) : null,
+            tds_base_amount: (item.is_service && item.is_tds_applicable) ? (Number(item.tds_base_amount) || 0) : 0,
+            tds_amount: (item.is_service && item.is_tds_applicable) ? (Number(item.tds_amount) || 0) : 0,
         })),
         charges: form.charges.map((c) => ({
             name: c.name,
@@ -675,6 +757,16 @@ function resetForm() {
 }
 .inv-line-tax-select {
     min-width: 6.5rem;
+}
+.inv-tds-row td {
+    background: #fdfaf3;
+    border-top: none;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+.inv-tds-select {
+    min-width: 11rem;
+    max-width: 16rem;
 }
 .inv-line-tax-amt {
     display: block;

@@ -41,6 +41,10 @@ class InvoiceItemResource extends JsonResource
             'tax_amount' => $this->tax_amount ?? 0,
             'discount_amount' => $this->discount_amount ?? 0,
             'tax_line_type' => $this->tax_line_type?->value ?? 'taxable',
+            'is_tds_applicable' => (bool) ($this->is_tds_applicable ?? false),
+            'tds_id' => $this->tds_id ?? null,
+            'tds_base_amount' => $this->tds_base_amount ?? 0,
+            'tds_amount' => $this->tds_amount ?? 0,
         ];
     }
 }
