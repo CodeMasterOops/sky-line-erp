@@ -48,10 +48,12 @@ class CreditNoteGlPostingService
             return;
         }
 
-        $creditNote->loadMissing('creditNoteItems');
+        $creditNote->loadMissing('creditNoteItems', 'discount');
 
-        $salesBase = round((float) $creditNote->creditNoteItems
-            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
+        $lineBase = (float) $creditNote->creditNoteItems
+            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount);
+        $orderDiscountAmount = (float) ($creditNote->discount?->amount ?? 0);
+        $salesBase = round($lineBase - $orderDiscountAmount, 2);
         $vatAmount = round((float) $creditNote->creditNoteItems->sum('tax_amount'), 2);
         $grandTotal = round($salesBase + $vatAmount, 2);
 

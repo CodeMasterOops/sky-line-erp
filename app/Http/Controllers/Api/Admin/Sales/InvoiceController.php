@@ -199,29 +199,6 @@ class InvoiceController extends Controller
         ]);
     }
 
-    private function applyInventoryIssuesForApprovedInvoice(Invoice $invoice, \App\Models\Company $company, \App\Models\User $user): void
-    {
-        $invoice->loadMissing('invoiceItems');
-
-        foreach ($invoice->invoiceItems as $item) {
-            $qty = (int) $item->quantity;
-            if ($qty <= 0) {
-                continue;
-            }
-
-            $this->inventoryIssue->issue(
-                $company,
-                $invoice,
-                $item->product_variant_id,
-                $item->warehouse_id,
-                $qty,
-                ChangeTypeEnum::SALE,
-                $user->id,
-                $invoice->remarks,
-            );
-        }
-    }
-
     /**
      * @Permissions("list_due_invoices", group="invoice", desc="List Due Invoices By Party")
      */

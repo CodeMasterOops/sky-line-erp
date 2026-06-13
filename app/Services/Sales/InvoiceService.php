@@ -7,16 +7,13 @@ use App\Enums\StatusEnum;
 use App\Models\Quotation;
 use App\Models\SalesOrder;
 use App\Enums\ChangeTypeEnum;
-use App\Enums\JournalTypeEnum;
-use App\Models\AccountSetting;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
-use App\Services\Accounting\PeriodLockGuard;
 use App\Services\Accounting\JournalVoidService;
-use App\Services\Accounting\JournalBalanceGuard;
 use App\Services\Accounting\GlAccountConfigGuard;
+use App\Services\Accounting\InvoiceGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Services\Inventory\InventoryDocumentReversalService;
 
@@ -29,8 +26,7 @@ readonly class InvoiceService
         private DocumentNumberGenerator $documentNumberGenerator,
         private GlAccountConfigGuard $glAccountGuard,
         private JournalVoidService $journalVoid,
-        private JournalBalanceGuard $balanceGuard,
-        private PeriodLockGuard $periodGuard,
+        private InvoiceGlPostingService $invoiceGlService,
     ) {}
 
     public function createInvoice(array $formData): Invoice
@@ -256,70 +252,7 @@ readonly class InvoiceService
 
     private function createJournal(Invoice $invoice): void
     {
-        $invoice->loadMissing('invoiceItems', 'party:id,name', 'discount');
-
-        // Single chokepoint guard: protects every posting path, including the
-        // approve-on-create branch of createInvoice, not just approveInvoice().
-        $this->assertGlAccountsConfigured($invoice);
-        $this->periodGuard->assertPostable($invoice->company_id, $invoice->fiscal_year_id, $invoice->invoice_date);
-
-        $accountSetting = AccountSetting::withoutGlobalScopes()
-            ->where('company_id', $invoice->company_id)
-            ->first();
-
-        $journal = $invoice->journal()->create([
-            'company_id' => $invoice->company_id,
-            'fiscal_year_id' => $invoice->fiscal_year_id,
-            'type' => JournalTypeEnum::INVOICE->value,
-            'voucher_no' => $invoice->invoice_no,
-            'reference_no' => null,
-            'date' => $invoice->invoice_date,
-            'remarks' => $invoice->remarks,
-            'create_user_id' => $invoice->create_user_id,
-            'approve_user_id' => $invoice->approve_user_id,
-            'approved_at' => $invoice->approved_at,
-            'status' => StatusEnum::APPROVED->value,
-        ]);
-
-        $subTotal = 0;
-        $lineDiscountTotal = 0;
-        $taxTotal = 0;
-
-        foreach ($invoice->invoiceItems as $item) {
-            $lineSubtotal = (float) $item->quantity * (float) $item->rate;
-            $subTotal += $lineSubtotal;
-            $lineDiscountTotal += (float) $item->discount_amount;
-            $taxTotal += (float) $item->tax_amount;
-        }
-
-        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
-        $grandTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
-        $taxableTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount;
-
-        $journal->journalItems()->create([
-            'account_id' => $accountSetting->customer_account_id,
-            'dr_amount' => $grandTotal,
-            'cr_amount' => 0,
-            'remarks' => 'To-Sales Account',
-        ]);
-
-        $journal->journalItems()->create([
-            'account_id' => $accountSetting->sales_account_id,
-            'dr_amount' => 0,
-            'cr_amount' => $taxableTotal,
-            'remarks' => 'To-'.($invoice->party->name ?? ''),
-        ]);
-
-        if ($taxTotal > 0) {
-            $journal->journalItems()->create([
-                'account_id' => $accountSetting->vat_account_id,
-                'dr_amount' => 0,
-                'cr_amount' => $taxTotal,
-                'remarks' => 'By-'.($invoice->party->name ?? ''),
-            ]);
-        }
-
-        $this->balanceGuard->assertBalanced($journal);
+        $this->invoiceGlService->postFromInvoice($invoice);
     }
 
     /**

@@ -127,6 +127,12 @@ class SalesOrderController extends Controller
      */
     public function destroy(SalesOrder $salesOrder)
     {
+        if ($salesOrder->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved sales orders cannot be deleted.',
+            ], 422);
+        }
+
         $salesOrder->salesOrderItems()->delete();
         $salesOrder->delete();
 

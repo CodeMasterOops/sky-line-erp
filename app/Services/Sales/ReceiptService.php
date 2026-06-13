@@ -28,9 +28,9 @@ readonly class ReceiptService
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
-        $allocations = $this->validatedAllocations($formData);
 
-        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting, $allocations) {
+        return DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
+            $allocations = $this->validatedAllocations($formData);
             // See InvoiceService for the lock-inside-transaction concurrency note.
             $receiptNo = $formData['receipt_no'] ?? $this->documentNumberGenerator->fiscalYear(
                 Receipt::class,
@@ -73,9 +73,10 @@ readonly class ReceiptService
         }
 
         $receiptNo = $formData['receipt_no'] ?? $receipt->receipt_no;
-        $allocations = $this->validatedAllocations($formData);
 
-        DB::transaction(function () use ($receipt, $formData, $receiptNo, $allocations) {
+        DB::transaction(function () use ($receipt, $formData, $receiptNo) {
+            $allocations = $this->validatedAllocations($formData);
+
             $receipt->update([
                 'party_id' => $formData['party_id'] ?? null,
                 'receipt_no' => $receiptNo,
@@ -241,6 +242,7 @@ readonly class ReceiptService
             ->where('invoices.party_id', $partyId)
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.deleted_at')
+            ->lockForUpdate()
             ->select([
                 'invoices.id',
                 DB::raw('COALESCE(discounts.amount, 0) as order_discount_amount'),

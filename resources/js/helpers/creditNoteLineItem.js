@@ -27,7 +27,7 @@ export function lineFromInvoiceItem(item, invoicedQty, options = {}) {
         item.line_discount_value !== null && item.line_discount_value !== undefined && item.line_discount_value !== ''
             ? String(item.line_discount_value)
             : '0';
-    const qtyDefault = Math.min(1, Math.max(1, invoicedQty));
+    const qtyDefault = Math.max(1, invoicedQty);
 
     const line = {
         invoice_item_id: item.id,

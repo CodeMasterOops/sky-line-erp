@@ -31,7 +31,32 @@ class CreditNoteRequest extends FormRequest
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.warehouse_id' => ProductLineRules::warehouseId(),
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $index = explode('.', $attribute)[1];
+                    $invoiceItemId = $this->input("items.{$index}.invoice_item_id");
+
+                    if (! $invoiceItemId) {
+                        return;
+                    }
+
+                    $invoiceItem = DB::table('invoice_items')
+                        ->where('id', $invoiceItemId)
+                        ->whereNull('deleted_at')
+                        ->first(['quantity']);
+
+                    if (! $invoiceItem) {
+                        return;
+                    }
+
+                    if ((int) $value > (int) $invoiceItem->quantity) {
+                        $fail(__('Return quantity cannot exceed the original invoiced quantity of '.$invoiceItem->quantity.'.'));
+                    }
+                },
+            ],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'items.*.line_discount_value' => ['nullable', 'numeric', 'min:0'],

@@ -97,6 +97,12 @@ class QuotationController extends Controller
      */
     public function destroy(Quotation $quotation)
     {
+        if ($quotation->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved quotations cannot be deleted.',
+            ], 422);
+        }
+
         $quotation->quotationItems()->delete();
         $quotation->delete();
 
