@@ -66,7 +66,7 @@ class CreditNoteRequest extends FormRequest
             'items.*.invoice_item_id' => [
                 'nullable',
                 'integer',
-                function (string $attribute, mixed $value, \Closure $fail): void {
+                function (string $_attribute, mixed $value, \Closure $fail): void {
                     if ($value === null || $value === '') {
                         return;
                     }

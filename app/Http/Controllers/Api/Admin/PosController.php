@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Models\Party;
+use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\Receipt;
@@ -263,8 +264,6 @@ class PosController extends Controller
         $today = now()->toDateString();
 
         $accountSetting = AccountSetting::first();
-        $accountId = $this->resolveAccountId($request->payment_method, $accountSetting);
-
         $yearCode = $company->fiscalYear?->year_code;
 
         try {
@@ -567,26 +566,36 @@ class PosController extends Controller
 
         $user = auth('admin')->user();
 
-        $existing = $this->getOpenSession();
-        if ($existing) {
-            return response()->json([
-                'data' => $this->formatSession($existing),
-                'message' => 'A session is already open.',
+        return DB::transaction(function () use ($user, $request): JsonResponse {
+            // Lock the company row to serialize concurrent open-till requests for
+            // the same company, preventing duplicate open sessions.
+            Company::lockForUpdate()->find($user->company_id);
+
+            $existing = PosSession::where('company_id', $user->company_id)
+                ->where('status', 'open')
+                ->latest()
+                ->first();
+
+            if ($existing) {
+                return response()->json([
+                    'data' => $this->formatSession($existing),
+                    'message' => 'A session is already open.',
+                ]);
+            }
+
+            $session = PosSession::create([
+                'company_id' => $user->company_id,
+                'user_id' => $user->id,
+                'opening_cash' => (float) $request->opening_cash,
+                'status' => 'open',
+                'opened_at' => now(),
             ]);
-        }
 
-        $session = PosSession::create([
-            'company_id' => $user->company_id,
-            'user_id' => $user->id,
-            'opening_cash' => (float) $request->opening_cash,
-            'status' => 'open',
-            'opened_at' => now(),
-        ]);
-
-        return response()->json([
-            'data' => $this->formatSession($session),
-            'message' => 'Till opened successfully.',
-        ], 201);
+            return response()->json([
+                'data' => $this->formatSession($session),
+                'message' => 'Till opened successfully.',
+            ], 201);
+        });
     }
 
     /**

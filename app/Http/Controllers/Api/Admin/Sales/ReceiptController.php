@@ -96,6 +96,18 @@ class ReceiptController extends Controller
     }
 
     /**
+     * @Permissions("void_receipt", group="receipt", desc="Void Receipt")
+     */
+    public function void(Receipt $receipt)
+    {
+        $this->receiptService->voidReceipt($receipt);
+
+        return response()->json([
+            'message' => 'Receipt voided and GL entries reversed successfully.',
+        ]);
+    }
+
+    /**
      * @Permissions("approve_receipt", group="receipt", desc="Approve Receipt")
      */
     public function approve(Receipt $receipt)

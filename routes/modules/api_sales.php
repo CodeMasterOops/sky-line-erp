@@ -39,4 +39,5 @@ Route::apiResource('credit-note', CreditNoteController::class)->parameters([
 
 // receipt
 Route::post('receipt/{receipt}/approve', [ReceiptController::class, 'approve'])->name('receipt.approve');
+Route::post('receipt/{receipt}/void', [ReceiptController::class, 'void'])->name('receipt.void');
 Route::apiResource('receipt', ReceiptController::class);

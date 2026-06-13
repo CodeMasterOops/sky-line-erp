@@ -21,10 +21,23 @@ class InvoiceRequest extends FormRequest
     {
         return [
             'invoice_no' => ['nullable', 'string', 'max:255'],
+            'bijak_no' => ['nullable', 'string', 'max:255'],
             'invoice_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
-            'quotation_id' => ['nullable', TRule::exists('quotations', 'id')->withoutTrashed()],
+            'quotation_id' => [
+                'nullable',
+                TRule::exists('quotations', 'id')->withoutTrashed(),
+                function (string $_attribute, mixed $value, \Closure $fail): void {
+                    if (! $value) {
+                        return;
+                    }
+                    $quotation = \App\Models\Quotation::withoutGlobalScopes()->find($value);
+                    if ($quotation && $quotation->expiry_date && $quotation->expiry_date < now()->toDateString()) {
+                        $fail(__('The selected quotation has expired and cannot be converted to an invoice.'));
+                    }
+                },
+            ],
             'sales_order_id' => ['nullable', TRule::exists('sales_orders', 'id')->withoutTrashed()],
             'reference_type' => ['nullable', 'string', 'max:255', 'required_with:reference_id'],
             'reference_id' => ['nullable', 'integer', 'min:1', 'required_with:reference_type'],
@@ -44,7 +57,7 @@ class InvoiceRequest extends FormRequest
             'items.*.tax_id' => [
                 'nullable',
                 TRule::exists('taxes', 'id')->withoutTrashed(),
-                function ($attribute, $value, $fail) {
+                function ($_attribute, $value, $fail) {
                     if ($value === null) {
                         return;
                     }

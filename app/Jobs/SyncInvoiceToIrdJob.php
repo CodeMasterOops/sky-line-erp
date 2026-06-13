@@ -59,12 +59,14 @@ class SyncInvoiceToIrdJob implements ShouldQueue
                 'ird_internal_id' => $result['ird_internal_id'],
             ]);
         } else {
+            $isLastAttempt = $this->attempts() >= $this->tries;
+
             $this->invoice->update([
-                'ird_sync_status' => 'failed',
+                'ird_sync_status' => $isLastAttempt ? 'failed' : 'retrying',
                 'ird_error' => $result['error'],
             ]);
 
-            if ($this->attempts() < $this->tries) {
+            if (! $isLastAttempt) {
                 $this->release($this->backoff * $this->attempts());
             }
         }

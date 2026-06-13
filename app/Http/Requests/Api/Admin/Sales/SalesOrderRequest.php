@@ -20,7 +20,19 @@ class SalesOrderRequest extends FormRequest
             'order_no' => ['nullable', 'string', 'max:255'],
             'order_date' => ['required', 'date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
-            'quotation_id' => ['nullable', TRule::exists('quotations', 'id')->withoutTrashed()],
+            'quotation_id' => [
+                'nullable',
+                TRule::exists('quotations', 'id')->withoutTrashed(),
+                function (string $_attribute, mixed $value, \Closure $fail): void {
+                    if (! $value) {
+                        return;
+                    }
+                    $quotation = \App\Models\Quotation::withoutGlobalScopes()->find($value);
+                    if ($quotation && $quotation->expiry_date && $quotation->expiry_date < now()->toDateString()) {
+                        $fail(__('The selected quotation has expired and cannot be converted to a sales order.'));
+                    }
+                },
+            ],
             'remarks' => ['nullable', 'string'],
             'order_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'order_discount_value' => ['nullable', 'numeric', 'min:0'],

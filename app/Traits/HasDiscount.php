@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 trait HasDiscount
 {
+    public static function bootHasDiscount(): void
+    {
+        static::deleting(function ($model) {
+            $model->discount()->delete();
+        });
+    }
+
     public function discount(): MorphOne
     {
         return $this->morphOne(Discount::class, 'discountable');

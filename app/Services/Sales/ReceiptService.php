@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Accounting\PeriodLockGuard;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoidService;
 use App\Services\Accounting\JournalBalanceGuard;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
@@ -20,6 +21,7 @@ readonly class ReceiptService
         private DocumentNumberGenerator $documentNumberGenerator,
         private PeriodLockGuard $periodGuard,
         private JournalBalanceGuard $balanceGuard,
+        private JournalVoidService $journalVoid,
     ) {}
 
     public function createReceipt(array $formData): Receipt
@@ -104,6 +106,21 @@ readonly class ReceiptService
             ]);
 
             $this->createJournal($receipt);
+        });
+    }
+
+    public function voidReceipt(Receipt $receipt): void
+    {
+        if ($receipt->status !== StatusEnum::APPROVED) {
+            throw ValidationException::withMessages([
+                'status' => 'Only approved receipts can be voided.',
+            ]);
+        }
+
+        DB::transaction(function () use ($receipt) {
+            $this->journalVoid->reverseForReference($receipt);
+            $receipt->allocations()->delete();
+            $receipt->delete();
         });
     }
 

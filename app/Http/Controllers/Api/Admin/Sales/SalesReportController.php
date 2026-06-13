@@ -11,6 +11,7 @@ use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -24,15 +25,6 @@ class SalesReportController extends Controller
         $company = auth('admin')->user()?->company?->loadMissing('fiscalYear');
         $fiscalYear = $company?->fiscalYear;
 
-        $invoices = Invoice::query()
-            ->where('status', StatusEnum::APPROVED)
-            ->whereNull('voided_at')
-            ->when($company?->fiscal_year_id, function (Builder $query) use ($company) {
-                $query->where('fiscal_year_id', $company->fiscal_year_id);
-            })
-            ->with(['invoiceItems', 'receiptAllocations.receipt', 'discount'])
-            ->get();
-
         return response()->json([
             'data' => [
                 'period' => [
@@ -42,7 +34,7 @@ class SalesReportController extends Controller
                         ? $fiscalYear->year_name.' ('.$fiscalYear->start_date?->format('d M Y').' - '.$fiscalYear->end_date?->format('d M Y').')'
                         : 'Current fiscal year',
                 ],
-                'summary' => $this->buildSummary($invoices),
+                'summary' => $this->buildSummaryFromDb($company?->fiscal_year_id),
             ],
         ]);
     }
@@ -220,6 +212,69 @@ class SalesReportController extends Controller
         ];
     }
 
+    private function buildSummaryFromDb(?int $fiscalYearId): array
+    {
+        $today = Carbon::today()->toDateString();
+
+        $itemsSub = DB::table('invoice_items')
+            ->selectRaw('invoice_id, SUM(quantity * rate) - SUM(discount_amount) + SUM(tax_amount) as net_total')
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id');
+
+        $paidSub = DB::table('receipt_allocations')
+            ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
+            ->selectRaw('receipt_allocations.invoice_id, SUM(receipt_allocations.amount) as paid_total')
+            ->whereNull('receipt_allocations.deleted_at')
+            ->whereNull('receipts.deleted_at')
+            ->where('receipts.status', StatusEnum::APPROVED->value)
+            ->groupBy('receipt_allocations.invoice_id');
+
+        $rows = DB::table('invoices')
+            ->leftJoinSub($itemsSub, 'item_totals', fn ($j) => $j->on('invoices.id', '=', 'item_totals.invoice_id'))
+            ->leftJoinSub($paidSub, 'paid_totals', fn ($j) => $j->on('invoices.id', '=', 'paid_totals.invoice_id'))
+            ->leftJoin('discounts', function ($j) {
+                $j->on('invoices.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', Invoice::class);
+            })
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('invoices.fiscal_year_id', $fiscalYearId))
+            ->select([
+                'invoices.id',
+                'invoices.due_date',
+                DB::raw('COALESCE(item_totals.net_total, 0) - COALESCE(discounts.amount, 0) as grand_total'),
+                DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+            ])
+            ->get();
+
+        $totalAmount = 0.0;
+        $totalPaid = 0.0;
+        $overdueAmount = 0.0;
+        $totalInvoices = count($rows);
+
+        foreach ($rows as $row) {
+            $grand = (float) $row->grand_total;
+            $paid = (float) $row->paid_total;
+            $due = max($grand - $paid, 0);
+
+            $totalAmount += $grand;
+            $totalPaid += $paid;
+
+            if ($row->due_date && $row->due_date < $today && $due > 0) {
+                $overdueAmount += $due;
+            }
+        }
+
+        return [
+            'total_amount' => round($totalAmount, 2),
+            'total_paid' => round($totalPaid, 2),
+            'total_unpaid' => round($totalAmount - $totalPaid, 2),
+            'overdue_amount' => round($overdueAmount, 2),
+            'total_invoices' => $totalInvoices,
+        ];
+    }
+
     private function buildSummary($invoices): array
     {
         $today = Carbon::today();
@@ -302,6 +357,7 @@ class SalesReportController extends Controller
         return Party::query()
             ->where('type', PartyTypeEnum::CUSTOMER)
             ->orderBy('name')
+            ->limit(500)
             ->get(['id', 'name'])
             ->map(fn (Party $party) => [
                 'id' => (string) $party->id,
@@ -315,6 +371,7 @@ class SalesReportController extends Controller
         return ProductVariant::query()
             ->with(['product:id,name', 'variantOptions'])
             ->orderByDesc('id')
+            ->limit(500)
             ->get()
             ->map(function (ProductVariant $variant) {
                 return [

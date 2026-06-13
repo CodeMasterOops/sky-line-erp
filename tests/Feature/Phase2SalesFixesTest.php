@@ -6,21 +6,22 @@ use App\Models\Account;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Journal;
+use App\Models\Product;
+use App\Models\Receipt;
+use App\Enums\StatusEnum;
+use App\Models\Quotation;
+use App\Models\Warehouse;
 use App\Models\CreditNote;
 use App\Models\FiscalYear;
-use App\Models\Quotation;
 use App\Models\SalesOrder;
-use App\Enums\StatusEnum;
-use App\Enums\PartyTypeEnum;
 use App\Enums\UserTypeEnum;
+use App\Models\InvoiceItem;
+use App\Enums\PartyTypeEnum;
+use Laravel\Sanctum\Sanctum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
-use App\Models\InvoiceItem;
 use App\Models\ProductVariant;
-use App\Models\Product;
-use App\Models\Warehouse;
 use App\Services\TenantService;
-use Laravel\Sanctum\Sanctum;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use App\Enums\InventoryCostingMethodEnum;
@@ -334,4 +335,91 @@ it('P2-06: credit note item quantity equal to invoiced quantity is valid', funct
     $response = $this->postJson('/api/admin/credit-note', $payload);
 
     $response->assertSuccessful();
+});
+
+// ─── Receipt void: GL reversal and soft-delete ────────────────────────────────
+
+it('voiding an approved receipt reverses the GL journal and soft-deletes the receipt', function () {
+    $cashAccount = p2AccountSetting($this);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-VOID-'.uniqid(),
+        'invoice_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'approve_user_id' => $this->user->id,
+        'approved_at' => now(),
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    $receipt = Receipt::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'receipt_no' => 'RC-VOID-'.uniqid(),
+        'receipt_date' => now()->toDateString(),
+        'payment_method' => 'cash',
+        'account_id' => $cashAccount->id,
+        'create_user_id' => $this->user->id,
+        'approve_user_id' => $this->user->id,
+        'approved_at' => now(),
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    $receipt->allocations()->create(['invoice_id' => $invoice->id, 'amount' => 100]);
+
+    app(\App\Services\Sales\ReceiptService::class)->createJournal($receipt);
+
+    $journalBefore = \App\Models\Journal::withoutGlobalScopes()
+        ->where('reference_type', Receipt::class)
+        ->where('reference_id', $receipt->id)
+        ->whereNull('deleted_at')
+        ->count();
+    expect($journalBefore)->toBe(1, 'Receipt journal should exist before void');
+
+    $response = $this->postJson("/api/admin/receipt/{$receipt->id}/void");
+    $response->assertOk();
+
+    expect(Receipt::withTrashed()->find($receipt->id)?->deleted_at)->not->toBeNull('Receipt must be soft-deleted after void');
+
+    $activeJournals = \App\Models\Journal::withoutGlobalScopes()
+        ->where('reference_type', Receipt::class)
+        ->where('reference_id', $receipt->id)
+        ->whereNull('deleted_at')
+        ->count();
+    expect($activeJournals)->toBe(0, 'GL journal must be soft-deleted (reversed) after void');
+});
+
+it('voiding a draft receipt returns 422', function () {
+    $cashAccount = p2AccountSetting($this);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-DRAFTV-'.uniqid(),
+        'invoice_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    $receipt = Receipt::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'receipt_no' => 'RC-DRAFTV-'.uniqid(),
+        'receipt_date' => now()->toDateString(),
+        'payment_method' => 'cash',
+        'account_id' => $cashAccount->id,
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    $receipt->allocations()->create(['invoice_id' => $invoice->id, 'amount' => 100]);
+
+    $response = $this->postJson("/api/admin/receipt/{$receipt->id}/void");
+    $response->assertStatus(422);
+    expect(Receipt::find($receipt->id))->not->toBeNull('Draft receipt must not be deleted');
 });
