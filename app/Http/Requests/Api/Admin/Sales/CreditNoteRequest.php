@@ -20,7 +20,20 @@ class CreditNoteRequest extends FormRequest
     {
         return [
             'credit_note_no' => ['nullable', 'string', 'max:255'],
-            'credit_note_date' => ['required', 'date'],
+            'credit_note_date' => [
+                'required',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $fy = auth('admin')->user()?->company?->fiscalYear;
+                    if (! $fy) {
+                        return;
+                    }
+                    $date = \Carbon\Carbon::parse($value)->toDateString();
+                    if ($date < $fy->start_date->toDateString() || $date > $fy->end_date->toDateString()) {
+                        $fail("The credit note date must be within the active fiscal year ({$fy->start_date->format('d M Y')} – {$fy->end_date->format('d M Y')}).");
+                    }
+                },
+            ],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'invoice_id' => ['nullable', TRule::exists('invoices', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],

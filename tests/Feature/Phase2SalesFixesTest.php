@@ -598,3 +598,82 @@ it('P2-07: deleting an invoice item also deletes its line discount', function ()
 
     expect(\App\Models\Discount::find($discountId))->toBeNull('Line discount must be cascade-deleted with the invoice item');
 });
+
+// ─── P3-05: Void permission annotation is separate from approve ───────────────
+
+it('P3-05: void_invoice and approve_invoice are registered as distinct permissions', function () {
+    $invoiceVoid = (new \ReflectionClass(\App\Http\Controllers\Api\Admin\Sales\InvoiceController::class))
+        ->getMethod('void')
+        ->getDocComment();
+
+    $creditNoteVoid = (new \ReflectionClass(\App\Http\Controllers\Api\Admin\Sales\CreditNoteController::class))
+        ->getMethod('void')
+        ->getDocComment();
+
+    expect($invoiceVoid)->toContain('void_invoice');
+    expect($invoiceVoid)->not->toContain('"approve_invoice"');
+    expect($creditNoteVoid)->toContain('void_credit_note');
+    expect($creditNoteVoid)->not->toContain('"approve_credit_note"');
+});
+
+// ─── IRD-06: Credit note date must be within the active fiscal year ───────────
+
+it('IRD-06: credit note date outside fiscal year is rejected', function () {
+    $response = $this->postJson('/api/admin/credit-note', [
+        'credit_note_date' => '2025-01-01',
+        'party_id' => $this->party->id,
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'warehouse_id' => $this->warehouse->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    $response->assertStatus(422);
+    expect($response->json('errors.credit_note_date.0') ?? $response->json('message'))
+        ->toContain('fiscal year');
+});
+
+it('IRD-06: credit note date within fiscal year is accepted', function () {
+    p2AccountSetting($this);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-IRD06-'.uniqid(),
+        'invoice_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    $invoiceItem = InvoiceItem::create([
+        'invoice_id' => $invoice->id,
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'quantity' => 2,
+        'rate' => 100,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+    ]);
+
+    $response = $this->postJson('/api/admin/credit-note', [
+        'credit_note_date' => now()->toDateString(),
+        'party_id' => $this->party->id,
+        'invoice_id' => $invoice->id,
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'warehouse_id' => $this->warehouse->id,
+            'invoice_item_id' => $invoiceItem->id,
+            'quantity' => 1,
+            'rate' => 100,
+            'tax_amount' => 0,
+            'discount_amount' => 0,
+        ]],
+    ]);
+
+    $response->assertSuccessful();
+});

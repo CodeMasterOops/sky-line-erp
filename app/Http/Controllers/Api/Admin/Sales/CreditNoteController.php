@@ -254,7 +254,7 @@ class CreditNoteController extends Controller
     }
 
     /**
-     * @Permissions("approve_credit_note", group="credit_note", desc="Void Credit Note")
+     * @Permissions("void_credit_note", group="credit_note", desc="Void Credit Note")
      */
     public function void(CreditNote $creditNote)
     {

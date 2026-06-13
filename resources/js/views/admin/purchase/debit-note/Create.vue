@@ -572,7 +572,7 @@ function lineFromBillItem(billItem, billedQty) {
         billItem.line_discount_value !== ''
             ? String(billItem.line_discount_value)
             : '0';
-    const qtyDefault = Math.min(1, Math.max(1, billedQty));
+    const qtyDefault = Math.max(1, billedQty);
     return {
         bill_item_id: billItem.id,
         product_variant_id: billItem.product_variant_id,

@@ -128,7 +128,7 @@ class InvoiceController extends Controller
     }
 
     /**
-     * @Permissions("approve_invoice", group="invoice", desc="Void Invoice")
+     * @Permissions("void_invoice", group="invoice", desc="Void Invoice")
      */
     public function void(Invoice $invoice)
     {
