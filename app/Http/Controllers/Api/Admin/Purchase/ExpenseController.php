@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\Accounting\ExpenseService;
@@ -186,6 +187,7 @@ class ExpenseController extends Controller
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('expenses.id', '=', 'paid_totals.payable_id');
             })
+            ->where('expenses.company_id', TenantService::companyId())
             ->where('expenses.party_id', $partyId)
             ->where('expenses.status', StatusEnum::APPROVED->value)
             ->whereNull('expenses.deleted_at')

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PosSession extends Model
 {
-    use BranchTenant;
+    use BranchTenant, MultiTenant;
 
     protected $fillable = [
         'company_id',

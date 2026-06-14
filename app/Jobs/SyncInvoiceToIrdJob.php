@@ -30,45 +30,49 @@ class SyncInvoiceToIrdJob implements ShouldQueue
         // invoice so tenant-scoped queries inside the sync resolve correctly.
         TenantService::setCompanyId($this->invoice->company_id);
 
-        $this->invoice->refresh();
+        try {
+            $this->invoice->refresh();
 
-        if ($this->invoice->ird_sync_status === 'synced') {
-            return;
-        }
-
-        $result = $irdApi->syncInvoice($this->invoice);
-
-        if ($result['skipped'] ?? false) {
-            $this->invoice->update(['ird_sync_status' => 'skipped']);
-
-            return;
-        }
-
-        if ($result['success']) {
-            $this->invoice->update([
-                'ird_sync_status' => 'synced',
-                'ird_internal_id' => $result['ird_internal_id'],
-                'ird_qr_data' => $result['ird_qr_data'],
-                'ird_synced_at' => now(),
-                'ird_error' => null,
-            ]);
-
-            Log::info('IRD EBS sync successful', [
-                'invoice_id' => $this->invoice->id,
-                'invoice_no' => $this->invoice->invoice_no,
-                'ird_internal_id' => $result['ird_internal_id'],
-            ]);
-        } else {
-            $isLastAttempt = $this->attempts() >= $this->tries;
-
-            $this->invoice->update([
-                'ird_sync_status' => $isLastAttempt ? 'failed' : 'retrying',
-                'ird_error' => $result['error'],
-            ]);
-
-            if (! $isLastAttempt) {
-                $this->release($this->backoff * $this->attempts());
+            if ($this->invoice->ird_sync_status === 'synced') {
+                return;
             }
+
+            $result = $irdApi->syncInvoice($this->invoice);
+
+            if ($result['skipped'] ?? false) {
+                $this->invoice->update(['ird_sync_status' => 'skipped']);
+
+                return;
+            }
+
+            if ($result['success']) {
+                $this->invoice->update([
+                    'ird_sync_status' => 'synced',
+                    'ird_internal_id' => $result['ird_internal_id'],
+                    'ird_qr_data' => $result['ird_qr_data'],
+                    'ird_synced_at' => now(),
+                    'ird_error' => null,
+                ]);
+
+                Log::info('IRD EBS sync successful', [
+                    'invoice_id' => $this->invoice->id,
+                    'invoice_no' => $this->invoice->invoice_no,
+                    'ird_internal_id' => $result['ird_internal_id'],
+                ]);
+            } else {
+                $isLastAttempt = $this->attempts() >= $this->tries;
+
+                $this->invoice->update([
+                    'ird_sync_status' => $isLastAttempt ? 'failed' : 'retrying',
+                    'ird_error' => $result['error'],
+                ]);
+
+                if (! $isLastAttempt) {
+                    $this->release($this->backoff * $this->attempts());
+                }
+            }
+        } finally {
+            TenantService::reset();
         }
     }
 

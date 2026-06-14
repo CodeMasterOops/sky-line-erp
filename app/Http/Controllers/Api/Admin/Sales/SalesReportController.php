@@ -11,6 +11,7 @@ use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
+use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
@@ -123,6 +124,7 @@ class SalesReportController extends Controller
             ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
             ->whereNull('invoice_items.deleted_at')
             ->whereNull('invoices.deleted_at')
+            ->where('invoices.company_id', TenantService::companyId())
             ->where('invoices.status', StatusEnum::APPROVED)
             ->whereNull('invoices.voided_at')
             ->whereBetween('invoices.invoice_date', [
@@ -215,6 +217,7 @@ class SalesReportController extends Controller
     private function buildSummaryFromDb(?int $fiscalYearId): array
     {
         $today = Carbon::today()->toDateString();
+        $companyId = TenantService::companyId();
 
         $itemsSub = DB::table('invoice_items')
             ->selectRaw('invoice_id, SUM(quantity * rate) - SUM(discount_amount) + SUM(tax_amount) as net_total')
@@ -236,6 +239,7 @@ class SalesReportController extends Controller
                 $j->on('invoices.id', '=', 'discounts.discountable_id')
                     ->where('discounts.discountable_type', Invoice::class);
             })
+            ->where('invoices.company_id', $companyId)
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')

@@ -20,12 +20,13 @@ class JournalVoidService
 {
     public function reverseForReference(Model $document): void
     {
-        $companyId = $document->company_id ?? null;
+        $companyId = $document->company_id
+            ?? throw new \LogicException('Cannot void journal: document '.get_class($document).'#'.$document->getKey().' has no company_id.');
 
         $journals = Journal::withoutGlobalScopes()
             ->where('reference_type', $document->getMorphClass())
             ->where('reference_id', $document->getKey())
-            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->where('company_id', $companyId)
             ->whereNull('deleted_at')
             ->get();
 

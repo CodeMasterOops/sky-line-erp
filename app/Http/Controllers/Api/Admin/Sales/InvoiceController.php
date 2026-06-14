@@ -6,6 +6,7 @@ use App\Models\Invoice;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\Sales\InvoiceService;
@@ -235,6 +236,7 @@ class InvoiceController extends Controller
                 $join->on('invoices.id', '=', 'discounts.discountable_id')
                     ->where('discounts.discountable_type', '=', \App\Models\Invoice::class);
             })
+            ->where('invoices.company_id', TenantService::companyId())
             ->where('invoices.party_id', $partyId)
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.deleted_at')
