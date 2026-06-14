@@ -3,6 +3,7 @@
 namespace App\Services\Sales;
 
 use App\Models\Invoice;
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Models\Quotation;
 use App\Models\SalesOrder;
@@ -11,6 +12,7 @@ use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
+use App\Services\Tax\TaxCalculationEngine;
 use App\Services\Accounting\JournalVoidService;
 use App\Services\Accounting\GlAccountConfigGuard;
 use App\Services\Accounting\InvoiceGlPostingService;
@@ -27,6 +29,7 @@ readonly class InvoiceService
         private GlAccountConfigGuard $glAccountGuard,
         private JournalVoidService $journalVoid,
         private InvoiceGlPostingService $invoiceGlService,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     public function createInvoice(array $formData): Invoice
@@ -81,6 +84,8 @@ readonly class InvoiceService
             }
 
             foreach ($formData['items'] ?? [] as $item) {
+                $item = $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null);
+
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
@@ -89,6 +94,7 @@ readonly class InvoiceService
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
@@ -147,6 +153,8 @@ readonly class InvoiceService
             $invoice->invoiceItems()->delete();
 
             foreach ($formData['items'] ?? [] as $item) {
+                $item = $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null);
+
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
@@ -155,6 +163,7 @@ readonly class InvoiceService
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
@@ -282,6 +291,37 @@ readonly class InvoiceService
         }
 
         return round($value, 2);
+    }
+
+    /**
+     * When an item carries a tax_group_id, compute the tax_amount server-side using the
+     * TaxCalculationEngine so inclusive and compound taxes are handled correctly.
+     * Falls back to the frontend-supplied tax_amount for single-tax (tax_id) items.
+     *
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function resolveItemTax(array $item, ?int $partyId, ?string $invoiceDate): array
+    {
+        $taxGroupId = $item['tax_group_id'] ?? null;
+        if (! $taxGroupId) {
+            return $item;
+        }
+
+        $group = TaxGroup::withoutGlobalScopes()->find($taxGroupId);
+        if (! $group) {
+            return $item;
+        }
+
+        $baseAmount = round(
+            ((float) $item['quantity'] * (float) $item['rate']) - (float) ($item['discount_amount'] ?? 0),
+            2,
+        );
+
+        $result = $this->taxEngine->calculateForGroup($baseAmount, $group, $partyId, $invoiceDate);
+        $item['tax_amount'] = $result->totalTaxAmount;
+
+        return $item;
     }
 
     /**

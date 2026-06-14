@@ -14,6 +14,10 @@ export const useTaxStore = defineStore('tax', {
         tax: {
             data: {},
             loading: false
+        },
+        taxGroups: {
+            data: [],
+            loading: false
         }
     }),
 
@@ -70,6 +74,23 @@ export const useTaxStore = defineStore('tax', {
                 }).catch((err) => {
                     throw err;
                 })
+        },
+        getTaxGroups() {
+            this.taxGroups.loading = true;
+            return apiAdmin('tax-group?active_only=true&limit=200')
+                .then((res) => {
+                    this.taxGroups.data = res.data.data ?? res.data ?? [];
+                }).catch(showErrors).finally(() => {
+                    this.taxGroups.loading = false;
+                });
+        },
+        calculateTaxGroup(baseAmount, taxGroupId, partyId = null, date = null) {
+            const params = { base_amount: baseAmount, tax_group_id: taxGroupId };
+            if (partyId) params.party_id = partyId;
+            if (date) params.date = date;
+            return apiAdmin('tax/calculate', 'post', params)
+                .then((res) => res.data)
+                .catch((err) => { throw err; });
         }
     }
 })

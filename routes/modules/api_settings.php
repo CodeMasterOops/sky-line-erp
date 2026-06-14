@@ -4,7 +4,9 @@ use App\Http\Controllers\Api\Admin\Settings\BranchController;
 use App\Http\Controllers\Api\Admin\Settings\BranchUserController;
 use App\Http\Controllers\Api\Admin\Settings\PaymentModeController;
 use App\Http\Controllers\Api\Admin\Settings\SettingController;
+use App\Http\Controllers\Admin\TaxCalculationController;
 use App\Http\Controllers\Api\Admin\Settings\TaxController;
+use App\Http\Controllers\Api\Admin\Settings\TaxGroupController;
 use Illuminate\Support\Facades\Route;
 
 // company setting
@@ -12,6 +14,8 @@ Route::apiResource('setting', SettingController::class)->only('index', 'store');
 
 // tax
 Route::apiResource('tax', TaxController::class);
+Route::post('tax/calculate', [TaxCalculationController::class, 'calculate'])->name('tax.calculate');
+Route::apiResource('tax-group', TaxGroupController::class);
 
 // payment mode
 Route::apiResource('payment-mode', PaymentModeController::class);

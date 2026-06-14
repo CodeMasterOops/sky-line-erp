@@ -7,6 +7,9 @@ use App\Traits\MultiTenant;
 use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Tax extends Model
 {
@@ -20,6 +23,11 @@ class Tax extends Model
         'type',
         'tds_category',
         'is_system',
+        'calculation_type',
+        'is_inclusive',
+        'is_compound',
+        'sequence',
+        'gl_account_id',
     ];
 
     protected $casts = [
@@ -27,6 +35,10 @@ class Tax extends Model
         'type' => TaxTypeEnum::class,
         'tds_category' => TdsCategoryEnum::class,
         'is_system' => 'boolean',
+        'is_inclusive' => 'boolean',
+        'is_compound' => 'boolean',
+        'sequence' => 'integer',
+        'gl_account_id' => 'integer',
     ];
 
     protected static function booted(): void
@@ -36,6 +48,33 @@ class Tax extends Model
                 $tax->rate = $tax->tds_category->rate();
             }
         });
+    }
+
+    public function glAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'gl_account_id');
+    }
+
+    public function productTaxes(): HasMany
+    {
+        return $this->hasMany(ProductTax::class);
+    }
+
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'product_taxes');
+    }
+
+    public function taxGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(TaxGroup::class, 'tax_group_members')
+            ->withPivot('sequence')
+            ->orderByPivot('sequence');
+    }
+
+    public function partyExemptions(): HasMany
+    {
+        return $this->hasMany(PartyTaxExemption::class);
     }
 
     public function scopeVat($query)

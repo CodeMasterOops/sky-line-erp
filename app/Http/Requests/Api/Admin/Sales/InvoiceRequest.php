@@ -80,6 +80,10 @@ class InvoiceRequest extends FormRequest
                     }
                 },
             ],
+            'items.*.tax_group_id' => [
+                'nullable',
+                TRule::exists('tax_groups', 'id')->withoutTrashed(),
+            ],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
