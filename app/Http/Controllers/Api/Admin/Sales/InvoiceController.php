@@ -239,6 +239,7 @@ class InvoiceController extends Controller
             ->where('invoices.company_id', TenantService::companyId())
             ->where('invoices.party_id', $partyId)
             ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')
             ->select([
                 'invoices.id',

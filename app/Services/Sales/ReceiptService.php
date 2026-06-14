@@ -258,6 +258,7 @@ readonly class ReceiptService
             ->whereIn('invoices.id', $invoiceIds)
             ->where('invoices.party_id', $partyId)
             ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')
             ->lockForUpdate()
             ->select([

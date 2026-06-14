@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin\Sales;
 
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
+use App\Models\CreditNote;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Http\Validation\ProductLineRules;
@@ -65,8 +66,36 @@ class CreditNoteRequest extends FormRequest
                         return;
                     }
 
-                    if ((int) $value > (int) $invoiceItem->quantity) {
-                        $fail(__('Return quantity cannot exceed the original invoiced quantity of '.$invoiceItem->quantity.'.'));
+                    $originalQty = (int) $invoiceItem->quantity;
+
+                    // Exclude the current credit note when validating an update so
+                    // its own lines are not counted against the remaining allowance.
+                    $currentCreditNoteId = $this->route('creditNote') instanceof CreditNote
+                        ? $this->route('creditNote')->id
+                        : null;
+
+                    $alreadyReturned = (int) DB::table('credit_note_items')
+                        ->join('credit_notes', 'credit_notes.id', '=', 'credit_note_items.credit_note_id')
+                        ->where('credit_note_items.invoice_item_id', $invoiceItemId)
+                        ->where('credit_notes.status', StatusEnum::APPROVED->value)
+                        ->whereNull('credit_notes.voided_at')
+                        ->whereNull('credit_notes.deleted_at')
+                        ->whereNull('credit_note_items.deleted_at')
+                        ->when($currentCreditNoteId, fn ($q) => $q->where('credit_notes.id', '!=', $currentCreditNoteId))
+                        ->sum('credit_note_items.quantity');
+
+                    $remainingReturnable = max(0, $originalQty - $alreadyReturned);
+
+                    if ((int) $value > $remainingReturnable) {
+                        $fail(__(
+                            'Return quantity (:requested) exceeds the remaining returnable quantity of :remaining (original: :original, already returned: :returned).',
+                            [
+                                'requested' => (int) $value,
+                                'remaining' => $remainingReturnable,
+                                'original' => $originalQty,
+                                'returned' => $alreadyReturned,
+                            ]
+                        ));
                     }
                 },
             ],

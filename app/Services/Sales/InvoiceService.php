@@ -76,7 +76,7 @@ readonly class InvoiceService
                 $invoice->saveDiscount(
                     $formData['order_discount_type'] ?? 'fixed',
                     isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
+                    $this->computeOrderDiscountAmount($formData),
                 );
             }
 
@@ -140,7 +140,7 @@ readonly class InvoiceService
                 $invoice->saveDiscount(
                     $formData['order_discount_type'] ?? 'fixed',
                     isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
+                    $this->computeOrderDiscountAmount($formData),
                 );
             }
 
@@ -255,6 +255,33 @@ readonly class InvoiceService
     private function createJournal(Invoice $invoice): void
     {
         $this->invoiceGlService->postFromInvoice($invoice);
+    }
+
+    /**
+     * Computes the monetary order discount from the raw form data so that
+     * Discount.amount is always stored as a currency value, not as 0.
+     * This makes GL posting and due-amount calculations consistent regardless
+     * of whether the discount is fixed or percentage-based.
+     *
+     * @param  array<string, mixed>  $formData
+     */
+    private function computeOrderDiscountAmount(array $formData): float
+    {
+        $type = $formData['order_discount_type'] ?? 'fixed';
+        $value = (float) ($formData['order_discount_value'] ?? 0);
+
+        if ($value <= 0) {
+            return 0.0;
+        }
+
+        if ($type === 'percent') {
+            $lineSubtotalAfterLineDiscounts = collect($formData['items'] ?? [])
+                ->sum(fn ($item) => ((float) $item['quantity'] * (float) $item['rate']) - (float) ($item['discount_amount'] ?? 0));
+
+            return round($lineSubtotalAfterLineDiscounts * $value / 100, 2);
+        }
+
+        return round($value, 2);
     }
 
     /**

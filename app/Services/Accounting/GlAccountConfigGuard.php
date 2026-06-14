@@ -3,6 +3,7 @@
 namespace App\Services\Accounting;
 
 use App\Models\AccountSetting;
+use App\Services\TenantService;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -35,7 +36,7 @@ class GlAccountConfigGuard
      */
     public function missingSalesAccounts(bool $hasTax): array
     {
-        $settings = AccountSetting::first();
+        $settings = $this->currentAccountSetting();
 
         $missing = [];
 
@@ -74,7 +75,7 @@ class GlAccountConfigGuard
      */
     public function missingPurchaseAccounts(bool $hasTax): array
     {
-        $settings = AccountSetting::first();
+        $settings = $this->currentAccountSetting();
 
         $missing = [];
 
@@ -116,7 +117,7 @@ class GlAccountConfigGuard
      */
     public function missingExpenseAccounts(bool $hasTax): array
     {
-        $settings = AccountSetting::first();
+        $settings = $this->currentAccountSetting();
 
         $missing = [];
 
@@ -129,5 +130,23 @@ class GlAccountConfigGuard
         }
 
         return $missing;
+    }
+
+    /**
+     * Fetches AccountSetting for the current tenant company using an explicit
+     * company_id filter (bypassing the global scope) so the correct settings are
+     * returned even from queue workers where the global scope may not be active.
+     */
+    private function currentAccountSetting(): ?AccountSetting
+    {
+        $companyId = TenantService::companyId();
+
+        if ($companyId) {
+            return AccountSetting::withoutGlobalScopes()
+                ->where('company_id', $companyId)
+                ->first();
+        }
+
+        return AccountSetting::withoutGlobalScopes()->first();
     }
 }
