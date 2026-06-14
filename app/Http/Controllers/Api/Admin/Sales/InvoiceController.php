@@ -229,12 +229,28 @@ class InvoiceController extends Controller
             ->where('receipts.status', StatusEnum::APPROVED->value)
             ->groupBy('receipt_allocations.invoice_id');
 
+        $tdsSub = DB::table('invoice_items')
+            ->selectRaw('invoice_id, SUM(tds_base_amount) as tds_base_total, SUM(tds_amount) as tds_amount_total, CASE WHEN COUNT(DISTINCT tds_id) = 1 THEN MAX(tds_id) ELSE NULL END as tds_id, COUNT(DISTINCT tds_id) as tds_category_count')
+            ->whereNull('deleted_at')
+            ->where('is_tds_applicable', 1)
+            ->groupBy('invoice_id');
+
+        $chargesSub = DB::table('invoice_charges')
+            ->selectRaw('invoice_id, SUM(amount) + SUM(tax_amount) as charges_total')
+            ->groupBy('invoice_id');
+
         $rows = DB::table('invoices')
             ->leftJoinSub($itemsSub, 'item_totals', function ($join) {
                 $join->on('invoices.id', '=', 'item_totals.invoice_id');
             })
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('invoices.id', '=', 'paid_totals.invoice_id');
+            })
+            ->leftJoinSub($tdsSub, 'tds_totals', function ($join) {
+                $join->on('invoices.id', '=', 'tds_totals.invoice_id');
+            })
+            ->leftJoinSub($chargesSub, 'charge_totals', function ($join) {
+                $join->on('invoices.id', '=', 'charge_totals.invoice_id');
             })
             ->leftJoin('discounts', function ($join) {
                 $join->on('invoices.id', '=', 'discounts.discountable_id')
@@ -252,17 +268,27 @@ class InvoiceController extends Controller
                 DB::raw('COALESCE(item_totals.subtotal, 0) as subtotal'),
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
                 DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
+                DB::raw('COALESCE(charge_totals.charges_total, 0) as charges_total'),
                 DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+                DB::raw('COALESCE(tds_totals.tds_base_total, 0) as tds_base_amount'),
+                DB::raw('COALESCE(tds_totals.tds_amount_total, 0) as tds_amount_total'),
+                'tds_totals.tds_id',
             ])
             ->get()
             ->map(function ($row) {
                 $orderDisc = (float) ($row->order_discount_amount ?? 0);
-                $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
+                $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total + (float) ($row->charges_total ?? 0);
                 $paidTotal = (float) $row->paid_total;
                 $due = max($grandTotal - $paidTotal, 0);
                 $row->grand_total = round($grandTotal, 2);
                 $row->paid_total = round($paidTotal, 2);
                 $row->due_amount = round($due, 2);
+                $row->tds_base_amount = round((float) ($row->tds_base_amount ?? 0), 2);
+                $row->tds_amount_total = round((float) ($row->tds_amount_total ?? 0), 2);
+                $row->tds_id = $row->tds_id ? (int) $row->tds_id : null;
+                $row->has_tds_items = $row->tds_base_amount > 0;
+                $row->has_multiple_tds_categories = ((int) ($row->tds_category_count ?? 0)) > 1;
+                unset($row->tds_category_count);
 
                 return $row;
             })

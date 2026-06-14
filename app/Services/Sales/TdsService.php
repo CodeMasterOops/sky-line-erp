@@ -30,10 +30,13 @@ readonly class TdsService
             ? $tds->tds_category
             : TdsCategoryEnum::from($tds->tds_category);
 
-        $tdsRate = (float) $tds->rate;
-        $baseAmount = $tdsRate > 0
-            ? round((float) $allocation->tds_deducted * 100 / $tdsRate, 2)
-            : (float) $allocation->amount;
+        $baseAmount = (float) ($allocation->tds_base_amount ?? 0);
+        if ($baseAmount <= 0) {
+            $tdsRate = (float) $tds->rate;
+            $baseAmount = $tdsRate > 0
+                ? round((float) $allocation->tds_deducted * 100 / $tdsRate, 2)
+                : (float) $allocation->amount;
+        }
 
         return TdsDeduction::create([
             'company_id' => $receipt->company_id,
@@ -45,7 +48,7 @@ readonly class TdsService
             'base_amount' => $baseAmount,
             'tds_rate' => $category->rate(),
             'tds_amount' => (float) $allocation->tds_deducted,
-            'period_month' => now()->month,
+            'period_month' => \Carbon\Carbon::parse($receipt->receipt_date)->month,
             'receipt_allocation_id' => $allocation->id,
         ]);
     }

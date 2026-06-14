@@ -16,6 +16,7 @@ class ReceiptAllocation extends Model
         'amount',
         'tds_id',
         'tds_deducted',
+        'tds_base_amount',
         'net_amount_received',
     ];
 
@@ -25,6 +26,7 @@ class ReceiptAllocation extends Model
         'amount' => 'float',
         'tds_id' => 'integer',
         'tds_deducted' => 'float',
+        'tds_base_amount' => 'float',
         'net_amount_received' => 'float',
     ];
 

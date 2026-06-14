@@ -358,11 +358,55 @@ it('stores the correct TDS base_amount when the invoice also has VAT', function 
             'amount' => 11300,
             'tds_id' => $this->tdsTax->id,
             'tds_deducted' => 150,
+            'tds_base_amount' => 10000, // pre-VAT service amount passed explicitly
         ]],
     ])->assertCreated();
+
+    $allocation = \App\Models\ReceiptAllocation::withoutGlobalScopes()
+        ->where('invoice_id', $invoice->id)->first();
+    expect((float) $allocation->tds_base_amount)->toBe(10000.0);
 
     $deduction = TdsDeduction::withoutGlobalScopes()->where('party_id', $this->party->id)->first();
     // base_amount must be the pre-VAT service fee (10,000), not the total invoice amount (11,300)
     expect((float) $deduction->base_amount)->toBe(10000.0);
     expect((float) $deduction->tds_amount)->toBe(150.0);
+});
+
+it('records TDS deduction with period_month from the receipt date, not the current month', function () {
+    ['cash' => $cash] = tdsRcpSetup($this);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-TDSMON-'.uniqid(),
+        'invoice_date' => '2026-03-15',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+    $invoice->invoiceItems()->create([
+        'product_variant_id' => $this->variant->id,
+        'quantity' => 1,
+        'rate' => 5000,
+        'tax_amount' => 0,
+        'discount_amount' => 0,
+    ]);
+
+    $this->postJson('/api/admin/receipt', [
+        'party_id' => $this->party->id,
+        'receipt_date' => '2026-03-15', // March receipt
+        'payment_method' => 'cash',
+        'account_id' => $cash->id,
+        'status' => StatusEnum::APPROVED->value,
+        'allocations' => [[
+            'invoice_id' => $invoice->id,
+            'amount' => 5000,
+            'tds_id' => $this->tdsTax->id,
+            'tds_deducted' => 75,
+            'tds_base_amount' => 5000,
+        ]],
+    ])->assertCreated();
+
+    $deduction = TdsDeduction::withoutGlobalScopes()->where('party_id', $this->party->id)->first();
+    expect((int) $deduction->period_month)->toBe(3); // must be March (3), not current month
 });

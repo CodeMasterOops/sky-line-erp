@@ -382,6 +382,7 @@ readonly class ReceiptService
                 'amount' => $allocation['amount'],
                 'tds_id' => $allocation['tds_id'] ?? null,
                 'tds_deducted' => $tdsDeducted,
+                'tds_base_amount' => (float) ($allocation['tds_base_amount'] ?? 0),
                 'net_amount_received' => $netReceived,
             ];
         })->all();

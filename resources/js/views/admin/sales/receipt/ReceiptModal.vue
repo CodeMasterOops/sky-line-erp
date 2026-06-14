@@ -118,6 +118,13 @@
                                         <td class="fw-semibold py-2">{{ formatMoney(totalPayments) }}</td>
                                         <td></td>
                                     </tr>
+                                    <tr v-if="totalTdsDeducted > 0">
+                                        <td colspan="4" class="py-1 px-2 small text-muted bg-warning bg-opacity-10">
+                                            <i class="ti ti-info-circle me-1"></i>
+                                            TDS of <strong>{{ formatMoney(totalTdsDeducted) }}</strong> will be recorded separately.
+                                            Payment amount should be net cash received: <strong>{{ formatMoney(Math.max(0, totalAllocated - totalTdsDeducted)) }}</strong>
+                                        </td>
+                                    </tr>
                                     </tfoot>
                                 </table>
                             </div>
@@ -168,17 +175,24 @@
                                         <td class="text-end">{{ formatMoney(invoice.paid_total) }}</td>
                                         <td class="text-end fw-medium">{{ formatMoney(invoice.due_amount) }}</td>
                                         <td>
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                :min="0"
+                                            <input
+                                                type="number"
+                                                class="form-control form-control-sm text-end"
+                                                v-model="invoice.allocate_amount"
+                                                min="0"
                                                 :max="invoice.due_amount"
                                                 step="0.01"
-                                                v-model="invoice.allocate_amount"
-                                                @change="recalcInvTds(invoice)"
+                                                placeholder="0.00"
+                                                @input="recalcInvTds(invoice)"
                                             />
                                         </td>
                                         <td class="receipt-col-tds">
+                                            <div v-if="invoice.has_multiple_tds_categories && Number(invoice.allocate_amount) > 0" class="small text-warning mb-1">
+                                                <i class="ti ti-alert-triangle me-1"></i>Multiple TDS categories — select manually
+                                            </div>
+                                            <div v-else-if="invoice.has_tds_items && !Number(invoice.allocate_amount)" class="small text-warning">
+                                                <i class="ti ti-receipt-tax"></i> TDS applicable
+                                            </div>
                                             <div v-if="Number(invoice.allocate_amount) > 0">
                                                 <div class="form-check mb-1">
                                                     <input
@@ -188,16 +202,16 @@
                                                         v-model="invoice.tds_applicable"
                                                         @change="onInvTdsToggle(invoice)"
                                                     />
-                                                    <label :for="`tds_inv_${index}`" class="form-check-label small">TDS</label>
+                                                    <label :for="`tds_inv_${index}`" class="form-check-label small">TDS deducted by customer</label>
                                                 </div>
                                                 <template v-if="invoice.tds_applicable">
                                                     <select
                                                         class="form-select form-select-sm mb-1"
                                                         v-model="invoice.tds_id"
                                                         @change="onInvTdsTaxChange(invoice)">
-                                                        <option value="">Select</option>
-                                                        <option v-for="t in tdsTaxes" :key="t.id" :value="t.id">
-                                                            {{ t.name }}
+                                                        <option value="">Select TDS category</option>
+                                                        <option v-for="t in tdsTaxes" :key="String(t.id)" :value="String(t.id)">
+                                                            {{ t.name }} ({{ t.rate }}%)
                                                         </option>
                                                     </select>
                                                     <input
@@ -206,10 +220,10 @@
                                                         v-model="invoice.tds_deducted"
                                                         min="0"
                                                         step="0.01"
-                                                        placeholder="TDS amt"
+                                                        placeholder="TDS amount"
                                                     />
-                                                    <div v-if="invoice.tds_deducted > 0" class="small text-muted mt-1">
-                                                        Net: {{ formatMoney(Number(invoice.allocate_amount) - Number(invoice.tds_deducted)) }}
+                                                    <div v-if="Number(invoice.tds_deducted) > 0" class="small text-muted mt-1">
+                                                        Net cash: <strong>{{ formatMoney(Number(invoice.allocate_amount) - Number(invoice.tds_deducted)) }}</strong>
                                                     </div>
                                                 </template>
                                             </div>
@@ -390,6 +404,14 @@ const totalTdsDeducted = computed(() =>
     dueInvoices.value.reduce((sum, inv) => sum + (inv.tds_applicable ? Number(inv.tds_deducted || 0) : 0), 0),
 );
 
+// Auto-fill payment leg with net cash (allocated − TDS) for single-leg receipts
+watch([totalAllocated, totalTdsDeducted], ([allocated, tds]) => {
+    if (form.payments.length !== 1) {
+        return;
+    }
+    const net = Math.max(0, Math.round((allocated - tds) * 100) / 100);
+    form.payments[0].amount = net > 0 ? net : '';
+});
 
 const loadDueInvoices = async () => {
     if (!form.party_id) {
@@ -401,9 +423,10 @@ const loadDueInvoices = async () => {
         dueInvoices.value = (res.data.data || []).map(invoice => ({
             ...invoice,
             allocate_amount: 0,
-            tds_applicable: false,
-            tds_id: '',
+            tds_applicable: !!invoice.has_tds_items,
+            tds_id: invoice.tds_id ? String(invoice.tds_id) : '',
             tds_deducted: 0,
+            effective_tds_base: 0,
         }));
     } catch (e) {
         showErrors(e);
@@ -413,6 +436,7 @@ const loadDueInvoices = async () => {
 const fillFullDueAmounts = () => {
     dueInvoices.value.forEach((inv) => {
         inv.allocate_amount = inv.due_amount;
+        recalcInvTds(inv);
     });
 };
 
@@ -422,6 +446,7 @@ const clearAllocations = () => {
         inv.tds_applicable = false;
         inv.tds_id = '';
         inv.tds_deducted = 0;
+        inv.effective_tds_base = 0;
     });
 };
 
@@ -429,6 +454,8 @@ function onInvTdsToggle(inv) {
     if (!inv.tds_applicable) {
         inv.tds_id = '';
         inv.tds_deducted = 0;
+    } else {
+        recalcInvTds(inv);
     }
 }
 
@@ -439,11 +466,21 @@ function onInvTdsTaxChange(inv) {
 function recalcInvTds(inv) {
     if (!inv.tds_applicable || !inv.tds_id) {
         inv.tds_deducted = 0;
+        inv.effective_tds_base = 0;
         return;
     }
     const tax = tdsTaxes.value.find((t) => String(t.id) === String(inv.tds_id));
-    const base = Number(inv.allocate_amount) || 0;
-    inv.tds_deducted = tax ? Math.round(base * (tax.rate / 100) * 100) / 100 : 0;
+    const tdsBase = Number(inv.tds_base_amount) || 0;
+    const grandTotal = Number(inv.grand_total) || 0;
+    const allocated = Number(inv.allocate_amount) || 0;
+    // Pro-rate the pre-VAT TDS base proportionally to the amount being paid
+    const effectiveBase = grandTotal > 0 && tdsBase > 0
+        ? Math.min(tdsBase, tdsBase * (allocated / grandTotal))
+        : 0;
+    inv.effective_tds_base = Math.round(effectiveBase * 100) / 100;
+    inv.tds_deducted = tax && effectiveBase > 0
+        ? Math.round(effectiveBase * (tax.rate / 100) * 100) / 100
+        : 0;
 }
 
 const setPrefillAllocation = (id) => {
@@ -506,6 +543,7 @@ const storeReceipt = async (status = 'draft') => {
             amount: invoice.allocate_amount,
             tds_id: (invoice.tds_applicable && invoice.tds_id) ? Number(invoice.tds_id) : null,
             tds_deducted: (invoice.tds_applicable && invoice.tds_deducted) ? Number(invoice.tds_deducted) : 0,
+            tds_base_amount: (invoice.tds_applicable && invoice.effective_tds_base) ? Number(invoice.effective_tds_base) : 0,
         }));
 
     if (!allocations.length) {

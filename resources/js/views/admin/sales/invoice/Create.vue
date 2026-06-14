@@ -257,6 +257,16 @@
                                         <span>Grand total</span>
                                         <strong>{{ formatMoney(Number(summary.grandTotal) + chargesTotal) }}</strong>
                                     </div>
+                                    <template v-if="totalTdsExpected > 0">
+                                        <div class="d-flex justify-content-between mt-1">
+                                            <span class="text-muted small">Expected TDS deduction</span>
+                                            <strong class="text-warning small">− {{ formatMoney(totalTdsExpected) }}</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted small">Net receivable (after TDS)</span>
+                                            <strong class="small">{{ formatMoney(Number(summary.grandTotal) + chargesTotal - totalTdsExpected) }}</strong>
+                                        </div>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -679,10 +689,42 @@ function recalcTds(index) {
         return;
     }
     const tax = tdsTaxes.value.find((t) => String(t.id) === String(item.tds_id));
-    const base = Math.max(0, Number(item.rate) * Number(item.quantity));
+    const nets = form.items.map((i) => lineNetFromItem(i));
+    const sumLineNet = nets.reduce((a, b) => a + b, 0);
+    const orderDisc = orderDiscountMoney(sumLineNet, form.order_discount_type, form.order_discount_value);
+    const allocs = buildOrderAllocations(nets, orderDisc);
+    const base = Math.max(0, lineNetFromItem(item) - (allocs[index] || 0));
     item.tds_base_amount = String(base);
     item.tds_amount = tax ? String(Math.round(base * (tax.rate / 100) * 100) / 100) : '0';
 }
+
+// Re-run TDS for applicable lines when rate, qty, or discounts change (Bug #2)
+const tdsLineInputs = computed(() =>
+    form.items.map((item) =>
+        `${item.quantity}|${item.rate}|${item.line_discount_value}|${item.line_discount_type}|${item.is_tds_applicable}|${item.tds_id}`
+    )
+);
+
+watch(tdsLineInputs, (newKeys, oldKeys) => {
+    if (!oldKeys) { return; }
+    newKeys.forEach((key, index) => {
+        if (key !== oldKeys[index] && form.items[index]?.is_tds_applicable && form.items[index]?.tds_id) {
+            recalcTds(index);
+        }
+    });
+});
+
+watch(() => [form.order_discount_type, form.order_discount_value], () => {
+    form.items.forEach((_, index) => {
+        if (form.items[index].is_tds_applicable && form.items[index].tds_id) {
+            recalcTds(index);
+        }
+    });
+});
+
+const totalTdsExpected = computed(() =>
+    form.items.reduce((sum, item) => sum + (item.is_tds_applicable ? (Number(item.tds_amount) || 0) : 0), 0)
+);
 
 const validations = object({
     invoice_date: string().required('Invoice date is required.'),

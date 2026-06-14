@@ -41,6 +41,11 @@ class InvoiceResource extends JsonResource
             'order_discount_value' => $this->discount?->value !== null
                 ? round((float) $this->discount->value, 2)
                 : null,
+            'bijak_no' => $this->bijak_no ?? '',
+            'invoice_date_bs' => $this->invoice_date_bs ?? '',
+            'ird_sync_status' => $this->ird_sync_status ?? '',
+            'ird_internal_id' => $this->ird_internal_id ?? '',
+            'ird_error' => $this->ird_error ?? '',
             'order_discount_amount' => $totals['order_discount_amount'],
             'subtotal' => $totals['subtotal'],
             'discount_total' => $totals['discount_total'],

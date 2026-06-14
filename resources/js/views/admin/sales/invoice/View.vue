@@ -88,16 +88,27 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="(item, idx) in lineItems" :key="item.id || idx">
-                                <td>
-                                    <h6 class="mb-0">{{ lineDescription(item) }}</h6>
-                                </td>
-                                <td class="text-gray-9">{{ lineProductCode(item) }}</td>
-                                <td class="text-gray-9 fw-medium text-end">{{ formatMoneyPlain(item.quantity) }}</td>
-                                <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.rate) }}</td>
-                                <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.discount_amount) }}</td>
-                                <td class="text-gray-9 fw-medium text-end">{{ formatMoney(lineTotal(item)) }}</td>
-                            </tr>
+                            <template v-for="(item, idx) in lineItems" :key="item.id || idx">
+                                <tr>
+                                    <td>
+                                        <h6 class="mb-0">{{ lineDescription(item) }}</h6>
+                                    </td>
+                                    <td class="text-gray-9">{{ lineProductCode(item) }}</td>
+                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoneyPlain(item.quantity) }}</td>
+                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.rate) }}</td>
+                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.discount_amount) }}</td>
+                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoney(lineTotal(item)) }}</td>
+                                </tr>
+                                <tr v-if="item.is_tds_applicable && Number(item.tds_amount) > 0" class="tds-note-row">
+                                    <td colspan="5" class="py-1 ps-4 text-muted small border-top-0">
+                                        <i class="ti ti-receipt-tax me-1 text-warning"></i>
+                                        TDS applicable — customer to deduct:
+                                        base {{ formatMoney(item.tds_base_amount) }} × {{ tdsRateLabel(item) }}%
+                                        = <strong class="text-warning">{{ formatMoney(item.tds_amount) }}</strong>
+                                    </td>
+                                    <td class="border-top-0"></td>
+                                </tr>
+                            </template>
                             <tr v-if="!lineItems.length">
                                 <td colspan="6" class="text-center text-muted">No line items</td>
                             </tr>
@@ -123,6 +134,14 @@
                     <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
                         <h5>Total Amount</h5>
                         <h5>{{ formatMoney(inv.grand_total) }}</h5>
+                    </div>
+                    <div v-if="totalTdsExpected > 0" class="d-flex justify-content-between align-items-center mb-2 pe-3 border-top pt-2">
+                        <p class="mb-0 text-muted small">Expected TDS deduction by customer</p>
+                        <p class="mb-0 text-warning fw-medium small">− {{ formatMoney(totalTdsExpected) }}</p>
+                    </div>
+                    <div v-if="totalTdsExpected > 0" class="d-flex justify-content-between align-items-center mb-2 pe-3">
+                        <p class="mb-0 text-muted small">Net receivable (after TDS)</p>
+                        <p class="mb-0 fw-medium small">{{ formatMoney(Number(inv.grand_total || 0) - totalTdsExpected) }}</p>
                     </div>
                     <p v-if="inv.paid_total != null && inv.status === 'approved'" class="fs-12 mb-1">
                         Paid: {{ formatMoney(inv.paid_total) }}
@@ -258,6 +277,19 @@ const invoiceForLabel = computed(() => {
     }
     return 'Itemized goods / services as listed below';
 });
+
+const totalTdsExpected = computed(() =>
+    lineItems.value.reduce((sum, item) => sum + (item.is_tds_applicable ? Number(item.tds_amount || 0) : 0), 0),
+);
+
+const tdsRateLabel = (item) => {
+    const base = Number(item.tds_base_amount || 0);
+    const amount = Number(item.tds_amount || 0);
+    if (base > 0 && amount > 0) {
+        return ((amount / base) * 100).toFixed(2).replace(/\.?0+$/, '');
+    }
+    return '?';
+};
 
 const discountPercentLabel = computed(() => {
     const sub = Number(inv.value.subtotal || 0);

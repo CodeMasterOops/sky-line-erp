@@ -41,6 +41,7 @@ class ReceiptRequest extends FormRequest
             'allocations.*.amount' => ['required', 'numeric', 'min:0.01'],
             'allocations.*.tds_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
             'allocations.*.tds_deducted' => ['nullable', 'numeric', 'min:0'],
+            'allocations.*.tds_base_amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }
