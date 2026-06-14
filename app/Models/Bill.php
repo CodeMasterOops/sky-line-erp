@@ -37,6 +37,7 @@ class Bill extends Model
         'approved_at',
         'voided_at',
         'status',
+        'bill_date_bs',
     ];
 
     protected $casts = [

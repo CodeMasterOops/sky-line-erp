@@ -8,23 +8,23 @@ use App\Models\Company;
 use App\Models\Journal;
 use App\Models\Product;
 use App\Models\BillItem;
-use App\Models\DebitNote;
 use App\Enums\StatusEnum;
+use App\Models\DebitNote;
+use App\Models\Warehouse;
 use App\Models\FiscalYear;
-use App\Models\AccountSetting;
 use App\Enums\UserTypeEnum;
 use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
-use App\Models\ProductVariant;
-use App\Models\Warehouse;
 use App\Enums\ChangeTypeEnum;
-use App\Enums\InventoryCostingMethodEnum;
+use App\Models\AccountSetting;
+use App\Models\ProductVariant;
 use App\Services\TenantService;
-use App\Services\Inventory\InventoryCostCalculator;
-use App\Services\Inventory\InventoryLayerReceiptService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
+use App\Enums\InventoryCostingMethodEnum;
+use App\Services\Inventory\InventoryCostCalculator;
+use App\Services\Inventory\InventoryLayerReceiptService;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -236,4 +236,97 @@ it('allows deleting a draft expense', function () {
 
     $this->deleteJson("/api/admin/expense/{$expense->id}")->assertSuccessful();
     expect(\App\Models\Expense::find($expense->id))->toBeNull();
+});
+
+it('rejects a debit note return quantity that exceeds the billed quantity', function () {
+    // Seed 3 units into inventory via a bill
+    $bill = \App\Models\Bill::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'bill_no' => 'BILL-QTYCHK-'.uniqid(),
+        'bill_date' => '2024-04-14',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    \App\Models\BillItem::create([
+        'bill_id' => $bill->id,
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'quantity' => 3,
+        'rate' => 100,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+    ]);
+
+    dnSeedStock($this, 3);
+
+    $debitNote = DebitNote::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'bill_id' => $bill->id,
+        'debit_note_no' => 'DN-OVER-'.uniqid(),
+        'debit_note_date' => '2024-04-14',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    $debitNote->debitNoteItems()->create([
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'quantity' => 5, // exceeds the 3 billed
+        'rate' => 100,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+    ]);
+
+    $this->postJson("/api/admin/debit-note/{$debitNote->id}/approve")->assertStatus(422);
+});
+
+it('allows a debit note return quantity equal to the billed quantity', function () {
+    $bill = \App\Models\Bill::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'bill_no' => 'BILL-QTYOK-'.uniqid(),
+        'bill_date' => '2024-04-14',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    \App\Models\BillItem::create([
+        'bill_id' => $bill->id,
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'quantity' => 3,
+        'rate' => 100,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+    ]);
+
+    dnSeedStock($this, 3);
+
+    $debitNote = DebitNote::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'bill_id' => $bill->id,
+        'debit_note_no' => 'DN-OK-'.uniqid(),
+        'debit_note_date' => '2024-04-14',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    $debitNote->debitNoteItems()->create([
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'quantity' => 3,
+        'rate' => 100,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+    ]);
+
+    $this->postJson("/api/admin/debit-note/{$debitNote->id}/approve")->assertSuccessful();
 });

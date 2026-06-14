@@ -11,13 +11,15 @@ use App\Models\Product;
 use App\Models\BillItem;
 use App\Enums\StatusEnum;
 use App\Models\FiscalYear;
-use App\Models\AccountSetting;
-use App\Models\PaymentAllocation;
 use App\Enums\UserTypeEnum;
+use App\Models\PaymentMode;
 use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
+use App\Enums\JournalTypeEnum;
+use App\Models\AccountSetting;
 use App\Models\ProductVariant;
 use App\Services\TenantService;
+use App\Models\PaymentAllocation;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -134,6 +136,7 @@ beforeEach(function () {
         'company_id' => $this->company->id,
         'name' => 'Widget',
         'code' => 'WGT-PT-'.uniqid(),
+        'product_type' => \App\Enums\ProductTypeEnum::SERVICE->value,
     ]);
 
     $this->variant = ProductVariant::create([
@@ -142,7 +145,12 @@ beforeEach(function () {
         'sku' => 'WGT-PT-'.uniqid(),
         'purchase_price' => 100,
         'is_default' => true,
-        'is_service' => true,
+    ]);
+
+    $this->paymentMode = PaymentMode::create([
+        'company_id' => $this->company->id,
+        'name' => 'Cash',
+        'is_active' => true,
     ]);
 
     $this->cashAccount = Account::create([
@@ -164,7 +172,7 @@ it('sets company_id explicitly on payment creation', function () {
     $this->postJson('/api/admin/payment', [
         'party_id' => $this->supplier->id,
         'payment_date' => '2024-04-14',
-        'payment_mode_id' => null,
+        'payment_mode_id' => $this->paymentMode->id,
         'account_id' => $this->cashAccount->id,
         'currency_code' => 'NPR',
         'exchange_rate' => 1,
@@ -182,7 +190,7 @@ it('does not set approve_user_id for draft payments', function () {
     $this->postJson('/api/admin/payment', [
         'party_id' => $this->supplier->id,
         'payment_date' => '2024-04-14',
-        'payment_mode_id' => null,
+        'payment_mode_id' => $this->paymentMode->id,
         'account_id' => $this->cashAccount->id,
         'currency_code' => 'NPR',
         'exchange_rate' => 1,
@@ -235,6 +243,7 @@ it('voids an approved payment and soft-deletes its GL journal', function () {
     $journal = $payment->journal()->create([
         'company_id' => $this->company->id,
         'fiscal_year_id' => $this->fiscalYear->id,
+        'type' => JournalTypeEnum::PAYMENT->value,
         'voucher_no' => $payment->payment_no,
         'date' => '2024-04-14',
         'status' => StatusEnum::APPROVED,

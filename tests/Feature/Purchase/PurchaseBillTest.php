@@ -5,20 +5,21 @@ use App\Models\User;
 use App\Models\Party;
 use App\Models\Account;
 use App\Models\Company;
-use App\Models\Product;
-use App\Models\BillItem;
 use App\Models\Journal;
+use App\Models\Product;
 use App\Enums\StatusEnum;
+use App\Models\Warehouse;
 use App\Models\FiscalYear;
-use App\Models\AccountSetting;
 use App\Enums\UserTypeEnum;
 use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
-use App\Models\ProductVariant;
 use App\Models\PurchaseOrder;
+use App\Models\AccountSetting;
+use App\Models\ProductVariant;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use App\Enums\InventoryCostingMethodEnum;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -35,9 +36,9 @@ function billTestWarmCache(): void
 
 function billTestSeedAccounts(Company $company): AccountSetting
 {
-    $purchase = Account::create(['company_id' => $company->id, 'account_group_id' => null, 'name' => 'Purchase', 'code' => 'PUR-BT']);
-    $supplier = Account::create(['company_id' => $company->id, 'account_group_id' => null, 'name' => 'Supplier AP', 'code' => 'AP-BT']);
-    $vat = Account::create(['company_id' => $company->id, 'account_group_id' => null, 'name' => 'VAT In', 'code' => 'VATIN-BT']);
+    $purchase = Account::create(['company_id' => $company->id, 'account_group_id' => null, 'name' => 'Purchase', 'code' => 'PUR-BT-'.uniqid()]);
+    $supplier = Account::create(['company_id' => $company->id, 'account_group_id' => null, 'name' => 'Supplier AP', 'code' => 'AP-BT-'.uniqid()]);
+    $vat = Account::create(['company_id' => $company->id, 'account_group_id' => null, 'name' => 'VAT In', 'code' => 'VATIN-BT-'.uniqid()]);
 
     return AccountSetting::create([
         'company_id' => $company->id,
@@ -58,6 +59,7 @@ function billTestPayload(object $test, array $overrides = []): array
         'order_discount_amount' => 0,
         'items' => [[
             'product_variant_id' => $test->variant->id,
+            'warehouse_id' => $test->warehouse->id,
             'quantity' => 1,
             'rate' => 100,
             'tax_id' => null,
@@ -82,6 +84,7 @@ beforeEach(function () {
         'fiscal_year_id' => $this->fiscalYear->id,
         'company_name' => 'Purchase Bill Test Co',
         'code' => 'PBTC-'.uniqid(),
+        'inventory_costing_method' => InventoryCostingMethodEnum::FIFO,
     ]);
 
     $this->user = User::create([
@@ -103,6 +106,7 @@ beforeEach(function () {
         'company_id' => $this->company->id,
         'name' => 'Widget',
         'code' => 'WGT-BT-'.uniqid(),
+        'product_type' => \App\Enums\ProductTypeEnum::PRODUCT->value,
     ]);
 
     $this->variant = ProductVariant::create([
@@ -111,7 +115,12 @@ beforeEach(function () {
         'sku' => 'WGT-BT-'.uniqid(),
         'purchase_price' => 100,
         'is_default' => true,
-        'is_service' => true,
+    ]);
+
+    $this->warehouse = Warehouse::create([
+        'company_id' => $this->company->id,
+        'name' => 'Main',
+        'code' => 'WH-BT-'.uniqid(),
     ]);
 
     $this->accountSetting = billTestSeedAccounts($this->company);

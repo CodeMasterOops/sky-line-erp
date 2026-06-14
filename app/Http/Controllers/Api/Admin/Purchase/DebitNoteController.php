@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Purchase;
 
+use App\Models\BillItem;
 use App\Enums\StatusEnum;
 use App\Models\DebitNote;
 use Illuminate\Http\Request;
@@ -351,9 +352,57 @@ class DebitNoteController extends Controller
         ]);
     }
 
+    private function validateReturnQuantities(DebitNote $debitNote): void
+    {
+        if (! $debitNote->bill_id) {
+            return;
+        }
+
+        $debitNote->loadMissing('debitNoteItems');
+
+        $billedQty = BillItem::query()
+            ->where('bill_id', $debitNote->bill_id)
+            ->whereNull('deleted_at')
+            ->selectRaw('product_variant_id, SUM(quantity) as total_qty')
+            ->groupBy('product_variant_id')
+            ->pluck('total_qty', 'product_variant_id');
+
+        $alreadyReturnedQty = DebitNote::query()
+            ->where('debit_notes.bill_id', $debitNote->bill_id)
+            ->where('debit_notes.status', StatusEnum::APPROVED)
+            ->whereNull('debit_notes.voided_at')
+            ->whereNull('debit_notes.deleted_at')
+            ->where('debit_notes.id', '!=', $debitNote->id)
+            ->join('debit_note_items', 'debit_notes.id', '=', 'debit_note_items.debit_note_id')
+            ->whereNull('debit_note_items.deleted_at')
+            ->selectRaw('debit_note_items.product_variant_id, SUM(debit_note_items.quantity) as returned_qty')
+            ->groupBy('debit_note_items.product_variant_id')
+            ->pluck('returned_qty', 'product_variant_id');
+
+        $errors = [];
+        foreach ($debitNote->debitNoteItems as $index => $item) {
+            $variantId = $item->product_variant_id;
+            $billed = (int) ($billedQty[$variantId] ?? 0);
+            $returned = (int) ($alreadyReturnedQty[$variantId] ?? 0);
+            $returnable = $billed - $returned;
+
+            if ((int) $item->quantity > $returnable) {
+                $errors["items.{$index}.quantity"] = [
+                    "Return quantity ({$item->quantity}) exceeds returnable quantity ({$returnable}) for this item on the linked bill.",
+                ];
+            }
+        }
+
+        if (! empty($errors)) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
     private function applyInventoryForApprovedDebitNote(DebitNote $debitNote, \App\Models\Company $company, \App\Models\User $user): void
     {
         $debitNote->loadMissing('debitNoteItems');
+
+        $this->validateReturnQuantities($debitNote);
 
         foreach ($debitNote->debitNoteItems as $item) {
             $qty = (int) $item->quantity;

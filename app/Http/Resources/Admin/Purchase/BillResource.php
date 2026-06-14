@@ -2,7 +2,6 @@
 
 namespace App\Http\Resources\Admin\Purchase;
 
-use App\Models\Tax;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Http\Resources\Admin\PartyResource;
@@ -120,18 +119,13 @@ class BillResource extends JsonResource
         $sumNet = array_sum($lineNets);
         $orderDiscountAmount = (float) ($this->discount?->amount ?? 0);
 
-        $taxIds = collect($this->billItems)->pluck('tax_id')->filter()->unique()->all();
-        $taxRates = $taxIds === []
-            ? collect()
-            : Tax::query()->whereIn('id', $taxIds)->pluck('rate', 'id');
-
         $nonTaxableBase = 0.0;
         $taxableBase = 0.0;
         if ($sumNet > 0) {
             foreach ($itemsList as $i => $item) {
                 $alloc = $orderDiscountAmount * ($lineNets[$i] / $sumNet);
                 $base = max(0, $lineNets[$i] - $alloc);
-                $rate = $item->tax_id ? (float) ($taxRates[$item->tax_id] ?? 0) : 0.0;
+                $rate = (float) ($item->tax?->rate ?? 0);
                 if ($rate > 0) {
                     $taxableBase += $base;
                 } else {
