@@ -29,6 +29,7 @@ class AccountSettingResource extends JsonResource
             'cogs_account_id' => $this->cogs_account_id ?? '',
             'retained_earnings_account_id' => $this->retained_earnings_account_id ?? '',
             'opening_stock_equity_account_id' => $this->opening_stock_equity_account_id ?? '',
+            'tds_receivable_account_id' => $this->tds_receivable_account_id ?? '',
         ];
     }
 }

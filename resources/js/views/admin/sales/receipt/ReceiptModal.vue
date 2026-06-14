@@ -488,6 +488,7 @@ const setPrefillAllocation = (id) => {
     const target = dueInvoices.value.find(item => item.id === id);
     if (target) {
         target.allocate_amount = target.due_amount;
+        recalcInvTds(target);
     }
 };
 
@@ -532,7 +533,7 @@ const storeReceipt = async (status = 'draft') => {
 
     const validLegs = form.payments.filter((leg) => Number(leg.amount || 0) > 0 && leg.account_id);
     if (!validLegs.length) {
-        toast('error', 'Please add at least one payment method with amount and account.');
+        toast(422, 'Please add at least one payment method with amount and account.');
         return;
     }
 
@@ -547,7 +548,7 @@ const storeReceipt = async (status = 'draft') => {
         }));
 
     if (!allocations.length) {
-        toast('error', 'Please allocate amount to at least one invoice.');
+        toast(422, 'Please allocate amount to at least one invoice.');
         return;
     }
 

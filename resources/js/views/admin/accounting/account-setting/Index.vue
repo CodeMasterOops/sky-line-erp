@@ -152,6 +152,14 @@
                                         label="Opening Stock Equity (perpetual GL)"
                                     />
                                 </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="tds_receivable_account_id"
+                                        v-model="form.tds_receivable_account_id"
+                                        :options="accounts.data"
+                                        label="TDS Receivable Account"
+                                    />
+                                </div>
                                 <div class="col-12 text-end">
                                     <VButton :loading="isSubmitting" />
                                 </div>
@@ -196,6 +204,7 @@ const initialState = {
     inventory_account_id: "",
     cogs_account_id: "",
     opening_stock_equity_account_id: "",
+    tds_receivable_account_id: "",
 };
 
 const form = reactive({ ...initialState });
