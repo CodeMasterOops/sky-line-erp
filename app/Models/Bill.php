@@ -29,6 +29,7 @@ class Bill extends Model
         'party_id',
         'purchase_order_id',
         'bill_no',
+        'supplier_invoice_no',
         'bill_date',
         'due_date',
         'remarks',

@@ -51,7 +51,6 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.party-list': 'list_party',
     'admin.variant-attributes': 'list_attribute',
     'admin.barcode': 'list_product',
-    'admin.purchase-list': 'list_purchase_order',
     'admin.purchase-order-list': 'list_purchase_order',
     'admin.bill-list': 'list_bill',
     'admin.expense-list': 'list_expense',

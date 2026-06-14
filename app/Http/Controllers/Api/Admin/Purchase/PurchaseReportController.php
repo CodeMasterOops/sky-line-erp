@@ -11,6 +11,7 @@ use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -24,17 +25,10 @@ class PurchaseReportController extends Controller
         $company = auth('admin')->user()?->company?->loadMissing('fiscalYear');
         $fiscalYear = $company?->fiscalYear;
 
-        $bills = Bill::query()
-            ->where('status', StatusEnum::APPROVED)
-            ->whereNull('voided_at')
-            ->when($company?->fiscal_year_id, function (Builder $query) use ($company) {
-                $query->where('fiscal_year_id', $company->fiscal_year_id);
-            })
-            ->when($request->filled('branch_id'), function (Builder $query) use ($request) {
-                $query->where('branch_id', $request->branch_id);
-            })
-            ->with(['billItems', 'paymentAllocations.payment'])
-            ->get();
+        $summary = $this->buildSummaryFromDb(
+            fiscalYearId: $company?->fiscal_year_id,
+            branchId: $request->filled('branch_id') ? (int) $request->branch_id : null,
+        );
 
         return response()->json([
             'data' => [
@@ -45,7 +39,7 @@ class PurchaseReportController extends Controller
                         ? $fiscalYear->year_name.' ('.$fiscalYear->start_date?->format('d M Y').' - '.$fiscalYear->end_date?->format('d M Y').')'
                         : 'Current fiscal year',
                 ],
-                'summary' => $this->buildSummary($bills),
+                'summary' => $summary,
             ],
         ]);
     }
@@ -60,6 +54,7 @@ class PurchaseReportController extends Controller
         $bills = $this->buildBillQuery($request)
             ->with([
                 'party',
+                'discount',
                 'billItems.productVariant.product',
                 'billItems.productVariant.variantOptions.attribute',
                 'paymentAllocations.payment',
@@ -111,7 +106,139 @@ class PurchaseReportController extends Controller
                 'party_options' => $this->supplierOptions(),
                 'product_variant_options' => $this->productVariantOptions(),
                 'rows' => $rows,
-                'summary' => $this->buildSummary($bills),
+                'summary' => $this->buildSummaryFromCollection($bills),
+            ],
+        ]);
+    }
+
+    /**
+     * @Permissions("list_bill", group="bill", desc="Supplier Ledger / AP Aging")
+     */
+    public function supplierLedger(Request $request)
+    {
+        $today = Carbon::today();
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+        $approvedStatus = StatusEnum::APPROVED->value;
+
+        $itemsSub = DB::table('bill_items')
+            ->selectRaw('bill_id, SUM(quantity * rate) as subtotal, SUM(discount_amount) as line_discount, SUM(tax_amount) as tax_total')
+            ->whereNull('deleted_at')
+            ->groupBy('bill_id');
+
+        $paidSub = DB::table('payment_allocations')
+            ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
+            ->selectRaw('payment_allocations.payable_id, SUM(payment_allocations.amount) as paid_total')
+            ->whereNull('payment_allocations.deleted_at')
+            ->whereNull('payments.deleted_at')
+            ->where('payments.status', $approvedStatus)
+            ->where('payment_allocations.payable_type', 'bill')
+            ->groupBy('payment_allocations.payable_id');
+
+        $bills = DB::table('bills')
+            ->leftJoinSub($itemsSub, 'item_agg', fn ($j) => $j->on('bills.id', '=', 'item_agg.bill_id'))
+            ->leftJoinSub($paidSub, 'paid_agg', fn ($j) => $j->on('bills.id', '=', 'paid_agg.payable_id'))
+            ->leftJoin('discounts', function ($j) {
+                $j->on('bills.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', 'bill');
+            })
+            ->where('bills.status', $approvedStatus)
+            ->whereNull('bills.voided_at')
+            ->whereNull('bills.deleted_at')
+            ->whereBetween('bills.bill_date', [$fromDate, $toDate])
+            ->when($request->filled('party_id'), fn ($q) => $q->where('bills.party_id', $request->party_id))
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('bills.branch_id', $request->branch_id))
+            ->selectRaw('
+                bills.party_id,
+                bills.id as bill_id,
+                bills.bill_no,
+                bills.bill_date,
+                bills.due_date,
+                COALESCE(item_agg.subtotal - item_agg.line_discount - COALESCE(discounts.amount, 0) + item_agg.tax_total, 0) as grand_total,
+                COALESCE(paid_agg.paid_total, 0) as paid_total
+            ')
+            ->get();
+
+        $supplierIds = $bills->pluck('party_id')->unique()->filter()->values()->all();
+        $suppliers = Party::query()
+            ->whereIn('id', $supplierIds)
+            ->orderBy('name')
+            ->get(['id', 'name', 'pan_no'])
+            ->keyBy('id');
+
+        $grouped = $bills->groupBy('party_id');
+
+        $rows = $grouped->map(function ($supplierBills, $partyId) use ($today, $suppliers) {
+            $supplier = $suppliers->get($partyId);
+            $totalBilled = 0.0;
+            $totalPaid = 0.0;
+            $current = 0.0;
+            $days1to30 = 0.0;
+            $days31to60 = 0.0;
+            $days61to90 = 0.0;
+            $daysOver90 = 0.0;
+
+            foreach ($supplierBills as $bill) {
+                $grand = round((float) $bill->grand_total, 2);
+                $paid = round((float) $bill->paid_total, 2);
+                $due = round(max($grand - $paid, 0), 2);
+                $totalBilled += $grand;
+                $totalPaid += $paid;
+
+                if ($due <= 0) {
+                    continue;
+                }
+
+                $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date);
+                $daysOverdue = (int) $dueDate->diffInDays($today, false);
+
+                if ($daysOverdue <= 0) {
+                    $current += $due;
+                } elseif ($daysOverdue <= 30) {
+                    $days1to30 += $due;
+                } elseif ($daysOverdue <= 60) {
+                    $days31to60 += $due;
+                } elseif ($daysOverdue <= 90) {
+                    $days61to90 += $due;
+                } else {
+                    $daysOver90 += $due;
+                }
+            }
+
+            $totalDue = round(max($totalBilled - $totalPaid, 0), 2);
+
+            return [
+                'party_id' => $partyId,
+                'supplier_name' => $supplier?->name ?? 'Unknown',
+                'pan_no' => $supplier?->pan_no ?? '',
+                'total_billed' => round($totalBilled, 2),
+                'total_paid' => round($totalPaid, 2),
+                'total_due' => $totalDue,
+                'current' => round($current, 2),
+                'days_1_30' => round($days1to30, 2),
+                'days_31_60' => round($days31to60, 2),
+                'days_61_90' => round($days61to90, 2),
+                'days_over_90' => round($daysOver90, 2),
+            ];
+        })->values()->sortByDesc('total_due')->values();
+
+        $totals = [
+            'total_billed' => round($rows->sum('total_billed'), 2),
+            'total_paid' => round($rows->sum('total_paid'), 2),
+            'total_due' => round($rows->sum('total_due'), 2),
+            'current' => round($rows->sum('current'), 2),
+            'days_1_30' => round($rows->sum('days_1_30'), 2),
+            'days_31_60' => round($rows->sum('days_31_60'), 2),
+            'days_61_90' => round($rows->sum('days_61_90'), 2),
+            'days_over_90' => round($rows->sum('days_over_90'), 2),
+        ];
+
+        return response()->json([
+            'data' => [
+                'period' => $this->buildPeriod($request),
+                'party_options' => $this->supplierOptions(),
+                'rows' => $rows->all(),
+                'totals' => $totals,
             ],
         ]);
     }
@@ -225,7 +352,7 @@ class PurchaseReportController extends Controller
         ];
     }
 
-    private function buildSummary($bills): array
+    private function buildSummaryFromCollection($bills): array
     {
         $today = Carbon::today();
 
@@ -260,19 +387,71 @@ class PurchaseReportController extends Controller
         ];
     }
 
+    private function buildSummaryFromDb(?int $fiscalYearId, ?int $branchId): array
+    {
+        $today = Carbon::today()->toDateString();
+        $approvedStatus = StatusEnum::APPROVED->value;
+
+        $itemsSub = DB::table('bill_items')
+            ->selectRaw('bill_id, SUM(quantity * rate) as subtotal, SUM(discount_amount) as line_discount, SUM(tax_amount) as tax_total')
+            ->whereNull('deleted_at')
+            ->groupBy('bill_id');
+
+        $paidSub = DB::table('payment_allocations')
+            ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')
+            ->selectRaw('payment_allocations.payable_id, SUM(payment_allocations.amount) as paid_total')
+            ->whereNull('payment_allocations.deleted_at')
+            ->whereNull('payments.deleted_at')
+            ->where('payments.status', $approvedStatus)
+            ->where('payment_allocations.payable_type', 'bill')
+            ->groupBy('payment_allocations.payable_id');
+
+        $rows = DB::table('bills')
+            ->leftJoinSub($itemsSub, 'item_agg', fn ($j) => $j->on('bills.id', '=', 'item_agg.bill_id'))
+            ->leftJoinSub($paidSub, 'paid_agg', fn ($j) => $j->on('bills.id', '=', 'paid_agg.payable_id'))
+            ->leftJoin('discounts', function ($j) {
+                $j->on('bills.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', 'bill');
+            })
+            ->where('bills.status', $approvedStatus)
+            ->whereNull('bills.voided_at')
+            ->whereNull('bills.deleted_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('bills.fiscal_year_id', $fiscalYearId))
+            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->selectRaw('
+                COUNT(bills.id) as total_bills,
+                COALESCE(SUM(item_agg.subtotal - item_agg.line_discount - COALESCE(discounts.amount, 0) + item_agg.tax_total), 0) as total_amount,
+                COALESCE(SUM(paid_agg.paid_total), 0) as total_paid,
+                COALESCE(SUM(CASE WHEN bills.due_date IS NOT NULL AND bills.due_date < ? AND GREATEST(item_agg.subtotal - item_agg.line_discount - COALESCE(discounts.amount, 0) + item_agg.tax_total - COALESCE(paid_agg.paid_total, 0), 0) > 0 THEN GREATEST(item_agg.subtotal - item_agg.line_discount - COALESCE(discounts.amount, 0) + item_agg.tax_total - COALESCE(paid_agg.paid_total, 0), 0) ELSE 0 END), 0) as overdue_amount
+            ', [$today])
+            ->first();
+
+        $totalAmount = round((float) $rows->total_amount, 2);
+        $totalPaid = round((float) $rows->total_paid, 2);
+
+        return [
+            'total_amount' => $totalAmount,
+            'total_paid' => $totalPaid,
+            'total_unpaid' => round(max($totalAmount - $totalPaid, 0), 2),
+            'overdue_amount' => round((float) $rows->overdue_amount, 2),
+            'total_bills' => (int) $rows->total_bills,
+        ];
+    }
+
     private function calculateBillTotals(Bill $bill): array
     {
-        $subtotal = 0;
-        $discountTotal = 0;
-        $taxTotal = 0;
+        $subtotal = 0.0;
+        $lineDiscountTotal = 0.0;
+        $taxTotal = 0.0;
 
         foreach ($bill->billItems as $item) {
             $subtotal += (float) $item->quantity * (float) $item->rate;
-            $discountTotal += (float) $item->discount_amount;
+            $lineDiscountTotal += (float) $item->discount_amount;
             $taxTotal += (float) $item->tax_amount;
         }
 
-        $grandTotal = $subtotal - $discountTotal + $taxTotal;
+        $orderDiscount = (float) ($bill->discount?->amount ?? 0);
+        $grandTotal = $subtotal - $lineDiscountTotal - $orderDiscount + $taxTotal;
 
         return [
             'grand_total' => round($grandTotal, 2),

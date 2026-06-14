@@ -24,6 +24,7 @@ class BillRequest extends FormRequest
     {
         return [
             'bill_no' => ['nullable', 'string', 'max:255'],
+            'supplier_invoice_no' => ['nullable', 'string', 'max:255'],
             'bill_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:bill_date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],

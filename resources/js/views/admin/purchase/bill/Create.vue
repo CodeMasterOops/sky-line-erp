@@ -15,6 +15,7 @@
                                     id="bill_date"
                                     v-model="form.bill_date"
                                     label="Bill Date"
+                                    show-switcher
                                     @validate="validateField('bill_date')"
                                     :error="errors.bill_date"
                                 />
@@ -26,6 +27,7 @@
                                     id="due_date"
                                     v-model="form.due_date"
                                     label="Due Date"
+                                    show-switcher
                                     @validate="validateField('due_date')"
                                     :error="errors.due_date"
                                 />
@@ -337,6 +339,17 @@
                             </div>
                         </div>
 
+                        <div class="col-lg-6 col-sm-6 col-12">
+                            <div class="input-blocks">
+                                <VInput
+                                    id="supplier_invoice_no"
+                                    v-model="form.supplier_invoice_no"
+                                    label="Supplier Invoice No."
+                                    placeholder="Supplier's VAT bill number"
+                                    :error="errors.supplier_invoice_no"
+                                />
+                            </div>
+                        </div>
                         <div class="col-md-12">
                             <div class="input-blocks">
                                 <VTextarea
@@ -528,6 +541,7 @@ const getInitialState = () => ({
     party_id: '',
     purchase_order_id: '',
     warehouse_id: '',
+    supplier_invoice_no: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',

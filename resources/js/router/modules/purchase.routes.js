@@ -1,11 +1,7 @@
 export default [
     {
         path: "purchase-list",
-        name: "admin.purchase-list",
-        meta: {
-            pageTitle: "Purchase List",
-        },
-        component: () => import("@/views/admin/purchase/list/Index.vue"),
+        redirect: { name: "admin.bill-list" },
     },
     {
         path: "purchase-orders",

@@ -50,7 +50,7 @@ function payTestSeedAccounts(Company $company): AccountSetting
     ]);
 }
 
-function makeApprovedBill(object $test, float $amount): Bill
+function payMakeApprovedBill(object $test, float $amount): Bill
 {
     $bill = Bill::create([
         'company_id' => $test->company->id,
@@ -77,7 +77,7 @@ function makeApprovedBill(object $test, float $amount): Bill
     return $bill;
 }
 
-function makeApprovedPayment(object $test, Bill $bill, float $amount): Payment
+function payMakeApprovedPayment(object $test, Bill $bill, float $amount): Payment
 {
     $payment = Payment::create([
         'company_id' => $test->company->id,
@@ -167,7 +167,7 @@ beforeEach(function () {
 });
 
 it('sets company_id explicitly on payment creation', function () {
-    $bill = makeApprovedBill($this, 500);
+    $bill = payMakeApprovedBill($this, 500);
 
     $this->postJson('/api/admin/payment', [
         'party_id' => $this->supplier->id,
@@ -185,7 +185,7 @@ it('sets company_id explicitly on payment creation', function () {
 });
 
 it('does not set approve_user_id for draft payments', function () {
-    $bill = makeApprovedBill($this, 300);
+    $bill = payMakeApprovedBill($this, 300);
 
     $this->postJson('/api/admin/payment', [
         'party_id' => $this->supplier->id,
@@ -203,15 +203,15 @@ it('does not set approve_user_id for draft payments', function () {
 });
 
 it('prevents deleting an approved payment', function () {
-    $bill = makeApprovedBill($this, 200);
-    $payment = makeApprovedPayment($this, $bill, 200);
+    $bill = payMakeApprovedBill($this, 200);
+    $payment = payMakeApprovedPayment($this, $bill, 200);
 
     $this->deleteJson("/api/admin/payment/{$payment->id}")->assertStatus(422);
     expect(Payment::find($payment->id))->not->toBeNull();
 });
 
 it('allows deleting a draft payment', function () {
-    $bill = makeApprovedBill($this, 200);
+    $bill = payMakeApprovedBill($this, 200);
 
     $payment = Payment::create([
         'company_id' => $this->company->id,
@@ -237,8 +237,8 @@ it('allows deleting a draft payment', function () {
 });
 
 it('voids an approved payment and soft-deletes its GL journal', function () {
-    $bill = makeApprovedBill($this, 400);
-    $payment = makeApprovedPayment($this, $bill, 400);
+    $bill = payMakeApprovedBill($this, 400);
+    $payment = payMakeApprovedPayment($this, $bill, 400);
 
     $journal = $payment->journal()->create([
         'company_id' => $this->company->id,
@@ -257,7 +257,7 @@ it('voids an approved payment and soft-deletes its GL journal', function () {
 });
 
 it('rejects voiding a draft payment', function () {
-    $bill = makeApprovedBill($this, 100);
+    $bill = payMakeApprovedBill($this, 100);
 
     $payment = Payment::create([
         'company_id' => $this->company->id,

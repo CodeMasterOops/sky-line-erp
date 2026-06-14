@@ -43,4 +43,5 @@ Route::prefix('purchase-report')->as('purchase-report.')->controller(PurchaseRep
     Route::get('dashboard', 'dashboard')->name('dashboard');
     Route::get('report', 'purchaseReport')->name('report');
     Route::get('purchase-by-item', 'purchaseByItems')->name('purchase-by-item');
+    Route::get('supplier-ledger', 'supplierLedger')->name('supplier-ledger');
 });
