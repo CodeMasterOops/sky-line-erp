@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Admin\AddressReferenceController;
 use App\Http\Controllers\Api\Admin\Nepal\InvoicePdfController;
 use App\Http\Controllers\Api\Admin\Nepal\IrdSettingController;
 use App\Http\Controllers\Api\Admin\Nepal\TdsChallanController;
+use App\Http\Controllers\Api\Admin\Nepal\TdsReceivableController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
 use App\Http\Controllers\Api\Admin\BillingController;
 use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
@@ -120,6 +121,15 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
                 Route::get('return-annexure', 'returnAnnexure')->name('return-annexure');
                 Route::get('challan-pdf', 'downloadChallan')->name('challan-pdf');
                 Route::get('certificate-pdf', 'downloadCertificate')->name('certificate-pdf');
+            });
+
+            // TDS Receivables (customer-withheld TDS certificate tracking & settlement)
+            Route::prefix('tds-receivables')->as('tds-receivables.')->controller(TdsReceivableController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::get('{tdsReceivable}', 'show')->name('show');
+                Route::post('{tdsReceivable}/approve', 'approve')->name('approve');
+                Route::post('{tdsReceivable}/settle', 'settle')->name('settle');
             });
         });
 

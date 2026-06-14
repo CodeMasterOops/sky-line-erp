@@ -7,6 +7,7 @@ use App\Traits\Auditable;
 use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -46,6 +47,8 @@ class Invoice extends Model
         'ird_qr_data',
         'ird_synced_at',
         'ird_error',
+        'total_amount',
+        'paid_amount',
     ];
 
     protected $casts = [
@@ -56,6 +59,8 @@ class Invoice extends Model
         'voided_at' => 'datetime',
         'ird_synced_at' => 'datetime',
         'status' => StatusEnum::class,
+        'total_amount' => 'float',
+        'paid_amount' => 'float',
     ];
 
     public function scopeFilter($query, $param = [])
@@ -126,5 +131,41 @@ class Invoice extends Model
     public function approveUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approve_user_id');
+    }
+
+    /**
+     * Recompute and persist total_amount (from items) and paid_amount (from approved allocations).
+     * Call this after invoice items change or after receipt allocations for this invoice change.
+     */
+    public function refreshTotals(): void
+    {
+        $orderDiscount = (float) DB::table('discounts')
+            ->where('discountable_type', self::class)
+            ->where('discountable_id', $this->id)
+            ->value('amount');
+
+        $itemTotals = DB::table('invoice_items')
+            ->where('invoice_id', $this->id)
+            ->whereNull('deleted_at')
+            ->selectRaw('COALESCE(SUM(quantity * rate), 0) as subtotal, COALESCE(SUM(discount_amount), 0) as discount_total, COALESCE(SUM(tax_amount), 0) as tax_total')
+            ->first();
+
+        $grandTotal = (float) $itemTotals->subtotal
+            - (float) $itemTotals->discount_total
+            - $orderDiscount
+            + (float) $itemTotals->tax_total;
+
+        $paidAmount = (float) DB::table('receipt_allocations')
+            ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
+            ->where('receipt_allocations.invoice_id', $this->id)
+            ->where('receipts.status', StatusEnum::APPROVED->value)
+            ->whereNull('receipt_allocations.deleted_at')
+            ->whereNull('receipts.deleted_at')
+            ->sum('receipt_allocations.amount');
+
+        $this->updateQuietly([
+            'total_amount' => round($grandTotal, 4),
+            'paid_amount' => round($paidAmount, 4),
+        ]);
     }
 }

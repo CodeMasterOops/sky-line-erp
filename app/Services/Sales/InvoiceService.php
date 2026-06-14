@@ -109,8 +109,9 @@ readonly class InvoiceService
                 }
             }
 
+            $invoice->refresh()->refreshTotals();
+
             if ($status === StatusEnum::APPROVED->value) {
-                $invoice->refresh();
                 $this->createJournal($invoice);
                 $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
             }
@@ -177,6 +178,8 @@ readonly class InvoiceService
                     );
                 }
             }
+
+            $invoice->refreshTotals();
         });
     }
 

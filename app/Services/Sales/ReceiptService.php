@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Models\Invoice;
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Models\TdsDeduction;
@@ -68,6 +69,7 @@ readonly class ReceiptService
 
             if ($status === StatusEnum::APPROVED->value) {
                 $this->createJournal($receipt);
+                $this->refreshInvoicePaidAmounts($allocations->pluck('invoice_id')->all());
             }
 
             return $receipt;
@@ -109,6 +111,7 @@ readonly class ReceiptService
     public function approveReceipt(Receipt $receipt): void
     {
         $user = auth('admin')->user();
+        $invoiceIds = $receipt->allocations()->pluck('invoice_id')->all();
 
         DB::transaction(function () use ($receipt, $user) {
             $receipt->update([
@@ -119,6 +122,8 @@ readonly class ReceiptService
 
             $this->createJournal($receipt);
         });
+
+        $this->refreshInvoicePaidAmounts($invoiceIds);
     }
 
     public function voidReceipt(Receipt $receipt): void
@@ -129,11 +134,15 @@ readonly class ReceiptService
             ]);
         }
 
+        $invoiceIds = $receipt->allocations()->pluck('invoice_id')->all();
+
         DB::transaction(function () use ($receipt) {
             $this->journalVoid->reverseForReference($receipt);
             $receipt->allocations()->delete();
             $receipt->delete();
         });
+
+        $this->refreshInvoicePaidAmounts($invoiceIds);
     }
 
     public function createJournal(Receipt $receipt): void
@@ -279,6 +288,14 @@ readonly class ReceiptService
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function refreshInvoicePaidAmounts(array $invoiceIds): void
+    {
+        Invoice::withoutGlobalScopes()
+            ->whereIn('id', array_unique($invoiceIds))
+            ->get()
+            ->each(fn (Invoice $inv) => $inv->refreshTotals());
     }
 
     private function throwUnprocessableEntity(string $message): never
