@@ -113,7 +113,7 @@ readonly class InvoiceService
         });
 
         if ($status === StatusEnum::APPROVED->value) {
-            SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird');
+            SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird')->afterCommit();
         }
 
         return $invoice;
@@ -188,7 +188,7 @@ readonly class InvoiceService
             $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
         });
 
-        SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird');
+        SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird')->afterCommit();
     }
 
     public function voidInvoice(Invoice $invoice): void

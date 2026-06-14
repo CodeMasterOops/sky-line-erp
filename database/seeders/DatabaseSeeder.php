@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             CompanySeeder::class,
             BackfillSubscriptionSeeder::class,
+            NepalAddressSeeder::class,
         ]);
     }
 }

@@ -22,7 +22,20 @@ class InvoiceRequest extends FormRequest
         return [
             'invoice_no' => ['nullable', 'string', 'max:255'],
             'bijak_no' => ['nullable', 'string', 'max:255'],
-            'invoice_date' => ['required', 'date'],
+            'invoice_date' => [
+                'required',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $fy = auth('admin')->user()?->company?->fiscalYear;
+                    if (! $fy) {
+                        return;
+                    }
+                    $date = \Carbon\Carbon::parse($value)->toDateString();
+                    if ($date < $fy->start_date->toDateString() || $date > $fy->end_date->toDateString()) {
+                        $fail("The invoice date must be within the active fiscal year ({$fy->start_date->format('d M Y')} – {$fy->end_date->format('d M Y')}).");
+                    }
+                },
+            ],
             'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'quotation_id' => [
