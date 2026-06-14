@@ -97,10 +97,14 @@ it('aggregates TDS deductions by category, revenue code, and party', function ()
         ->assertJsonPath('data.summary.deduction_count', 4)
         ->assertJsonPath('data.summary.party_count', 2);
 
-    // by_revenue_code: 11112 = 150+300+500 tds over 3 deductions; 11212 = 150 over 1.
+    // by_revenue_code: 11112 = service+contract (150+300 tds, 2 deductions);
+    //                  11113 = rent_property (500 tds, 1 deduction);
+    //                  11212 = interest (150 tds, 1 deduction).
     $byCode = collect($response->json('data.by_revenue_code'));
     expect($byCode->firstWhere('revenue_code', '11112'))
-        ->toMatchArray(['base_amount' => 35000, 'tds_amount' => 950, 'deduction_count' => 3]);
+        ->toMatchArray(['base_amount' => 30000, 'tds_amount' => 450, 'deduction_count' => 2]);
+    expect($byCode->firstWhere('revenue_code', '11113'))
+        ->toMatchArray(['base_amount' => 5000, 'tds_amount' => 500, 'deduction_count' => 1]);
     expect($byCode->firstWhere('revenue_code', '11212'))
         ->toMatchArray(['base_amount' => 1000, 'tds_amount' => 150, 'deduction_count' => 1]);
 

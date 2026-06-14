@@ -30,6 +30,9 @@ class ReceiptResource extends JsonResource
             'approved_at' => $this->approved_at ?? null,
             'status' => $this->status?->value ?? '',
             'total_amount' => $this->calculateTotal(),
+            'tds_category' => $this->tds_category ?? null,
+            'tds_rate' => $this->tds_rate ?? null,
+            'tds_amount' => $this->tds_amount ? (float) $this->tds_amount : null,
             'allocations' => ReceiptAllocationResource::collection($this->whenLoaded('allocations')),
         ];
     }

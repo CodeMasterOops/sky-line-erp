@@ -4,11 +4,13 @@ namespace App\Services\Sales;
 
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
+use App\Models\TdsDeduction;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Nepal\NepaliDateService;
 use App\Services\Accounting\PeriodLockGuard;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalVoidService;
@@ -22,6 +24,7 @@ readonly class ReceiptService
         private PeriodLockGuard $periodGuard,
         private JournalBalanceGuard $balanceGuard,
         private JournalVoidService $journalVoid,
+        private NepaliDateService $nepaliDate,
     ) {}
 
     public function createReceipt(array $formData): Receipt
@@ -40,6 +43,8 @@ readonly class ReceiptService
                 $fiscalYearId,
                 $setting->fiscalYear?->year_code,
             );
+            $tdsData = $this->normalizeTdsData($formData);
+
             $receipt = Receipt::create([
                 'company_id' => $user->company->id,
                 'fiscal_year_id' => $fiscalYearId,
@@ -54,6 +59,9 @@ readonly class ReceiptService
                 'approve_user_id' => $user->id,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
                 'status' => $status,
+                'tds_category' => $tdsData['tds_category'],
+                'tds_rate' => $tdsData['tds_rate'],
+                'tds_amount' => $tdsData['tds_amount'],
             ]);
 
             $receipt->allocations()->createMany($this->mapAllocations($allocations));
@@ -78,6 +86,7 @@ readonly class ReceiptService
 
         DB::transaction(function () use ($receipt, $formData, $receiptNo) {
             $allocations = $this->validatedAllocations($formData);
+            $tdsData = $this->normalizeTdsData($formData);
 
             $receipt->update([
                 'party_id' => $formData['party_id'] ?? null,
@@ -87,6 +96,9 @@ readonly class ReceiptService
                 'account_id' => $formData['account_id'],
                 'reference_no' => $formData['reference_no'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
+                'tds_category' => $tdsData['tds_category'],
+                'tds_rate' => $tdsData['tds_rate'],
+                'tds_amount' => $tdsData['tds_amount'],
             ]);
 
             $receipt->allocations()->delete();
@@ -159,21 +171,48 @@ readonly class ReceiptService
             'status' => StatusEnum::APPROVED->value,
         ]);
 
-        $receivedAmount = $receipt->allocations_sum_amount;
+        $grossAmount = round((float) $receipt->allocations_sum_amount, 2);
+        $tdsAmount = round((float) ($receipt->tds_amount ?? 0), 2);
+        $cashDebit = round(max($grossAmount - $tdsAmount, 0), 2);
 
         $journal->journalItems()->create([
             'account_id' => $accountSetting->customer_account_id,
             'dr_amount' => 0,
-            'cr_amount' => $receivedAmount,
+            'cr_amount' => $grossAmount,
             'remarks' => 'To-'.($receipt->party->name ?? ''),
         ]);
 
-        $journal->journalItems()->create([
-            'account_id' => $receipt->account_id,
-            'dr_amount' => $receivedAmount,
-            'cr_amount' => 0,
-            'remarks' => 'To-'.($receipt->account->name ?? ''),
-        ]);
+        if ($cashDebit > 0) {
+            $journal->journalItems()->create([
+                'account_id' => $receipt->account_id,
+                'dr_amount' => $cashDebit,
+                'cr_amount' => 0,
+                'remarks' => 'To-'.($receipt->account->name ?? ''),
+            ]);
+        }
+
+        if ($tdsAmount > 0 && $accountSetting->tds_receivable_account_id) {
+            $journal->journalItems()->create([
+                'account_id' => $accountSetting->tds_receivable_account_id,
+                'dr_amount' => $tdsAmount,
+                'cr_amount' => 0,
+                'remarks' => 'TDS receivable from '.($receipt->party->name ?? ''),
+            ]);
+
+            TdsDeduction::create([
+                'company_id' => $receipt->company_id,
+                'fiscal_year_id' => $receipt->fiscal_year_id,
+                'deductible_type' => Receipt::class,
+                'deductible_id' => $receipt->id,
+                'party_id' => $receipt->party_id,
+                'tds_category' => $receipt->tds_category,
+                'base_amount' => $grossAmount,
+                'tds_rate' => round((float) ($receipt->tds_rate ?? 0), 2),
+                'tds_amount' => $tdsAmount,
+                'period_month' => $this->derivePeriodMonth($receipt->receipt_date),
+                'journal_id' => $journal->id,
+            ]);
+        }
 
         $this->balanceGuard->assertBalanced($journal);
     }
@@ -206,6 +245,40 @@ readonly class ReceiptService
         }
 
         return $allocations;
+    }
+
+    /**
+     * @return array{tds_category: ?string, tds_rate: ?float, tds_amount: float}
+     */
+    private function normalizeTdsData(array $formData): array
+    {
+        $tdsAmount = round((float) ($formData['tds_amount'] ?? 0), 4);
+
+        if ($tdsAmount <= 0) {
+            return ['tds_category' => null, 'tds_rate' => null, 'tds_amount' => 0];
+        }
+
+        return [
+            'tds_category' => $formData['tds_category'] ?? null,
+            'tds_rate' => isset($formData['tds_rate']) ? round((float) $formData['tds_rate'], 4) : null,
+            'tds_amount' => $tdsAmount,
+        ];
+    }
+
+    /** Converts an AD date string to a BS period in YYYY-MM format, e.g. "2081-07". */
+    private function derivePeriodMonth(?string $adDate): ?string
+    {
+        if (! $adDate) {
+            return null;
+        }
+
+        try {
+            $bs = $this->nepaliDate->adToBs($adDate);
+
+            return sprintf('%d-%02d', $bs['year'], $bs['month']);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function throwUnprocessableEntity(string $message): never

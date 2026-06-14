@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Receipt extends Model
 {
@@ -34,6 +35,9 @@ class Receipt extends Model
         'approve_user_id',
         'approved_at',
         'status',
+        'tds_category',
+        'tds_rate',
+        'tds_amount',
     ];
 
     protected $casts = [
@@ -95,5 +99,10 @@ class Receipt extends Model
     public function journal(): MorphOne
     {
         return $this->morphOne(Journal::class, 'reference');
+    }
+
+    public function tdsDeductions(): MorphMany
+    {
+        return $this->morphMany(TdsDeduction::class, 'deductible');
     }
 }

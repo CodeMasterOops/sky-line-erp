@@ -11,6 +11,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Nepal\NepaliDateService;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
@@ -18,6 +19,7 @@ readonly class PaymentService
 {
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
+        private NepaliDateService $nepaliDate,
     ) {}
 
     public function createPayment(array $formData): Payment
@@ -179,7 +181,7 @@ readonly class PaymentService
                 'base_amount' => round((float) $paidAmount, 2),
                 'tds_rate' => round((float) ($payment->tds_rate ?? 0), 2),
                 'tds_amount' => $tdsAmount,
-                'period_month' => null,
+                'period_month' => $this->derivePeriodMonth($payment->payment_date),
                 'journal_id' => $journal->id,
             ]);
         }
@@ -384,5 +386,21 @@ readonly class PaymentService
         }
 
         return $map;
+    }
+
+    /** Converts an AD date string to a BS period in YYYY-MM format, e.g. "2081-07". */
+    private function derivePeriodMonth(?string $adDate): ?string
+    {
+        if (! $adDate) {
+            return null;
+        }
+
+        try {
+            $bs = $this->nepaliDate->adToBs($adDate);
+
+            return sprintf('%d-%02d', $bs['year'], $bs['month']);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

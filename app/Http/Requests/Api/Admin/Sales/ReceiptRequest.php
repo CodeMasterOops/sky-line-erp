@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin\Sales;
 
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
+use App\Enums\TdsCategoryEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -28,6 +29,9 @@ class ReceiptRequest extends FormRequest
             'allocations' => ['required', 'array', 'min:1'],
             'allocations.*.invoice_id' => ['required', TRule::exists('invoices', 'id')->withoutTrashed()],
             'allocations.*.amount' => ['required', 'numeric', 'min:0.01'],
+            'tds_category' => ['nullable', Rule::enum(TdsCategoryEnum::class)],
+            'tds_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'tds_amount' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }
