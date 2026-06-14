@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StatusEnum;
+use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
 use App\Enums\GrnBillingStatusEnum;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class GoodsReceivedNote extends Model
 {
+    use Auditable;
     use BranchTenant;
     use MultiTenant;
     use SoftDeletes;

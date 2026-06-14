@@ -81,11 +81,42 @@ class PaymentController extends Controller
      */
     public function destroy(Payment $payment)
     {
+        if ($payment->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved payments cannot be deleted. Please void this payment first.',
+            ], 422);
+        }
+
         $payment->allocations()->delete();
         $payment->delete();
 
         return response()->json([
             'message' => 'Payment Deleted Successfully',
+        ]);
+    }
+
+    /**
+     * @Permissions("approve_payment", group="payment", desc="Void Payment")
+     */
+    public function void(Payment $payment)
+    {
+        if ($payment->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved payments can be voided.',
+            ], 422);
+        }
+
+        if ($payment->voided_at) {
+            return response()->json([
+                'message' => 'Payment is already voided.',
+            ], 422);
+        }
+
+        $this->paymentService->voidPayment($payment);
+
+        return response()->json([
+            'data' => PaymentResource::make($payment->fresh()),
+            'message' => 'Payment Voided Successfully',
         ]);
     }
 

@@ -11,6 +11,7 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Nepal\NepaliDateService;
 use App\Services\Accounting\PeriodLockGuard;
 use App\Services\Inventory\LandedCostService;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
@@ -36,6 +37,7 @@ readonly class PurchaseBillService
         private JournalVoidService $journalVoid,
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
+        private NepaliDateService $nepaliDate,
     ) {}
 
     /**
@@ -66,7 +68,7 @@ readonly class PurchaseBillService
         }
 
         $hasTax = (float) $bill->billItems()->sum('tax_amount') > 0;
-        $this->glAccountGuard->assertPurchasePostable($hasTax);
+        $this->glAccountGuard->assertPurchasePostable($hasTax, $bill->company_id);
 
         DB::transaction(fn () => $this->createJournal($bill));
     }
@@ -92,6 +94,13 @@ readonly class PurchaseBillService
 
             $this->validateGrnItemQuantities($items);
 
+            $billDateBs = null;
+            try {
+                $bs = $this->nepaliDate->adToBs($formData['bill_date']);
+                $billDateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
+            } catch (\Throwable) {
+            }
+
             $bill = Bill::create([
                 'company_id' => $user->company_id,
                 'fiscal_year_id' => $fiscalYearId,
@@ -99,6 +108,7 @@ readonly class PurchaseBillService
                 'purchase_order_id' => $formData['purchase_order_id'] ?? null,
                 'bill_no' => $billNo,
                 'bill_date' => $formData['bill_date'],
+                'bill_date_bs' => $billDateBs,
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
                 'create_user_id' => $user->id,
@@ -155,11 +165,19 @@ readonly class PurchaseBillService
         DB::transaction(function () use ($bill, $formData) {
             $items = $formData['items'];
 
+            $billDateBs = null;
+            try {
+                $bs = $this->nepaliDate->adToBs($formData['bill_date']);
+                $billDateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
+            } catch (\Throwable) {
+            }
+
             $bill->update([
                 'party_id' => $formData['party_id'] ?? null,
                 'purchase_order_id' => $formData['purchase_order_id'] ?? null,
                 'bill_no' => $formData['bill_no'] ?? $bill->bill_no,
                 'bill_date' => $formData['bill_date'],
+                'bill_date_bs' => $billDateBs,
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
             ]);
@@ -276,10 +294,10 @@ readonly class PurchaseBillService
         $bill->loadMissing('billItems.grnItem', 'party:id,name', 'discount');
 
         $hasTax = (float) $bill->billItems->sum('tax_amount') > 0;
-        $this->glAccountGuard->assertPurchasePostable($hasTax);
+        $this->glAccountGuard->assertPurchasePostable($hasTax, $bill->company_id);
         $this->periodGuard->assertPostable($bill->company_id, $bill->fiscal_year_id, $bill->bill_date);
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()->where('company_id', $bill->company_id)->first();
 
         $journal = $bill->journal()->create([
             'company_id' => $bill->company_id,
@@ -391,6 +409,12 @@ readonly class PurchaseBillService
                 $bill->remarks,
             );
             $this->journalVoid->reverseForReference($bill);
+
+            $bill->loadMissing('landedCosts');
+            foreach ($bill->landedCosts as $landedCost) {
+                $this->journalVoid->reverseForReference($landedCost);
+            }
+
             $this->decrementGrnBilledQuantities($bill);
             $bill->update(['voided_at' => now()]);
         });
@@ -445,6 +469,7 @@ readonly class PurchaseBillService
 
             $grnItem = GrnItem::query()
                 ->with('goodsReceivedNote')
+                ->lockForUpdate()
                 ->find($grnItemId);
 
             if (! $grnItem || $grnItem->goodsReceivedNote?->status !== StatusEnum::APPROVED) {

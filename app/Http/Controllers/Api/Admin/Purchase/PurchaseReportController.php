@@ -30,6 +30,9 @@ class PurchaseReportController extends Controller
             ->when($company?->fiscal_year_id, function (Builder $query) use ($company) {
                 $query->where('fiscal_year_id', $company->fiscal_year_id);
             })
+            ->when($request->filled('branch_id'), function (Builder $query) use ($request) {
+                $query->where('branch_id', $request->branch_id);
+            })
             ->with(['billItems', 'paymentAllocations.payment'])
             ->get();
 
@@ -133,6 +136,9 @@ class PurchaseReportController extends Controller
                 $this->resolveFromDate($request)->toDateString(),
                 $this->resolveToDate($request)->toDateString(),
             ])
+            ->when($request->filled('branch_id'), function (Builder $query) use ($request) {
+                $query->where('bills.branch_id', $request->branch_id);
+            })
             ->when($request->filled('product_variant_id'), function (Builder $query) use ($request) {
                 $query->where('bill_items.product_variant_id', $request->product_variant_id);
             })
@@ -194,6 +200,9 @@ class PurchaseReportController extends Controller
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
             ->whereBetween('bill_date', [$fromDate, $toDate])
+            ->when($request->filled('branch_id'), function (Builder $query) use ($request) {
+                $query->where('branch_id', $request->branch_id);
+            })
             ->when($request->filled('party_id'), function (Builder $query) use ($request) {
                 $query->where('party_id', $request->party_id);
             })

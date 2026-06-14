@@ -26,6 +26,7 @@ Route::apiResource('expense', ExpenseController::class);
 
 // payment
 Route::post('payment/{payment}/approve', [PaymentController::class, 'approve'])->name('payment.approve');
+Route::post('payment/{payment}/void', [PaymentController::class, 'void'])->name('payment.void');
 Route::apiResource('payment', PaymentController::class)->parameters([
     'payment' => 'payment',
 ]);

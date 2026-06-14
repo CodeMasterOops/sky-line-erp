@@ -10,6 +10,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Nepal\NepaliDateService;
 
 readonly class ExpenseService
 {
@@ -19,6 +20,7 @@ readonly class ExpenseService
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
         private JournalVoidService $journalVoid,
+        private NepaliDateService $nepaliDate,
     ) {}
 
     /**
@@ -81,11 +83,19 @@ readonly class ExpenseService
                     $fiscalYearId,
                     $setting->fiscalYear?->year_code,
                 );
+            $dateBs = null;
+            try {
+                $bs = $this->nepaliDate->adToBs($formData['date']);
+                $dateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
+            } catch (\Throwable) {
+            }
+
             $expense = Expense::create([
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'expense_no' => $expenseNo,
                 'date' => $formData['date'],
+                'date_bs' => $dateBs,
                 'due_date' => $formData['due_date'] ?? null,
                 'reference_no' => $formData['reference_no'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
@@ -108,9 +118,17 @@ readonly class ExpenseService
     public function updateExpense(array $formData, Expense $expense): void
     {
         DB::transaction(function () use ($expense, $formData) {
+            $dateBs = null;
+            try {
+                $bs = $this->nepaliDate->adToBs($formData['date']);
+                $dateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
+            } catch (\Throwable) {
+            }
+
             $expense->update([
                 'party_id' => $formData['party_id'] ?? null,
                 'date' => $formData['date'],
+                'date_bs' => $dateBs,
                 'due_date' => $formData['due_date'] ?? null,
                 'reference_no' => $formData['reference_no'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
@@ -142,10 +160,10 @@ readonly class ExpenseService
 
         // Single chokepoint guard: protects approve-on-create, approveExpense and repost.
         $hasTax = (float) $expense->expenseItems->sum('tax_amount') > 0;
-        $this->glAccountGuard->assertExpensePostable($hasTax);
+        $this->glAccountGuard->assertExpensePostable($hasTax, $expense->company_id);
         $this->periodGuard->assertPostable($expense->company_id, $expense->fiscal_year_id, $expense->date);
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()->where('company_id', $expense->company_id)->first();
 
         $journal = $expense->journal()->create([
             'company_id' => $expense->company_id,

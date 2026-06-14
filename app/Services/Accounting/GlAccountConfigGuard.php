@@ -33,9 +33,11 @@ class GlAccountConfigGuard
     /**
      * @return list<string> Human-readable labels of the missing control accounts.
      */
-    public function missingSalesAccounts(bool $hasTax): array
+    public function missingSalesAccounts(bool $hasTax, ?int $companyId = null): array
     {
-        $settings = AccountSetting::first();
+        $settings = $companyId
+            ? AccountSetting::withoutGlobalScopes()->where('company_id', $companyId)->first()
+            : AccountSetting::first();
 
         $missing = [];
 
@@ -57,9 +59,9 @@ class GlAccountConfigGuard
     /**
      * @throws ValidationException
      */
-    public function assertPurchasePostable(bool $hasTax): void
+    public function assertPurchasePostable(bool $hasTax, ?int $companyId = null): void
     {
-        $missing = $this->missingPurchaseAccounts($hasTax);
+        $missing = $this->missingPurchaseAccounts($hasTax, $companyId);
 
         if ($missing !== []) {
             throw ValidationException::withMessages([
@@ -72,9 +74,11 @@ class GlAccountConfigGuard
     /**
      * @return list<string> Human-readable labels of the missing control accounts.
      */
-    public function missingPurchaseAccounts(bool $hasTax): array
+    public function missingPurchaseAccounts(bool $hasTax, ?int $companyId = null): array
     {
-        $settings = AccountSetting::first();
+        $settings = $companyId
+            ? AccountSetting::withoutGlobalScopes()->where('company_id', $companyId)->first()
+            : AccountSetting::first();
 
         $missing = [];
 
@@ -96,9 +100,9 @@ class GlAccountConfigGuard
     /**
      * @throws ValidationException
      */
-    public function assertExpensePostable(bool $hasTax): void
+    public function assertExpensePostable(bool $hasTax, ?int $companyId = null): void
     {
-        $missing = $this->missingExpenseAccounts($hasTax);
+        $missing = $this->missingExpenseAccounts($hasTax, $companyId);
 
         if ($missing !== []) {
             throw ValidationException::withMessages([
@@ -114,9 +118,11 @@ class GlAccountConfigGuard
      *
      * @return list<string> Human-readable labels of the missing control accounts.
      */
-    public function missingExpenseAccounts(bool $hasTax): array
+    public function missingExpenseAccounts(bool $hasTax, ?int $companyId = null): array
     {
-        $settings = AccountSetting::first();
+        $settings = $companyId
+            ? AccountSetting::withoutGlobalScopes()->where('company_id', $companyId)->first()
+            : AccountSetting::first();
 
         $missing = [];
 

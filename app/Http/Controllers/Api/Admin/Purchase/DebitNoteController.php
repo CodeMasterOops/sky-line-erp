@@ -182,13 +182,11 @@ class DebitNoteController extends Controller
 
             $debitNote->debitNoteItems()->delete();
 
-            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                $debitNote->saveDiscount(
-                    $formData['order_discount_type'] ?? 'fixed',
-                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
-                );
-            }
+            $debitNote->saveDiscount(
+                $formData['order_discount_type'] ?? 'fixed',
+                isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
+                0,
+            );
 
             foreach ($formData['items'] ?? [] as $item) {
                 $debitNoteItem = $debitNote->debitNoteItems()->create([

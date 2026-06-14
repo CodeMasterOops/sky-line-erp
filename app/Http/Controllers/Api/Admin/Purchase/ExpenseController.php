@@ -94,6 +94,12 @@ class ExpenseController extends Controller
      */
     public function destroy(Expense $expense)
     {
+        if ($expense->status === StatusEnum::APPROVED && ! $expense->voided_at) {
+            return response()->json([
+                'message' => 'Approved expenses cannot be deleted. Please void this expense first.',
+            ], 422);
+        }
+
         $expense->expenseItems()->delete();
         $expense->delete();
 

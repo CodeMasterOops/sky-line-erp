@@ -103,6 +103,18 @@ class PurchaseOrderController extends Controller
      */
     public function destroy(PurchaseOrder $purchaseOrder)
     {
+        if ($purchaseOrder->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved purchase orders cannot be deleted.',
+            ], 422);
+        }
+
+        if ($purchaseOrder->bills()->exists()) {
+            return response()->json([
+                'message' => 'Purchase orders with linked bills cannot be deleted.',
+            ], 422);
+        }
+
         $purchaseOrder->purchaseOrderItems()->delete();
         $purchaseOrder->delete();
 

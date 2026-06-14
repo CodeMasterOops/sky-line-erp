@@ -48,10 +48,12 @@ class DebitNoteGlPostingService
             return;
         }
 
-        $debitNote->loadMissing('debitNoteItems');
+        $debitNote->loadMissing('debitNoteItems', 'discount');
 
-        $purchaseBase = round((float) $debitNote->debitNoteItems
-            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
+        $lineBase = (float) $debitNote->debitNoteItems
+            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount);
+        $orderDiscountAmount = (float) ($debitNote->discount?->amount ?? 0);
+        $purchaseBase = round($lineBase - $orderDiscountAmount, 2);
         $vatAmount = round((float) $debitNote->debitNoteItems->sum('tax_amount'), 2);
         $grandTotal = round($purchaseBase + $vatAmount, 2);
 

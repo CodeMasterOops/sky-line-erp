@@ -12,12 +12,14 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoidService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 readonly class PaymentService
 {
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
+        private JournalVoidService $journalVoid,
     ) {}
 
     public function createPayment(array $formData): Payment
@@ -38,6 +40,7 @@ readonly class PaymentService
                 $setting->fiscalYear?->year_code,
             );
             $payment = Payment::create([
+                'company_id' => $user->company_id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'payment_no' => $paymentNo,
@@ -54,7 +57,7 @@ readonly class PaymentService
                 'currency_code' => $formData['currency_code'] ?: 'NPR',
                 'exchange_rate' => $formData['exchange_rate'] ?: 1,
                 'create_user_id' => $user->id,
-                'approve_user_id' => $user->id,
+                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
                 'status' => $status,
             ]);
@@ -124,7 +127,7 @@ readonly class PaymentService
         $payment->loadMissing('party:id,name', 'account', 'tdsAccount:id,name')
             ->loadSum('allocations', 'amount');
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()->where('company_id', $payment->company_id)->first();
 
         $journal = $payment->journal()->create([
             'fiscal_year_id' => $payment->fiscal_year_id,
@@ -183,6 +186,14 @@ readonly class PaymentService
                 'journal_id' => $journal->id,
             ]);
         }
+    }
+
+    public function voidPayment(Payment $payment): void
+    {
+        DB::transaction(function () use ($payment) {
+            $this->journalVoid->reverseForReference($payment);
+            $payment->update(['voided_at' => now()]);
+        });
     }
 
     private function normalizeTdsData(array $formData, Collection $allocations): array
@@ -303,6 +314,10 @@ readonly class PaymentService
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('bills.id', '=', 'paid_totals.payable_id');
             })
+            ->leftJoin('discounts', function ($join) {
+                $join->on('bills.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', 'bill');
+            })
             ->whereIn('bills.id', $billIds)
             ->where('bills.party_id', $partyId)
             ->where('bills.status', StatusEnum::APPROVED->value)
@@ -313,12 +328,13 @@ readonly class PaymentService
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
                 DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
                 DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+                DB::raw('COALESCE(discounts.amount, 0) as order_discount_amount'),
             ])
             ->get();
 
         $map = [];
         foreach ($rows as $row) {
-            $grandTotal = (float) $row->subtotal - (float) $row->discount_total + (float) $row->tax_total;
+            $grandTotal = (float) $row->subtotal - (float) $row->discount_total - (float) $row->order_discount_amount + (float) $row->tax_total;
             $paidTotal = (float) $row->paid_total;
             $due = max($grandTotal - $paidTotal, 0);
             $map[$row->id] = [
