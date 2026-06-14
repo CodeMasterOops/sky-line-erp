@@ -133,7 +133,7 @@ import { usePartyStore } from '@/stores/admin/party.js';
 import { useAccountStore } from '@/stores/admin/accounting/account.js';
 import { useFormValidation } from '@/composables/useFormValidation.js';
 import showErrors from '@/helpers/showErrors.js';
-import showSuccess from '@/helpers/showSuccess.js';
+import { toast } from '@/helpers/toast.js';
 
 const props = defineProps({
     open: { type: [Boolean, Number, String], default: false },
@@ -242,7 +242,7 @@ async function saveAdvance(status) {
             }
         }
 
-        showSuccess(props.editId ? 'Advance updated.' : 'Advance created.');
+        toast(200, props.editId ? 'Advance updated.' : 'Advance created.');
         emit('saved');
         closeModal();
     } catch (err) {

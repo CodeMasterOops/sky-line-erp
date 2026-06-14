@@ -67,7 +67,7 @@ import { useInvoiceStore } from '@/stores/admin/sales/invoice.js';
 import { useFormValidation } from '@/composables/useFormValidation.js';
 import { formatMoney } from '@/helpers/formatMoney.js';
 import showErrors from '@/helpers/showErrors.js';
-import showSuccess from '@/helpers/showSuccess.js';
+import { toast } from '@/helpers/toast.js';
 
 const props = defineProps({
     advance: { type: Object, default: null },
@@ -114,7 +114,7 @@ async function submitAdjustment() {
 
     try {
         await advanceStore.adjustAdvance(props.advance.id, form.value);
-        showSuccess('Advance adjusted successfully.');
+        toast(200, 'Advance adjusted successfully.');
         emit('saved');
         closeModal();
     } catch (err) {

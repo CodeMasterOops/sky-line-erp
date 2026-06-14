@@ -79,6 +79,12 @@ const REPORT_CATEGORIES = [
         items: [
             { label: 'Sales Report', name: 'admin.sales-report', permission: 'list_sales_order' },
             { label: 'Sales By Item', name: 'admin.sales-by-item', permission: 'list_sales_order' },
+            { label: 'AR Aging', name: 'admin.sales-aging', permission: 'list_invoice' },
+            { label: 'Party Statement', name: 'admin.party-statement', permission: 'list_invoice' },
+            { label: 'Customer Outstanding', name: 'admin.customer-outstanding', permission: 'list_invoice' },
+            { label: 'VAT Register', name: 'admin.vat-register', permission: 'list_invoice' },
+            { label: 'TDS Register', name: 'admin.tds-register', permission: 'list_invoice' },
+            { label: 'TDS Challans', name: 'admin.tds-challan-list', permission: 'list_tds_challan' },
         ],
     },
     {

@@ -73,53 +73,6 @@
                 "route": { "name": "admin.quotation-list" },
                 "icon": "ti ti-file-diff",
                 "permission": "list_quotation"
-            },
-            {
-                "menuValue": "Reports",
-                "icon": "ti ti-report-analytics",
-                "hasSubRoute": true,
-                "subMenus": [
-                    {
-                        "menuValue": "Sales Report",
-                        "route": { "name": "admin.sales-report" },
-                        "permission": "list_sales_order"
-                    },
-                    {
-                        "menuValue": "Sales By Item",
-                        "route": { "name": "admin.sales-by-item" },
-                        "permission": "list_sales_order"
-                    },
-                    {
-                        "menuValue": "AR Aging",
-                        "route": { "name": "admin.sales-aging" },
-                        "permission": "list_invoice"
-                    },
-                    {
-                        "menuValue": "Party Statement",
-                        "route": { "name": "admin.party-statement" },
-                        "permission": "list_invoice"
-                    },
-                    {
-                        "menuValue": "Customer Outstanding",
-                        "route": { "name": "admin.customer-outstanding" },
-                        "permission": "list_invoice"
-                    },
-                    {
-                        "menuValue": "VAT Register",
-                        "route": { "name": "admin.vat-register" },
-                        "permission": "list_invoice"
-                    },
-                    {
-                        "menuValue": "TDS Register",
-                        "route": { "name": "admin.tds-register" },
-                        "permission": "list_invoice"
-                    },
-                    {
-                        "menuValue": "TDS Challans",
-                        "route": { "name": "admin.tds-challan-list" },
-                        "permission": "list_tds_challan"
-                    }
-                ]
             }
         ]
     },
