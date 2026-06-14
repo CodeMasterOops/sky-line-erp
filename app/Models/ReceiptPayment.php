@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\ChequeStatusEnum;
-use App\Enums\PaymentMethodEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +13,7 @@ class ReceiptPayment extends Model
 
     protected $fillable = [
         'receipt_id',
+        'payment_mode_id',
         'payment_method',
         'account_id',
         'amount',
@@ -25,9 +25,9 @@ class ReceiptPayment extends Model
     protected function casts(): array
     {
         return [
+            'payment_mode_id' => 'integer',
             'account_id' => 'integer',
             'amount' => 'decimal:2',
-            'payment_method' => PaymentMethodEnum::class,
             'cheque_status' => ChequeStatusEnum::class,
             'cheque_date' => 'date',
         ];
@@ -41,5 +41,10 @@ class ReceiptPayment extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function paymentMode(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMode::class);
     }
 }

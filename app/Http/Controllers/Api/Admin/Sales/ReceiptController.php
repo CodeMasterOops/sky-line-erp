@@ -24,7 +24,7 @@ class ReceiptController extends Controller
     public function index(Request $request)
     {
         $receipts = Receipt::filter($request->all())
-            ->with(['party', 'account', 'allocations', 'receiptPayments.account'])
+            ->with(['party', 'account', 'allocations', 'receiptPayments.account', 'receiptPayments.paymentMode'])
             ->latest('receipt_date')
             ->paginate($request->limit ?? 25);
 
@@ -38,7 +38,7 @@ class ReceiptController extends Controller
     {
         $receipt = $this->receiptService->createReceipt($request->validated());
 
-        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account', 'receiptPayments.paymentMode']);
 
         return response()->json([
             'data' => ReceiptResource::make($receipt),
@@ -51,7 +51,7 @@ class ReceiptController extends Controller
      */
     public function show(Receipt $receipt)
     {
-        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account', 'receiptPayments.paymentMode']);
 
         return ReceiptResource::make($receipt);
     }
@@ -69,7 +69,7 @@ class ReceiptController extends Controller
 
         $this->receiptService->updateReceipt($request->validated(), $receipt);
 
-        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account', 'receiptPayments.paymentMode']);
 
         return response()->json([
             'data' => ReceiptResource::make($receipt),
@@ -122,7 +122,7 @@ class ReceiptController extends Controller
 
         $this->receiptService->approveReceipt($receipt);
 
-        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account']);
+        $receipt->load(['party', 'account', 'allocations.invoice', 'receiptPayments.account', 'receiptPayments.paymentMode']);
 
         return response()->json([
             'data' => ReceiptResource::make($receipt),

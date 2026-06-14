@@ -270,7 +270,8 @@ readonly class ReceiptService
                 ->sum(fn ($a) => (float) ($a['tds_deducted'] ?? 0));
 
             return [[
-                'payment_method' => $formData['payment_method'] ?? PaymentMethodEnum::Cash->value,
+                'payment_mode_id' => $formData['payment_mode_id'] ?? null,
+                'payment_method' => $formData['payment_method'] ?? null,
                 'account_id' => $formData['account_id'],
                 'amount' => round($totalAllocated - $totalTdsDeducted, 2),
                 'reference_no' => $formData['reference_no'] ?? null,
@@ -301,7 +302,8 @@ readonly class ReceiptService
             }
 
             $receipt->receiptPayments()->create([
-                'payment_method' => $leg['payment_method'],
+                'payment_mode_id' => $leg['payment_mode_id'] ?? null,
+                'payment_method' => $leg['payment_method'] ?? null,
                 'account_id' => $leg['account_id'],
                 'amount' => $leg['amount'],
                 'reference_no' => $leg['reference_no'] ?? null,

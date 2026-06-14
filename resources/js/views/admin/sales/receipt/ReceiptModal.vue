@@ -55,18 +55,19 @@
                                 <table class="table table-bordered mb-0 receipt-pay-table">
                                     <thead>
                                     <tr>
-                                        <th>Method</th>
+                                        <th>Payment Mode</th>
                                         <th>Account</th>
-                                        <th>Amount</th>
+                                        <th>Amount / Ref</th>
                                         <th style="width:2rem"></th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-for="(leg, idx) in form.payments" :key="idx">
                                         <td>
-                                            <select class="form-select form-select-sm" v-model="leg.payment_method">
-                                                <option v-for="m in paymentMethodOptions" :key="m.value" :value="m.value">
-                                                    {{ m.label }}
+                                            <select class="form-select form-select-sm" v-model="leg.payment_mode_id">
+                                                <option value="">Select mode</option>
+                                                <option v-for="m in activePaymentModes" :key="m.id" :value="m.id">
+                                                    {{ m.name }}
                                                 </option>
                                             </select>
                                         </td>
@@ -87,19 +88,12 @@
                                                 step="0.01"
                                                 placeholder="0.00"
                                             />
-                                            <template v-if="leg.payment_method === 'cheque'">
-                                                <input
-                                                    type="text"
-                                                    class="form-control form-control-sm mt-1"
-                                                    v-model="leg.reference_no"
-                                                    placeholder="Cheque no."
-                                                />
-                                                <input
-                                                    type="date"
-                                                    class="form-control form-control-sm mt-1"
-                                                    v-model="leg.cheque_date"
-                                                />
-                                            </template>
+                                            <input
+                                                type="text"
+                                                class="form-control form-control-sm mt-1"
+                                                v-model="leg.reference_no"
+                                                placeholder="Ref / cheque no. (optional)"
+                                            />
                                         </td>
                                         <td class="text-center">
                                             <button
@@ -302,18 +296,11 @@ import {apiAdmin} from '@/helpers/api.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {useReceiptStore} from '@/stores/admin/sales/receipt.js';
+import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 
-const paymentMethodOptions = [
-    {value: 'cash', label: 'Cash'},
-    {value: 'bank_transfer', label: 'Bank Transfer'},
-    {value: 'cheque', label: 'Cheque'},
-    {value: 'card', label: 'Card'},
-    {value: 'online', label: 'Online'},
-    {value: 'other', label: 'Other'},
-];
 
 const emit = defineEmits(['saved']);
 
@@ -323,9 +310,15 @@ const invoiceId = defineModel('invoiceId', {default: ''});
 const receiptStore = useReceiptStore();
 const partyStore = usePartyStore();
 const accountStore = useAccountStore();
+const paymentModeStore = usePaymentModeStore();
 
 const {parties} = storeToRefs(partyStore);
 const {accounts} = storeToRefs(accountStore);
+const {paymentModes} = storeToRefs(paymentModeStore);
+
+const activePaymentModes = computed(() =>
+    (paymentModes.value?.data || []).filter((m) => m.is_active !== false),
+);
 
 const {currentAdDate} = useDateHelper();
 
@@ -348,6 +341,7 @@ watch(
     open,
     (isOpen) => {
         if (isOpen) {
+            paymentModeStore.getPaymentModes();
             accountStore.getAccounts();
             partyStore.getParties({
                 filter: {
@@ -362,7 +356,7 @@ watch(
     {flush: 'post'},
 );
 
-const emptyPaymentLeg = () => ({payment_method: 'cash', account_id: '', amount: '', reference_no: '', cheque_date: ''});
+const emptyPaymentLeg = () => ({payment_mode_id: '', account_id: '', amount: '', reference_no: ''});
 
 const initialState = {
     receipt_date: currentAdDate,
@@ -531,9 +525,9 @@ const storeReceipt = async (status = 'draft') => {
         return;
     }
 
-    const validLegs = form.payments.filter((leg) => Number(leg.amount || 0) > 0 && leg.account_id);
+    const validLegs = form.payments.filter((leg) => Number(leg.amount || 0) > 0 && leg.account_id && leg.payment_mode_id);
     if (!validLegs.length) {
-        toast(422, 'Please add at least one payment method with amount and account.');
+        toast(422, 'Please select a payment mode, account, and enter an amount for at least one payment leg.');
         return;
     }
 
@@ -560,11 +554,10 @@ const storeReceipt = async (status = 'draft') => {
             remarks: form.remarks,
             status: form.status,
             payments: validLegs.map((leg) => ({
-                payment_method: leg.payment_method,
+                payment_mode_id: Number(leg.payment_mode_id),
                 account_id: Number(leg.account_id),
                 amount: Number(leg.amount),
                 reference_no: leg.reference_no || null,
-                cheque_date: leg.cheque_date || null,
             })),
             allocations,
         };

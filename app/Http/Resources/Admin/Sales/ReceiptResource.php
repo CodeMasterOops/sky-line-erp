@@ -35,8 +35,8 @@ class ReceiptResource extends JsonResource
                 $this->relationLoaded('receiptPayments'),
                 fn () => $this->receiptPayments->map(fn ($p) => [
                     'id' => $p->id,
-                    'payment_method' => $p->payment_method?->value ?? '',
-                    'payment_method_label' => $p->payment_method?->label() ?? '',
+                    'payment_mode_id' => $p->payment_mode_id ?? null,
+                    'payment_mode_name' => $p->paymentMode?->name ?? '',
                     'account_id' => $p->account_id ?? '',
                     'account_name' => $p->account?->name ?? '',
                     'amount' => (float) $p->amount,

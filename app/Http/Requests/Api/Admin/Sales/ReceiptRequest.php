@@ -6,7 +6,6 @@ use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use App\Enums\ChequeStatusEnum;
 use Illuminate\Validation\Rule;
-use App\Enums\PaymentMethodEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ReceiptRequest extends FormRequest
@@ -28,9 +27,9 @@ class ReceiptRequest extends FormRequest
             'reference_no' => ['nullable', 'string', 'max:255'],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
-            // Split payment legs (Phase 4a)
+            // Split payment legs
             'payments' => ['nullable', 'array'],
-            'payments.*.payment_method' => ['required_with:payments.*', Rule::enum(PaymentMethodEnum::class)],
+            'payments.*.payment_mode_id' => ['required_with:payments.*', 'integer', TRule::exists('payment_modes', 'id')],
             'payments.*.account_id' => ['required_with:payments.*', TRule::exists('accounts', 'id')->withoutTrashed()],
             'payments.*.amount' => ['required_with:payments.*', 'numeric', 'min:0.01'],
             'payments.*.reference_no' => ['nullable', 'string', 'max:100'],
