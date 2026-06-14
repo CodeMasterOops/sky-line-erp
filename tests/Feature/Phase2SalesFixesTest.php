@@ -384,12 +384,22 @@ it('voiding an approved receipt reverses the GL journal and soft-deletes the rec
 
     expect(Receipt::withTrashed()->find($receipt->id)?->deleted_at)->not->toBeNull('Receipt must be soft-deleted after void');
 
-    $activeJournals = \App\Models\Journal::withoutGlobalScopes()
+    // Original RECEIPT journal is soft-deleted; a VOID contra-entry is created instead.
+    $originalJournals = \App\Models\Journal::withoutGlobalScopes()
         ->where('reference_type', Receipt::class)
         ->where('reference_id', $receipt->id)
+        ->where('type', \App\Enums\JournalTypeEnum::RECEIPT->value)
         ->whereNull('deleted_at')
         ->count();
-    expect($activeJournals)->toBe(0, 'GL journal must be soft-deleted (reversed) after void');
+    expect($originalJournals)->toBe(0, 'Original RECEIPT journal must be soft-deleted after void');
+
+    $voidJournals = \App\Models\Journal::withoutGlobalScopes()
+        ->where('reference_type', Receipt::class)
+        ->where('reference_id', $receipt->id)
+        ->where('type', \App\Enums\JournalTypeEnum::VOID->value)
+        ->whereNull('deleted_at')
+        ->count();
+    expect($voidJournals)->toBe(1, 'A VOID contra-entry must exist after voiding the receipt');
 });
 
 it('voiding a draft receipt returns 422', function () {

@@ -9,6 +9,7 @@ use App\Enums\StatusEnum;
 use App\Models\CreditNote;
 use App\Models\JournalItem;
 use App\Enums\JournalTypeEnum;
+use App\Enums\TaxLineTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 
@@ -50,11 +51,20 @@ class CreditNoteGlPostingService
 
         $creditNote->loadMissing('creditNoteItems', 'discount');
 
-        $lineBase = (float) $creditNote->creditNoteItems
-            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount);
-        $orderDiscountAmount = (float) ($creditNote->discount?->amount ?? 0);
-        $salesBase = round($lineBase - $orderDiscountAmount, 2);
-        $vatAmount = round((float) $creditNote->creditNoteItems->sum('tax_amount'), 2);
+        $vatTaxableBase = round((float) $creditNote->creditNoteItems
+            ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
+            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
+
+        $nonVatBase = round((float) $creditNote->creditNoteItems
+            ->whereIn('tax_line_type', [TaxLineTypeEnum::EXEMPT, TaxLineTypeEnum::ZERO_RATED])
+            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
+
+        $vatAmount = round((float) $creditNote->creditNoteItems
+            ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
+            ->sum('tax_amount'), 2);
+
+        $orderDiscountAmount = round((float) ($creditNote->discount?->amount ?? 0), 2);
+        $salesBase = round($vatTaxableBase + $nonVatBase - $orderDiscountAmount, 2);
         $grandTotal = round($salesBase + $vatAmount, 2);
 
         if ($grandTotal <= 0) {

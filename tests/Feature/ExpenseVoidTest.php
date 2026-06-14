@@ -128,12 +128,18 @@ it('voids an approved expense and reverses its GL journal', function () {
     $response->assertSuccessful();
 
     expect($expense->fresh()->voided_at)->not->toBeNull();
-    // GL impact gone (journal soft-deleted) but the row is retained as audit trail.
-    expect(expenseJournalExists($this, $expense))->toBeFalse();
+    // Original journal soft-deleted; a VOID contra-entry journal is created as audit trail.
+    expect(expenseJournalExists($this, $expense))->toBeTrue(); // VOID journal is live
     expect(Journal::withoutGlobalScopes()->onlyTrashed()
         ->where('reference_id', $expense->id)
         ->where('reference_type', $expense->getMorphClass())
-        ->exists())->toBeTrue();
+        ->exists())->toBeTrue(); // original is retained soft-deleted
+    expect(Journal::withoutGlobalScopes()
+        ->where('reference_id', $expense->id)
+        ->where('reference_type', $expense->getMorphClass())
+        ->where('type', \App\Enums\JournalTypeEnum::VOID->value)
+        ->whereNull('deleted_at')
+        ->exists())->toBeTrue(); // VOID contra-entry exists
 });
 
 it('is a safe no-op for an approved expense that never posted a journal', function () {
