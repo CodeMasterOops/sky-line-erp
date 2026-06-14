@@ -346,7 +346,7 @@ import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {warehouseIdForLineItem} from '@/helpers/productLineValidation.js';
@@ -381,9 +381,9 @@ const createCustomerOpened = ref(false);
 
 const {creditNote} = storeToRefs(creditNoteStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const notifier = useToast();
 
@@ -633,6 +633,7 @@ watch(
         loadedInvoice.value = null;
         invoiceLinePickSelection.value = '';
         taxStore.getTaxes();
+        taxStore.getTaxGroups();
         await creditNoteStore.getCreditNote(id);
         const data = creditNote.value.data;
 
@@ -765,7 +766,7 @@ const buildCreditNotePayload = () => {
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: calcLineTax(item, index),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',

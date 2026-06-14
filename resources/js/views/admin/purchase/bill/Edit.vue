@@ -517,7 +517,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -538,11 +538,11 @@ const createSupplierOpened = ref(false);
 
 const {bill} = storeToRefs(billStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {accounts} = storeToRefs(accountStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const grnImportOpen = ref(false);
 const loadingBillableGrn = ref(false);
@@ -664,6 +664,7 @@ watch(
             return;
         }
         taxStore.getTaxes();
+        taxStore.getTaxGroups();
         warehouseStore.getWarehouses();
         accountStore.getAccounts();
         await billStore.getBill(id);
@@ -881,7 +882,7 @@ const buildBillPayload = () => {
             rate: Number(item.rate || 0),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: item.tax_amount ?? 0,
             discount_amount: String(lineDiscountMoneyFromItem(item)),
             tax_line_type: item.tax_line_type || 'taxable',

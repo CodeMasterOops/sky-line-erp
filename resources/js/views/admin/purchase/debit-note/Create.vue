@@ -328,7 +328,7 @@ import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -364,9 +364,9 @@ const createSupplierOpened = ref(false);
 const {currentAdDate} = useDateHelper();
 
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const billPickOptions = ref([]);
 const billPickLoading = ref(false);
@@ -444,6 +444,7 @@ watch(
     (opened) => {
         if (opened) {
             taxStore.getTaxes();
+            taxStore.getTaxGroups();
             partyStore.getParties({
                 filter: {
                     type: 'supplier',
@@ -692,7 +693,7 @@ function buildDebitNotePayload() {
             unit_id: item.unit_id || '',
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
-            tax_id: item.tax_id || '',
+            ...parseTaxSelection(item.tax_id),
             tax_amount: calcLineTax(item, index),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',

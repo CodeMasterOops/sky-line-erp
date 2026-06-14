@@ -48,6 +48,14 @@ export default [
         component: () => import("@/views/admin/settings/tax/Index.vue"),
     },
     {
+        path: "tax-group",
+        name: "admin.tax-group-list",
+        meta: {
+            pageTitle: "Tax Groups",
+        },
+        component: () => import("@/views/admin/settings/tax-group/Index.vue"),
+    },
+    {
         path: "payment-mode",
         name: "admin.payment-mode-list",
         meta: {
