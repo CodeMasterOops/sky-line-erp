@@ -162,6 +162,30 @@ export default [
         component: () => import("@/views/admin/accounting/reports/ExpenseStatementReport.vue"),
     },
     {
+        path: "daily-collection-report",
+        name: "admin.daily-collection-report",
+        meta: {pageTitle: "Daily Collection Report"},
+        component: () => import("@/views/admin/accounting/reports/DailyCollectionReport.vue"),
+    },
+    {
+        path: "daily-payment-report",
+        name: "admin.daily-payment-report",
+        meta: {pageTitle: "Daily Payment Report"},
+        component: () => import("@/views/admin/accounting/reports/DailyPaymentReport.vue"),
+    },
+    {
+        path: "cheque-issue-report",
+        name: "admin.cheque-issue-report",
+        meta: {pageTitle: "Cheque Issue Report"},
+        component: () => import("@/views/admin/accounting/reports/ChequeIssueReport.vue"),
+    },
+    {
+        path: "cheque-receive-report",
+        name: "admin.cheque-receive-report",
+        meta: {pageTitle: "Cheque Receive Report"},
+        component: () => import("@/views/admin/accounting/reports/ChequeReceiveReport.vue"),
+    },
+    {
         path: "opening-balances",
         name: "admin.opening-balances",
         meta: {pageTitle: "Opening Balances"},

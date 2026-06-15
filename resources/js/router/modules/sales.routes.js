@@ -143,4 +143,16 @@ export default [
         meta: { pageTitle: "Sales Ledger Report" },
         component: () => import("@/views/admin/sales/reports/SalesLedgerReport.vue"),
     },
+    {
+        path: "customer-transaction-report",
+        name: "admin.customer-transaction-report",
+        meta: { pageTitle: "Customer Transaction Report" },
+        component: () => import("@/views/admin/sales/reports/CustomerTransactionReport.vue"),
+    },
+    {
+        path: "customer-statement",
+        name: "admin.customer-statement",
+        meta: { pageTitle: "Customer Statement" },
+        component: () => import("@/views/admin/sales/reports/CustomerStatement.vue"),
+    },
 ];

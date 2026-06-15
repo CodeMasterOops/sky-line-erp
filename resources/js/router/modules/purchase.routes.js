@@ -141,4 +141,16 @@ export default [
         meta: { pageTitle: "Purchase Discount Report" },
         component: () => import("@/views/admin/purchase/reports/PurchaseDiscountReport.vue"),
     },
+    {
+        path: "supplier-transaction-report",
+        name: "admin.supplier-transaction-report",
+        meta: { pageTitle: "Supplier Transaction Report" },
+        component: () => import("@/views/admin/purchase/reports/SupplierTransactionReport.vue"),
+    },
+    {
+        path: "supplier-statement",
+        name: "admin.supplier-statement",
+        meta: { pageTitle: "Supplier Statement" },
+        component: () => import("@/views/admin/purchase/reports/SupplierStatement.vue"),
+    },
 ];
