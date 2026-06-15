@@ -207,13 +207,16 @@ class InventoryDocumentReversalService
             ->get();
 
         foreach ($movements as $movement) {
+            // Credit note void removes returned stock back to the customer.
+            // SALE type posts COGS Dr / Inventory Cr, correctly reversing the
+            // original RETURN_IN entry (Inventory Dr / COGS Cr).
             $this->inventoryIssue->issue(
                 $company,
                 $creditNote,
                 (int) $movement->product_variant_id,
                 (int) $movement->warehouse_id,
                 (int) $movement->quantity,
-                ChangeTypeEnum::ADJUSTMENT_OUT,
+                ChangeTypeEnum::SALE,
                 $userId,
                 $remarks,
             );

@@ -290,7 +290,9 @@ readonly class PurchaseBillService
         $this->glAccountGuard->assertPurchasePostable($hasTax);
         $this->periodGuard->assertPostable($bill->company_id, $bill->fiscal_year_id, $bill->bill_date);
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $bill->company_id)
+            ->first();
 
         $journal = $bill->journal()->create([
             'company_id' => $bill->company_id,

@@ -154,7 +154,9 @@ readonly class PaymentService
         $payment->loadMissing('party:id,name', 'account', 'tdsAccount:id,name')
             ->loadSum('allocations', 'amount');
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $payment->company_id)
+            ->first();
 
         $journal = $payment->journal()->create([
             'fiscal_year_id' => $payment->fiscal_year_id,

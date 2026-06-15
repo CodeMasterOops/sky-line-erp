@@ -9,6 +9,7 @@ use App\Models\ProductVariant;
 use Illuminate\Validation\Rule;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Validation\Validator;
+use App\Rules\WithinActiveFiscalYear;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockAdjustmentRequest extends FormRequest
@@ -22,7 +23,7 @@ class StockAdjustmentRequest extends FormRequest
     {
         $rules = [
             'reference_no' => ['nullable', 'string', 'max:255'],
-            'date' => ['required', 'date'],
+            'date' => ['required', 'date', new WithinActiveFiscalYear],
             'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],

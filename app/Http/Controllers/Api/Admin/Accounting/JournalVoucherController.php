@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api\Admin\Accounting;
 
 use App\Models\Journal;
 use App\Enums\StatusEnum;
-use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Accounting\PeriodLockGuard;
 use App\Http\Resources\Admin\Accounting\JournalVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\JournalVoucherRequest;
 
@@ -18,6 +18,7 @@ class JournalVoucherController extends Controller
 {
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
+        private PeriodLockGuard $periodGuard,
     ) {}
 
     /**
@@ -52,6 +53,10 @@ class JournalVoucherController extends Controller
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
+
+        if ($status === StatusEnum::APPROVED->value) {
+            $this->periodGuard->assertPostable($setting->id, $fiscalYearId, $formData['date']);
+        }
 
         $formData['fiscal_year_id'] = $fiscalYearId;
         $formData['type'] = JournalTypeEnum::JOURNAL_VOUCHER->value;
@@ -113,20 +118,8 @@ class JournalVoucherController extends Controller
         $journalVoucher = DB::transaction(function () use ($journalVoucher, $formData) {
             $journalVoucher->update($formData);
 
-            $accountIds = Arr::pluck($formData['items'], 'account_id');
-
-            $journalVoucher->journalItems()->whereNotIn('account_id', $accountIds)->delete();
-
-            foreach ($formData['items'] as $item) {
-                $journalVoucher->journalItems()->updateOrCreate(
-                    ['account_id' => $item['account_id']],
-                    [
-                        'dr_amount' => $item['dr_amount'] ?? 0,
-                        'cr_amount' => $item['cr_amount'] ?? 0,
-                        'remarks' => $item['remarks'] ?? null,
-                    ]
-                );
-            }
+            $journalVoucher->journalItems()->delete();
+            $journalVoucher->journalItems()->createMany($formData['items']);
 
             return $journalVoucher;
         });
@@ -145,6 +138,12 @@ class JournalVoucherController extends Controller
     public function destroy(Journal $journalVoucher)
     {
         $this->ensureJournalVoucher($journalVoucher);
+
+        if ($journalVoucher->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved journal vouchers cannot be deleted. Please void the entry instead.',
+            ], 422);
+        }
 
         $journalVoucher->journalItems()->delete();
         $journalVoucher->delete();
@@ -169,6 +168,12 @@ class JournalVoucherController extends Controller
         }
 
         $user = auth('admin')->user();
+
+        $this->periodGuard->assertPostable(
+            $journalVoucher->company_id,
+            $journalVoucher->fiscal_year_id,
+            $journalVoucher->date,
+        );
 
         $journalVoucher->update([
             'approve_user_id' => $user->id,

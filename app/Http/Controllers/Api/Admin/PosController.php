@@ -263,7 +263,9 @@ class PosController extends Controller
         $fiscalYearId = $company->fiscal_year_id;
         $today = now()->toDateString();
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->first();
         $yearCode = $company->fiscalYear?->year_code;
 
         try {

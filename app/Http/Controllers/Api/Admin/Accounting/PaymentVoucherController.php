@@ -10,6 +10,7 @@ use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Accounting\PeriodLockGuard;
 use App\Http\Resources\Admin\Accounting\PaymentVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\PaymentVoucherRequest;
 
@@ -17,6 +18,7 @@ class PaymentVoucherController extends Controller
 {
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
+        private PeriodLockGuard $periodGuard,
     ) {}
 
     /**
@@ -44,6 +46,10 @@ class PaymentVoucherController extends Controller
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
         $fiscalYearId = $setting->fiscal_year_id;
+
+        if ($status === StatusEnum::APPROVED->value) {
+            $this->periodGuard->assertPostable($setting->id, $fiscalYearId, $formData['date']);
+        }
 
         $journal = DB::transaction(function () use ($formData, $user, $status, $fiscalYearId, $setting) {
             // See InvoiceService for the lock-inside-transaction concurrency note.
@@ -137,6 +143,12 @@ class PaymentVoucherController extends Controller
     {
         $this->ensurePaymentVoucher($paymentVoucher);
 
+        if ($paymentVoucher->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved payment vouchers cannot be deleted. Please void the entry instead.',
+            ], 422);
+        }
+
         $paymentVoucher->journalItems()->delete();
         $paymentVoucher->delete();
 
@@ -160,6 +172,12 @@ class PaymentVoucherController extends Controller
         }
 
         $user = auth('admin')->user();
+
+        $this->periodGuard->assertPostable(
+            $paymentVoucher->company_id,
+            $paymentVoucher->fiscal_year_id,
+            $paymentVoucher->date,
+        );
 
         $paymentVoucher->update([
             'approve_user_id' => $user->id,

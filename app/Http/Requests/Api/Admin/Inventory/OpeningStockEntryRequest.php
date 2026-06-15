@@ -6,6 +6,7 @@ use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use App\Rules\WithinActiveFiscalYear;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OpeningStockEntryRequest extends FormRequest
@@ -19,7 +20,7 @@ class OpeningStockEntryRequest extends FormRequest
     {
         return [
             'reference_no' => ['nullable', 'string', 'max:255'],
-            'date' => ['required', 'date'],
+            'date' => ['required', 'date', new WithinActiveFiscalYear],
             'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],

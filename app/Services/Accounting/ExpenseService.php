@@ -145,7 +145,9 @@ readonly class ExpenseService
         $this->glAccountGuard->assertExpensePostable($hasTax);
         $this->periodGuard->assertPostable($expense->company_id, $expense->fiscal_year_id, $expense->date);
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $expense->company_id)
+            ->first();
 
         $journal = $expense->journal()->create([
             'company_id' => $expense->company_id,

@@ -167,8 +167,10 @@ class OpeningStockEntryController extends Controller
             ], 422);
         }
 
-        $openingStockEntry->openingStockEntryItems()->delete();
-        $openingStockEntry->delete();
+        DB::transaction(function () use ($openingStockEntry) {
+            $openingStockEntry->openingStockEntryItems()->delete();
+            $openingStockEntry->delete();
+        });
 
         return response()->json([
             'message' => 'Opening Stock Entry Deleted Successfully',
