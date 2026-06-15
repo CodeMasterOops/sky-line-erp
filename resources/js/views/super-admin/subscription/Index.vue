@@ -96,6 +96,12 @@
               <template v-if="column.key === 'price'">
                 {{ formatPrice(record.price) }}
               </template>
+              <template v-if="column.key === 'expires_at'">
+                <span v-if="record.ends_at" :class="isExpired(record.ends_at) ? 'text-danger fw-semibold' : 'text-success'">
+                  {{ formatDate(record.ends_at) }}
+                </span>
+                <span v-else class="text-muted">—</span>
+              </template>
               <template v-if="column.key === 'action'">
                 <div class="action-icon d-inline-flex">
                   <button
@@ -156,6 +162,7 @@ const columns = [
     {title: 'Billing', dataIndex: 'billing_cycle_label'},
     {title: 'Price', key: 'price'},
     {title: 'Status', key: 'status'},
+    {title: 'Expires At', key: 'expires_at'},
     {title: 'Action', key: 'action', align: 'center'},
 ];
 
@@ -175,6 +182,16 @@ watch(() => [filter.page, filter.limit], () => {
 });
 
 const formatPrice = formatSuperAdminMoney;
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'});
+};
+
+const isExpired = (dateStr) => {
+    if (!dateStr) return false;
+    return new Date(dateStr) < new Date();
+};
 
 const statusBadgeClass = (status) => {
     const map = {

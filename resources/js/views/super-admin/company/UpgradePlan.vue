@@ -62,7 +62,7 @@
                     <VDatepicker
                         id="upgrade_ends_at"
                         v-model="form.ends_at"
-                        label="Ends at (optional)"
+                        label="Subscription expires at"
                     />
                 </div>
                 <div class="col-12">
@@ -105,12 +105,22 @@ const {plans} = storeToRefs(planStore);
 const company = defineModel('company');
 const emit = defineEmits(['upgraded']);
 
+const defaultEndsAt = (cycle) => {
+    const d = new Date();
+    if (cycle === 'yearly') {
+        d.setFullYear(d.getFullYear() + 1);
+    } else {
+        d.setMonth(d.getMonth() + 1);
+    }
+    return d.toISOString().split('T')[0];
+};
+
 const initialState = {
     company_id: '',
     plan_id: '',
     billing_cycle: 'monthly',
     trial_ends_at: '',
-    ends_at: '',
+    ends_at: defaultEndsAt('monthly'),
     notes: '',
 };
 
@@ -142,13 +152,18 @@ watch(company, (selected) => {
 
     planStore.getPlans({filter: {limit: 100, is_active: true}});
 
+    const cycle = selected.current_subscription?.billing_cycle || 'monthly';
     form.company_id = selected.id;
     form.plan_id = '';
-    form.billing_cycle = selected.current_subscription?.billing_cycle || 'monthly';
+    form.billing_cycle = cycle;
     form.trial_ends_at = '';
-    form.ends_at = '';
+    form.ends_at = defaultEndsAt(cycle);
     form.notes = '';
     errors.value = {};
+});
+
+watch(() => form.billing_cycle, (cycle) => {
+    form.ends_at = defaultEndsAt(cycle);
 });
 
 const upgradePlan = async () => {

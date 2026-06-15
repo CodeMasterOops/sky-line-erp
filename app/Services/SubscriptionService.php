@@ -59,7 +59,10 @@ class SubscriptionService
                 'billing_cycle' => $billingCycle,
                 'price' => $plan->priceForCycle($billingCycle),
                 'starts_at' => now(),
-                'ends_at' => $endsAt,
+                'ends_at' => $endsAt ?? match ($billingCycle) {
+                    BillingCycleEnum::Monthly => now()->addMonth(),
+                    BillingCycleEnum::Yearly => now()->addYear(),
+                },
                 'trial_ends_at' => $trialEndsAt,
                 'assigned_by' => $assignedBy?->id,
                 'notes' => $notes,
