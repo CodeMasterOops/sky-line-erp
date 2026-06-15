@@ -7,12 +7,35 @@
         @refresh="fetchParties"
     >
         <template #actions>
+            <button
+                v-if="filter.type === 'supplier'"
+                v-can="'import_party'"
+                type="button"
+                class="btn btn-secondary color d-flex align-items-center me-2"
+                @click="openImportWizard"
+            >
+                <i class="ti ti-upload me-2"></i>
+                Import
+            </button>
             <button v-can="'create_party'" type="button" @click.prevent="openCreate"
                 class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i> Add New
             </button>
         </template>
     </PageHeader>
+
+    <EntityImportWizard
+        v-if="filter.type === 'supplier'"
+        ref="importWizardRef"
+        entity-type="party"
+        title="Import Suppliers"
+        entity-label="supplier"
+        :fields="supplierFields"
+        modal-id="supplier-import-wizard"
+        :upload-options="{ default_party_type: 'supplier' }"
+        :template-download-fn="dataTransferStore.downloadSupplierTemplate"
+        @imported="fetchParties"
+    />
 
     <section class="section">
         <div class="card">
@@ -54,15 +77,23 @@ import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { partyColumns, createRowActions } from './tableConfig.js';
+import EntityImportWizard from '@/views/admin/data-transfer/EntityImportWizard.vue';
+import { useDataTransferStore } from '@/stores/admin/data-transfer.js';
 
 const VALID_PARTY_TYPES = ['customer', 'supplier', 'lead'];
 
 const partyStore = usePartyStore();
+const dataTransferStore = useDataTransferStore();
 const route = useRoute();
 const router = useRouter();
 
 const edit_party_id = ref('');
 const createModalOpened = ref(false);
+const importWizardRef = ref(null);
+
+const supplierFields = ['name', 'code', 'phone', 'email', 'pan', 'address', 'credit_limit', 'is_active'];
+
+const openImportWizard = () => importWizardRef.value?.show();
 
 const { parties } = storeToRefs(partyStore);
 

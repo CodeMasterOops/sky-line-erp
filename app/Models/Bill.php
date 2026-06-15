@@ -27,6 +27,7 @@ class Bill extends Model
         'branch_id',
         'fiscal_year_id',
         'party_id',
+        'supplier_pan',
         'purchase_order_id',
         'bill_no',
         'bill_date',

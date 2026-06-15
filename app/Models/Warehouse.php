@@ -15,6 +15,7 @@ class Warehouse extends Model
 
     protected $fillable = [
         'company_id',
+        'import_batch_id',
         'parent_id',
         'name',
         'code',

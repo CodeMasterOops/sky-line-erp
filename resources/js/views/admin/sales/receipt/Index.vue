@@ -63,6 +63,7 @@
     </div>
 
     <ReceiptModal v-model:open="createModalOpened" @saved="fetchReceipts" />
+    <ReceiptDetailModal v-model:detail-receipt-id="detail_receipt_id" />
 </template>
 
 <script setup>
@@ -71,6 +72,7 @@ import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import ReceiptModal from './ReceiptModal.vue';
+import ReceiptDetailModal from './DetailModal.vue';
 import { useReceiptStore } from '@/stores/admin/sales/receipt.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
@@ -81,6 +83,7 @@ const receiptStore = useReceiptStore();
 const { receipts } = storeToRefs(receiptStore);
 
 const createModalOpened = ref(false);
+const detail_receipt_id = ref('');
 
 const fetchReceipts = () => receiptStore.getReceipts({ filter });
 
@@ -126,7 +129,10 @@ const handleApprove = (id) => {
     });
 };
 
+const viewReceipt = (id) => { detail_receipt_id.value = String(id); };
+
 const rowActions = createRowActions({
+    onView: viewReceipt,
     onApprove: handleApprove,
     onDelete: handleDelete,
 });

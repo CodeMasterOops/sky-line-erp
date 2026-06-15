@@ -48,6 +48,14 @@ export default [
         component: () => import("@/views/admin/settings/tax/Index.vue"),
     },
     {
+        path: "tax-group",
+        name: "admin.tax-group-list",
+        meta: {
+            pageTitle: "Tax Groups",
+        },
+        component: () => import("@/views/admin/settings/tax-group/Index.vue"),
+    },
+    {
         path: "payment-mode",
         name: "admin.payment-mode-list",
         meta: {
@@ -66,6 +74,12 @@ export default [
         name: "admin.branch-list",
         meta: {pageTitle: "Branch Management", allowWithoutBranch: true},
         component: () => import("@/views/admin/settings/branches/Index.vue"),
+    },
+    {
+        path: "branches/:branchId/users",
+        name: "admin.branch-users",
+        meta: {pageTitle: "Branch User Assignments", allowWithoutBranch: true},
+        component: () => import("@/views/admin/settings/branches/Users.vue"),
     },
     {
         path: "account-settings",

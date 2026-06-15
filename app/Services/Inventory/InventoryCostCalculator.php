@@ -11,7 +11,7 @@ class InventoryCostCalculator
 {
     public static function unitCostFromBillItem(BillItem $item): float
     {
-        $qty = (int) $item->quantity;
+        $qty = (float) $item->quantity;
         if ($qty <= 0) {
             return 0.0;
         }

@@ -2,164 +2,141 @@
     <PageHeader :title="headerTitle" :subtitle="headerSubtitle" />
     <VLoader v-if="invoice.loading" loader-type="progress" />
     <template v-else>
-        <div id="invoice-print-area" class="card">
-            <div class="card-body">
-                <div class="row justify-content-between align-items-center border-bottom mb-3">
-                    <div class="col-md-6">
-                        <div class="mb-3 invoice-logo d-flex">
-                            <template v-if="setting.data.logo_url">
-                                <img
-                                    :src="setting.data.logo_url"
-                                    width="130"
-                                    class="img-fluid"
-                                    alt="logo"
-                                >
-                            </template>
-                            <template v-else>
-                                <img src="@/assets/images/logo.svg" width="130" class="img-fluid dark-logo" alt="logo">
-                                <img src="@/assets/images/logo-white.svg" width="130" class="img-fluid white-logo" alt="logo">
-                            </template>
-                        </div>
-                        <p class="mb-0">{{ companyAddressLine }}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-end mb-3">
-                            <h5 class="text-gray mb-1">
-                                Invoice No <span class="text-primary">#{{ inv.invoice_no || '—' }}</span>
-                            </h5>
-                            <p class="mb-1 fw-medium">
-                                Date (AD) : <span class="text-dark">{{ formatDate(inv.invoice_date) }}</span>
-                            </p>
-                            <p v-if="inv.invoice_date_bs" class="mb-1 fw-medium">
-                                Date (BS) : <span class="text-dark">{{ inv.invoice_date_bs }}</span>
-                            </p>
-                            <p class="fw-medium">
-                                Due Date : <span class="text-dark">{{ formatDate(inv.due_date) }}</span>
-                            </p>
-                            <!-- IRD EBS Sync Badge -->
-                            <div class="mt-2">
-                                <span v-if="inv.ird_sync_status === 'synced'" class="badge bg-success">
-                                    <i class="ti ti-circle-check me-1"></i>IRD Verified
-                                </span>
-                                <span v-else-if="inv.ird_sync_status === 'failed'" class="badge bg-danger" :title="inv.ird_error">
-                                    <i class="ti ti-alert-circle me-1"></i>IRD Sync Failed
-                                </span>
-                                <span v-else-if="inv.ird_sync_status === 'pending'" class="badge bg-warning text-dark">
-                                    <i class="ti ti-clock me-1"></i>IRD Sync Pending
-                                </span>
-                                <span v-else-if="inv.ird_sync_status === 'skipped'" class="badge bg-secondary">
-                                    <i class="ti ti-minus me-1"></i>IRD Disabled
-                                </span>
-                            </div>
-                            <div v-if="inv.ird_internal_id" class="text-muted small mt-1">
-                                IRD ID: {{ inv.ird_internal_id }}
-                            </div>
-                        </div>
-                    </div>
+        <DocumentPrintLayout
+            document-title="Invoice"
+            :document-no="inv.invoice_no || ''"
+            :document-date="formatDate(inv.invoice_date)"
+        >
+            <template #header-meta>
+                <p v-if="inv.invoice_date_bs" class="mb-1 fw-medium">
+                    Date (BS): <span class="text-dark">{{ inv.invoice_date_bs }}</span>
+                </p>
+                <p class="fw-medium">
+                    Due Date: <span class="text-dark">{{ formatDate(inv.due_date) }}</span>
+                </p>
+                <div class="mt-2 no-print">
+                    <span v-if="inv.ird_sync_status === 'synced'" class="badge bg-success">
+                        <i class="ti ti-circle-check me-1"></i>IRD Verified
+                    </span>
+                    <span v-else-if="inv.ird_sync_status === 'failed'" class="badge bg-danger" :title="inv.ird_error">
+                        <i class="ti ti-alert-circle me-1"></i>IRD Sync Failed
+                    </span>
+                    <span v-else-if="inv.ird_sync_status === 'pending'" class="badge bg-warning text-dark">
+                        <i class="ti ti-clock me-1"></i>IRD Sync Pending
+                    </span>
+                    <span v-else-if="inv.ird_sync_status === 'skipped'" class="badge bg-secondary">
+                        <i class="ti ti-minus me-1"></i>IRD Disabled
+                    </span>
                 </div>
-                <div class="row border-bottom mb-3">
-                    <div class="col-md-5">
-                        <p class="text-dark mb-2 fw-semibold">From</p>
-                        <div>
-                            <h4 class="mb-1">{{ setting.data.company_name || '—' }}</h4>
-                            <p class="mb-1">{{ setting.data.address || '' }}</p>
-                            <p v-if="setting.data.email" class="mb-1">
-                                Email : <span class="text-dark">{{ setting.data.email }}</span>
-                            </p>
-                            <p v-if="setting.data.phone">
-                                Phone : <span class="text-dark">{{ setting.data.phone }}</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <p class="text-dark mb-2 fw-semibold">To</p>
-                        <div>
-                            <h4 class="mb-1">{{ customerName }}</h4>
-                            <p v-if="customerAddress" class="mb-1">{{ customerAddress }}</p>
-                            <p v-if="customerEmail" class="mb-1">
-                                Email : <span class="text-dark">{{ customerEmail }}</span>
-                            </p>
-                            <p v-if="customerPhone">
-                                Phone : <span class="text-dark">{{ customerPhone }}</span>
-                            </p>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <div class="mb-3">
-                            <p class="text-title mb-2 fw-medium">Payment Status</p>
-                            <span
-                                class="fs-10 px-1 rounded"
-                                :class="paymentBadgeClass">
-                                <i class="ti ti-point-filled"></i>{{ paymentBadgeLabel }}
-                            </span>
-                        </div>
-                    </div>
+                <div v-if="inv.ird_internal_id" class="text-muted small mt-1 no-print">
+                    IRD ID: {{ inv.ird_internal_id }}
                 </div>
-                <div>
-                    <p class="fw-medium">
-                        Invoice For :
-                        <span class="text-dark fw-medium">{{ invoiceForLabel }}</span>
-                    </p>
-                    <div class="table-responsive mb-3">
-                        <table class="table">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th>Job Description</th>
-                                    <th class="text-end">Qty</th>
-                                    <th class="text-end">Cost</th>
-                                    <th class="text-end">Discount</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="(item, idx) in lineItems" :key="item.id || idx">
-                                    <td>
-                                        <h6 class="mb-0">{{ lineDescription(item) }}</h6>
-                                    </td>
-                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoneyPlain(item.quantity) }}</td>
-                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.rate) }}</td>
-                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.discount_amount) }}</td>
-                                    <td class="text-gray-9 fw-medium text-end">{{ formatMoney(lineTotal(item)) }}</td>
-                                </tr>
-                                <tr v-if="!lineItems.length">
-                                    <td colspan="5" class="text-center text-muted">No line items</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="row border-bottom mb-3">
-                    <div class="col-md-5 ms-auto mb-3">
-                        <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pe-3">
-                            <p class="mb-0">Sub Total</p>
-                            <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.subtotal) }}</p>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pe-3">
-                            <p class="mb-0">Discount ({{ discountPercentLabel }})</p>
-                            <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.discount_total) }}</p>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
-                            <p class="mb-0">{{ taxSummaryLabel }}</p>
-                            <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.tax_total) }}</p>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
-                            <h5>Total Amount</h5>
-                            <h5>{{ formatMoney(inv.grand_total) }}</h5>
-                        </div>
-                        <p v-if="inv.paid_total != null && inv.status === 'approved'" class="fs-12 mb-1">
-                            Paid : {{ formatMoney(inv.paid_total) }}
-                            <span v-if="inv.due_amount != null"> · Due : {{ formatMoney(inv.due_amount) }}</span>
+            </template>
+
+            <template #parties>
+                <div class="col-md-5">
+                    <p class="text-dark mb-2 fw-semibold">From</p>
+                    <div>
+                        <h4 class="mb-1">{{ setting.data.company_name || '—' }}</h4>
+                        <p class="mb-1">{{ setting.data.address || '' }}</p>
+                        <p v-if="setting.data.email" class="mb-1">
+                            Email: <span class="text-dark">{{ setting.data.email }}</span>
+                        </p>
+                        <p v-if="setting.data.phone">
+                            Phone: <span class="text-dark">{{ setting.data.phone }}</span>
                         </p>
                     </div>
                 </div>
+                <div class="col-md-5">
+                    <p class="text-dark mb-2 fw-semibold">To</p>
+                    <div>
+                        <h4 class="mb-1">{{ customerName }}</h4>
+                        <p v-if="customerAddress" class="mb-1">{{ customerAddress }}</p>
+                        <p v-if="customerEmail" class="mb-1">
+                            Email: <span class="text-dark">{{ customerEmail }}</span>
+                        </p>
+                        <p v-if="customerPhone">
+                            Phone: <span class="text-dark">{{ customerPhone }}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="mb-3">
+                        <p class="text-title mb-2 fw-medium">Payment Status</p>
+                        <span class="fs-10 px-1 rounded" :class="paymentBadgeClass">
+                            <i class="ti ti-point-filled"></i>{{ paymentBadgeLabel }}
+                        </span>
+                    </div>
+                </div>
+            </template>
+
+            <template #body>
+                <p class="fw-medium">
+                    Invoice For:
+                    <span class="text-dark fw-medium">{{ invoiceForLabel }}</span>
+                </p>
+                <div class="table-responsive mb-3">
+                    <table class="table">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Job Description</th>
+                                <th>Code</th>
+                                <th class="text-end">Qty</th>
+                                <th class="text-end">Cost</th>
+                                <th class="text-end">Discount</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(item, idx) in lineItems" :key="item.id || idx">
+                                <td>
+                                    <h6 class="mb-0">{{ lineDescription(item) }}</h6>
+                                </td>
+                                <td class="text-gray-9">{{ lineProductCode(item) }}</td>
+                                <td class="text-gray-9 fw-medium text-end">{{ formatMoneyPlain(item.quantity) }}</td>
+                                <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.rate) }}</td>
+                                <td class="text-gray-9 fw-medium text-end">{{ formatMoney(item.discount_amount) }}</td>
+                                <td class="text-gray-9 fw-medium text-end">{{ formatMoney(lineTotal(item)) }}</td>
+                            </tr>
+                            <tr v-if="!lineItems.length">
+                                <td colspan="6" class="text-center text-muted">No line items</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+
+            <template #totals>
+                <div class="col-md-5 ms-auto mb-3">
+                    <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pe-3">
+                        <p class="mb-0">Sub Total</p>
+                        <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.subtotal) }}</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center border-bottom mb-2 pe-3">
+                        <p class="mb-0">Discount ({{ discountPercentLabel }})</p>
+                        <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.discount_total) }}</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
+                        <p class="mb-0">{{ taxSummaryLabel }}</p>
+                        <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.tax_total) }}</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
+                        <h5>Total Amount</h5>
+                        <h5>{{ formatMoney(inv.grand_total) }}</h5>
+                    </div>
+                    <p v-if="inv.paid_total != null && inv.status === 'approved'" class="fs-12 mb-1">
+                        Paid: {{ formatMoney(inv.paid_total) }}
+                        <span v-if="inv.due_amount != null"> · Due: {{ formatMoney(inv.due_amount) }}</span>
+                    </p>
+                </div>
+            </template>
+
+            <template #footer>
                 <div class="row align-items-center border-bottom mb-3">
                     <div class="col-md-12">
-                        <div class="mb-3">
-                            <h6 class="mb-1">Terms and Conditions</h6>
-                            <p class="mb-0">
-                                Please pay within the agreed terms from the date of invoice. Late payments may incur
-                                interest or fees as per your agreement.
-                            </p>
+                        <div v-if="setting.data.invoice_note" class="mb-3">
+                            <h6 class="mb-1">Invoice note / rules</h6>
+                            <p class="mb-0" style="white-space: pre-line">{{ setting.data.invoice_note }}</p>
                         </div>
                         <div v-if="inv.remarks" class="mb-3">
                             <h6 class="mb-1">Notes</h6>
@@ -168,25 +145,21 @@
                     </div>
                 </div>
                 <div v-if="setting.data.company_name || setting.data.legal_name" class="text-center">
-                    <div v-if="!setting.data.logo_url" class="mb-3 invoice-logo d-flex justify-content-center">
-                        <img src="@/assets/images/logo.svg" width="130" class="img-fluid dark-logo" alt="logo">
-                        <img src="@/assets/images/logo-white.svg" width="130" class="img-fluid white-logo" alt="logo">
-                    </div>
                     <p class="text-dark mb-1">
                         Payment via bank transfer / cheque in the name of
                         {{ setting.data.legal_name || setting.data.company_name }}
                     </p>
                 </div>
-            </div>
-        </div>
+            </template>
+        </DocumentPrintLayout>
 
         <div class="d-flex justify-content-center align-items-center flex-wrap gap-2 mb-4 no-print">
-            <button
-                type="button"
-                class="btn btn-primary d-flex justify-content-center align-items-center"
-                @click="printInvoice">
-                <i class="ti ti-printer me-2"></i>Print Invoice
-            </button>
+            <DocumentPrintButton
+                target="#document-print-area"
+                title="Invoice"
+                label="Print Invoice"
+                button-class="btn-primary"
+            />
             <button
                 v-if="inv.id"
                 type="button"
@@ -237,6 +210,8 @@ import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
 import {useInvoiceStore} from '@/stores/admin/sales/invoice.js';
 import {useSettingStore} from '@/stores/admin/settings/setting.js';
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import DocumentPrintLayout from '@/components/print/DocumentPrintLayout.vue';
+import DocumentPrintButton from '@/components/print/DocumentPrintButton.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -262,8 +237,6 @@ const headerSubtitle = computed(() => {
     }
     return 'Invoice preview';
 });
-
-const companyAddressLine = computed(() => setting.value.data?.address || '');
 
 const customer = computed(() => inv.value.party || null);
 
@@ -371,6 +344,8 @@ const formatDate = (value) => {
 
 const lineDescription = (item) => item.product_variant?.name || 'Item';
 
+const lineProductCode = (item) => item.product_variant?.product_code || '—';
+
 const lineTotal = (item) => {
     const qty = Number(item.quantity || 0);
     const rate = Number(item.rate || 0);
@@ -396,10 +371,6 @@ watch(() => route.params.id, loadPage, {immediate: true});
 
 const downloadingPdf = ref(false);
 const retryingIrd = ref(false);
-
-const printInvoice = () => {
-    window.print();
-};
 
 const downloadNepalPdf = async () => {
     const id = inv.value.id;
@@ -454,58 +425,3 @@ const voidInvoice = async () => {
     });
 };
 </script>
-
-<style scoped>
-@media print {
-    .no-print {
-        display: none !important;
-    }
-}
-</style>
-
-<style>
-@media print {
-    .sidebar,
-    .header,
-    .page-header,
-    .footer,
-    .no-print {
-        display: none !important;
-    }
-
-    body {
-        background: #fff !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-
-    .page-wrapper,
-    .page-wrapper .content {
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    #invoice-print-area {
-        border: none !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-    }
-
-    #invoice-print-area .card-body {
-        padding: 0 !important;
-    }
-
-    #invoice-print-area .white-logo {
-        display: none !important;
-    }
-
-    #invoice-print-area .dark-logo {
-        display: block !important;
-    }
-
-    @page {
-        margin: 12mm;
-        size: A4 portrait;
-    }
-}
-</style>

@@ -28,6 +28,7 @@ class ProductVariantResource extends JsonResource
                 ];
             }),
             'sku' => $this->sku ?? '',
+            'barcode' => $this->barcode ?? '',
             'sales_price' => $this->sales_price ?? 0,
             'purchase_price' => $this->purchase_price ?? 0,
             'is_default' => $this->is_default ?? false,

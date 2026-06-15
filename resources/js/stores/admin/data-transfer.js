@@ -56,10 +56,15 @@ export const useDataTransferStore = defineStore('dataTransfer', {
                 });
         },
 
-        uploadImport(file, entityType = 'product') {
+        uploadImport(file, entityType = 'product', options = {}) {
             const form = new FormData();
             form.append('file', file);
             form.append('entity_type', entityType);
+            Object.entries(options).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    form.append(key, value);
+                }
+            });
 
             return apiAdmin(`${apiUrl}/imports`, 'post', form, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -131,6 +136,20 @@ export const useDataTransferStore = defineStore('dataTransfer', {
             return downloadAdminFile(
                 `${apiUrl}/templates/product?format=${format}`,
                 `product-import-template.${format}`,
+            );
+        },
+
+        downloadWarehouseTemplate(format = 'csv') {
+            return downloadAdminFile(
+                `${apiUrl}/templates/warehouse?format=${format}`,
+                `warehouse-import-template.${format}`,
+            );
+        },
+
+        downloadSupplierTemplate(format = 'csv') {
+            return downloadAdminFile(
+                `${apiUrl}/templates/party?format=${format}`,
+                `supplier-import-template.${format}`,
             );
         },
     },

@@ -7,14 +7,12 @@
             <div class="row align-items-end">
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" class="form-control" v-model="filters.start_date" />
+                        <VDatepicker id="start_date" label="Start Date" v-model="filters.start_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" class="form-control" v-model="filters.end_date" />
+                        <VDatepicker id="end_date" label="End Date" v-model="filters.end_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -169,6 +167,7 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { ref, computed } from 'vue';
 import { apiAdmin, downloadAdminFile } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const filters = ref({ start_date: null, end_date: null });
 const loading = ref(false);

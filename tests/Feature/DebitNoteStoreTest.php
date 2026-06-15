@@ -28,7 +28,8 @@ function debitNoteWarmAllTablesCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
-        $tables[$table] = Schema::getColumnListing($table);
+        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+        $tables[$table] = Schema::getColumnListing($plainName);
     }
     Cache::forget('allTables');
     Cache::forever('allTables', $tables);
@@ -192,6 +193,7 @@ it('stores debit note lines with per-line warehouse ids including same variant i
     ]));
 
     $response->assertCreated();
+    $response->assertJsonPath('data.debit_note_date', now()->toDateString());
 
     expect(DB::table('debit_note_items')->count())->toBe(2);
     expect(DB::table('debit_note_items')->pluck('warehouse_id')->sort()->values()->all())

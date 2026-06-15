@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Enums\InventoryCostingMethodEnum;
 use App\Services\DataTransfer\FileParserService;
 use App\Enums\DataTransfer\DataTransferStatusEnum;
+use App\Services\DataTransfer\ProductImportLookupCache;
 use App\Services\DataTransfer\ProductImportRowValidator;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
@@ -58,6 +59,36 @@ beforeEach(function () {
 
     TenantService::setCompanyId($this->company->id);
     Sanctum::actingAs($this->user, ['*'], 'admin');
+});
+
+it('validates a product import row with hierarchical category path', function () {
+    $parent = ProductCategory::create([
+        'company_id' => $this->company->id,
+        'name' => 'Electronics',
+    ]);
+
+    $child = ProductCategory::create([
+        'company_id' => $this->company->id,
+        'parent_id' => $parent->id,
+        'name' => 'Phones',
+    ]);
+
+    ProductImportLookupCache::forget($this->company->id);
+    $lookups = ProductImportLookupCache::forCompany($this->company->id);
+    $validator = new ProductImportRowValidator;
+
+    $result = $validator->validate([
+        'name' => 'Phone X',
+        'code' => 'PH-001',
+        'product_type' => 'product',
+        'category' => 'Electronics > Phones',
+        'unit' => 'Piece',
+        'sales_price' => '100',
+        'purchase_price' => '80',
+    ], $lookups);
+
+    expect($result['errors'])->toBeEmpty()
+        ->and($result['normalized']['product_category_id'])->toBe($child->id);
 });
 
 it('validates a product import row with resolved lookups', function () {

@@ -50,6 +50,15 @@
                         :error="errors.price_yearly"
                     />
                 </div>
+                <div class="col-md-6">
+                    <VInput
+                        id="branch_limit"
+                        v-model="form.branch_limit"
+                        type="number"
+                        label="Branch Limit"
+                        placeholder="Leave empty for unlimited"
+                    />
+                </div>
                 <div class="col-12">
                     <label class="form-label">Features (one per line)</label>
                     <textarea
@@ -96,6 +105,7 @@ const initialState = {
     description: '',
     price_monthly: 0,
     price_yearly: 0,
+    branch_limit: null,
     features: [],
     is_active: true,
     is_default: false,

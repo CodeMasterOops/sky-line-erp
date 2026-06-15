@@ -29,7 +29,8 @@ function journalVoidWarmAllTablesCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
-        $tables[$table] = Schema::getColumnListing($table);
+        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+        $tables[$table] = Schema::getColumnListing($plainName);
     }
     Cache::forget('allTables');
     Cache::forever('allTables', $tables);
@@ -134,7 +135,7 @@ beforeEach(function () {
     TenantService::setCompanyId($this->company->id);
 });
 
-it('soft-deletes the journal and its items when reversing a posted document', function () {
+it('soft-deletes the original journal and creates a VOID contra-entry when reversing a posted document', function () {
     [$invoice, $journal] = makePostedInvoiceJournal($this, 'INV-VOID-1');
 
     expect(Journal::withoutGlobalScopes()->whereNull('deleted_at')->count())->toBe(1);
@@ -142,17 +143,23 @@ it('soft-deletes the journal and its items when reversing a posted document', fu
 
     app(JournalVoidService::class)->reverseForReference($invoice);
 
-    expect(Journal::withoutGlobalScopes()->whereNull('deleted_at')->count())->toBe(0);
-    expect(JournalItem::withoutGlobalScopes()->whereNull('deleted_at')->count())->toBe(0);
-    // Rows still exist on disk as an audit trail.
-    expect(Journal::withoutGlobalScopes()->count())->toBe(1);
-    expect(JournalItem::withoutGlobalScopes()->count())->toBe(2);
+    // Original journal soft-deleted; VOID contra-entry is live.
+    $liveJournals = Journal::withoutGlobalScopes()->whereNull('deleted_at')->get();
+    expect($liveJournals)->toHaveCount(1);
+    expect($liveJournals->first()->type)->toBe(JournalTypeEnum::VOID);
+
+    // Original journal row retained on disk as immutable audit trail.
+    expect(Journal::withoutGlobalScopes()->withTrashed()->count())->toBe(2);
+
+    // VOID contra-entry has its own 2 items (swapped DR/CR); original items soft-deleted.
+    expect(JournalItem::withoutGlobalScopes()->whereNull('deleted_at')->count())->toBe(2);
+    expect(JournalItem::withoutGlobalScopes()->withTrashed()->count())->toBe(4);
 });
 
-it('removes the voided journal from GL balance computations', function () {
+it('reverses GL balance via contra-entry so net effect on each account is zero', function () {
     [$invoice] = makePostedInvoiceJournal($this, 'INV-VOID-2');
 
-    // Same filter the trial balance / P&L use: deleted journals are excluded.
+    // Before void: 2 live items (DR AR 100, CR Sales 100).
     $liveBalanceCount = DB::table('journal_items')
         ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
         ->where('journals.company_id', $this->company->id)
@@ -163,24 +170,43 @@ it('removes the voided journal from GL balance computations', function () {
 
     app(JournalVoidService::class)->reverseForReference($invoice);
 
+    // After void: original items soft-deleted; VOID contra-entry adds 2 live items
+    // (CR AR 100, DR Sales 100) which exactly offset the original entries.
     $liveBalanceCount = DB::table('journal_items')
         ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
         ->where('journals.company_id', $this->company->id)
         ->whereNull('journals.deleted_at')
         ->count();
 
-    expect($liveBalanceCount)->toBe(0);
+    expect($liveBalanceCount)->toBe(2); // VOID contra-entry items
+
+    $netDr = DB::table('journal_items')
+        ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
+        ->where('journals.company_id', $this->company->id)
+        ->whereNull('journals.deleted_at')
+        ->sum('dr_amount');
+
+    $netCr = DB::table('journal_items')
+        ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
+        ->where('journals.company_id', $this->company->id)
+        ->whereNull('journals.deleted_at')
+        ->sum('cr_amount');
+
+    // Net DR and CR of contra-entry equal each other (balanced), and equal original amounts.
+    expect(round((float) $netDr, 2))->toBe(100.0);
+    expect(round((float) $netCr, 2))->toBe(100.0);
 });
 
-it('is idempotent: a second reversal is a safe no-op', function () {
+it('is idempotent: a second reversal does not create additional VOID entries', function () {
     [$invoice] = makePostedInvoiceJournal($this, 'INV-VOID-3');
 
     $service = app(JournalVoidService::class);
     $service->reverseForReference($invoice);
-    $service->reverseForReference($invoice); // must not throw, no extra rows
+    $service->reverseForReference($invoice); // must not throw, no extra VOID journals
 
-    expect(Journal::withoutGlobalScopes()->count())->toBe(1);
-    expect(Journal::withoutGlobalScopes()->whereNull('deleted_at')->count())->toBe(0);
+    // Still exactly: 1 original (soft-deleted) + 1 VOID (live) = 2 total
+    expect(Journal::withoutGlobalScopes()->withTrashed()->count())->toBe(2);
+    expect(Journal::withoutGlobalScopes()->where('type', JournalTypeEnum::VOID->value)->whereNull('deleted_at')->count())->toBe(1);
 });
 
 it('is a no-op for a document that never had a journal', function () {

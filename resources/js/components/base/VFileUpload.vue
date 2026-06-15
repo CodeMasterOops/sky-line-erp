@@ -87,10 +87,13 @@
         v-bind:class="[{'is-invalid':error}]"
         :id="id"
     >
-    <div v-if="errorMessage" class="invalid-feedback">
+    <div
+        v-if="errorMessage"
+        :class="buttonOnly ? 'text-danger small d-block mt-1' : 'invalid-feedback d-block'"
+    >
         {{ errorMessage }}
     </div>
-    <div v-else-if="error" class="invalid-feedback">
+    <div v-else-if="error" :class="buttonOnly ? 'text-danger small d-block mt-1' : 'invalid-feedback d-block'">
         {{ error }}
     </div>
 </template>
@@ -181,6 +184,12 @@ function selectFile() {
     file_element.value.click()
 }
 
+function clearFileInput() {
+    if (file_element.value) {
+        file_element.value.value = '';
+    }
+}
+
 watch(() => fileDetail.value.file, (file) => {
     if (!file) {
         resetFile();
@@ -189,19 +198,18 @@ watch(() => fileDetail.value.file, (file) => {
         return;
     }
 
-    const {extension, size} = fileDetail.value;
     const errors = [];
 
     if (props.mimes?.length) {
-        const allowedExtensions = props.mimes.map(e => e.toLowerCase());
-        if (!allowedExtensions.includes(extension.toLowerCase())) {
-            errors.push(`Only ${allowedExtensions.join(', ')} files are allowed.`);
+        const allowedMimes = props.mimes.map((mime) => mime.toLowerCase());
+        if (!allowedMimes.includes(file.type.toLowerCase())) {
+            errors.push(`Only ${allowedMimes.join(', ')} files are allowed.`);
         }
     }
 
     if (props.maxSize) {
-        const maxBytes = props.maxSize * 1024;
-        if (size > maxBytes) {
+        const maxBytes = props.maxSize * 1024 * 1024;
+        if (file.size > maxBytes) {
             errors.push(`File must be less than ${props.maxSize} MB.`);
         }
     }
@@ -210,6 +218,7 @@ watch(() => fileDetail.value.file, (file) => {
         errorMessage.value = errors.join(' ');
         emit('update:modelValue', '');
         resetFile();
+        clearFileInput();
     } else {
         errorMessage.value = '';
         emit('update:modelValue', file);

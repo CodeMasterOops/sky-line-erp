@@ -7,34 +7,28 @@
         title="Update Bill">
         <template #modal-body>
             <VLoader v-if="bill.loading" loader-type="progress"/>
-            <div v-else class="card border-0 shadow-none mb-0">
-                <div class="card-body p-0">
-                    <form @submit.prevent="updateBill(bill.data.id)" class="row g-1">
+            <form v-else @submit.prevent="updateBill(bill.data.id)" class="row g-3">
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="bill_date"
-                                    input-type="date"
-                                    v-model="form.bill_date"
-                                    label="Bill Date"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('bill_date')"
-                                    :error="errors.bill_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="bill_date"
+                                input-type="date"
+                                v-model="form.bill_date"
+                                label="Bill Date"
+                                :disabled="!isDraft"
+                                @validate="validateField('bill_date')"
+                                :error="errors.bill_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="due_date"
-                                    input-type="date"
-                                    v-model="form.due_date"
-                                    label="Due Date"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('due_date')"
-                                    :error="errors.due_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="due_date"
+                                input-type="date"
+                                v-model="form.due_date"
+                                label="Due Date"
+                                :disabled="!isDraft"
+                                @validate="validateField('due_date')"
+                                :error="errors.due_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="d-flex gap-2 align-items-end">
@@ -71,17 +65,15 @@
                             />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VMultiselect
-                                    id="warehouse_id"
-                                    v-model="form.warehouse_id"
-                                    :options="warehouseOptionsTree"
-                                    label="Warehouse"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('warehouse_id')"
-                                    :error="errors.warehouse_id"
-                                />
-                            </div>
+                            <VMultiselect
+                                id="warehouse_id"
+                                v-model="form.warehouse_id"
+                                :options="warehouseOptionsTree"
+                                label="Warehouse"
+                                :disabled="!isDraft"
+                                @validate="validateField('warehouse_id')"
+                                :error="errors.warehouse_id"
+                            />
                         </div>
 
                         <div v-if="isDraft && form.party_id" class="col-12">
@@ -225,7 +217,7 @@
                                     <thead>
                                     <tr>
                                         <th>Type</th>
-                                        <th>Treatment</th>
+                                        <th>Post As</th>
                                         <th class="text-end">Amount</th>
                                         <th class="text-end">VAT</th>
                                     </tr>
@@ -233,7 +225,7 @@
                                     <tbody>
                                     <tr v-for="(cost, idx) in grnLandedCosts" :key="idx">
                                         <td>{{ cost.cost_type }}</td>
-                                        <td>{{ cost.treatment }}</td>
+                                        <td>{{ cost.treatment === 'capitalized' ? 'Add to item cost' : 'Post as expense' }}</td>
                                         <td class="text-end">{{ formatMoney(cost.amount) }}</td>
                                         <td class="text-end">{{ formatMoney(cost.vat_amount) }}</td>
                                     </tr>
@@ -243,11 +235,26 @@
                         </div>
 
                         <div v-if="!hasGrnLines" class="col-12">
+                            <div class="form-check mb-2">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    id="show_landed_costs_edit"
+                                    v-model="showLandedCosts"
+                                    @change="!showLandedCosts && (form.landed_costs = [])"
+                                />
+                                <label class="form-check-label" for="show_landed_costs_edit">
+                                    Add Additional Charges (freight, customs, etc.)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div v-if="!hasGrnLines && showLandedCosts" class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
-                                    <h6 class="mb-0">Additional Charges / Landed Costs</h6>
+                                    <h6 class="mb-0">Additional Charges</h6>
                                     <small class="text-muted">
-                                        Capitalized charges increase inventory cost; expense charges post separately.
+                                        "Add to item cost" increases inventory cost. "Post as expense" posts separately.
                                     </small>
                                 </div>
                                 <button
@@ -262,32 +269,39 @@
                                 <table class="table datanew table-bordered mb-0 landed-costs-table">
                                     <thead>
                                     <tr>
-                                        <th class="landed-col-type">Type</th>
-                                        <th class="landed-col-treatment">Treatment</th>
-                                        <th class="landed-col-allocation">Allocation</th>
+                                        <th class="landed-col-type">Type / Note</th>
+                                        <th class="landed-col-treatment">Post As</th>
+                                        <th class="landed-col-allocation">Distribute By</th>
                                         <th class="text-end landed-col-amount">Amount</th>
-                                        <th class="text-end landed-col-amount">VAT</th>
-                                        <th class="text-end landed-col-amount">Claimable VAT</th>
+                                        <th class="landed-col-vat">VAT</th>
                                         <th class="landed-col-account">Account</th>
-                                        <th class="landed-col-description">Description</th>
                                         <th v-if="isDraft" class="text-center landed-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.landed_costs.length">
-                                        <td :colspan="isDraft ? 9 : 8" class="text-center text-muted py-3">
+                                        <td :colspan="isDraft ? 7 : 6" class="text-center text-muted py-3">
                                             No additional charges added.
                                         </td>
                                     </tr>
                                     <tr v-for="(cost, index) in form.landed_costs" :key="index">
                                         <td>
-                                            <VInput
-                                                v-if="isDraft"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.landed_costs[index].cost_type"
-                                                placeholder="Transport"
-                                            />
-                                            <span v-else>{{ cost.cost_type }}</span>
+                                            <template v-if="isDraft">
+                                                <VInput
+                                                    input-class="form-control form-control-sm"
+                                                    v-model="form.landed_costs[index].cost_type"
+                                                    placeholder="e.g. Transport"
+                                                />
+                                                <VInput
+                                                    input-class="form-control form-control-sm mt-1"
+                                                    v-model="form.landed_costs[index].description"
+                                                    placeholder="Note (optional)"
+                                                />
+                                            </template>
+                                            <template v-else>
+                                                <div>{{ cost.cost_type || '—' }}</div>
+                                                <div v-if="cost.description" class="text-muted small">{{ cost.description }}</div>
+                                            </template>
                                         </td>
                                         <td>
                                             <VSelect
@@ -296,17 +310,21 @@
                                                 v-model="form.landed_costs[index].treatment"
                                                 :options="treatmentOptions"
                                             />
-                                            <span v-else>{{ cost.treatment }}</span>
+                                            <span v-else>{{ treatmentLabel(cost.treatment) }}</span>
                                         </td>
                                         <td>
-                                            <VSelect
-                                                v-if="isDraft"
-                                                select-class="form-select form-select-sm"
-                                                v-model="form.landed_costs[index].allocation_method"
-                                                :options="allocationOptions"
-                                                :disabled="cost.treatment === 'expense'"
-                                            />
-                                            <span v-else>{{ cost.allocation_method }}</span>
+                                            <template v-if="isDraft">
+                                                <VSelect
+                                                    v-if="cost.treatment !== 'expense'"
+                                                    select-class="form-select form-select-sm"
+                                                    v-model="form.landed_costs[index].allocation_method"
+                                                    :options="allocationOptions"
+                                                />
+                                                <span v-else class="text-muted small">—</span>
+                                            </template>
+                                            <span v-else>
+                                                {{ cost.treatment === 'expense' ? '—' : allocationLabel(cost.allocation_method) }}
+                                            </span>
                                         </td>
                                         <td>
                                             <VInput
@@ -319,24 +337,29 @@
                                             <span v-else class="d-block text-end">{{ formatMoney(cost.amount) }}</span>
                                         </td>
                                         <td>
-                                            <VInput
-                                                v-if="isDraft"
-                                                input-type="number"
-                                                input-class="form-control form-control-sm text-end"
-                                                v-model="form.landed_costs[index].vat_amount"
-                                                :min-value="0"
-                                            />
-                                            <span v-else class="d-block text-end">{{ formatMoney(cost.vat_amount) }}</span>
-                                        </td>
-                                        <td>
-                                            <VInput
-                                                v-if="isDraft"
-                                                input-type="number"
-                                                input-class="form-control form-control-sm text-end"
-                                                v-model="form.landed_costs[index].vat_claimable_amount"
-                                                :min-value="0"
-                                            />
-                                            <span v-else class="d-block text-end">{{ formatMoney(cost.vat_claimable_amount) }}</span>
+                                            <template v-if="isDraft">
+                                                <VInput
+                                                    input-type="number"
+                                                    input-class="form-control form-control-sm text-end"
+                                                    v-model="form.landed_costs[index].vat_amount"
+                                                    :min-value="0"
+                                                />
+                                                <div v-if="Number(form.landed_costs[index].vat_amount) > 0" class="d-flex align-items-center gap-1 mt-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="form-check-input mt-0 flex-shrink-0"
+                                                        :id="`lc_claim_${index}`"
+                                                        v-model="form.landed_costs[index].vat_claim"
+                                                    />
+                                                    <label :for="`lc_claim_${index}`" class="small text-muted mb-0" style="cursor:pointer">Claim input VAT</label>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <div class="text-end">{{ formatMoney(cost.vat_amount) }}</div>
+                                                <div v-if="Number(cost.vat_amount) > 0" class="small mt-1" :class="cost.vat_claim ? 'text-success' : 'text-muted'">
+                                                    {{ cost.vat_claim ? 'VAT claimed' : 'VAT not claimed' }}
+                                                </div>
+                                            </template>
                                         </td>
                                         <td>
                                             <VSelect
@@ -346,16 +369,7 @@
                                                 :options="accounts.data"
                                                 placeholder="Account"
                                             />
-                                            <span v-else>{{ accounts.data.find(a => String(a.id) === String(cost.account_id))?.name || '—' }}</span>
-                                        </td>
-                                        <td>
-                                            <VInput
-                                                v-if="isDraft"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.landed_costs[index].description"
-                                                placeholder="Optional note"
-                                            />
-                                            <span v-else>{{ cost.description || '—' }}</span>
+                                            <span v-else>{{ cost.account_name || '—' }}</span>
                                         </td>
                                         <td v-if="isDraft" class="text-center">
                                             <button type="button" class="btn btn-sm btn-outline-danger" @click="removeLandedCost(index)">
@@ -369,8 +383,7 @@
                                         <td colspan="3" class="text-end">Charge Total</td>
                                         <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
                                         <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
-                                        <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
-                                        <td :colspan="isDraft ? 3 : 2"></td>
+                                        <td :colspan="isDraft ? 2 : 1"></td>
                                     </tr>
                                     </tfoot>
                                 </table>
@@ -432,16 +445,14 @@
                         </div>
 
                         <div class="col-md-12">
-                            <div class="input-blocks">
-                                <VTextarea
-                                    id="remarks"
-                                    v-model="form.remarks"
-                                    label="Remarks"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('remarks')"
-                                    :error="errors.remarks"
-                                />
-                            </div>
+                            <VTextarea
+                                id="remarks"
+                                v-model="form.remarks"
+                                label="Remarks"
+                                :disabled="!isDraft"
+                                @validate="validateField('remarks')"
+                                :error="errors.remarks"
+                            />
                         </div>
 
                         <div class="col-12 text-end">
@@ -453,9 +464,7 @@
                                 Approved
                             </button>
                         </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </template>
     </VModal>
     <VModal
@@ -517,7 +526,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -535,14 +544,15 @@ const grnStore = useGrnStore();
 
 const edit_bill_id = defineModel('bill_id');
 const createSupplierOpened = ref(false);
+const showLandedCosts = ref(false);
 
 const {bill} = storeToRefs(billStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {accounts} = storeToRefs(accountStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const grnImportOpen = ref(false);
 const loadingBillableGrn = ref(false);
@@ -550,8 +560,8 @@ const billableGrnItems = ref([]);
 const selectedGrnItemIds = ref([]);
 
 const treatmentOptions = [
-    {id: 'capitalized', name: 'Capitalize'},
-    {id: 'expense', name: 'Expense'},
+    {id: 'capitalized', name: 'Add to item cost'},
+    {id: 'expense', name: 'Post as expense'},
 ];
 
 const allocationOptions = [
@@ -560,6 +570,9 @@ const allocationOptions = [
     {id: 'equal', name: 'Equal'},
 ];
 
+const treatmentLabel = (value) => treatmentOptions.find((o) => o.id === value)?.name ?? value ?? '—';
+const allocationLabel = (value) => allocationOptions.find((o) => o.id === value)?.name ?? value ?? '—';
+
 const newLandedCostTemplate = () => ({
     cost_type: '',
     description: '',
@@ -567,8 +580,9 @@ const newLandedCostTemplate = () => ({
     allocation_method: 'value',
     amount: 0,
     vat_amount: 0,
-    vat_claimable_amount: 0,
+    vat_claim: true,
     account_id: '',
+    account_name: '',
 });
 
 const debouncedSupplierSearch = debounce((query) => {
@@ -664,6 +678,7 @@ watch(
             return;
         }
         taxStore.getTaxes();
+        taxStore.getTaxGroups();
         warehouseStore.getWarehouses();
         accountStore.getAccounts();
         await billStore.getBill(id);
@@ -721,6 +736,7 @@ watch(
             data.order_discount_value != null && data.order_discount_value !== ''
                 ? String(data.order_discount_value)
                 : '0';
+        showLandedCosts.value = (data.landed_costs || []).length > 0;
         form.landed_costs = (data.landed_costs || []).map((cost) => ({
             cost_type: cost.cost_type || '',
             description: cost.description || '',
@@ -728,8 +744,9 @@ watch(
             allocation_method: cost.allocation_method || 'value',
             amount: cost.amount ?? 0,
             vat_amount: cost.vat_amount ?? 0,
-            vat_claimable_amount: cost.vat_claimable_amount ?? 0,
+            vat_claim: Number(cost.vat_claimable_amount ?? 0) > 0,
             account_id: cost.account_id || '',
+            account_name: cost.account?.name || '',
         }));
         await nextTick();
         isHydratingBill.value = false;
@@ -757,9 +774,8 @@ const landedCostSummary = computed(() =>
     form.landed_costs.reduce((summary, cost) => {
         summary.amount += Number(cost.amount || 0);
         summary.vat += Number(cost.vat_amount || 0);
-        summary.claimableVat += Number(cost.vat_claimable_amount || 0);
         return summary;
-    }, {amount: 0, vat: 0, claimableVat: 0})
+    }, {amount: 0, vat: 0})
 );
 
 const addLandedCost = () => {
@@ -881,7 +897,7 @@ const buildBillPayload = () => {
             rate: Number(item.rate || 0),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: item.tax_amount ?? 0,
             discount_amount: String(lineDiscountMoneyFromItem(item)),
             tax_line_type: item.tax_line_type || 'taxable',
@@ -889,16 +905,19 @@ const buildBillPayload = () => {
         landed_costs: canEnterLandedCosts.value
             ? form.landed_costs
                 .filter((cost) => cost.cost_type || Number(cost.amount || 0) > 0 || Number(cost.vat_amount || 0) > 0)
-                .map((cost) => ({
-                    cost_type: cost.cost_type,
-                    description: cost.description || null,
-                    treatment: cost.treatment || 'capitalized',
-                    allocation_method: cost.allocation_method || 'value',
-                    amount: Number(cost.amount || 0),
-                    vat_amount: Number(cost.vat_amount || 0),
-                    vat_claimable_amount: Number(cost.vat_claimable_amount || 0),
-                    account_id: cost.account_id || null,
-                }))
+                .map((cost) => {
+                    const vatAmount = Number(cost.vat_amount || 0);
+                    return {
+                        cost_type: cost.cost_type,
+                        description: cost.description || null,
+                        treatment: cost.treatment || 'capitalized',
+                        allocation_method: cost.treatment === 'expense' ? null : (cost.allocation_method || 'value'),
+                        amount: Number(cost.amount || 0),
+                        vat_amount: vatAmount,
+                        vat_claimable_amount: cost.vat_claim ? vatAmount : 0,
+                        account_id: cost.account_id || null,
+                    };
+                })
             : [],
     };
 };
@@ -931,6 +950,7 @@ function resetForm() {
     isHydratingBill.value = false;
     Object.assign(form, {...initialState});
     errors.value = {};
+    showLandedCosts.value = false;
 }
 </script>
 
@@ -1009,7 +1029,10 @@ function resetForm() {
     min-width: 6rem;
 }
 
-.landed-col-type,
+.landed-col-type {
+    min-width: 11rem;
+}
+
 .landed-col-treatment,
 .landed-col-allocation {
     min-width: 8rem;
@@ -1017,14 +1040,15 @@ function resetForm() {
 
 .landed-col-amount {
     min-width: 7rem;
+    width: 7rem;
+}
+
+.landed-col-vat {
+    min-width: 9rem;
 }
 
 .landed-col-account {
     min-width: 10rem;
-}
-
-.landed-col-description {
-    min-width: 12rem;
 }
 
 .landed-col-action {

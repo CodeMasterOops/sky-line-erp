@@ -10,7 +10,7 @@
                     <div class="col-lg-5 col-md-6">
                         <ProductVariantSearchInput
                             label="Search Product"
-                            placeholder="Search by name, code, or SKU — Enter or click to add"
+                            placeholder="Search by name, code, SKU, or barcode — Enter or click to add"
                             physical-only
                             @select="onVariantSelected"
                         />
@@ -30,6 +30,7 @@
                     <div class="col-lg-3 col-md-3">
                         <label class="form-label">Default Value Source</label>
                         <select v-model="defaultSource" class="form-select form-select-sm">
+                            <option value="barcode">Variant Barcode</option>
                             <option value="sku">Variant SKU</option>
                             <option value="code">Product Code</option>
                             <option value="custom">Custom</option>
@@ -71,6 +72,7 @@
                                     <div class="fw-medium">{{ item.name }}</div>
                                     <div class="small text-muted">
                                         <span v-if="item.sku">SKU: {{ item.sku }}</span>
+                                        <span v-if="item.barcode" class="ms-2">Barcode: {{ item.barcode }}</span>
                                         <span v-if="item.productCode" class="ms-2">Code: {{ item.productCode }}</span>
                                     </div>
                                 </td>
@@ -95,6 +97,7 @@
                                         :value="item.source"
                                         @change="store.updateItemField(item.id, 'source', $event.target.value)"
                                     >
+                                        <option value="barcode">Variant Barcode</option>
                                         <option value="sku">Variant SKU</option>
                                         <option value="code">Product Code</option>
                                         <option value="custom">Custom</option>
@@ -293,7 +296,7 @@ import ProductVariantSearchInput from '@/components/inventory/ProductVariantSear
 const store = useBarcodeStore();
 
 const defaultFormat = ref('code128');
-const defaultSource = ref('sku');
+const defaultSource = ref('barcode');
 const printingBrowser = ref(false);
 
 // Company name — read from localStorage profile if available, otherwise empty.

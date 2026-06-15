@@ -34,11 +34,18 @@ export const usePosStore = defineStore('pos', {
         customersLoading: false,
 
         warehouses: [],
+        categories: [],
         taxes: [],
         paymentModes: [],
         heldOrders: [],
         todaySummary: { sale_count: 0, sale_total: 0, profit: 0, cogs: 0 },
         lastSale: null,
+
+        tillSession: null,
+        tillSessionLoading: false,
+
+        gridProducts: [],
+        gridLoading: false,
 
         checkoutLoading: false,
         holdLoading: false,
@@ -74,6 +81,10 @@ export const usePosStore = defineStore('pos', {
 
         taxTotal(state) {
             return state.cart.reduce((sum, item) => sum + (item.taxAmount ?? 0), 0);
+        },
+
+        hasVat(state) {
+            return state.cart.some((item) => item.taxId !== null);
         },
 
         grandTotal() {
@@ -141,6 +152,8 @@ export const usePosStore = defineStore('pos', {
                 this.fetchTaxes(),
                 this.fetchPaymentModes(),
                 this.fetchTodaySummary(),
+                this.fetchTillSession(),
+                this.fetchCategories(),
             ]);
             this.initialized = true;
         },
@@ -188,6 +201,29 @@ export const usePosStore = defineStore('pos', {
                 this.warehouses = res.data.data;
             } catch (err) {
                 showErrors(err);
+            }
+        },
+
+        async fetchCategories() {
+            try {
+                const res = await apiAdmin('pos/categories');
+                this.categories = res.data.data;
+            } catch (err) {
+                showErrors(err);
+            }
+        },
+
+        async fetchGridProducts(categoryId = null) {
+            this.gridLoading = true;
+            try {
+                const params = new URLSearchParams({ limit: '32' });
+                if (categoryId) { params.set('category_id', String(categoryId)); }
+                const res = await apiAdmin(`pos/products?${params.toString()}`);
+                this.gridProducts = res.data.data ?? [];
+            } catch (err) {
+                showErrors(err);
+            } finally {
+                this.gridLoading = false;
             }
         },
 
@@ -391,6 +427,23 @@ export const usePosStore = defineStore('pos', {
             });
         },
 
+        toggleVat() {
+            const addVat = !this.hasVat;
+            // Find the first 13% VAT tax (standard Nepal VAT)
+            const vatTax = this.taxes.find((t) => Number(t.rate) === 13) ?? this.taxes[0] ?? null;
+            this.cart.forEach((item) => {
+                if (addVat && vatTax) {
+                    item.taxId = vatTax.id;
+                    item.taxRate = Number(vatTax.rate);
+                } else {
+                    item.taxId = null;
+                    item.taxRate = 0;
+                    item.taxAmount = 0;
+                }
+            });
+            this.syncAllTaxes();
+        },
+
         async fetchTaxes() {
             try {
                 const res = await apiAdmin('tax?for=line_item');
@@ -424,17 +477,19 @@ export const usePosStore = defineStore('pos', {
             }));
         },
 
-        async checkout(paymentMethod) {
+        async checkout(paymentMethod, splitPayments = null) {
             this.checkoutLoading = true;
             try {
-                const res = await apiAdmin('pos/checkout', 'post', {
+                const body = {
                     party_id: this.selectedCustomer?.id ?? null,
                     payment_method: paymentMethod,
                     order_discount_type: this.order_discount_type || 'fixed',
                     order_discount_value: parseFloat(this.order_discount_value) || 0,
                     items: this.buildCheckoutItems(),
                     remarks: 'POS Sale',
-                });
+                };
+                if (splitPayments?.length) { body.payments = splitPayments; }
+                const res = await apiAdmin('pos/checkout', 'post', body);
 
                 this.lastSale = res.data.data;
                 this.fetchTodaySummary();
@@ -523,6 +578,45 @@ export const usePosStore = defineStore('pos', {
             } catch (err) {
                 showErrors(err);
             }
+        },
+
+        async fetchTillSession() {
+            this.tillSessionLoading = true;
+            try {
+                const res = await apiAdmin('pos/till/current');
+                this.tillSession = res.data.data;
+            } catch (err) {
+                showErrors(err);
+            } finally {
+                this.tillSessionLoading = false;
+            }
+        },
+
+        async openTill(openingCash) {
+            const res = await apiAdmin('pos/till/open', 'post', { opening_cash: openingCash });
+            this.tillSession = res.data.data;
+            return res.data;
+        },
+
+        async closeTill(closingCash, notes = '') {
+            const res = await apiAdmin('pos/till/close', 'post', { closing_cash: closingCash, notes });
+            this.tillSession = null;
+            return res.data;
+        },
+
+        async addCashMovement(type, amount, reason = '') {
+            const res = await apiAdmin('pos/till/cash-movement', 'post', { type, amount, reason });
+            return res.data;
+        },
+
+        async fetchTillSummary() {
+            const res = await apiAdmin('pos/till/summary');
+            return res.data.data;
+        },
+
+        async processReturn(invoiceId, items, reason = '') {
+            const res = await apiAdmin.post('pos/return', { invoice_id: invoiceId, items, reason });
+            return res.data.data;
         },
     },
 });

@@ -21,10 +21,58 @@ class InvoiceRequest extends FormRequest
     {
         return [
             'invoice_no' => ['nullable', 'string', 'max:255'],
-            'invoice_date' => ['required', 'date'],
+            'bijak_no' => [
+                'nullable',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null) {
+                        return;
+                    }
+                    $user = auth('admin')->user();
+                    $company = $user->company;
+                    $query = \App\Models\Invoice::withoutGlobalScopes()
+                        ->where('bijak_no', $value)
+                        ->where('company_id', $company->id)
+                        ->where('fiscal_year_id', $company->fiscal_year_id)
+                        ->whereNull('deleted_at');
+                    if ($this->route('invoice')) {
+                        $query->where('id', '!=', $this->route('invoice')->id);
+                    }
+                    if ($query->exists()) {
+                        $fail('The bijak no has already been used for another invoice in this fiscal year.');
+                    }
+                },
+            ],
+            'invoice_date' => [
+                'required',
+                'date',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $fy = auth('admin')->user()?->company?->fiscalYear;
+                    if (! $fy) {
+                        return;
+                    }
+                    $date = \Carbon\Carbon::parse($value)->toDateString();
+                    if ($date < $fy->start_date->toDateString() || $date > $fy->end_date->toDateString()) {
+                        $fail("The invoice date must be within the active fiscal year ({$fy->start_date->format('d M Y')} – {$fy->end_date->format('d M Y')}).");
+                    }
+                },
+            ],
             'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
-            'quotation_id' => ['nullable', TRule::exists('quotations', 'id')->withoutTrashed()],
+            'quotation_id' => [
+                'nullable',
+                TRule::exists('quotations', 'id')->withoutTrashed(),
+                function (string $_attribute, mixed $value, \Closure $fail): void {
+                    if (! $value) {
+                        return;
+                    }
+                    $quotation = \App\Models\Quotation::withoutGlobalScopes()->find($value);
+                    if ($quotation && $quotation->expiry_date && $quotation->expiry_date < now()->toDateString()) {
+                        $fail(__('The selected quotation has expired and cannot be converted to an invoice.'));
+                    }
+                },
+            ],
             'sales_order_id' => ['nullable', TRule::exists('sales_orders', 'id')->withoutTrashed()],
             'reference_type' => ['nullable', 'string', 'max:255', 'required_with:reference_id'],
             'reference_id' => ['nullable', 'integer', 'min:1', 'required_with:reference_type'],
@@ -44,7 +92,7 @@ class InvoiceRequest extends FormRequest
             'items.*.tax_id' => [
                 'nullable',
                 TRule::exists('taxes', 'id')->withoutTrashed(),
-                function ($attribute, $value, $fail) {
+                function ($_attribute, $value, $fail) {
                     if ($value === null) {
                         return;
                     }
@@ -54,9 +102,46 @@ class InvoiceRequest extends FormRequest
                     }
                 },
             ],
+            'items.*.tax_group_id' => [
+                'nullable',
+                TRule::exists('tax_groups', 'id')->withoutTrashed(),
+            ],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            // IRD: bijak_no is mandatory for B2B taxable transactions above Rs 50,000.
+            if ($this->filled('bijak_no')) {
+                return;
+            }
+
+            $partyId = $this->input('party_id');
+            if (! $partyId) {
+                return;
+            }
+
+            $items = $this->input('items', []);
+            $taxableTotal = collect($items)->sum(function ($item) {
+                if (($item['tax_line_type'] ?? '') !== 'taxable') {
+                    return 0;
+                }
+
+                $lineTotal = ((float) ($item['quantity'] ?? 0)) * ((float) ($item['rate'] ?? 0));
+
+                return $lineTotal - (float) ($item['discount_amount'] ?? 0);
+            });
+
+            if ($taxableTotal >= 50000) {
+                $validator->errors()->add(
+                    'bijak_no',
+                    'Bijak number (tax invoice serial) is required for B2B taxable transactions of Rs 50,000 or above (Nepal VAT Act).'
+                );
+            }
+        });
     }
 }

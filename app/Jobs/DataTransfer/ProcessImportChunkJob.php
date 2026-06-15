@@ -2,7 +2,6 @@
 
 namespace App\Jobs\DataTransfer;
 
-use App\Models\Product;
 use Illuminate\Bus\Queueable;
 use App\Models\DataTransferJob;
 use App\Models\DataTransferRow;
@@ -12,9 +11,8 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use App\Enums\DataTransfer\DataTransferStatusEnum;
 use App\Services\DataTransfer\ErrorReportGenerator;
-use App\Services\DataTransfer\ProductImportService;
 use App\Enums\DataTransfer\DataTransferRowStatusEnum;
-use App\Services\DataTransfer\ProductImportLookupCache;
+use App\Services\DataTransfer\Import\ImportHandlerFactory;
 use App\Jobs\DataTransfer\Concerns\SetsTenantFromDataTransferJob;
 
 class ProcessImportChunkJob implements ShouldQueue
@@ -37,7 +35,7 @@ class ProcessImportChunkJob implements ShouldQueue
     }
 
     public function handle(
-        ProductImportService $importService,
+        ImportHandlerFactory $importFactory,
         ErrorReportGenerator $errorReport,
     ): void {
         $job = $this->dataTransferJob->fresh();
@@ -55,7 +53,9 @@ class ProcessImportChunkJob implements ShouldQueue
         }
 
         $chunkSize = (int) config('data_transfer.chunk_size', 100);
-        $lookups = ProductImportLookupCache::forCompany($job->company_id);
+        $lookups = $importFactory->lookups($job->entity_type, $job->company_id);
+        $importService = $importFactory->service($job->entity_type);
+        $targetType = $importFactory->targetModelClass($job->entity_type);
 
         $rows = DataTransferRow::query()
             ->where('data_transfer_job_id', $job->id)
@@ -87,8 +87,8 @@ class ProcessImportChunkJob implements ShouldQueue
 
                 $row->update([
                     'status' => $status,
-                    'target_type' => Product::class,
-                    'target_id' => $result['product_id'],
+                    'target_type' => $targetType,
+                    'target_id' => $result['entity_id'],
                     'errors' => null,
                 ]);
 

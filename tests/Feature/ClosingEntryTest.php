@@ -23,7 +23,8 @@ function closingWarmAllTablesCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
-        $tables[$table] = Schema::getColumnListing($table);
+        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+        $tables[$table] = Schema::getColumnListing($plainName);
     }
     Cache::forget('allTables');
     Cache::forever('allTables', $tables);

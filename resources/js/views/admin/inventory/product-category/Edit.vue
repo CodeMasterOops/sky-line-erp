@@ -6,7 +6,18 @@
         <template #modal-body>
             <VLoader v-if="productCategory.loading" loader-type="progress"/>
             <form @submit.prevent="updateProductCategory(productCategory.data.id)" class="row g-3">
-                <div class="col-md-12">
+                <div class="col-md-6">
+                    <VMultiselect
+                        id="parent_id"
+                        v-model="form.parent_id"
+                        :options="parentOptionsTree"
+                        label="Parent category"
+                        placeholder="category"
+                        @validate="validateField('parent_id')"
+                        :error="errors.parent_id"
+                    />
+                </div>
+                <div class="col-md-6">
                     <VInput
                         id="name"
                         v-model="form.name"
@@ -36,21 +47,33 @@
 </template>
 
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {object, string} from 'yup';
+import {object, string, mixed} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useProductCategoryStore} from '@/stores/admin/inventory/product-category.js';
+import {buildCategoryOptionsTree, collectDescendantIds} from '@/helpers/categoryTree.js';
 
 const categoryStore = useProductCategoryStore();
 
 const edit_product_category_id = defineModel('product_category_id');
 
-const {productCategory} = storeToRefs(categoryStore);
+const {productCategory, productCategories} = storeToRefs(categoryStore);
+
+const parentOptionsTree = computed(() => {
+    const id = edit_product_category_id.value;
+    if (!id) {
+        return [];
+    }
+    const n = Number(id);
+    const ex = new Set([n, ...collectDescendantIds(productCategories.value.data, n)]);
+    return buildCategoryOptionsTree(productCategories.value.data, ex);
+});
 
 const initialState = {
+    parent_id: '',
     name: '',
     description: '',
 };
@@ -60,14 +83,17 @@ const isSubmitting = ref(false);
 
 watch(() => edit_product_category_id.value, async (id) => {
     if (id) {
+        await categoryStore.getProductCategories();
         await categoryStore.getProductCategory(id);
-        Object.keys(form).forEach(key => {
-            form[key] = productCategory.value.data[key] || '';
+        Object.keys(form).forEach((key) => {
+            const v = productCategory.value.data[key];
+            form[key] = key === 'parent_id' ? (v ?? '') : (v || '');
         });
     }
 });
 
 const validations = object({
+    parent_id: mixed().nullable(),
     name: string().required('Name is required.'),
     description: string().nullable()
 });

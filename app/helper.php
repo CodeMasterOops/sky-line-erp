@@ -10,26 +10,45 @@ use Illuminate\Support\Facades\Storage;
 if (! function_exists('allTables')) {
     function allTables()
     {
-        return Cache::rememberForever('allTables', function () {
-            if (Schema::getConnection()->getDriverName() === 'sqlite') {
-                $list = [];
-                foreach (Schema::getTableListing() as $table) {
-                    $list[$table] = Schema::getColumnListing($table);
-                }
+        $cached = Cache::get('allTables');
 
-                return $list;
+        // Don't trust a cached empty result — the database may not have been
+        // ready when the cache was first written (e.g. during service-provider
+        // boot before RefreshDatabase restores the in-memory PDO in tests).
+        if (is_array($cached) && count($cached) > 0) {
+            return $cached;
+        }
+
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            $list = [];
+            foreach (Schema::getTableListing() as $table) {
+                // SQLite in Laravel 12 returns schema-qualified names like
+                // 'main.users'. Schema::getColumnListing() requires the plain
+                // name — the qualified form returns an empty array.
+                $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+                $list[$table] = Schema::getColumnListing($plainName);
             }
 
-            $tables = DB::select('SHOW TABLES');
-            $list = [];
-            foreach ($tables as $table) {
-                foreach ($table as $key => $value) {
-                    $list[$value] = Schema::getColumnListing($value);
-                }
+            if (! empty($list)) {
+                Cache::forever('allTables', $list);
             }
 
             return $list;
-        });
+        }
+
+        $tables = DB::select('SHOW TABLES');
+        $list = [];
+        foreach ($tables as $table) {
+            foreach ($table as $key => $value) {
+                $list[$value] = Schema::getColumnListing($value);
+            }
+        }
+
+        if (! empty($list)) {
+            Cache::forever('allTables', $list);
+        }
+
+        return $list;
     }
 }
 
@@ -62,10 +81,20 @@ if (! function_exists('hasPermission')) {
             return true;
         }
 
+        // When inside a branch context, use branch-specific permissions stored
+        // by SetTenantContext rather than re-querying the user's company roles.
+        // The wildcard '*' value means the effective role grants all permissions.
+        $branchPermissions = \App\Services\TenantService::branchPermissions();
+        $activePermissions = $branchPermissions ?? userPermissions($user);
+
+        if (in_array('*', $activePermissions)) {
+            return true;
+        }
+
         $permissionToCheck = is_array($permissions) ? $permissions : [$permissions];
 
         foreach ($permissionToCheck as $p) {
-            if (in_array($p, userPermissions($user))) {
+            if (in_array($p, $activePermissions)) {
                 return true;
             }
         }

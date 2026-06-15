@@ -2,7 +2,7 @@
     <PageHeader title="General Ledger" subtitle="Accounting report" @refresh="generateReport"/>
 
     <section class="section">
-        <div class="card border-0 shadow-sm">
+        <div class="card border-0 shadow-sm no-print">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-xl-4 col-lg-5">
@@ -42,15 +42,12 @@
             </div>
         </div>
 
-        <div v-if="dataLoaded" class="card general-ledger-card border-0">
-            <div class="card-body p-0">
-                <div class="general-ledger-header">
-                    <div>
-                        <h4 class="mb-1">General Ledger</h4>
-                        <p class="mb-0 text-primary">{{ reportPeriodLabel }}</p>
-                    </div>
-                </div>
-
+        <ReportPrintShell
+            v-if="dataLoaded"
+            report-title="General Ledger"
+            :subtitle="reportPeriodLabel"
+            landscape
+        >
                 <div class="table-responsive">
                     <table class="table general-ledger-table align-middle mb-0">
                         <thead>
@@ -91,9 +88,8 @@
                         </tfoot>
                     </table>
                 </div>
-            </div>
-        </div>
-        <div v-else class="text-center text-muted py-5">
+        </ReportPrintShell>
+        <div v-else class="text-center text-muted py-5 no-print">
             <i class="ti ti-chart-bar display-4 d-block mb-3"></i>
             Select a report filter from the top panel and click 'Generate' to load the report.
         </div>
@@ -110,6 +106,7 @@ import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
 import {formatAmount} from "@/helpers/helper.js";
 import {useAccountStore} from "@/stores/admin/accounting/account.js";
+import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();

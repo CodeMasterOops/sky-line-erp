@@ -3,20 +3,19 @@
 namespace App\Services\Sales;
 
 use App\Models\Invoice;
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Models\Quotation;
 use App\Models\SalesOrder;
 use App\Enums\ChangeTypeEnum;
-use App\Enums\JournalTypeEnum;
-use App\Models\AccountSetting;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
-use App\Services\Accounting\PeriodLockGuard;
+use App\Services\Tax\TaxCalculationEngine;
 use App\Services\Accounting\JournalVoidService;
-use App\Services\Accounting\JournalBalanceGuard;
 use App\Services\Accounting\GlAccountConfigGuard;
+use App\Services\Accounting\InvoiceGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Services\Inventory\InventoryDocumentReversalService;
 
@@ -29,8 +28,8 @@ readonly class InvoiceService
         private DocumentNumberGenerator $documentNumberGenerator,
         private GlAccountConfigGuard $glAccountGuard,
         private JournalVoidService $journalVoid,
-        private JournalBalanceGuard $balanceGuard,
-        private PeriodLockGuard $periodGuard,
+        private InvoiceGlPostingService $invoiceGlService,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     public function createInvoice(array $formData): Invoice
@@ -65,6 +64,7 @@ readonly class InvoiceService
                 'reference_type' => $reference['reference_type'],
                 'reference_id' => $reference['reference_id'],
                 'invoice_no' => $invoiceNo,
+                'bijak_no' => $formData['bijak_no'] ?? null,
                 'invoice_date' => $formData['invoice_date'],
                 'invoice_date_bs' => $invoiceDateBs,
                 'due_date' => $formData['due_date'] ?? null,
@@ -79,11 +79,13 @@ readonly class InvoiceService
                 $invoice->saveDiscount(
                     $formData['order_discount_type'] ?? 'fixed',
                     isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
+                    $this->computeOrderDiscountAmount($formData),
                 );
             }
 
             foreach ($formData['items'] ?? [] as $item) {
+                $item = $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null);
+
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
@@ -92,6 +94,7 @@ readonly class InvoiceService
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
@@ -106,8 +109,9 @@ readonly class InvoiceService
                 }
             }
 
+            $invoice->refresh()->refreshTotals();
+
             if ($status === StatusEnum::APPROVED->value) {
-                $invoice->refresh();
                 $this->createJournal($invoice);
                 $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
             }
@@ -116,7 +120,7 @@ readonly class InvoiceService
         });
 
         if ($status === StatusEnum::APPROVED->value) {
-            SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird');
+            SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird')->afterCommit();
         }
 
         return $invoice;
@@ -133,6 +137,7 @@ readonly class InvoiceService
                 'reference_type' => $reference['reference_type'],
                 'reference_id' => $reference['reference_id'],
                 'invoice_no' => $invoiceNo,
+                'bijak_no' => $formData['bijak_no'] ?? $invoice->bijak_no,
                 'invoice_date' => $formData['invoice_date'],
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
@@ -142,13 +147,15 @@ readonly class InvoiceService
                 $invoice->saveDiscount(
                     $formData['order_discount_type'] ?? 'fixed',
                     isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
+                    $this->computeOrderDiscountAmount($formData),
                 );
             }
 
             $invoice->invoiceItems()->delete();
 
             foreach ($formData['items'] ?? [] as $item) {
+                $item = $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null);
+
                 $invoiceItem = $invoice->invoiceItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
@@ -157,6 +164,7 @@ readonly class InvoiceService
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
@@ -170,6 +178,8 @@ readonly class InvoiceService
                     );
                 }
             }
+
+            $invoice->refreshTotals();
         });
     }
 
@@ -190,7 +200,7 @@ readonly class InvoiceService
             $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
         });
 
-        SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird');
+        SyncInvoiceToIrdJob::dispatch($invoice->refresh())->onQueue('ird')->afterCommit();
     }
 
     public function voidInvoice(Invoice $invoice): void
@@ -256,68 +266,65 @@ readonly class InvoiceService
 
     private function createJournal(Invoice $invoice): void
     {
-        $invoice->loadMissing('invoiceItems', 'party:id,name', 'discount');
+        $this->invoiceGlService->postFromInvoice($invoice);
+    }
 
-        // Single chokepoint guard: protects every posting path, including the
-        // approve-on-create branch of createInvoice, not just approveInvoice().
-        $this->assertGlAccountsConfigured($invoice);
-        $this->periodGuard->assertPostable($invoice->company_id, $invoice->fiscal_year_id, $invoice->invoice_date);
+    /**
+     * Computes the monetary order discount from the raw form data so that
+     * Discount.amount is always stored as a currency value, not as 0.
+     * This makes GL posting and due-amount calculations consistent regardless
+     * of whether the discount is fixed or percentage-based.
+     *
+     * @param  array<string, mixed>  $formData
+     */
+    private function computeOrderDiscountAmount(array $formData): float
+    {
+        $type = $formData['order_discount_type'] ?? 'fixed';
+        $value = (float) ($formData['order_discount_value'] ?? 0);
 
-        $accountSetting = AccountSetting::first();
-
-        $journal = $invoice->journal()->create([
-            'company_id' => $invoice->company_id,
-            'fiscal_year_id' => $invoice->fiscal_year_id,
-            'type' => JournalTypeEnum::INVOICE->value,
-            'voucher_no' => $invoice->invoice_no,
-            'reference_no' => null,
-            'date' => $invoice->invoice_date,
-            'remarks' => $invoice->remarks,
-            'create_user_id' => $invoice->create_user_id,
-            'approve_user_id' => $invoice->approve_user_id,
-            'approved_at' => $invoice->approved_at,
-            'status' => StatusEnum::APPROVED->value,
-        ]);
-
-        $subTotal = 0;
-        $lineDiscountTotal = 0;
-        $taxTotal = 0;
-
-        foreach ($invoice->invoiceItems as $item) {
-            $lineSubtotal = (float) $item->quantity * (float) $item->rate;
-            $subTotal += $lineSubtotal;
-            $lineDiscountTotal += (float) $item->discount_amount;
-            $taxTotal += (float) $item->tax_amount;
+        if ($value <= 0) {
+            return 0.0;
         }
 
-        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
-        $grandTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount + $taxTotal;
-        $taxableTotal = $subTotal - $lineDiscountTotal - $orderDiscountAmount;
+        if ($type === 'percent') {
+            $lineSubtotalAfterLineDiscounts = collect($formData['items'] ?? [])
+                ->sum(fn ($item) => ((float) $item['quantity'] * (float) $item['rate']) - (float) ($item['discount_amount'] ?? 0));
 
-        $journal->journalItems()->create([
-            'account_id' => $accountSetting->customer_account_id,
-            'dr_amount' => $grandTotal,
-            'cr_amount' => 0,
-            'remarks' => 'To-Sales Account',
-        ]);
-
-        $journal->journalItems()->create([
-            'account_id' => $accountSetting->sales_account_id,
-            'dr_amount' => 0,
-            'cr_amount' => $taxableTotal,
-            'remarks' => 'To-'.($invoice->party->name ?? ''),
-        ]);
-
-        if ($taxTotal > 0) {
-            $journal->journalItems()->create([
-                'account_id' => $accountSetting->vat_account_id,
-                'dr_amount' => 0,
-                'cr_amount' => $taxTotal,
-                'remarks' => 'By-'.($invoice->party->name ?? ''),
-            ]);
+            return round($lineSubtotalAfterLineDiscounts * $value / 100, 2);
         }
 
-        $this->balanceGuard->assertBalanced($journal);
+        return round($value, 2);
+    }
+
+    /**
+     * When an item carries a tax_group_id, compute the tax_amount server-side using the
+     * TaxCalculationEngine so inclusive and compound taxes are handled correctly.
+     * Falls back to the frontend-supplied tax_amount for single-tax (tax_id) items.
+     *
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function resolveItemTax(array $item, ?int $partyId, ?string $invoiceDate): array
+    {
+        $taxGroupId = $item['tax_group_id'] ?? null;
+        if (! $taxGroupId) {
+            return $item;
+        }
+
+        $group = TaxGroup::withoutGlobalScopes()->find($taxGroupId);
+        if (! $group) {
+            return $item;
+        }
+
+        $baseAmount = round(
+            ((float) $item['quantity'] * (float) $item['rate']) - (float) ($item['discount_amount'] ?? 0),
+            2,
+        );
+
+        $result = $this->taxEngine->calculateForGroup($baseAmount, $group, $partyId, $invoiceDate);
+        $item['tax_amount'] = $result->totalTaxAmount;
+
+        return $item;
     }
 
     /**

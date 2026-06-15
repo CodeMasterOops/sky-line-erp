@@ -1,6 +1,10 @@
 import {defineStore} from "pinia";
 import {apiAdmin} from "@/helpers/api.js";
 import showErrors from "@/helpers/showErrors.js";
+import {
+    buildCategoryOptionsTree,
+    buildLeafCategoryOptions,
+} from "@/helpers/categoryTree.js";
 
 const apiUrl = 'product-category'
 
@@ -16,6 +20,17 @@ export const useProductCategoryStore = defineStore('product-category', {
             loading: false
         }
     }),
+
+    getters: {
+        optionsTree(state) {
+            return buildCategoryOptionsTree(state.productCategories.data);
+        },
+        optionsTreeExcluding: (state) => (excludeIds = new Set()) =>
+            buildCategoryOptionsTree(state.productCategories.data, excludeIds),
+        leafOptionsTree(state) {
+            return buildLeafCategoryOptions(state.productCategories.data);
+        },
+    },
 
     actions: {
         getProductCategories({ filter } = {}) {

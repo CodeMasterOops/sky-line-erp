@@ -9,6 +9,7 @@ use App\Enums\StatusEnum;
 use App\Models\CreditNote;
 use App\Models\JournalItem;
 use App\Enums\JournalTypeEnum;
+use App\Enums\TaxLineTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 
@@ -34,6 +35,7 @@ class CreditNoteGlPostingService
     public function isPosted(CreditNote $creditNote): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $creditNote->company_id)
             ->where('reference_type', $creditNote->getMorphClass())
             ->where('reference_id', $creditNote->id)
             ->where('type', JournalTypeEnum::CREDIT_NOTE->value)
@@ -47,11 +49,22 @@ class CreditNoteGlPostingService
             return;
         }
 
-        $creditNote->loadMissing('creditNoteItems');
+        $creditNote->loadMissing('creditNoteItems', 'discount');
 
-        $salesBase = round((float) $creditNote->creditNoteItems
+        $vatTaxableBase = round((float) $creditNote->creditNoteItems
+            ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
             ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
-        $vatAmount = round((float) $creditNote->creditNoteItems->sum('tax_amount'), 2);
+
+        $nonVatBase = round((float) $creditNote->creditNoteItems
+            ->whereIn('tax_line_type', [TaxLineTypeEnum::EXEMPT, TaxLineTypeEnum::ZERO_RATED])
+            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
+
+        $vatAmount = round((float) $creditNote->creditNoteItems
+            ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
+            ->sum('tax_amount'), 2);
+
+        $orderDiscountAmount = round((float) ($creditNote->discount?->amount ?? 0), 2);
+        $salesBase = round($vatTaxableBase + $nonVatBase - $orderDiscountAmount, 2);
         $grandTotal = round($salesBase + $vatAmount, 2);
 
         if ($grandTotal <= 0) {
@@ -77,12 +90,12 @@ class CreditNoteGlPostingService
                 ->first();
 
         if (! $user) {
-            return;
+            throw new \RuntimeException("Cannot post GL for credit note {$creditNote->id}: no user found for company {$creditNote->company_id}.");
         }
 
         $company = Company::with('fiscalYear')->find($creditNote->company_id);
         if (! $company || ! $company->fiscal_year_id) {
-            return;
+            throw new \RuntimeException("Cannot post GL for credit note {$creditNote->id}: company or fiscal year not configured.");
         }
 
         $yearCode = $company->fiscalYear?->year_code ?? '';

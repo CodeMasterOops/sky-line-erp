@@ -4,20 +4,21 @@ namespace App\Http\Controllers\Api\Admin\Accounting;
 
 use App\Models\Journal;
 use App\Enums\StatusEnum;
-use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Services\DocumentNumberGenerator;
+use App\Services\Accounting\PeriodLockGuard;
+use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoucherService;
 use App\Http\Resources\Admin\Accounting\JournalVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\JournalVoucherRequest;
 
 class JournalVoucherController extends Controller
 {
     public function __construct(
-        private DocumentNumberGenerator $documentNumberGenerator,
+        private readonly JournalVoucherService $journalVoucherService,
+        private readonly PeriodLockGuard $periodGuard,
     ) {}
 
     /**
@@ -48,32 +49,7 @@ class JournalVoucherController extends Controller
             ], 400);
         }
 
-        $user = auth('admin')->user();
-        $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-
-        $formData['fiscal_year_id'] = $fiscalYearId;
-        $formData['type'] = JournalTypeEnum::JOURNAL_VOUCHER->value;
-        $formData['create_user_id'] = $user->id;
-        $formData['approve_user_id'] = $status === StatusEnum::APPROVED->value ? $user->id : null;
-        $formData['approved_at'] = $status === StatusEnum::APPROVED->value ? now() : null;
-        $formData['status'] = $status;
-
-        $journal = DB::transaction(function () use ($formData, $fiscalYearId, $setting) {
-            // See InvoiceService for the lock-inside-transaction concurrency note.
-            $formData['voucher_no'] = $this->documentNumberGenerator->journalVoucher(
-                JournalTypeEnum::JOURNAL_VOUCHER,
-                'JV-',
-                $fiscalYearId,
-                $setting->fiscalYear?->year_code,
-            );
-            $journal = Journal::create($formData);
-
-            $journal->journalItems()->createMany($formData['items']);
-
-            return $journal;
-        });
+        $journal = $this->journalVoucherService->create($formData, auth('admin')->user());
 
         $journal->load(['journalItems.account']);
 
@@ -110,26 +86,7 @@ class JournalVoucherController extends Controller
 
         $formData = $request->validated();
 
-        $journalVoucher = DB::transaction(function () use ($journalVoucher, $formData) {
-            $journalVoucher->update($formData);
-
-            $accountIds = Arr::pluck($formData['items'], 'account_id');
-
-            $journalVoucher->journalItems()->whereNotIn('account_id', $accountIds)->delete();
-
-            foreach ($formData['items'] as $item) {
-                $journalVoucher->journalItems()->updateOrCreate(
-                    ['account_id' => $item['account_id']],
-                    [
-                        'dr_amount' => $item['dr_amount'] ?? 0,
-                        'cr_amount' => $item['cr_amount'] ?? 0,
-                        'remarks' => $item['remarks'] ?? null,
-                    ]
-                );
-            }
-
-            return $journalVoucher;
-        });
+        $journalVoucher = $this->journalVoucherService->update($journalVoucher, $formData);
 
         $journalVoucher->load(['journalItems.account']);
 
@@ -145,6 +102,12 @@ class JournalVoucherController extends Controller
     public function destroy(Journal $journalVoucher)
     {
         $this->ensureJournalVoucher($journalVoucher);
+
+        if ($journalVoucher->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved journal vouchers cannot be deleted. Please void the entry instead.',
+            ], 422);
+        }
 
         $journalVoucher->journalItems()->delete();
         $journalVoucher->delete();
@@ -169,6 +132,18 @@ class JournalVoucherController extends Controller
         }
 
         $user = auth('admin')->user();
+
+        if ($journalVoucher->create_user_id === $user->id) {
+            throw ValidationException::withMessages([
+                'status' => __('The journal voucher creator cannot also approve it (maker-checker policy).'),
+            ]);
+        }
+
+        $this->periodGuard->assertPostable(
+            $journalVoucher->company_id,
+            $journalVoucher->fiscal_year_id,
+            $journalVoucher->date,
+        );
 
         $journalVoucher->update([
             'approve_user_id' => $user->id,

@@ -1,19 +1,17 @@
 <template>
     <PageHeader title="Kharid Khata" subtitle="VAT Purchase Register" hide-action-buttons />
 
-    <div class="card border-0 mb-3">
+    <div class="card border-0 mb-3 no-print">
         <div class="card-body pb-1">
             <div class="row align-items-end">
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" class="form-control" v-model="filters.start_date" />
+                        <VDatepicker id="start_date" label="Start Date" v-model="filters.start_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" class="form-control" v-model="filters.end_date" />
+                        <VDatepicker id="end_date" label="End Date" v-model="filters.end_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -35,11 +33,12 @@
         </div>
     </div>
 
-    <div class="card border-0">
-        <div class="card-header">
-            <h6 class="mb-0">{{ periodLabel || 'Kharid Khata – VAT Purchase Register' }}</h6>
-        </div>
-        <div class="card-body">
+    <ReportPrintShell
+        v-if="rows.length || periodLabel"
+        report-title="VAT Purchase Register"
+        :subtitle="periodLabel || 'Kharid Khata'"
+        landscape
+    >
             <div class="table-responsive">
                 <table class="table table-sm table-hover table-bordered">
                     <thead class="table-light">
@@ -82,8 +81,7 @@
                     </tfoot>
                 </table>
             </div>
-        </div>
-    </div>
+    </ReportPrintShell>
 </template>
 
 <script setup>
@@ -91,6 +89,8 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const filters = ref({ start_date: null, end_date: null });
 const loading = ref(false);

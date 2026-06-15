@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
+use App\Models\User;
 use App\Models\Company;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
@@ -67,7 +68,7 @@ class StockTransferController extends Controller
                 $transfer->stockTransferItems()->createMany($items);
 
                 if ($status === StatusEnum::APPROVED->value) {
-                    $this->applyApprovalEffects($transfer);
+                    $this->applyApprovalEffects($transfer, $user);
                 }
 
                 return $transfer;
@@ -156,8 +157,16 @@ class StockTransferController extends Controller
      */
     public function destroy(StockTransfer $stockTransfer)
     {
-        $stockTransfer->stockTransferItems()->delete();
-        $stockTransfer->delete();
+        if ($stockTransfer->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved stock transfers cannot be deleted. Please create a reverse transfer to correct the stock movement.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($stockTransfer) {
+            $stockTransfer->stockTransferItems()->delete();
+            $stockTransfer->delete();
+        });
 
         return response()->json([
             'message' => 'Stock Transfer Deleted Successfully',
@@ -186,7 +195,7 @@ class StockTransferController extends Controller
                     'status' => StatusEnum::APPROVED->value,
                 ]);
 
-                $this->applyApprovalEffects($stockTransfer);
+                $this->applyApprovalEffects($stockTransfer, $user);
             });
         } catch (ValidationException $e) {
             return response()->json([
@@ -240,10 +249,9 @@ class StockTransferController extends Controller
         })->all();
     }
 
-    private function applyApprovalEffects(StockTransfer $transfer): void
+    private function applyApprovalEffects(StockTransfer $transfer, User $user): void
     {
         $transfer->loadMissing('stockTransferItems');
-        $user = auth('admin')->user();
         $company = Company::findOrFail($transfer->company_id);
 
         foreach ($transfer->stockTransferItems as $item) {

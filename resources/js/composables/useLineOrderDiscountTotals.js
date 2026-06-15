@@ -42,6 +42,13 @@ export function useLineOrderDiscountTotals({ form, taxes }) {
     });
 
     const calcLineTax = (item, index) => {
+        // Tax group items: backend computes inclusive/compound amounts; trust stored tax_amount.
+        // Handles both explicit tax_group_id (invoice) and 'group:X' prefix in tax_id (other forms).
+        const isGroupItem = item.tax_group_id || String(item.tax_id ?? '').startsWith('group:');
+        if (isGroupItem) {
+            return Number(item.tax_amount ?? 0);
+        }
+
         const { nets, allocs } = orderLevelComputed.value;
         const lineNet = nets[index] ?? 0;
         const alloc = allocs[index] || 0;
@@ -70,8 +77,11 @@ export function useLineOrderDiscountTotals({ form, taxes }) {
             const lineNet = nets[index] ?? 0;
             const alloc = allocs[index] || 0;
             const afterOrder = Math.max(0, lineNet - alloc);
-            const r = getTaxRate(item.tax_id);
-            if (r > 0) {
+            const isGroupItem = item.tax_group_id || String(item.tax_id ?? '').startsWith('group:');
+            const hasTax = isGroupItem
+                ? Number(item.tax_amount ?? 0) > 0
+                : getTaxRate(item.tax_id) > 0;
+            if (hasTax) {
                 taxableBase += afterOrder;
             } else {
                 nonTaxableBase += afterOrder;
@@ -94,10 +104,14 @@ export function useLineOrderDiscountTotals({ form, taxes }) {
     });
 
     const syncTaxAmounts = () => {
-        form.items = form.items.map((item, index) => ({
-            ...item,
-            tax_amount: calcLineTax(item, index),
-        }));
+        form.items = form.items.map((item, index) => {
+            const isGroupItem = item.tax_group_id || String(item.tax_id ?? '').startsWith('group:');
+            return {
+                ...item,
+                // Tax group amounts are already stored via async backend fetch; don't recompute.
+                tax_amount: isGroupItem ? (item.tax_amount ?? 0) : calcLineTax(item, index),
+            };
+        });
     };
 
     return {

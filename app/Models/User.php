@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Enums\UserTypeEnum;
 use Illuminate\Http\UploadedFile;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -66,5 +68,55 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class);
+    }
+
+    public function branchAssignments(): HasMany
+    {
+        return $this->hasMany(BranchUser::class);
+    }
+
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class, 'branch_users')
+            ->withPivot(['role_id', 'is_active'])
+            ->wherePivot('is_active', true)
+            ->withTimestamps();
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->user_type === UserTypeEnum::ADMIN;
+    }
+
+    public function canAccessBranch(int $branchId): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return $this->branches()->where('branches.id', $branchId)->exists();
+    }
+
+    public function accessibleBranchIds(): Collection
+    {
+        if ($this->isAdmin()) {
+            return Branch::query()
+                ->where('company_id', $this->company_id)
+                ->pluck('id');
+        }
+
+        return $this->branches()->pluck('branches.id');
+    }
+
+    public function branchRole(int $branchId): ?Role
+    {
+        $assignment = $this->branchAssignments()
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->first();
+
+        return $assignment?->role_id
+            ? $assignment->role
+            : $this->roles()->first();
     }
 }

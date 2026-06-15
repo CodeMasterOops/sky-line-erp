@@ -95,8 +95,7 @@
                         <input type="number" class="form-control" v-model="form.exchange_rate" min="0.000001" step="0.01" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Rate Date</label>
-                        <input type="date" class="form-control" v-model="form.rate_date" />
+                        <VDatepicker id="rate_date" label="Rate Date" v-model="form.rate_date" />
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -120,6 +119,7 @@ import { toast } from '@/helpers/toast.js';
 import { formatDate } from '@/helpers/helper.js';
 import Swal from 'sweetalert2';
 import VPagination from '@/components/base/VPagination.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const currencies = ref([]);
 const loading = ref(false);

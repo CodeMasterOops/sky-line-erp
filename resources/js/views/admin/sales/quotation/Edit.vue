@@ -292,7 +292,7 @@ import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useQuotationStore} from '@/stores/admin/sales/quotation.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -309,9 +309,9 @@ const createCustomerOpened = ref(false);
 
 const {quotation} = storeToRefs(quotationStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({
@@ -399,6 +399,7 @@ watch(
             return;
         }
         taxStore.getTaxes();
+        taxStore.getTaxGroups();
         await quotationStore.getQuotation(id);
         const data = quotation.value.data;
 
@@ -491,7 +492,7 @@ const buildQuotationPayload = () => {
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: calcLineTax(item, index),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',

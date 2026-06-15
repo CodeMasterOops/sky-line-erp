@@ -210,15 +210,16 @@
         <thead>
             <tr>
                 <th style="width:4%">#</th>
-                <th style="width:27%; text-align:left;">Description</th>
-                <th style="width:8%">HSN</th>
-                <th style="width:7%">Unit</th>
-                <th style="width:7%">Qty</th>
-                <th style="width:10%">Rate</th>
-                <th style="width:9%">Discount</th>
-                <th style="width:10%">Taxable</th>
-                <th style="width:8%">VAT</th>
-                <th style="width:10%">VAT Amt</th>
+                <th style="width:22%; text-align:left;">Description</th>
+                <th style="width:7%">Code</th>
+                <th style="width:7%">HSN</th>
+                <th style="width:6%">Unit</th>
+                <th style="width:6%">Qty</th>
+                <th style="width:9%">Rate</th>
+                <th style="width:8%">Discount</th>
+                <th style="width:9%">Taxable</th>
+                <th style="width:7%">VAT</th>
+                <th style="width:9%">VAT Amt</th>
             </tr>
         </thead>
         <tbody>
@@ -242,6 +243,7 @@
                             <span class="item-sub">SKU: {{ $item->productVariant->sku }}</span>
                         @endif
                     </td>
+                    <td class="center">{{ $item->productVariant?->product?->code ?? '—' }}</td>
                     <td class="center">{{ $item->productVariant?->product?->hsn_code ?? '—' }}</td>
                     <td class="center">{{ $item->unit?->name ?? '—' }}</td>
                     <td class="num">{{ number_format($item->quantity, 2) }}</td>
@@ -253,7 +255,7 @@
                 </tr>
             @empty
                 <tr class="empty-row">
-                    <td colspan="10">No line items</td>
+                    <td colspan="11">No line items</td>
                 </tr>
             @endforelse
         </tbody>
@@ -332,6 +334,10 @@
                 @endif
             </td>
             <td class="footer-notes">
+                @if($company?->invoice_note)
+                    <strong>Invoice note / rules:</strong><br>
+                    {!! nl2br(e($company->invoice_note)) !!}<br><br>
+                @endif
                 @if($invoice->remarks)
                     <strong>Remarks:</strong> {{ $invoice->remarks }}<br>
                 @endif

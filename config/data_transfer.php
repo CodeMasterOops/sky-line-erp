@@ -51,6 +51,7 @@ return [
         'reorder_quantity',
         'min_stock_level',
         'sku',
+        'barcode',
         'sales_price',
         'purchase_price',
         'is_default',
@@ -60,5 +61,24 @@ return [
         'attribute_2_value',
         'warehouse',
         'quantity',
+    ],
+
+    'warehouse_fields' => [
+        'name',
+        'code',
+        'parent',
+        'phone',
+        'address',
+    ],
+
+    'party_fields' => [
+        'name',
+        'code',
+        'phone',
+        'email',
+        'pan',
+        'address',
+        'credit_limit',
+        'is_active',
     ],
 ];

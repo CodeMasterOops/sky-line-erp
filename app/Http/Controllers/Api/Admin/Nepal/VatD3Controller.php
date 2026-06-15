@@ -6,8 +6,8 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Services\AccountReportService;
 use App\Services\Nepal\NepaliDateService;
+use App\Services\Accounting\AccountReportService;
 
 /**
  * VAT D3 Return — generates the IRD-format D3 return export.
@@ -72,13 +72,7 @@ class VatD3Controller extends Controller
         if (in_array($type, ['sales', 'combined'])) {
             $sales = $this->fetchSalesRows($companyId, $startDate, $endDate);
             foreach ($sales as $row) {
-                $dateBs = '';
-                try {
-                    $bs = $this->nepaliDate->adToBs($row->invoice_date);
-                    $dateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
-                } catch (\Throwable) {
-                }
-
+                $dateBs = $this->safeAdToBs($row->invoice_date);
                 $rows[] = [
                     'type' => 'Sales',
                     'doc_no' => $row->invoice_no,
@@ -88,8 +82,28 @@ class VatD3Controller extends Controller
                     'party_name' => $row->party_name ?? 'Cash Customer',
                     'taxable_amount' => round($row->taxable_amount ?? 0, 2),
                     'vat_amount' => round($row->vat_amount ?? 0, 2),
+                    'zero_rated_amount' => round($row->zero_rated_amount ?? 0, 2),
                     'exempt_amount' => round($row->exempt_amount ?? 0, 2),
-                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
+                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->zero_rated_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
+                ];
+            }
+
+            // IRD D3 Sales Annex requires credit notes (sales returns) as negative rows.
+            $creditNotes = $this->fetchCreditNoteRows($companyId, $startDate, $endDate);
+            foreach ($creditNotes as $row) {
+                $dateBs = $this->safeAdToBs($row->credit_note_date);
+                $rows[] = [
+                    'type' => 'Credit Note',
+                    'doc_no' => $row->credit_note_no,
+                    'date_ad' => $row->credit_note_date,
+                    'date_bs' => $dateBs,
+                    'pan' => $row->party_pan ?? '',
+                    'party_name' => $row->party_name ?? '',
+                    'taxable_amount' => -round($row->taxable_amount ?? 0, 2),
+                    'vat_amount' => -round($row->vat_amount ?? 0, 2),
+                    'zero_rated_amount' => -round($row->zero_rated_amount ?? 0, 2),
+                    'exempt_amount' => -round($row->exempt_amount ?? 0, 2),
+                    'total_amount' => -round(($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->zero_rated_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
                 ];
             }
         }
@@ -97,13 +111,7 @@ class VatD3Controller extends Controller
         if (in_array($type, ['purchase', 'combined'])) {
             $purchases = $this->fetchPurchaseRows($companyId, $startDate, $endDate);
             foreach ($purchases as $row) {
-                $dateBs = '';
-                try {
-                    $bs = $this->nepaliDate->adToBs($row->bill_date);
-                    $dateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
-                } catch (\Throwable) {
-                }
-
+                $dateBs = $this->safeAdToBs($row->bill_date);
                 $rows[] = [
                     'type' => 'Purchase',
                     'doc_no' => $row->bill_no,
@@ -113,8 +121,28 @@ class VatD3Controller extends Controller
                     'party_name' => $row->party_name ?? '',
                     'taxable_amount' => round($row->taxable_amount ?? 0, 2),
                     'vat_amount' => round($row->input_vat ?? 0, 2),
+                    'zero_rated_amount' => round($row->zero_rated_amount ?? 0, 2),
                     'exempt_amount' => round($row->exempt_amount ?? 0, 2),
-                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0), 2),
+                    'total_amount' => round(($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->zero_rated_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
+                ];
+            }
+
+            // IRD D3 Purchase Annex requires debit notes (purchase returns) as negative rows.
+            $debitNotes = $this->fetchDebitNoteRows($companyId, $startDate, $endDate);
+            foreach ($debitNotes as $row) {
+                $dateBs = $this->safeAdToBs($row->debit_note_date);
+                $rows[] = [
+                    'type' => 'Debit Note',
+                    'doc_no' => $row->debit_note_no,
+                    'date_ad' => $row->debit_note_date,
+                    'date_bs' => $dateBs,
+                    'pan' => $row->party_pan ?? '',
+                    'party_name' => $row->party_name ?? '',
+                    'taxable_amount' => -round($row->taxable_amount ?? 0, 2),
+                    'vat_amount' => -round($row->input_vat ?? 0, 2),
+                    'zero_rated_amount' => -round($row->zero_rated_amount ?? 0, 2),
+                    'exempt_amount' => -round($row->exempt_amount ?? 0, 2),
+                    'total_amount' => -round(($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->zero_rated_amount ?? 0) + ($row->exempt_amount ?? 0), 2),
                 ];
             }
         }
@@ -139,11 +167,11 @@ class VatD3Controller extends Controller
             fputcsv($handle, ['Period (BS)', "{$startBs} to {$endBs}"]);
             fputcsv($handle, []);
 
-            // Column headers
+            // Column headers — IRD D3 format includes zero-rated (export) as a separate column
             fputcsv($handle, [
                 'Type', 'Invoice/Bill No', 'Date (AD)', 'Date (BS)',
                 'Party PAN', 'Party Name',
-                'Taxable Amount', 'VAT Amount', 'Exempt Amount', 'Total Amount',
+                'Taxable Amount', 'VAT Amount', 'Zero-Rated Amount', 'Exempt Amount', 'Total Amount',
             ]);
 
             foreach ($rows as $row) {
@@ -156,6 +184,7 @@ class VatD3Controller extends Controller
                     $row['party_name'],
                     $row['taxable_amount'],
                     $row['vat_amount'],
+                    $row['zero_rated_amount'],
                     $row['exempt_amount'],
                     $row['total_amount'],
                 ]);
@@ -167,6 +196,7 @@ class VatD3Controller extends Controller
                 'TOTAL', '', '', '', '', '',
                 round(array_sum(array_column($rows, 'taxable_amount')), 2),
                 round(array_sum(array_column($rows, 'vat_amount')), 2),
+                round(array_sum(array_column($rows, 'zero_rated_amount')), 2),
                 round(array_sum(array_column($rows, 'exempt_amount')), 2),
                 round(array_sum(array_column($rows, 'total_amount')), 2),
             ]);
@@ -175,6 +205,17 @@ class VatD3Controller extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function safeAdToBs(string $date): string
+    {
+        try {
+            $bs = $this->nepaliDate->adToBs($date);
+
+            return $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     private function fetchSalesRows(int $companyId, string $startDate, string $endDate)
@@ -200,6 +241,7 @@ class VatD3Controller extends Controller
                 'parties.name as party_name',
                 DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as taxable_amount"),
                 DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN invoice_items.tax_amount ELSE 0 END) as vat_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'zero_rated' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as zero_rated_amount"),
                 DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'exempt' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as exempt_amount"),
             ])
             ->get();
@@ -227,7 +269,64 @@ class VatD3Controller extends Controller
                 'parties.name as party_name',
                 DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as taxable_amount"),
                 DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN bill_items.tax_amount ELSE 0 END) as input_vat"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'zero_rated' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as zero_rated_amount"),
                 DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'exempt' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as exempt_amount"),
+            ])
+            ->get();
+    }
+
+    private function fetchCreditNoteRows(int $companyId, string $startDate, string $endDate)
+    {
+        return DB::table('credit_notes')
+            ->leftJoin('parties', 'parties.id', '=', 'credit_notes.party_id')
+            ->leftJoin('credit_note_items', 'credit_note_items.credit_note_id', '=', 'credit_notes.id')
+            ->where('credit_notes.company_id', $companyId)
+            ->where('credit_notes.status', 'approved')
+            ->whereNull('credit_notes.voided_at')
+            ->whereNull('credit_notes.deleted_at')
+            ->whereNull('credit_note_items.deleted_at')
+            ->whereBetween('credit_notes.credit_note_date', [$startDate, $endDate])
+            ->groupBy(
+                'credit_notes.id', 'credit_notes.credit_note_no', 'credit_notes.credit_note_date',
+                'parties.pan', 'parties.name'
+            )
+            ->select([
+                'credit_notes.credit_note_no',
+                'credit_notes.credit_note_date',
+                'parties.pan as party_pan',
+                'parties.name as party_name',
+                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'taxable' THEN (credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount ELSE 0 END) as taxable_amount"),
+                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'taxable' THEN credit_note_items.tax_amount ELSE 0 END) as vat_amount"),
+                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'zero_rated' THEN (credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount ELSE 0 END) as zero_rated_amount"),
+                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'exempt' THEN (credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount ELSE 0 END) as exempt_amount"),
+            ])
+            ->get();
+    }
+
+    private function fetchDebitNoteRows(int $companyId, string $startDate, string $endDate)
+    {
+        return DB::table('debit_notes')
+            ->leftJoin('parties', 'parties.id', '=', 'debit_notes.party_id')
+            ->leftJoin('debit_note_items', 'debit_note_items.debit_note_id', '=', 'debit_notes.id')
+            ->where('debit_notes.company_id', $companyId)
+            ->where('debit_notes.status', 'approved')
+            ->whereNull('debit_notes.voided_at')
+            ->whereNull('debit_notes.deleted_at')
+            ->whereNull('debit_note_items.deleted_at')
+            ->whereBetween('debit_notes.debit_note_date', [$startDate, $endDate])
+            ->groupBy(
+                'debit_notes.id', 'debit_notes.debit_note_no', 'debit_notes.debit_note_date',
+                'parties.pan', 'parties.name'
+            )
+            ->select([
+                'debit_notes.debit_note_no',
+                'debit_notes.debit_note_date',
+                'parties.pan as party_pan',
+                'parties.name as party_name',
+                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'taxable' THEN (debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount ELSE 0 END) as taxable_amount"),
+                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'taxable' THEN debit_note_items.tax_amount ELSE 0 END) as input_vat"),
+                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'zero_rated' THEN (debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount ELSE 0 END) as zero_rated_amount"),
+                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'exempt' THEN (debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount ELSE 0 END) as exempt_amount"),
             ])
             ->get();
     }

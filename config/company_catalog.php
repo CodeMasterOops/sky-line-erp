@@ -22,20 +22,33 @@ return [
 
     'categories' => [
         ['name' => 'General', 'description' => 'Miscellaneous items'],
-        ['name' => 'Beverages', 'description' => 'Drinks'],
-        ['name' => 'Grocery', 'description' => 'Packaged foods'],
+        [
+            'name' => 'Beverages',
+            'description' => 'Drinks',
+            'children' => [
+                ['name' => 'Water', 'description' => 'Bottled water'],
+                ['name' => 'Dairy Drinks', 'description' => 'Milk and dairy beverages'],
+            ],
+        ],
+        [
+            'name' => 'Grocery',
+            'description' => 'Packaged foods',
+            'children' => [
+                ['name' => 'Staples', 'description' => 'Rice, flour, and staples'],
+            ],
+        ],
         ['name' => 'Services', 'description' => 'Billable services and labor'],
     ],
 
     /**
-     * category: must match a name from categories[] above
+     * category: leaf category name (or Parent > Child path)
      * unit_code, brand_code: match codes from units / brands
      */
     'products' => [
         [
             'name' => 'Mineral Water 1L',
             'code' => 'DEMO-WAT-1L',
-            'category' => 'Beverages',
+            'category' => 'Water',
             'unit_code' => 'PCS',
             'brand_code' => 'HB',
             'hsn_code' => null,
@@ -46,7 +59,7 @@ return [
         [
             'name' => 'Rice 5Kg',
             'code' => 'DEMO-RICE-5K',
-            'category' => 'Grocery',
+            'category' => 'Staples',
             'unit_code' => 'PCS',
             'brand_code' => 'HB',
             'hsn_code' => null,
@@ -57,7 +70,7 @@ return [
         [
             'name' => 'Milk 1L',
             'code' => 'DEMO-MILK-1L',
-            'category' => 'Beverages',
+            'category' => 'Dairy Drinks',
             'unit_code' => 'L',
             'brand_code' => 'HB',
             'hsn_code' => null,

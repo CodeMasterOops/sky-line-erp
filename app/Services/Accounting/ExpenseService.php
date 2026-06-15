@@ -41,6 +41,7 @@ readonly class ExpenseService
     public function isPosted(Expense $expense): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $expense->company_id)
             ->where('reference_type', $expense->getMorphClass())
             ->where('reference_id', $expense->id)
             ->where('type', JournalTypeEnum::EXPENSE->value)
@@ -144,7 +145,9 @@ readonly class ExpenseService
         $this->glAccountGuard->assertExpensePostable($hasTax);
         $this->periodGuard->assertPostable($expense->company_id, $expense->fiscal_year_id, $expense->date);
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $expense->company_id)
+            ->first();
 
         $journal = $expense->journal()->create([
             'company_id' => $expense->company_id,

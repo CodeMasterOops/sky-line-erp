@@ -57,7 +57,7 @@
         <template #modal-body>
             <form @submit.prevent="storeHoliday" class="row g-3">
                 <div class="col-md-6"><VInput v-model="cForm.name" label="Name *" /></div>
-                <div class="col-md-6"><VInput v-model="cForm.date" label="Date *" type="date" /></div>
+                <div class="col-md-6"><VDatepicker id="create_date" v-model="cForm.date" label="Date" required /></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" v-model="cForm.description" rows="2"></textarea></div>
                 <div class="col-12 text-end">
                     <button type="button" @click="createModalOpened = false" class="btn btn-danger me-2">Close</button>
@@ -71,7 +71,7 @@
         <template #modal-body>
             <form v-if="editItem" @submit.prevent="updateHoliday" class="row g-3">
                 <div class="col-md-6"><VInput v-model="editItem.name" label="Name *" /></div>
-                <div class="col-md-6"><VInput v-model="editItem.date" label="Date *" type="date" /></div>
+                <div class="col-md-6"><VDatepicker id="edit_date" v-model="editItem.date" label="Date" required /></div>
                 <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" v-model="editItem.description" rows="2"></textarea></div>
                 <div class="col-12 text-end">
                     <button type="button" @click="editItem = null" class="btn btn-danger me-2">Close</button>
@@ -89,6 +89,7 @@ import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
 import { useLeaveStore } from '@/stores/admin/hr/leave.js';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const leaveStore = useLeaveStore();
 const { holidays } = storeToRefs(leaveStore);

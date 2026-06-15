@@ -6,6 +6,7 @@ use App\Models\BankAccount;
 use App\Models\JournalItem;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use Illuminate\Validation\Rule;
 use App\Models\BankStatementLine;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -131,8 +132,21 @@ class BankReconciliationController extends Controller
      */
     public function matchLine(Request $request, BankStatementLine $bankStatementLine)
     {
+        $companyId = auth('admin')->user()->company_id;
+
+        $bankAccount = $bankStatementLine->bankAccount()->withoutGlobalScopes()->first();
+        abort_if($bankAccount === null || $bankAccount->company_id !== $companyId, 403);
+
         $validated = $request->validate([
-            'journal_item_id' => ['required', 'integer', 'exists:journal_items,id'],
+            'journal_item_id' => [
+                'required',
+                'integer',
+                Rule::exists('journal_items', 'id')->where(function ($query) use ($companyId) {
+                    $query->join('journals', 'journals.id', '=', 'journal_items.journal_id')
+                        ->where('journals.company_id', $companyId)
+                        ->whereNull('journals.deleted_at');
+                }),
+            ],
         ]);
 
         $bankStatementLine->update([
@@ -151,6 +165,11 @@ class BankReconciliationController extends Controller
      */
     public function unmatchLine(BankStatementLine $bankStatementLine)
     {
+        $companyId = auth('admin')->user()->company_id;
+
+        $bankAccount = $bankStatementLine->bankAccount()->withoutGlobalScopes()->first();
+        abort_if($bankAccount === null || $bankAccount->company_id !== $companyId, 403);
+
         $bankStatementLine->update([
             'journal_item_id' => null,
             'status' => 'unmatched',
@@ -265,7 +284,8 @@ class BankReconciliationController extends Controller
 
         return response()->json([
             'message' => count($created).' rows imported from CSV.',
-            'imported_count' => count($created),
+            'imported' => count($created),
+            'skipped' => 0,
         ]);
     }
 }

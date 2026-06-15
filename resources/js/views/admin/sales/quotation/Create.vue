@@ -283,7 +283,7 @@ import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
@@ -299,9 +299,9 @@ const createModalOpened = defineModel('createModalOpened');
 const createCustomerOpened = ref(false);
 
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const debouncedPartySearch = debounce((query) => {
     partyStore.getParties({
@@ -318,6 +318,7 @@ watch(
     (opened) => {
         if (opened) {
             taxStore.getTaxes();
+            taxStore.getTaxGroups();
             partyStore.getParties({
                 filter: {
                     type: 'customer',
@@ -432,7 +433,7 @@ const buildQuotationPayload = () => {
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: calcLineTax(item, index),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',

@@ -2,6 +2,15 @@
     <PageHeader title="Warehouse List" subtitle="Manage your warehouses" @refresh="fetch">
         <template #actions>
             <button
+                v-can="'import_warehouse'"
+                type="button"
+                class="btn btn-secondary color d-flex align-items-center me-2"
+                @click="openImportWizard"
+            >
+                <i class="ti ti-upload me-2"></i>
+                Import
+            </button>
+            <button
                 v-can="'create_warehouse'"
                 type="button"
                 @click.prevent="createModalOpened=true"
@@ -10,6 +19,17 @@
             </button>
         </template>
     </PageHeader>
+
+    <EntityImportWizard
+        ref="importWizardRef"
+        entity-type="warehouse"
+        title="Import Warehouses"
+        entity-label="warehouse"
+        :fields="warehouseFields"
+        modal-id="warehouse-import-wizard"
+        :template-download-fn="dataTransferStore.downloadWarehouseTemplate"
+        @imported="fetch"
+    />
 
     <section class="section">
         <div class="card">
@@ -66,11 +86,19 @@ import CreateWarehouse from './Create.vue';
 import EditWarehouse from './Edit.vue';
 import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
 import { flattenWarehousesWithOutline } from '@/helpers/warehouseTree.js';
+import EntityImportWizard from '@/views/admin/data-transfer/EntityImportWizard.vue';
+import { useDataTransferStore } from '@/stores/admin/data-transfer.js';
 
 const warehouseStore = useWarehouseStore();
+const dataTransferStore = useDataTransferStore();
 const edit_warehouse_id = ref('');
 const createModalOpened = ref(false);
+const importWizardRef = ref(null);
 const { warehouses } = storeToRefs(warehouseStore);
+
+const warehouseFields = ['name', 'code', 'parent', 'phone', 'address'];
+
+const openImportWizard = () => importWizardRef.value?.show();
 
 const { filter, fetch } = usePaginatedList({
     fetchFn: ({ filter }) => warehouseStore.getWarehouses({ filter }),

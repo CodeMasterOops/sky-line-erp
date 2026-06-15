@@ -24,6 +24,7 @@ class Company extends Model
         'legal_name',
         'pan',
         'logo',
+        'invoice_note',
         'phone',
         'landline',
         'email',
@@ -60,14 +61,27 @@ class Company extends Model
     public function getLogoUrlAttribute(): string
     {
         return $this->logo
-            ? Storage::url($this->logo)
+            ? Storage::disk('public')->url($this->logo)
             : '';
+    }
+
+    public function logoAbsolutePath(): ?string
+    {
+        if (! $this->logo || ! Storage::disk('public')->exists($this->logo)) {
+            return null;
+        }
+
+        return Storage::disk('public')->path($this->logo);
     }
 
     public function setLogoAttribute($value): void
     {
         if (! empty($value) && $value instanceof UploadedFile) {
-            $this->attributes['logo'] = $value->store('company/logo');
+            if ($this->logo && Storage::disk('public')->exists($this->logo)) {
+                Storage::disk('public')->delete($this->logo);
+            }
+
+            $this->attributes['logo'] = $value->store('company/logo', 'public');
         }
     }
 

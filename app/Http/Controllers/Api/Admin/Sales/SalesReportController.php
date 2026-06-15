@@ -11,6 +11,8 @@ use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
+use App\Services\TenantService;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -24,15 +26,6 @@ class SalesReportController extends Controller
         $company = auth('admin')->user()?->company?->loadMissing('fiscalYear');
         $fiscalYear = $company?->fiscalYear;
 
-        $invoices = Invoice::query()
-            ->where('status', StatusEnum::APPROVED)
-            ->whereNull('voided_at')
-            ->when($company?->fiscal_year_id, function (Builder $query) use ($company) {
-                $query->where('fiscal_year_id', $company->fiscal_year_id);
-            })
-            ->with(['invoiceItems', 'receiptAllocations.receipt'])
-            ->get();
-
         return response()->json([
             'data' => [
                 'period' => [
@@ -42,7 +35,7 @@ class SalesReportController extends Controller
                         ? $fiscalYear->year_name.' ('.$fiscalYear->start_date?->format('d M Y').' - '.$fiscalYear->end_date?->format('d M Y').')'
                         : 'Current fiscal year',
                 ],
-                'summary' => $this->buildSummary($invoices),
+                'summary' => $this->buildSummaryFromDb($company?->fiscal_year_id),
             ],
         ]);
     }
@@ -54,18 +47,21 @@ class SalesReportController extends Controller
     {
         $productVariantId = $request->filled('product_variant_id') ? (int) $request->product_variant_id : null;
 
-        $invoices = $this->buildInvoiceQuery($request)
+        $paginator = $this->buildInvoiceQuery($request)
             ->with([
                 'party',
+                'discount',
                 'invoiceItems.productVariant.product',
                 'invoiceItems.productVariant.variantOptions.attribute',
                 'receiptAllocations.receipt',
             ])
             ->orderByDesc('invoice_date')
             ->orderByDesc('id')
-            ->get();
+            ->paginate($request->input('limit', 50));
 
-        $rows = $invoices->map(function (Invoice $invoice, int $index) use ($productVariantId) {
+        $pageOffset = ($paginator->currentPage() - 1) * $paginator->perPage();
+
+        $rows = collect($paginator->items())->map(function (Invoice $invoice, int $index) use ($productVariantId, $pageOffset) {
             $totals = $this->calculateInvoiceTotals($invoice);
             $payment = $this->calculatePaymentTotals($invoice, $totals['grand_total']);
 
@@ -86,7 +82,7 @@ class SalesReportController extends Controller
 
             return [
                 'id' => $invoice->id,
-                'sn' => $index + 1,
+                'sn' => $pageOffset + $index + 1,
                 'invoice_no' => $invoice->invoice_no,
                 'invoice_date' => $invoice->invoice_date,
                 'due_date' => $invoice->due_date,
@@ -111,7 +107,13 @@ class SalesReportController extends Controller
                 'party_options' => $this->partyOptions(),
                 'product_variant_options' => $this->productVariantOptions(),
                 'rows' => $rows,
-                'summary' => $this->buildSummary($invoices),
+                'summary' => $this->buildReportSummary($request),
+                'pagination' => [
+                    'current_page' => $paginator->currentPage(),
+                    'per_page' => $paginator->perPage(),
+                    'total' => $paginator->total(),
+                    'last_page' => $paginator->lastPage(),
+                ],
             ],
         ]);
     }
@@ -130,6 +132,8 @@ class SalesReportController extends Controller
             ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
             ->whereNull('invoice_items.deleted_at')
             ->whereNull('invoices.deleted_at')
+            ->where('invoices.company_id', TenantService::companyId())
+            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
             ->where('invoices.status', StatusEnum::APPROVED)
             ->whereNull('invoices.voided_at')
             ->whereBetween('invoices.invoice_date', [
@@ -219,6 +223,141 @@ class SalesReportController extends Controller
         ];
     }
 
+    private function buildSummaryFromDb(?int $fiscalYearId): array
+    {
+        $today = Carbon::today()->toDateString();
+        $companyId = TenantService::companyId();
+
+        $itemsSub = DB::table('invoice_items')
+            ->selectRaw('invoice_id, SUM(quantity * rate) - SUM(discount_amount) + SUM(tax_amount) as net_total')
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id');
+
+        $paidSub = DB::table('receipt_allocations')
+            ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
+            ->selectRaw('receipt_allocations.invoice_id, SUM(receipt_allocations.amount) as paid_total')
+            ->whereNull('receipt_allocations.deleted_at')
+            ->whereNull('receipts.deleted_at')
+            ->where('receipts.status', StatusEnum::APPROVED->value)
+            ->groupBy('receipt_allocations.invoice_id');
+
+        $rows = DB::table('invoices')
+            ->leftJoinSub($itemsSub, 'item_totals', fn ($j) => $j->on('invoices.id', '=', 'item_totals.invoice_id'))
+            ->leftJoinSub($paidSub, 'paid_totals', fn ($j) => $j->on('invoices.id', '=', 'paid_totals.invoice_id'))
+            ->leftJoin('discounts', function ($j) {
+                $j->on('invoices.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', Invoice::class);
+            })
+            ->where('invoices.company_id', $companyId)
+            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('invoices.fiscal_year_id', $fiscalYearId))
+            ->select([
+                'invoices.id',
+                'invoices.due_date',
+                DB::raw('COALESCE(item_totals.net_total, 0) - COALESCE(discounts.amount, 0) as grand_total'),
+                DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+            ])
+            ->get();
+
+        $totalAmount = 0.0;
+        $totalPaid = 0.0;
+        $overdueAmount = 0.0;
+        $totalInvoices = count($rows);
+
+        foreach ($rows as $row) {
+            $grand = (float) $row->grand_total;
+            $paid = (float) $row->paid_total;
+            $due = max($grand - $paid, 0);
+
+            $totalAmount += $grand;
+            $totalPaid += $paid;
+
+            if ($row->due_date && $row->due_date < $today && $due > 0) {
+                $overdueAmount += $due;
+            }
+        }
+
+        return [
+            'total_amount' => round($totalAmount, 2),
+            'total_paid' => round($totalPaid, 2),
+            'total_unpaid' => round($totalAmount - $totalPaid, 2),
+            'overdue_amount' => round($overdueAmount, 2),
+            'total_invoices' => $totalInvoices,
+        ];
+    }
+
+    private function buildReportSummary(Request $request): array
+    {
+        $today = Carbon::today()->toDateString();
+        $companyId = TenantService::companyId();
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+
+        $itemsSub = DB::table('invoice_items')
+            ->selectRaw('invoice_id, SUM(quantity * rate) - SUM(discount_amount) + SUM(tax_amount) as net_total')
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id');
+
+        $paidSub = DB::table('receipt_allocations')
+            ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
+            ->selectRaw('receipt_allocations.invoice_id, SUM(receipt_allocations.amount) as paid_total')
+            ->whereNull('receipt_allocations.deleted_at')
+            ->whereNull('receipts.deleted_at')
+            ->where('receipts.status', StatusEnum::APPROVED->value)
+            ->groupBy('receipt_allocations.invoice_id');
+
+        $query = DB::table('invoices')
+            ->leftJoinSub($itemsSub, 'item_totals', fn ($j) => $j->on('invoices.id', '=', 'item_totals.invoice_id'))
+            ->leftJoinSub($paidSub, 'paid_totals', fn ($j) => $j->on('invoices.id', '=', 'paid_totals.invoice_id'))
+            ->leftJoin('discounts', function ($j) {
+                $j->on('invoices.id', '=', 'discounts.discountable_id')
+                    ->where('discounts.discountable_type', Invoice::class);
+            })
+            ->where('invoices.company_id', $companyId)
+            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->whereBetween('invoices.invoice_date', [$fromDate, $toDate])
+            ->when($request->filled('party_id'), fn ($q) => $q->where('invoices.party_id', $request->party_id))
+            ->select([
+                'invoices.due_date',
+                DB::raw('COALESCE(item_totals.net_total, 0) - COALESCE(discounts.amount, 0) as grand_total'),
+                DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+            ]);
+
+        $rows = $query->get();
+
+        $totalAmount = 0.0;
+        $totalPaid = 0.0;
+        $overdueAmount = 0.0;
+        $totalInvoices = count($rows);
+
+        foreach ($rows as $row) {
+            $grand = (float) $row->grand_total;
+            $paid = (float) $row->paid_total;
+            $due = max($grand - $paid, 0);
+
+            $totalAmount += $grand;
+            $totalPaid += $paid;
+
+            if ($row->due_date && $row->due_date < $today && $due > 0) {
+                $overdueAmount += $due;
+            }
+        }
+
+        return [
+            'total_amount' => round($totalAmount, 2),
+            'total_paid' => round($totalPaid, 2),
+            'total_unpaid' => round($totalAmount - $totalPaid, 2),
+            'overdue_amount' => round($overdueAmount, 2),
+            'total_invoices' => $totalInvoices,
+        ];
+    }
+
     private function buildSummary($invoices): array
     {
         $today = Carbon::today();
@@ -257,15 +396,17 @@ class SalesReportController extends Controller
     private function calculateInvoiceTotals(Invoice $invoice): array
     {
         $subtotal = 0;
-        $discountTotal = 0;
+        $lineDiscountTotal = 0;
         $taxTotal = 0;
 
         foreach ($invoice->invoiceItems as $item) {
             $subtotal += (float) $item->quantity * (float) $item->rate;
-            $discountTotal += (float) $item->discount_amount;
+            $lineDiscountTotal += (float) $item->discount_amount;
             $taxTotal += (float) $item->tax_amount;
         }
 
+        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
+        $discountTotal = $lineDiscountTotal + $orderDiscountAmount;
         $grandTotal = $subtotal - $discountTotal + $taxTotal;
 
         return [
@@ -299,6 +440,7 @@ class SalesReportController extends Controller
         return Party::query()
             ->where('type', PartyTypeEnum::CUSTOMER)
             ->orderBy('name')
+            ->limit(500)
             ->get(['id', 'name'])
             ->map(fn (Party $party) => [
                 'id' => (string) $party->id,
@@ -312,6 +454,7 @@ class SalesReportController extends Controller
         return ProductVariant::query()
             ->with(['product:id,name', 'variantOptions'])
             ->orderByDesc('id')
+            ->limit(500)
             ->get()
             ->map(function (ProductVariant $variant) {
                 return [

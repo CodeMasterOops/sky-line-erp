@@ -80,6 +80,12 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             this.authUser.needsOnboarding = value;
             localStorage.setItem('needs_onboarding', value ? 'true' : 'false');
         },
+        refreshPermissions() {
+            return apiAdmin('profile/permissions')
+                .then((res) => {
+                    this.setPermissions(this.authUser.user_type, res.data.permissions);
+                }).catch(() => {});
+        },
         removeAuthToken() {
             this.authUser.access_token = '';
             this.authUser.user_type = '';

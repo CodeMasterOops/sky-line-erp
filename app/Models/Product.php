@@ -62,6 +62,23 @@ class Product extends Model
         return $query->where('product_type', ProductTypeEnum::PRODUCT->value);
     }
 
+    /**
+     * @return list<int>
+     */
+    public static function parseWarehouseIds(mixed $value): array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return [];
+        }
+
+        $raw = is_array($value) ? $value : explode(',', (string) $value);
+
+        return array_values(array_unique(array_filter(array_map(
+            static fn (mixed $id): int => (int) $id,
+            $raw
+        ), static fn (int $id): bool => $id > 0)));
+    }
+
     public function scopeFilter($query, $param = [])
     {
         if (! empty($param['search'])) {
@@ -82,6 +99,13 @@ class Product extends Model
 
         if (! empty($param['product_type'])) {
             $query->where('product_type', $param['product_type']);
+        }
+
+        $warehouseIds = self::parseWarehouseIds($param['warehouse_ids'] ?? null);
+
+        if ($warehouseIds !== []) {
+            $query->physical()
+                ->whereHas('variants.stocks', fn ($q) => $q->whereIn('warehouse_id', $warehouseIds));
         }
 
         return $query;
@@ -109,8 +133,7 @@ class Product extends Model
 
     public function defaultVariant(): HasOne
     {
-        //        return $this->hasOne(ProductVariant::class)->where('is_default', true);
-        return $this->hasOne(ProductVariant::class);
+        return $this->hasOne(ProductVariant::class)->where('is_default', true)->orderBy('id');
     }
 
     public function variants(): HasMany

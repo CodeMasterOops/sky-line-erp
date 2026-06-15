@@ -77,10 +77,44 @@ class PaymentController extends Controller
     }
 
     /**
+     * @Permissions("void_payment", group="payment", desc="Void Payment")
+     */
+    public function void(Payment $payment)
+    {
+        if ($payment->voided_at) {
+            return response()->json([
+                'data' => PaymentResource::make($payment),
+                'message' => 'Payment is already voided.',
+            ]);
+        }
+
+        if ($payment->status !== StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Only approved payments can be voided.',
+            ], 422);
+        }
+
+        $this->paymentService->voidPayment($payment);
+
+        $payment->load(['party', 'account', 'tdsAccount', 'paymentMode', 'allocations.payable']);
+
+        return response()->json([
+            'data' => PaymentResource::make($payment),
+            'message' => 'Payment voided successfully.',
+        ]);
+    }
+
+    /**
      * @Permissions("delete_payment", group="payment", desc="Delete Payment")
      */
     public function destroy(Payment $payment)
     {
+        if ($payment->status === StatusEnum::APPROVED && ! $payment->voided_at) {
+            return response()->json([
+                'message' => __('Approved payments must be voided before they can be deleted.'),
+            ], 422);
+        }
+
         $payment->allocations()->delete();
         $payment->delete();
 

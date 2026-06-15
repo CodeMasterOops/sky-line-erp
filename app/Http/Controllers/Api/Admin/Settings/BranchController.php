@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\BranchAccessService;
 use App\Http\Resources\Admin\Settings\BranchResource;
 use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Requests\Api\Admin\Settings\BranchRequest;
@@ -17,6 +18,25 @@ use App\Http\Requests\Api\Admin\Settings\BranchRequest;
 class BranchController extends Controller
 {
     use GeneratesEntityCode;
+
+    /**
+     * Returns the branches the authenticated user is permitted to access.
+     * Used by the frontend to populate the branch switcher on login.
+     */
+    public function myBranches(): \Illuminate\Http\JsonResponse
+    {
+        $user = auth('admin')->user();
+        $accessService = app(BranchAccessService::class);
+        $branches = $accessService->getAccessibleBranches($user);
+
+        $defaultBranchId = $branches->firstWhere('is_head_office', true)?->id
+            ?? $branches->first()?->id;
+
+        return response()->json([
+            'data' => BranchResource::collection($branches),
+            'default_branch_id' => $defaultBranchId,
+        ]);
+    }
 
     /**
      * @Permissions("list_branch", group="branch", desc="List Branches")
@@ -43,6 +63,18 @@ class BranchController extends Controller
      */
     public function store(BranchRequest $request)
     {
+        $company = auth('admin')->user()->company;
+        $plan = $company->currentSubscription?->plan;
+
+        if ($plan && $plan->branch_limit !== null) {
+            $branchCount = Branch::query()->count();
+            if ($branchCount >= $plan->branch_limit) {
+                return response()->json([
+                    'message' => "Your current plan \"{$plan->name}\" allows a maximum of {$plan->branch_limit} branch(es). Please upgrade to add more branches.",
+                ], 422);
+            }
+        }
+
         $data = $request->validated();
         $this->assignEntityCode($data, EntityCodeType::Branch);
         $branch = Branch::create($data);
@@ -143,8 +175,9 @@ class BranchController extends Controller
             'to_date' => 'required|date|after_or_equal:from_date',
         ]);
 
-        $company = auth('admin')->user()->company;
-        $branches = Branch::where('company_id', $company->id)->get();
+        $user = auth('admin')->user();
+        $company = $user->company;
+        $branches = app(BranchAccessService::class)->getAccessibleBranches($user);
         [$incomeIds, $expenseIds] = $this->resolveIncomeExpenseAccountIds($company->id);
 
         $rows = $branches->map(function (Branch $branch) use ($request, $company, $incomeIds, $expenseIds) {

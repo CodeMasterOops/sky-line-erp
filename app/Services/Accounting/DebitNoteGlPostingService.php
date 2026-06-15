@@ -34,6 +34,7 @@ class DebitNoteGlPostingService
     public function isPosted(DebitNote $debitNote): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $debitNote->company_id)
             ->where('reference_type', $debitNote->getMorphClass())
             ->where('reference_id', $debitNote->id)
             ->where('type', JournalTypeEnum::DEBIT_NOTE->value)
@@ -47,10 +48,12 @@ class DebitNoteGlPostingService
             return;
         }
 
-        $debitNote->loadMissing('debitNoteItems');
+        $debitNote->loadMissing('debitNoteItems', 'discount');
 
-        $purchaseBase = round((float) $debitNote->debitNoteItems
-            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
+        $lineTotal = (float) $debitNote->debitNoteItems
+            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount);
+        $orderDiscountAmount = (float) ($debitNote->discount?->amount ?? 0);
+        $purchaseBase = round($lineTotal - $orderDiscountAmount, 2);
         $vatAmount = round((float) $debitNote->debitNoteItems->sum('tax_amount'), 2);
         $grandTotal = round($purchaseBase + $vatAmount, 2);
 
@@ -77,12 +80,12 @@ class DebitNoteGlPostingService
                 ->first();
 
         if (! $user) {
-            return;
+            throw new \RuntimeException("Cannot post GL for debit note {$debitNote->id}: no user found for company {$debitNote->company_id}.");
         }
 
         $company = Company::with('fiscalYear')->find($debitNote->company_id);
         if (! $company || ! $company->fiscal_year_id) {
-            return;
+            throw new \RuntimeException("Cannot post GL for debit note {$debitNote->id}: company or fiscal year not configured.");
         }
 
         $yearCode = $company->fiscalYear?->year_code ?? '';

@@ -26,7 +26,7 @@ trait MultiTenant
 
         static::addGlobalScope('company_scope', function (Builder $builder) {
             if ($companyId = TenantService::companyId()) {
-                $builder->where('company_id', $companyId);
+                $builder->where($builder->getModel()->getTable().'.company_id', $companyId);
             }
         });
     }

@@ -20,6 +20,7 @@
                 <div class="fw-medium">{{ v.name }}</div>
                 <div class="small text-muted">
                     <span v-if="v.sku">SKU: {{ v.sku }}</span>
+                    <span v-if="v.barcode" class="ms-2">Barcode: {{ v.barcode }}</span>
                     <span v-if="v.product_code" class="ms-2">Code: {{ v.product_code }}</span>
                     <span v-if="v.is_service" class="ms-2 badge badge-soft-info">Service</span>
                 </div>
@@ -45,7 +46,7 @@ const props = defineProps({
     },
     placeholder: {
         type: String,
-        default: 'Search by name, code, or SKU — Enter to add',
+        default: 'Search by name, code, SKU, or barcode — Enter to add',
     },
     physicalOnly: {
         type: Boolean,
@@ -54,6 +55,10 @@ const props = defineProps({
     required: {
         type: Boolean,
         default: false,
+    },
+    categoryId: {
+        type: Number,
+        default: null,
     },
 });
 
@@ -93,7 +98,7 @@ const runSearch = async (q, { barcode = false } = {}) => {
         const res = await productStore.searchProductVariants(
             barcode
                 ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0 }
-                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0 }
+                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, category_id: props.categoryId }
         );
         searchResults.value = res.data ?? [];
     } catch {

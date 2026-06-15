@@ -1,7 +1,7 @@
 import Toast, {createToastInterface} from 'vue-toastification';
 
 export const toastOptions = {
-    transition: 'my-custom-fade',
+    position: 'bottom-right',
     timeout: 3000,
     maxToasts: 20,
     newestOnTop: true,

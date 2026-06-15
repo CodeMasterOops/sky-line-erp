@@ -22,6 +22,7 @@ use App\Enums\DataTransfer\DataTransferStatusEnum;
 use App\Services\DataTransfer\ImportTemplateService;
 use App\Enums\DataTransfer\DataTransferDirectionEnum;
 use App\Enums\DataTransfer\DataTransferEntityTypeEnum;
+use App\Services\DataTransfer\Import\ImportHandlerFactory;
 use App\Http\Resources\Admin\DataTransfer\DataTransferJobResource;
 use App\Http\Resources\Admin\DataTransfer\DataTransferRowResource;
 
@@ -30,6 +31,7 @@ class DataTransferController extends Controller
     public function __construct(
         private UploadService $uploadService,
         private ImportTemplateService $templateService,
+        private ImportHandlerFactory $importHandlerFactory,
     ) {}
 
     /**
@@ -92,12 +94,15 @@ class DataTransferController extends Controller
 
     /**
      * @Permissions("import_product", group="data_transfer", desc="Import Products")
+     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
+     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
      */
     public function storeImport(Request $request): JsonResponse
     {
         $request->validate([
             'file' => ['required', 'file', 'max:'.((int) config('data_transfer.max_upload_bytes', 20971520) / 1024)],
             'entity_type' => ['required', Rule::enum(DataTransferEntityTypeEnum::class)],
+            'default_party_type' => ['nullable', Rule::in(['supplier'])],
         ]);
 
         $user = auth('admin')->user();
@@ -111,8 +116,19 @@ class DataTransferController extends Controller
 
         $entityType = DataTransferEntityTypeEnum::from($request->input('entity_type'));
 
-        if ($entityType !== DataTransferEntityTypeEnum::Product) {
-            return response()->json(['message' => 'Only product import is enabled.'], 422);
+        if (! $this->importHandlerFactory->supportsImport($entityType)) {
+            return response()->json(['message' => 'Import is not enabled for this entity type.'], 422);
+        }
+
+        $this->authorizeImportEntity($entityType);
+
+        $importOptions = [];
+        if ($entityType === DataTransferEntityTypeEnum::Party) {
+            if ($request->input('default_party_type') !== 'supplier') {
+                return response()->json(['message' => 'Supplier import requires default_party_type=supplier.'], 422);
+            }
+
+            $importOptions['default_party_type'] = 'supplier';
         }
 
         $job = $this->uploadService->storeImport(
@@ -120,6 +136,7 @@ class DataTransferController extends Controller
             $user,
             $entityType,
             TenantService::branchId(),
+            $importOptions,
         );
 
         ParseFileJob::dispatch($job);
@@ -132,10 +149,13 @@ class DataTransferController extends Controller
 
     /**
      * @Permissions("import_product", group="data_transfer", desc="Import Products")
+     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
+     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
      */
     public function updateMapping(string $uuid, Request $request): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
 
         if ($job->direction !== DataTransferDirectionEnum::Import) {
             return response()->json(['message' => 'Not an import job.'], 422);
@@ -166,10 +186,13 @@ class DataTransferController extends Controller
 
     /**
      * @Permissions("import_product", group="data_transfer", desc="Import Products")
+     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
+     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
      */
     public function validateJob(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
 
         if (! in_array($job->status, [
             DataTransferStatusEnum::Mapped,
@@ -188,10 +211,13 @@ class DataTransferController extends Controller
 
     /**
      * @Permissions("import_product", group="data_transfer", desc="Import Products")
+     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
+     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
      */
     public function commit(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
 
         if ($job->status !== DataTransferStatusEnum::Validated) {
             return response()->json(['message' => 'Validate the file before importing.'], 422);
@@ -211,10 +237,13 @@ class DataTransferController extends Controller
 
     /**
      * @Permissions("import_product", group="data_transfer", desc="Import Products")
+     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
+     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
      */
     public function cancel(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
 
         if (in_array($job->status, [
             DataTransferStatusEnum::Completed,
@@ -232,10 +261,13 @@ class DataTransferController extends Controller
 
     /**
      * @Permissions("import_product", group="data_transfer", desc="Import Products")
+     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
+     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
      */
     public function rollback(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
 
         if ($job->direction !== DataTransferDirectionEnum::Import) {
             return response()->json(['message' => 'Not an import job.'], 422);
@@ -318,6 +350,26 @@ class DataTransferController extends Controller
     }
 
     /**
+     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
+     */
+    public function warehouseTemplate(Request $request)
+    {
+        $format = $request->get('format', 'csv');
+
+        return $this->templateService->downloadWarehouseTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
+    }
+
+    /**
+     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
+     */
+    public function partyTemplate(Request $request)
+    {
+        $format = $request->get('format', 'csv');
+
+        return $this->templateService->downloadSupplierTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
+    }
+
+    /**
      * @Permissions("export_data", group="data_transfer", desc="Export Business Data")
      */
     public function schedules(Request $request): JsonResponse
@@ -362,5 +414,19 @@ class DataTransferController extends Controller
             ->where('uuid', $uuid)
             ->where('company_id', auth('admin')->user()->company_id)
             ->firstOrFail();
+    }
+
+    private function authorizeImportEntity(DataTransferEntityTypeEnum $type): void
+    {
+        $permission = match ($type) {
+            DataTransferEntityTypeEnum::Product => 'import_product',
+            DataTransferEntityTypeEnum::Warehouse => 'import_warehouse',
+            DataTransferEntityTypeEnum::Party => 'import_party',
+            default => null,
+        };
+
+        if ($permission === null || ! hasPermission($permission)) {
+            abort(403, 'You are not allowed to import this entity type.');
+        }
     }
 }

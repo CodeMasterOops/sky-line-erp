@@ -57,7 +57,7 @@
                     </select>
                 </div>
                 <div class="col-md-6">
-                    <VInput v-model="cForm.effective_from" label="Effective From *" type="date" />
+                    <VDatepicker id="effective_from" v-model="cForm.effective_from" label="Effective From" required />
                 </div>
                 <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -117,6 +117,7 @@ import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
 import { usePayrollStore } from '@/stores/admin/hr/payroll.js';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 import { useEmployeeStore } from '@/stores/admin/hr/employee.js';
 
 const payrollStore = usePayrollStore();

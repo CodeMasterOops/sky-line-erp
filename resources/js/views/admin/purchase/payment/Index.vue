@@ -63,6 +63,7 @@
     </div>
 
     <PaymentModal v-model:open="createModalOpened" @saved="fetchPayments" />
+    <PaymentDetailModal v-model:detail-payment-id="detailPaymentId" />
 </template>
 
 <script setup>
@@ -71,6 +72,7 @@ import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import PaymentModal from './PaymentModal.vue';
+import PaymentDetailModal from './DetailModal.vue';
 import { usePaymentStore } from '@/stores/admin/purchase/payment.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
@@ -81,6 +83,7 @@ const paymentStore = usePaymentStore();
 const { payments } = storeToRefs(paymentStore);
 
 const createModalOpened = ref(false);
+const detailPaymentId = ref('');
 
 const fetchPayments = () => paymentStore.getPayments({ filter });
 
@@ -127,6 +130,7 @@ const handleApprove = (id) => {
 };
 
 const rowActions = createRowActions({
+    onView: (id) => { detailPaymentId.value = String(id); },
     onApprove: handleApprove,
     onDelete: handleDelete,
 });

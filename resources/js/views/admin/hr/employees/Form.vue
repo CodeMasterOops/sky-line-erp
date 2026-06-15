@@ -58,10 +58,10 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <VInput id="dob" v-model="form.dob" label="Date of Birth" type="date" />
+                        <VDatepicker id="dob" v-model="form.dob" label="Date of Birth" />
                     </div>
                     <div class="col-md-3">
-                        <VInput id="join_date" v-model="form.join_date" label="Join Date *" type="date" @validate="validateField('join_date')" :error="errors.join_date" />
+                        <VDatepicker id="join_date" v-model="form.join_date" label="Join Date" required @validate="validateField('join_date')" :error="errors.join_date" />
                     </div>
 
                     <div class="col-12 mt-2"><h6 class="text-muted fw-bold">Department & Role</h6></div>
@@ -160,6 +160,7 @@ import { useDepartmentStore } from '@/stores/admin/hr/department.js';
 import { useDesignationStore } from '@/stores/admin/hr/designation.js';
 import { useNextCode } from '@/helpers/useNextCode.js';
 import { apiAdmin } from '@/helpers/api.js';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const route = useRoute();
 const router = useRouter();

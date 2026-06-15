@@ -21,9 +21,9 @@ class ReceiptVoucherRequest extends FormRequest
             'date' => ['required', 'date'],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
-            'deposited_to_account_id' => ['required', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'deposited_to_account_id' => ['required', TRule::exists('accounts', 'id')->where('is_active', true)->withoutTrashed()],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.account_id' => ['required', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'items.*.account_id' => ['required', TRule::exists('accounts', 'id')->where('is_active', true)->withoutTrashed()],
             'items.*.amount' => ['required', 'numeric', 'min:0.01'],
             'items.*.remarks' => ['nullable', 'string'],
         ];

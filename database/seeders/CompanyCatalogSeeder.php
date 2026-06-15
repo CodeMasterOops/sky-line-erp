@@ -190,17 +190,44 @@ class CompanyCatalogSeeder
             if (empty($c['name'])) {
                 continue;
             }
-            $cat = ProductCategory::firstOrCreate(
+
+            $parent = ProductCategory::firstOrCreate(
                 [
                     'company_id' => $companyId,
+                    'parent_id' => null,
                     'name' => $c['name'],
                 ],
                 [
-                    'parent_id' => null,
                     'description' => $c['description'] ?? null,
                 ]
             );
-            $byName[$c['name']] = $cat->id;
+
+            $children = $c['children'] ?? [];
+            if ($children === []) {
+                $byName[$c['name']] = $parent->id;
+
+                continue;
+            }
+
+            foreach ($children as $child) {
+                if (empty($child['name'])) {
+                    continue;
+                }
+
+                $sub = ProductCategory::firstOrCreate(
+                    [
+                        'company_id' => $companyId,
+                        'parent_id' => $parent->id,
+                        'name' => $child['name'],
+                    ],
+                    [
+                        'description' => $child['description'] ?? null,
+                    ]
+                );
+
+                $byName[$child['name']] = $sub->id;
+                $byName[$parent->name.' > '.$child['name']] = $sub->id;
+            }
         }
 
         return $byName;

@@ -16,6 +16,7 @@ class SettingResource extends JsonResource
             'code' => $this->code ?? '',
             'pan' => $this->pan ?? '',
             'logo_url' => $this->logo_url ?? '',
+            'invoice_note' => $this->invoice_note ?? '',
             'phone' => $this->phone ?? '',
             'landline' => $this->landline ?? '',
             'email' => $this->email ?? '',

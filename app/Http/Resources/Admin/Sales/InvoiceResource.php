@@ -12,7 +12,8 @@ class InvoiceResource extends JsonResource
     public function toArray(Request $request): array
     {
         $totals = $this->calculateTotals();
-        $payment = $this->calculatePaymentTotals($totals['grand_total']);
+        $grandTotal = $this->total_amount ?? $totals['grand_total'];
+        $payment = $this->calculatePaymentTotals($grandTotal);
 
         return [
             'quotation_id' => $this->reference_type === \App\Models\Quotation::class ? $this->reference_id : null,
@@ -44,7 +45,7 @@ class InvoiceResource extends JsonResource
             'subtotal' => $totals['subtotal'],
             'discount_total' => $totals['discount_total'],
             'tax_total' => $totals['tax_total'],
-            'grand_total' => $totals['grand_total'],
+            'grand_total' => $grandTotal,
             'paid_total' => $payment['paid_total'],
             'due_amount' => $payment['due_amount'],
             'items' => InvoiceItemResource::collection($this->whenLoaded('invoiceItems')),
@@ -56,6 +57,16 @@ class InvoiceResource extends JsonResource
      */
     private function calculatePaymentTotals(float $grandTotal): array
     {
+        // Use the stored paid_amount when available — avoids eager-loading allocations for lists
+        if ($this->paid_amount !== null) {
+            $paid = round((float) $this->paid_amount, 2);
+
+            return [
+                'paid_total' => $paid,
+                'due_amount' => round(max($grandTotal - $paid, 0), 2),
+            ];
+        }
+
         if (! $this->relationLoaded('receiptAllocations')) {
             return [
                 'paid_total' => null,

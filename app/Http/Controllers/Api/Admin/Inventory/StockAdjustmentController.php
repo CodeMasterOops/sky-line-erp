@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
+use App\Models\User;
 use App\Models\Company;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
@@ -67,7 +68,7 @@ class StockAdjustmentController extends Controller
                 $adjustment->stockAdjustmentItems()->createMany($formData['items']);
 
                 if ($status === StatusEnum::APPROVED->value) {
-                    $this->applyApprovalEffects($adjustment);
+                    $this->applyApprovalEffects($adjustment, $user);
                 }
 
                 return $adjustment;
@@ -152,8 +153,16 @@ class StockAdjustmentController extends Controller
      */
     public function destroy(StockAdjustment $stockAdjustment)
     {
-        $stockAdjustment->stockAdjustmentItems()->delete();
-        $stockAdjustment->delete();
+        if ($stockAdjustment->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved stock adjustments cannot be deleted. Please create a counter-adjustment to reverse the stock effects.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($stockAdjustment) {
+            $stockAdjustment->stockAdjustmentItems()->delete();
+            $stockAdjustment->delete();
+        });
 
         return response()->json([
             'message' => 'Stock Adjustment Deleted Successfully',
@@ -182,7 +191,7 @@ class StockAdjustmentController extends Controller
                     'status' => StatusEnum::APPROVED->value,
                 ]);
 
-                $this->applyApprovalEffects($stockAdjustment);
+                $this->applyApprovalEffects($stockAdjustment, $user);
             });
         } catch (ValidationException $e) {
             return response()->json([
@@ -199,10 +208,9 @@ class StockAdjustmentController extends Controller
         ]);
     }
 
-    private function applyApprovalEffects(StockAdjustment $adjustment): void
+    private function applyApprovalEffects(StockAdjustment $adjustment, User $user): void
     {
         $adjustment->loadMissing('stockAdjustmentItems');
-        $user = auth('admin')->user();
         $company = Company::findOrFail($adjustment->company_id);
 
         foreach ($adjustment->stockAdjustmentItems as $item) {

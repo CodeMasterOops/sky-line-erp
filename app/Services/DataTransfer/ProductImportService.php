@@ -104,6 +104,8 @@ class ProductImportService
         $query = $product->variants();
         if (! empty($variantPayload['sku'])) {
             $existing = (clone $query)->where('sku', $variantPayload['sku'])->first();
+        } elseif (! empty($variantPayload['barcode'])) {
+            $existing = (clone $query)->where('barcode', $variantPayload['barcode'])->first();
         } else {
             $existing = (clone $query)->where('is_default', true)->first()
                 ?? $query->first();
@@ -111,6 +113,7 @@ class ProductImportService
 
         $data = [
             'sku' => $isService ? null : ($variantPayload['sku'] ?? null),
+            'barcode' => $isService ? null : ($variantPayload['barcode'] ?? null),
             'sales_price' => $variantPayload['sales_price'] ?? 0,
             'purchase_price' => $isService ? 0 : ($variantPayload['purchase_price'] ?? 0),
             'is_default' => $hasVariants ? (bool) ($variantPayload['is_default'] ?? false) : true,

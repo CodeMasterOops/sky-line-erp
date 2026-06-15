@@ -45,6 +45,7 @@ readonly class PurchaseBillService
     public function isPosted(Bill $bill): bool
     {
         return Journal::withoutGlobalScopes()
+            ->where('company_id', $bill->company_id)
             ->where('reference_type', $bill->getMorphClass())
             ->where('reference_id', $bill->id)
             ->where('type', JournalTypeEnum::PURCHASE_BILL->value)
@@ -91,10 +92,15 @@ readonly class PurchaseBillService
 
             $this->validateGrnItemQuantities($items);
 
+            $partyPan = isset($formData['party_id'])
+                ? \App\Models\Party::where('id', $formData['party_id'])->value('pan')
+                : null;
+
             $bill = Bill::create([
                 'company_id' => $user->company_id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
+                'supplier_pan' => $partyPan,
                 'purchase_order_id' => $formData['purchase_order_id'] ?? null,
                 'bill_no' => $billNo,
                 'bill_date' => $formData['bill_date'],
@@ -225,6 +231,12 @@ readonly class PurchaseBillService
     {
         $user = auth('admin')->user();
 
+        if ($bill->create_user_id === $user->id) {
+            throw ValidationException::withMessages([
+                'status' => __('The bill creator cannot also approve it (maker-checker policy).'),
+            ]);
+        }
+
         DB::transaction(function () use ($bill, $user) {
             $bill->loadMissing('billItems');
             $this->validateGrnItemQuantities($bill->billItems->map(fn ($item) => [
@@ -278,7 +290,9 @@ readonly class PurchaseBillService
         $this->glAccountGuard->assertPurchasePostable($hasTax);
         $this->periodGuard->assertPostable($bill->company_id, $bill->fiscal_year_id, $bill->bill_date);
 
-        $accountSetting = AccountSetting::first();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $bill->company_id)
+            ->first();
 
         $journal = $bill->journal()->create([
             'company_id' => $bill->company_id,

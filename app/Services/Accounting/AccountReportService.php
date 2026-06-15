@@ -316,44 +316,47 @@ class AccountReportService
     {
         $period = $this->resolvePeriod($request);
         $companyId = auth('admin')->user()->company_id;
+        $start = $period['start_date']->toDateString();
+        $end = $period['end_date']->toDateString();
 
-        $invoices = Invoice::with(['party', 'invoiceItems.tax'])
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereBetween('invoice_date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
-            ->orderBy('invoice_date')
-            ->orderBy('invoice_no')
+        $dbRows = DB::table('invoices')
+            ->leftJoin('parties', 'parties.id', '=', 'invoices.party_id')
+            ->leftJoin('invoice_items', function ($join) {
+                $join->on('invoice_items.invoice_id', '=', 'invoices.id')
+                    ->whereNull('invoice_items.deleted_at');
+            })
+            ->where('invoices.company_id', $companyId)
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->whereBetween('invoices.invoice_date', [$start, $end])
+            ->groupBy('invoices.id', 'invoices.invoice_no', 'invoices.bijak_no', 'invoices.invoice_date', 'parties.pan', 'parties.name')
+            ->orderBy('invoices.invoice_date')
+            ->orderBy('invoices.invoice_no')
+            ->select([
+                'invoices.invoice_no',
+                'invoices.bijak_no',
+                'invoices.invoice_date',
+                DB::raw("COALESCE(parties.name, '-') as buyer_name"),
+                DB::raw("COALESCE(parties.pan, '-') as buyer_pan"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as taxable_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN invoice_items.tax_amount ELSE 0 END) as vat_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'exempt' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as exempt_amount"),
+                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'zero_rated' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as zero_rated_amount"),
+            ])
             ->get();
 
-        $rows = $invoices->map(function (Invoice $invoice) {
-            $taxableAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'taxable')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            $vatAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'taxable')
-                ->sum('tax_amount');
-
-            $exemptAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'exempt')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            $zeroRatedAmount = $invoice->invoiceItems
-                ->where('tax_line_type', 'zero_rated')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            return [
-                'date' => $invoice->invoice_date,
-                'bijak_no' => $invoice->bijak_no ?: $invoice->invoice_no,
-                'buyer_name' => $invoice->party?->name ?? '-',
-                'buyer_pan' => $invoice->party?->pan ?? '-',
-                'taxable_amount' => round((float) $taxableAmount, 2),
-                'vat_amount' => round((float) $vatAmount, 2),
-                'exempt_amount' => round((float) $exemptAmount, 2),
-                'zero_rated_amount' => round((float) $zeroRatedAmount, 2),
-                'total_amount' => round((float) ($taxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount), 2),
-            ];
-        })->values()->all();
+        $rows = $dbRows->map(fn ($row) => [
+            'date' => $row->invoice_date,
+            'bijak_no' => $row->bijak_no ?: $row->invoice_no,
+            'buyer_name' => $row->buyer_name,
+            'buyer_pan' => $row->buyer_pan,
+            'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
+            'vat_amount' => round((float) ($row->vat_amount ?? 0), 2),
+            'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
+            'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
+            'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
+        ])->values()->all();
 
         return [
             'period' => [
@@ -377,39 +380,45 @@ class AccountReportService
     {
         $period = $this->resolvePeriod($request);
         $companyId = auth('admin')->user()->company_id;
+        $start = $period['start_date']->toDateString();
+        $end = $period['end_date']->toDateString();
 
-        $bills = Bill::with(['party', 'billItems.tax'])
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereBetween('bill_date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
-            ->orderBy('bill_date')
-            ->orderBy('bill_no')
+        $dbRows = DB::table('bills')
+            ->leftJoin('parties', 'parties.id', '=', 'bills.party_id')
+            ->leftJoin('bill_items', function ($join) {
+                $join->on('bill_items.bill_id', '=', 'bills.id')
+                    ->whereNull('bill_items.deleted_at');
+            })
+            ->where('bills.company_id', $companyId)
+            ->where('bills.status', StatusEnum::APPROVED->value)
+            ->whereNull('bills.deleted_at')
+            ->whereBetween('bills.bill_date', [$start, $end])
+            ->groupBy('bills.id', 'bills.bill_no', 'bills.bill_date', 'parties.pan', 'parties.name')
+            ->orderBy('bills.bill_date')
+            ->orderBy('bills.bill_no')
+            ->select([
+                'bills.bill_no',
+                'bills.bill_date',
+                DB::raw("COALESCE(parties.name, '-') as supplier_name"),
+                DB::raw("COALESCE(parties.pan, '-') as supplier_pan"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as taxable_amount"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN bill_items.tax_amount ELSE 0 END) as input_vat"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'exempt' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as exempt_amount"),
+                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'zero_rated' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as zero_rated_amount"),
+            ])
             ->get();
 
-        $rows = $bills->map(function (Bill $bill) {
-            $taxableAmount = $bill->billItems
-                ->where('tax_line_type', 'taxable')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            $inputVat = $bill->billItems
-                ->where('tax_line_type', 'taxable')
-                ->sum('tax_amount');
-
-            $exemptAmount = $bill->billItems
-                ->where('tax_line_type', 'exempt')
-                ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
-
-            return [
-                'date' => $bill->bill_date,
-                'bill_no' => $bill->bill_no,
-                'supplier_name' => $bill->party?->name ?? '-',
-                'supplier_pan' => $bill->party?->pan ?? '-',
-                'taxable_amount' => round((float) $taxableAmount, 2),
-                'input_vat' => round((float) $inputVat, 2),
-                'exempt_amount' => round((float) $exemptAmount, 2),
-                'total_amount' => round((float) ($taxableAmount + $inputVat + $exemptAmount), 2),
-            ];
-        })->values()->all();
+        $rows = $dbRows->map(fn ($row) => [
+            'date' => $row->bill_date,
+            'bill_no' => $row->bill_no,
+            'supplier_name' => $row->supplier_name,
+            'supplier_pan' => $row->supplier_pan,
+            'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
+            'input_vat' => round((float) ($row->input_vat ?? 0), 2),
+            'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
+            'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
+            'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
+        ])->values()->all();
 
         return [
             'period' => [
@@ -423,6 +432,7 @@ class AccountReportService
                 'taxable_amount' => round(collect($rows)->sum('taxable_amount'), 2),
                 'input_vat' => round(collect($rows)->sum('input_vat'), 2),
                 'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
+                'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
                 'total_amount' => round(collect($rows)->sum('total_amount'), 2),
             ],
         ];
@@ -541,22 +551,64 @@ class AccountReportService
             ->whereNull('parent_id')
             ->get();
 
-        $getAccountIds = function (Collection $groups) use (&$getAccountIds) {
-            $ids = [];
+        // Resolve a root group's cash-flow classification using account_type when
+        // set, falling back to name-based matching for unclassified groups.
+        $resolveCashFlowCategory = function (AccountGroup $rootGroup): string {
+            if ($rootGroup->account_type !== null) {
+                return match ($rootGroup->account_type) {
+                    \App\Enums\AccountGroupTypeEnum::Income,
+                    \App\Enums\AccountGroupTypeEnum::Expense => 'operating',
+                    \App\Enums\AccountGroupTypeEnum::Asset => 'investing',
+                    \App\Enums\AccountGroupTypeEnum::Liability,
+                    \App\Enums\AccountGroupTypeEnum::Equity => 'financing',
+                };
+            }
+
+            $name = strtolower($rootGroup->name);
+
+            if (in_array($name, ['income', 'incomes', 'revenue', 'revenues', 'expense', 'expenses', 'expenditure', 'expenditures', 'costs', 'operating expenses'], true)) {
+                return 'operating';
+            }
+            if (in_array($name, ['asset', 'assets'], true)) {
+                return 'investing';
+            }
+            if (in_array($name, ['liability', 'liabilities', 'equity', 'equities'], true)) {
+                return 'financing';
+            }
+
+            return '';
+        };
+
+        // Build account_id → category map, propagating the root group's category
+        // down through all descendants so nested accounts are classified correctly.
+        $collectAccountCategory = function (Collection $groups, string $category) use (&$collectAccountCategory): array {
+            $map = [];
             foreach ($groups as $group) {
-                $lowerName = strtolower($group->name);
                 foreach ($group->accounts as $account) {
-                    $ids[$account->id] = $lowerName;
+                    $map[$account->id] = $category;
                 }
                 if ($group->childrenRecursive->isNotEmpty()) {
-                    $ids = $ids + $getAccountIds($group->childrenRecursive);
+                    $map += $collectAccountCategory($group->childrenRecursive, $category);
                 }
             }
 
-            return $ids;
+            return $map;
         };
 
-        $accountGroupMap = $getAccountIds(collect($accountGroups));
+        $accountCategoryMap = [];
+        foreach ($accountGroups as $rootGroup) {
+            $category = $resolveCashFlowCategory($rootGroup);
+            if ($category === '') {
+                continue;
+            }
+            $accountCategoryMap[$rootGroup->id] = $category;
+            foreach ($rootGroup->accounts as $account) {
+                $accountCategoryMap[$account->id] = $category;
+            }
+            if ($rootGroup->childrenRecursive->isNotEmpty()) {
+                $accountCategoryMap += $collectAccountCategory($rootGroup->childrenRecursive, $category);
+            }
+        }
 
         $items = JournalItem::query()
             ->select('journal_items.account_id')
@@ -575,14 +627,14 @@ class AccountReportService
         $financing = 0;
 
         foreach ($items as $accountId => $row) {
-            $groupName = $accountGroupMap[$accountId] ?? '';
+            $category = $accountCategoryMap[$accountId] ?? '';
             $net = (float) $row->net;
 
-            if (in_array($groupName, ['income', 'expenses'])) {
+            if ($category === 'operating') {
                 $operating += $net;
-            } elseif (in_array($groupName, ['assets'])) {
+            } elseif ($category === 'investing') {
                 $investing += -$net;
-            } elseif (in_array($groupName, ['liabilities', 'equity'])) {
+            } elseif ($category === 'financing') {
                 $financing += $net;
             }
         }
@@ -611,18 +663,42 @@ class AccountReportService
             ->where('company_id', $companyId)
             ->where('status', StatusEnum::APPROVED->value)
             ->whereNull('voided_at')
-            ->get()
-            ->filter(function (Invoice $invoice) {
-                $paid = $invoice->receiptAllocations()->sum('amount');
-                $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            ->get();
 
-                return round($total - $paid, 2) > 0;
-            });
+        $invoiceIds = $invoices->pluck('id');
 
-        $rows = $invoices->map(function (Invoice $invoice) use ($asOf) {
-            $paid = $invoice->receiptAllocations()->sum('amount');
+        $paidByInvoice = DB::table('receipt_allocations')
+            ->whereIn('invoice_id', $invoiceIds)
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id')
+            ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
+            ->pluck('paid', 'invoice_id');
+
+        // Pre-aggregate approved, non-voided credit note totals by invoice_id.
+        $creditNoteOffsetByInvoice = DB::table('credit_note_items')
+            ->join('credit_notes', 'credit_notes.id', '=', 'credit_note_items.credit_note_id')
+            ->whereIn('credit_notes.invoice_id', $invoiceIds)
+            ->where('credit_notes.status', StatusEnum::APPROVED->value)
+            ->whereNull('credit_notes.voided_at')
+            ->whereNull('credit_notes.deleted_at')
+            ->whereNull('credit_note_items.deleted_at')
+            ->groupBy('credit_notes.invoice_id')
+            ->selectRaw('credit_notes.invoice_id, COALESCE(SUM((credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount + credit_note_items.tax_amount), 0) as offset_amount')
+            ->pluck('offset_amount', 'invoice_id');
+
+        $invoices = $invoices->filter(function (Invoice $invoice) use ($paidByInvoice, $creditNoteOffsetByInvoice) {
+            $paid = (float) ($paidByInvoice->get($invoice->id, 0));
+            $creditNoteOffset = (float) ($creditNoteOffsetByInvoice->get($invoice->id, 0));
             $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
-            $outstanding = round($total - $paid, 2);
+
+            return round($total - $paid - $creditNoteOffset, 2) > 0;
+        });
+
+        $rows = $invoices->map(function (Invoice $invoice) use ($asOf, $paidByInvoice, $creditNoteOffsetByInvoice) {
+            $paid = (float) ($paidByInvoice->get($invoice->id, 0));
+            $creditNoteOffset = (float) ($creditNoteOffsetByInvoice->get($invoice->id, 0));
+            $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            $outstanding = round($total - $paid - $creditNoteOffset, 2);
             $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date) : Carbon::parse($invoice->invoice_date)->addDays(30);
             $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);
 
@@ -661,16 +737,27 @@ class AccountReportService
             ->where('company_id', $companyId)
             ->where('status', StatusEnum::APPROVED->value)
             ->whereNull('voided_at')
-            ->get()
-            ->filter(function (Bill $bill) {
-                $paid = $bill->paymentAllocations()->sum('amount');
-                $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            ->get();
 
-                return round($total - $paid, 2) > 0;
-            });
+        $billIds = $bills->pluck('id');
+        $billMorphType = (new Bill)->getMorphClass();
+        $paidByBill = DB::table('payment_allocations')
+            ->where('payable_type', $billMorphType)
+            ->whereIn('payable_id', $billIds)
+            ->whereNull('deleted_at')
+            ->groupBy('payable_id')
+            ->selectRaw('payable_id, COALESCE(SUM(amount), 0) as paid')
+            ->pluck('paid', 'payable_id');
 
-        $rows = $bills->map(function (Bill $bill) use ($asOf) {
-            $paid = $bill->paymentAllocations()->sum('amount');
+        $bills = $bills->filter(function (Bill $bill) use ($paidByBill) {
+            $paid = (float) ($paidByBill->get($bill->id, 0));
+            $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+
+            return round($total - $paid, 2) > 0;
+        });
+
+        $rows = $bills->map(function (Bill $bill) use ($asOf, $paidByBill) {
+            $paid = (float) ($paidByBill->get($bill->id, 0));
             $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
             $outstanding = round($total - $paid, 2);
             $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date)->addDays(30);
@@ -1224,17 +1311,27 @@ class AccountReportService
      */
     private function arSubledgerOutstanding(int $companyId): float
     {
-        $invoiceTotal = (float) Invoice::query()
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereNull('voided_at')
-            ->with(['invoiceItems', 'discount'])
-            ->get()
-            ->sum(fn (Invoice $invoice) => $invoice->invoiceItems->sum(
-                fn ($item) => ((float) $item->quantity * (float) $item->rate)
-                    - (float) $item->discount_amount
-                    + (float) $item->tax_amount
-            ) - (float) ($invoice->discount?->amount ?? 0));
+        $itemTotals = (float) (DB::table('invoice_items')
+            ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
+            ->where('invoices.company_id', $companyId)
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->whereNull('invoice_items.deleted_at')
+            ->selectRaw('COALESCE(SUM((invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount + invoice_items.tax_amount), 0) as total')
+            ->value('total') ?? 0);
+
+        $orderDiscounts = (float) (DB::table('discounts')
+            ->join('invoices', 'discounts.discountable_id', '=', 'invoices.id')
+            ->where('discounts.discountable_type', Invoice::class)
+            ->where('invoices.company_id', $companyId)
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->selectRaw('COALESCE(SUM(discounts.amount), 0) as total')
+            ->value('total') ?? 0);
+
+        $invoiceTotal = $itemTotals - $orderDiscounts;
 
         $receiptAllocations = (float) DB::table('receipt_allocations')
             ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
@@ -1252,17 +1349,15 @@ class AccountReportService
      */
     private function apSubledgerOutstanding(int $companyId): float
     {
-        $billTotal = (float) Bill::query()
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereNull('voided_at')
-            ->with('billItems')
-            ->get()
-            ->sum(fn (Bill $bill) => $bill->billItems->sum(
-                fn ($item) => ((float) $item->quantity * (float) $item->rate)
-                    - (float) $item->discount_amount
-                    + (float) $item->tax_amount
-            ));
+        $billTotal = (float) (DB::table('bill_items')
+            ->join('bills', 'bills.id', '=', 'bill_items.bill_id')
+            ->where('bills.company_id', $companyId)
+            ->where('bills.status', StatusEnum::APPROVED->value)
+            ->whereNull('bills.voided_at')
+            ->whereNull('bills.deleted_at')
+            ->whereNull('bill_items.deleted_at')
+            ->selectRaw('COALESCE(SUM((bill_items.quantity * bill_items.rate) - bill_items.discount_amount + bill_items.tax_amount), 0) as total')
+            ->value('total') ?? 0);
 
         $paymentAllocations = (float) DB::table('payment_allocations')
             ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')

@@ -50,7 +50,7 @@ class Batch extends Model
     {
         return $query->where('status', 'active')
             ->where('remaining_qty', '>', 0)
-            ->orderByRaw('expiry_date IS NULL ASC')
+            ->orderByRaw('CASE WHEN expiry_date IS NULL THEN 1 ELSE 0 END ASC')
             ->orderBy('expiry_date');
     }
 

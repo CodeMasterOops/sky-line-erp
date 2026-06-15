@@ -34,6 +34,7 @@ class PlanRequest extends FormRequest
             'is_default' => ['boolean'],
             'is_recommended' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'branch_limit' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

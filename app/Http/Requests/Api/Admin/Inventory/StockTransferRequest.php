@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
+use App\Rules\WithinActiveFiscalYear;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockTransferRequest extends FormRequest
@@ -18,7 +19,7 @@ class StockTransferRequest extends FormRequest
     {
         $rules = [
             'reference_no' => ['nullable', 'string', 'max:255'],
-            'date' => ['required', 'date'],
+            'date' => ['required', 'date', new WithinActiveFiscalYear],
             'from_warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'to_warehouse_id' => ['required', 'different:from_warehouse_id', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],

@@ -8,8 +8,37 @@ class ImportTemplateService
 {
     public function downloadProductTemplate(string $format = 'csv'): StreamedResponse
     {
-        $headers = config('data_transfer.product_fields', []);
-        $filename = $format === 'xlsx' ? 'product-import-template.xlsx' : 'product-import-template.csv';
+        return $this->downloadTemplate(
+            config('data_transfer.product_fields', []),
+            'product-import-template',
+            $format
+        );
+    }
+
+    public function downloadWarehouseTemplate(string $format = 'csv'): StreamedResponse
+    {
+        return $this->downloadTemplate(
+            config('data_transfer.warehouse_fields', []),
+            'warehouse-import-template',
+            $format
+        );
+    }
+
+    public function downloadSupplierTemplate(string $format = 'csv'): StreamedResponse
+    {
+        return $this->downloadTemplate(
+            config('data_transfer.party_fields', []),
+            'supplier-import-template',
+            $format
+        );
+    }
+
+    /**
+     * @param  list<string>  $headers
+     */
+    private function downloadTemplate(array $headers, string $basename, string $format): StreamedResponse
+    {
+        $filename = $format === 'xlsx' ? "{$basename}.xlsx" : "{$basename}.csv";
 
         if ($format === 'xlsx') {
             return response()->streamDownload(function () use ($headers) {

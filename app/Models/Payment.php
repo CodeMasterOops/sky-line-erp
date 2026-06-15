@@ -41,6 +41,7 @@ class Payment extends Model
         'create_user_id',
         'approve_user_id',
         'approved_at',
+        'voided_at',
         'status',
     ];
 
@@ -51,6 +52,7 @@ class Payment extends Model
         'account_id' => 'integer',
         'tds_account_id' => 'integer',
         'approved_at' => 'datetime',
+        'voided_at' => 'datetime',
         'status' => StatusEnum::class,
         'tds_category' => TdsCategoryEnum::class,
         'tds_rate' => 'float',

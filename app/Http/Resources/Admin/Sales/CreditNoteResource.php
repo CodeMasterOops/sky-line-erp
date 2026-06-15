@@ -4,9 +4,12 @@ namespace App\Http\Resources\Admin\Sales;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\Admin\Concerns\MapsPartyFields;
 
 class CreditNoteResource extends JsonResource
 {
+    use MapsPartyFields;
+
     public function toArray(Request $request): array
     {
         $totals = $this->calculateTotals();
@@ -17,8 +20,10 @@ class CreditNoteResource extends JsonResource
             'credit_note_date' => $this->credit_note_date ?? '',
             'invoice_id' => $this->invoice_id ?? '',
             'invoice_no' => $this->invoice?->invoice_no ?? '',
+            'invoice_date' => $this->invoice?->invoice_date ?? '',
             'party_id' => $this->party_id ?? '',
             'party_name' => $this->party?->name ?? '',
+            ...$this->mapPartyFields($this->party),
             'remarks' => $this->remarks ?? '',
             'fiscal_year_id' => $this->fiscal_year_id ?? '',
             'create_user_id' => $this->create_user_id ?? '',

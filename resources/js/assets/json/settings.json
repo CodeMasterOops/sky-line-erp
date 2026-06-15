@@ -40,6 +40,10 @@
                 "routes": "/admin/settings/tax"
             },
             {
+                "title": "Tax Groups",
+                "routes": "/admin/settings/tax-group"
+            },
+            {
                 "title": "Payment methods",
                 "routes": "/admin/settings/payment-mode"
             },

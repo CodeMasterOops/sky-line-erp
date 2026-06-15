@@ -29,6 +29,7 @@ readonly class SalesOrderService
                 $setting->fiscalYear?->year_code,
             );
             $order = SalesOrder::create([
+                'company_id' => $user->company->id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'quotation_id' => $formData['quotation_id'] ?? null,
@@ -122,10 +123,12 @@ readonly class SalesOrderService
     {
         $user = auth('admin')->user();
 
-        $salesOrder->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        DB::transaction(function () use ($salesOrder, $user) {
+            $salesOrder->update([
+                'approve_user_id' => $user->id,
+                'approved_at' => now(),
+                'status' => StatusEnum::APPROVED->value,
+            ]);
+        });
     }
 }

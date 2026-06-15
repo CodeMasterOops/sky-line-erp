@@ -18,10 +18,10 @@
                     </select>
                 </div>
                 <div class="col-md-4">
-                    <VInput id="from_date" v-model="form.from_date" label="From Date *" type="date" @validate="validateField('from_date')" :error="errors.from_date" />
+                    <VDatepicker id="from_date" v-model="form.from_date" label="From Date" required @validate="validateField('from_date')" :error="errors.from_date" />
                 </div>
                 <div class="col-md-4">
-                    <VInput id="to_date" v-model="form.to_date" label="To Date *" type="date" />
+                    <VDatepicker id="to_date" v-model="form.to_date" label="To Date" required />
                 </div>
                 <div class="col-md-4">
                     <VInput id="days" v-model="form.days" label="Days *" type="number" step="0.5" />
@@ -48,6 +48,7 @@ import { useYup } from '@/helpers/yup';
 import { storeToRefs } from 'pinia';
 import { useLeaveStore } from '@/stores/admin/hr/leave.js';
 import { useEmployeeStore } from '@/stores/admin/hr/employee.js';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const leaveStore = useLeaveStore();
 const empStore = useEmployeeStore();

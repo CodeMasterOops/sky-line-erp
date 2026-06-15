@@ -148,13 +148,20 @@
                                 <td class="inv-col-tax">
                                     <select
                                         class="form-select form-select-sm inv-line-tax-select"
-                                        :value="item.tax_id ?? ''"
+                                        :value="item.tax_group_id ? `group:${item.tax_group_id}` : (item.tax_id ?? '')"
                                         :disabled="!isDraft"
                                         @change="onLineTaxChange(index, $event.target.value)">
                                         <option value="">None</option>
-                                        <option v-for="t in taxes.data" :key="t.id" :value="t.id">
-                                            {{ t.name }} ({{ t.rate }}%)
-                                        </option>
+                                        <optgroup v-if="taxGroups.data.length" label="Tax Groups">
+                                            <option v-for="g in taxGroups.data" :key="`group:${g.id}`" :value="`group:${g.id}`">
+                                                {{ g.name }}
+                                            </option>
+                                        </optgroup>
+                                        <optgroup label="Individual Taxes">
+                                            <option v-for="t in taxes.data" :key="t.id" :value="t.id">
+                                                {{ t.name }} ({{ t.rate }}%)
+                                            </option>
+                                        </optgroup>
                                     </select>
                                     <span v-if="calcLineTax(item, index) > 0" class="inv-line-tax-amt">
                                         {{ formatMoney(calcLineTax(item, index)) }}
@@ -312,12 +319,13 @@ const edit_invoice_id = defineModel('invoice_id');
 const {invoice} = storeToRefs(invoiceStore);
 const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 
 onMounted(() => {
     productStore.getProductVariants();
     partyStore.getParties({filter: {type: 'customer'}});
     taxStore.getTaxes({ filter: { for: 'line_item' } });
+    taxStore.getTaxGroups();
 });
 
 const emptyLine = () => ({
@@ -329,6 +337,8 @@ const emptyLine = () => ({
     quantity: '',
     rate: '',
     tax_id: '',
+    tax_group_id: null,
+    tax_amount: 0,
     line_discount_type: 'fixed',
     line_discount_value: '0',
     warehouse_id: '',
@@ -440,7 +450,9 @@ watch(() => edit_invoice_id.value, async (id) => {
             unit_id: item.unit_id || '',
             quantity: item.quantity != null && item.quantity !== '' ? String(item.quantity) : '',
             rate: item.rate != null && item.rate !== '' ? String(item.rate) : '',
-            tax_id: item.tax_id || '',
+            tax_id: item.tax_group_id ? '' : (item.tax_id || ''),
+            tax_group_id: item.tax_group_id || null,
+            tax_amount: Number(item.tax_amount ?? 0),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value:
                 item.line_discount_value != null && item.line_discount_value !== ''
@@ -525,9 +537,35 @@ const onWarehousePicked = (warehouseOption) => {
     confirmWarehousePick(warehouseOption);
 };
 
-const onLineTaxChange = (index, taxId) => {
-    form.items[index].tax_id = taxId || '';
-    validateField(`items[${index}].tax_id`);
+const onLineTaxChange = async (index, value) => {
+    if (value && String(value).startsWith('group:')) {
+        const groupId = parseInt(value.replace('group:', ''), 10);
+        form.items[index].tax_group_id = groupId;
+        form.items[index].tax_id = '';
+        form.items[index].tax_amount = 0;
+        try {
+            const item = form.items[index];
+            const baseAmount = Math.max(
+                0,
+                (Number(item.quantity) || 0) * (Number(item.rate) || 0)
+                    - Number(item.discount_amount ?? 0),
+            );
+            const result = await taxStore.calculateTaxGroup(
+                baseAmount,
+                groupId,
+                form.party_id || null,
+                form.invoice_date || null,
+            );
+            form.items[index].tax_amount = result.tax_amount ?? 0;
+        } catch {
+            // Non-fatal: backend will recompute on submit.
+        }
+    } else {
+        form.items[index].tax_id = value || '';
+        form.items[index].tax_group_id = null;
+        form.items[index].tax_amount = 0;
+        validateField(`items[${index}].tax_id`);
+    }
 };
 
 const buildUpdatePayload = () => {
@@ -546,7 +584,8 @@ const buildUpdatePayload = () => {
             unit_id: item.unit_id || null,
             quantity: item.quantity,
             rate: item.rate,
-            tax_id: item.tax_id || null,
+            tax_id: item.tax_group_id ? null : (item.tax_id || null),
+            tax_group_id: item.tax_group_id || null,
             tax_line_type: 'taxable',
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',

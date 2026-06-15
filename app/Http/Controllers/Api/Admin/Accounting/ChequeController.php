@@ -6,6 +6,7 @@ use App\Models\Cheque;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\Accounting\JournalVoidService;
 use App\Http\Resources\Admin\Accounting\ChequeResource;
 use App\Http\Requests\Api\Admin\Accounting\ChequeRequest;
 use App\Http\Requests\Api\Admin\Accounting\ChequeClearRequest;
@@ -14,6 +15,8 @@ use App\Http\Requests\Api\Admin\Accounting\ChequePresentRequest;
 
 class ChequeController extends Controller
 {
+    public function __construct(private JournalVoidService $journalVoid) {}
+
     /**
      * @Permissions("list_cheque", group="cheque", desc="List Cheques / PDC")
      */
@@ -122,6 +125,15 @@ class ChequeController extends Controller
         $data = $request->validated();
 
         $cheque->update(['status' => 'bounced', 'remarks' => $data['remarks'] ?? $cheque->remarks]);
+
+        // Reverse any GL journal that was posted specifically for this cheque (e.g. a
+        // clearing journal written when the cheque was presented/cleared). The morph
+        // reference on the cheque is the source document (Receipt/Payment); those
+        // journals are NOT reversed here — the accountant must void the original
+        // receipt/payment separately to clear the AR/AP impact.
+        if ($cheque->gl_journal_id) {
+            $this->journalVoid->reverseForReference($cheque);
+        }
 
         $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
 

@@ -29,6 +29,7 @@ readonly class QuotationService
                 $setting->fiscalYear?->year_code,
             );
             $quotation = Quotation::create([
+                'company_id' => $user->company->id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
                 'quotation_no' => $quotationNo,
@@ -122,10 +123,12 @@ readonly class QuotationService
     {
         $user = auth('admin')->user();
 
-        $quotation->update([
-            'approve_user_id' => $user->id,
-            'approved_at' => now(),
-            'status' => StatusEnum::APPROVED->value,
-        ]);
+        DB::transaction(function () use ($quotation, $user) {
+            $quotation->update([
+                'approve_user_id' => $user->id,
+                'approved_at' => now(),
+                'status' => StatusEnum::APPROVED->value,
+            ]);
+        });
     }
 }

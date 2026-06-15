@@ -4,12 +4,15 @@ namespace App\Services\Accounting;
 
 use App\Models\Invoice;
 use App\Models\Journal;
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Models\JournalItem;
 use App\Enums\JournalTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use App\Services\Tax\TaxCalculationEngine;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Posts a balanced sales journal when an invoice is approved:
@@ -18,7 +21,9 @@ use Illuminate\Support\Facades\DB;
  *   CR  Sales Revenue       (sales_account_id)        — taxable base + exempt + zero-rated amounts
  *   CR  VAT Output          (vat_account_id)          — VAT on taxable lines only
  *
- * Silently skips posting when required account settings are not configured.
+ * Throws ValidationException when required account settings are not configured,
+ * so callers (invoice approval) surface a clear error instead of silently
+ * leaving an approved invoice without a GL journal.
  * Idempotent: will not post a second journal if one already exists for this invoice.
  */
 class InvoiceGlPostingService
@@ -26,6 +31,8 @@ class InvoiceGlPostingService
     public function __construct(
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
+        private GlAccountConfigGuard $glAccountGuard,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     /**
@@ -43,23 +50,22 @@ class InvoiceGlPostingService
             return;
         }
 
+        $invoice->loadMissing(['invoiceItems', 'discount']);
+
+        $hasTax = $invoice->invoiceItems
+            ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
+            ->sum('tax_amount') > 0;
+
+        // Throws ValidationException when required accounts are not configured.
+        $this->glAccountGuard->assertSalesPostable($hasTax);
+
         $settings = AccountSetting::withoutGlobalScopes()
             ->where('company_id', $invoice->company_id)
             ->first();
 
-        if (! $settings) {
-            return;
-        }
-
         $receivableAccountId = $settings->customer_account_id;
         $salesAccountId = $settings->sales_account_id;
         $vatAccountId = $settings->vat_account_id;
-
-        if (! $receivableAccountId || ! $salesAccountId) {
-            return;
-        }
-
-        $invoice->loadMissing('invoiceItems');
 
         $vatTaxableBase = round((float) $invoice->invoiceItems
             ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
@@ -70,10 +76,11 @@ class InvoiceGlPostingService
             ->sum('tax_amount'), 2);
 
         $nonVatBase = round((float) $invoice->invoiceItems
-            ->whereIn('tax_line_type', [TaxLineTypeEnum::EXEMPT->value, TaxLineTypeEnum::ZERO_RATED->value])
+            ->whereIn('tax_line_type', [TaxLineTypeEnum::EXEMPT, TaxLineTypeEnum::ZERO_RATED])
             ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount), 2);
 
-        $salesBase = round($vatTaxableBase + $nonVatBase, 2);
+        $orderDiscountAmount = round((float) ($invoice->discount?->amount ?? 0), 2);
+        $salesBase = round($vatTaxableBase + $nonVatBase - $orderDiscountAmount, 2);
         $grandTotal = round($salesBase + $vatAmount, 2);
 
         if ($grandTotal <= 0) {
@@ -90,21 +97,28 @@ class InvoiceGlPostingService
                 ->first();
 
         if (! $user) {
-            return;
+            throw ValidationException::withMessages([
+                'account_setting' => 'Cannot post sales journal: no user found for this company.',
+            ]);
         }
 
         $company = \App\Models\Company::with('fiscalYear')->find($invoice->company_id);
         if (! $company || ! $company->fiscal_year_id) {
-            return;
+            throw ValidationException::withMessages([
+                'account_setting' => 'Cannot post sales journal: no active fiscal year is set for this company.',
+            ]);
         }
 
         $yearCode = $company->fiscalYear?->year_code ?? '';
         $voucherNo = 'SALE-JV-'.$invoice->id.($yearCode ? '/'.$yearCode : '');
 
+        // Build per-tax-line VAT entries: group items by tax_group_id, then by individual tax_id.
+        $taxGroupLines = $this->buildTaxGroupGlLines($invoice, $vatAccountId);
+
         DB::transaction(function () use (
             $invoice, $grandTotal, $salesBase, $vatAmount,
             $receivableAccountId, $salesAccountId, $vatAccountId,
-            $user, $company, $voucherNo
+            $user, $company, $voucherNo, $taxGroupLines
         ) {
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $invoice->company_id,
@@ -142,8 +156,19 @@ class InvoiceGlPostingService
                 'remarks' => 'Sales revenue – '.$invoice->invoice_no,
             ]);
 
-            // CR VAT Output — only when VAT amount > 0 and vat_account is configured
-            if ($vatAmount > 0 && $vatAccountId) {
+            if (! empty($taxGroupLines)) {
+                // Per-tax-line GL posting: each tax posts to its own gl_account_id when set.
+                foreach ($taxGroupLines as $line) {
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $line['account_id'],
+                        'dr_amount' => 0,
+                        'cr_amount' => $line['amount'],
+                        'remarks' => $line['remarks'],
+                    ]);
+                }
+            } elseif ($vatAmount > 0 && $vatAccountId) {
+                // Standard single VAT account posting (legacy / single-tax items).
                 JournalItem::create([
                     'journal_id' => $journal->id,
                     'account_id' => $vatAccountId,
@@ -152,7 +177,7 @@ class InvoiceGlPostingService
                     'remarks' => 'Output VAT – '.$invoice->invoice_no,
                 ]);
             } elseif ($vatAmount > 0) {
-                // No vat_account configured: fold VAT into sales line to keep journal balanced
+                // Fold residual VAT rounding into sales line to keep journal balanced.
                 JournalItem::withoutGlobalScopes()
                     ->where('journal_id', $journal->id)
                     ->where('account_id', $salesAccountId)
@@ -161,6 +186,62 @@ class InvoiceGlPostingService
 
             $this->balanceGuard->assertBalanced($journal);
         });
+    }
+
+    /**
+     * Build per-tax GL lines for invoice items that use tax groups.
+     * Returns an empty array when no items use a tax group (fallback to legacy single-account posting).
+     *
+     * @return array<int, array{account_id: int, amount: float, remarks: string}>
+     */
+    private function buildTaxGroupGlLines(Invoice $invoice, ?int $fallbackVatAccountId): array
+    {
+        $groupItems = $invoice->invoiceItems->filter(fn ($item) => $item->tax_group_id !== null);
+
+        if ($groupItems->isEmpty()) {
+            return [];
+        }
+
+        // Accumulate amounts per GL account across all group-taxed lines.
+        $accountTotals = [];
+
+        foreach ($groupItems as $item) {
+            $group = TaxGroup::withoutGlobalScopes()->find($item->tax_group_id);
+            if (! $group) {
+                continue;
+            }
+
+            $baseAmount = round(
+                ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount,
+                2,
+            );
+
+            $result = $this->taxEngine->calculateForGroup($baseAmount, $group);
+
+            foreach ($result->lines as $taxLine) {
+                $accountId = $taxLine['gl_account_id'] ?? $fallbackVatAccountId;
+                if (! $accountId) {
+                    continue;
+                }
+                $accountTotals[$accountId] = round(
+                    ($accountTotals[$accountId] ?? 0.0) + $taxLine['amount'],
+                    2,
+                );
+            }
+        }
+
+        $lines = [];
+        foreach ($accountTotals as $accountId => $amount) {
+            if ($amount > 0) {
+                $lines[] = [
+                    'account_id' => $accountId,
+                    'amount' => $amount,
+                    'remarks' => 'Output VAT (tax group) – '.$invoice->invoice_no,
+                ];
+            }
+        }
+
+        return $lines;
     }
 
     private function alreadyPosted(Invoice $invoice): bool

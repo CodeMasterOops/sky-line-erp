@@ -25,8 +25,21 @@ class ProductController extends Controller
      */
     public function productVariants(Request $request)
     {
-        $variants = ProductVariant::with(['product:id,name,unit_id,product_type', 'variantOptions'])
-            ->get();
+        $limit = min((int) $request->get('limit', 500), 1000);
+        $search = trim((string) $request->get('search', ''));
+
+        $query = ProductVariant::with(['product:id,name,unit_id,product_type', 'variantOptions']);
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('sku', 'like', $like)
+                    ->orWhere('barcode', 'like', $like)
+                    ->orWhereHas('product', fn ($p) => $p->where('name', 'like', $like)->orWhere('code', 'like', $like));
+            });
+        }
+
+        $variants = $query->limit($limit)->get();
 
         return ProductVariantResource::collection($variants);
     }
@@ -54,7 +67,8 @@ class ProductController extends Controller
 
         if ($barcode !== '') {
             $query->where(function ($sub) use ($barcode) {
-                $sub->where('sku', $barcode)
+                $sub->where('barcode', $barcode)
+                    ->orWhere('sku', $barcode)
                     ->orWhereHas('product', function ($product) use ($barcode) {
                         $product->where('code', $barcode);
                     });
@@ -62,7 +76,8 @@ class ProductController extends Controller
         } elseif (mb_strlen($q) >= 2) {
             $like = '%'.$q.'%';
             $query->where(function ($sub) use ($like) {
-                $sub->where('sku', 'like', $like)
+                $sub->where('barcode', 'like', $like)
+                    ->orWhere('sku', 'like', $like)
                     ->orWhereHas('product', function ($product) use ($like) {
                         $product->where('name', 'like', $like)
                             ->orWhere('code', 'like', $like);
@@ -83,17 +98,23 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $isServiceOnly = $request->input('product_type') === ProductTypeEnum::SERVICE->value;
+        $warehouseIds = Product::parseWarehouseIds($request->input('warehouse_ids'));
 
         $variantRelations = $isServiceOnly ? [] : [
-            'stocks' => fn ($sq) => $sq->with('warehouse'),
+            'stocks' => fn ($sq) => $sq
+                ->select('id', 'product_variant_id', 'warehouse_id', 'quantity')
+                ->when($warehouseIds !== [], fn ($q) => $q->whereIn('warehouse_id', $warehouseIds))
+                ->with('warehouse:id,name,code'),
         ];
 
         if (! $isServiceOnly && $request->boolean('include_inventory_value')) {
-            $variantRelations['stockLayers'] = fn ($lq) => $lq->where('qty_remaining', '>', 0);
+            $variantRelations['stockLayers'] = fn ($lq) => $lq
+                ->where('qty_remaining', '>', 0)
+                ->when($warehouseIds !== [], fn ($q) => $q->whereIn('warehouse_id', $warehouseIds));
         }
 
         $products = Product::with([
-            'productCategory',
+            'productCategory.parent',
             'brand',
             'unit',
             'tax',
@@ -134,6 +155,7 @@ class ProductController extends Controller
                 $productVariant = $product->variants()->create([
                     'company_id' => $product->company_id,
                     'sku' => $variant['sku'] ?? null,
+                    'barcode' => $variant['barcode'] ?? null,
                     'sales_price' => $variant['sales_price'] ?? 0,
                     'purchase_price' => $variant['purchase_price'] ?? 0,
                     'is_default' => $hasVariants ? $variant['is_default'] : true,
@@ -159,6 +181,7 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load([
+            'productCategory.parent',
             'tax',
             'variants.variantOptions.attribute',
             'variants.stocks.warehouse',
@@ -194,6 +217,7 @@ class ProductController extends Controller
                     if ($productVariant) {
                         $productVariant->update([
                             'sku' => $variant['sku'] ?? null,
+                            'barcode' => $variant['barcode'] ?? null,
                             'sales_price' => $variant['sales_price'] ?? 0,
                             'purchase_price' => $variant['purchase_price'] ?? 0,
                             'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
@@ -204,6 +228,7 @@ class ProductController extends Controller
                     $productVariant = $product->variants()->create([
                         'company_id' => $product->company_id,
                         'sku' => $variant['sku'] ?? null,
+                        'barcode' => $variant['barcode'] ?? null,
                         'sales_price' => $variant['sales_price'] ?? 0,
                         'purchase_price' => $variant['purchase_price'] ?? 0,
                         'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
@@ -231,8 +256,20 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        $product->variants()->delete();
-        $product->delete();
+        $hasStock = $product->variants()
+            ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
+            ->exists();
+
+        if ($hasStock) {
+            return response()->json([
+                'message' => 'This product has stock on hand and cannot be deleted. Please adjust stock to zero before deleting.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($product) {
+            $product->variants()->delete();
+            $product->delete();
+        });
 
         return response()->json([
             'message' => 'Product Deleted Successfully',

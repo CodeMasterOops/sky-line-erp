@@ -8,12 +8,10 @@
             <div class="card-body py-2">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label small">From Date</label>
-                        <input type="date" class="form-control form-control-sm" v-model="filter.from_date" />
+                        <VDatepicker id="from_date" label="From Date" v-model="filter.from_date" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small">To Date</label>
-                        <input type="date" class="form-control form-control-sm" v-model="filter.to_date" />
+                        <VDatepicker id="to_date" label="To Date" v-model="filter.to_date" />
                     </div>
                     <div class="col-md-2">
                         <button class="btn btn-sm btn-primary w-100" :disabled="loading" @click="loadReports">
@@ -122,6 +120,7 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { ref, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api';
 import showErrors from '@/helpers/showErrors';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const loading = ref(false);
 const branches = ref([]);

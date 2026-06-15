@@ -21,7 +21,7 @@ class JournalVoucherRequest extends FormRequest
             'reference_no' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:2'],
-            'items.*.account_id' => ['required', 'distinct', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'items.*.account_id' => ['required', 'distinct', TRule::exists('accounts', 'id')->where('is_active', true)->withoutTrashed()],
             'items.*.dr_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.cr_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string'],
@@ -48,7 +48,7 @@ class JournalVoucherRequest extends FormRequest
                 $totalCr += $cr;
             }
 
-            if ($totalDr <= 0 || $totalCr <= 0 || abs($totalDr - $totalCr) > 0.0001) {
+            if ($totalDr <= 0 || $totalCr <= 0 || abs($totalDr - $totalCr) > \App\Services\Accounting\JournalBalanceGuard::TOLERANCE) {
                 $validator->errors()->add('items', 'Total Dr amount must be equal to Total Cr amount.');
             }
         });

@@ -40,7 +40,6 @@ class BudgetController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'fiscal_year_id' => 'required|exists:fiscal_years,id',
             'branch_id' => 'nullable|exists:branches,id',
             'name' => 'required|string|max:200',
             'description' => 'nullable|string',
@@ -51,6 +50,8 @@ class BudgetController extends Controller
             'lines.*.budgeted_amount' => 'required|numeric|min:0',
             'lines.*.remarks' => 'nullable|string',
         ]);
+
+        $data['fiscal_year_id'] = auth()->user()->company->fiscal_year_id;
 
         return DB::transaction(function () use ($data) {
             $lines = $data['lines'];

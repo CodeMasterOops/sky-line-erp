@@ -24,8 +24,26 @@ trait BranchTenant
 
         static::addGlobalScope('branch_scope', function (Builder $builder) {
             if ($branchId = TenantService::branchId()) {
-                $builder->where('branch_id', $branchId);
+                $builder->where($builder->getModel()->getTable().'.branch_id', $branchId);
             }
         });
+    }
+
+    /**
+     * Restrict results to branches the authenticated user can access.
+     * Used by multi-branch report queries where no specific branch is selected
+     * but results must still be scoped to the user's permitted branches.
+     */
+    public function scopeForAccessibleBranches(Builder $query): Builder
+    {
+        $user = auth('admin')->user();
+
+        if (! $user || $user->isAdmin()) {
+            return $query;
+        }
+
+        $branchIds = $user->accessibleBranchIds();
+
+        return $query->whereIn($this->getTable().'.branch_id', $branchIds->isEmpty() ? [0] : $branchIds);
     }
 }

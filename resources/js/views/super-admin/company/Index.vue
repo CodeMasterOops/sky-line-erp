@@ -82,6 +82,12 @@
                             <template v-if="column.key === 'plan'">
                                 {{ record.current_subscription?.plan?.name || '—' }}
                             </template>
+                            <template v-if="column.key === 'expires_at'">
+                                <span v-if="record.expires_at" :class="isExpired(record.expires_at) ? 'text-danger fw-semibold' : 'text-success'">
+                                    {{ formatDate(record.expires_at) }}
+                                </span>
+                                <span v-else class="text-muted">—</span>
+                            </template>
                             <template v-if="column.key === 'status'">
                                 <div class="form-check form-switch">
                                     <input class="form-check-input"
@@ -194,6 +200,10 @@ const columns = [
         key: 'plan',
     },
     {
+        title: 'Expires',
+        key: 'expires_at',
+    },
+    {
         title: 'Status',
         key: 'status',
     },
@@ -235,6 +245,16 @@ const updateCompanyStatus = async (id) => {
             }
         }
     });
+};
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('en-GB', {day: '2-digit', month: 'short', year: 'numeric'});
+};
+
+const isExpired = (dateStr) => {
+    if (!dateStr) return false;
+    return new Date(dateStr) < new Date();
 };
 
 const loginToCompany = async (id) => {

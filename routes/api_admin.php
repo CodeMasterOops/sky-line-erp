@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\Admin\AddressReferenceController;
 use App\Http\Controllers\Api\Admin\Nepal\InvoicePdfController;
 use App\Http\Controllers\Api\Admin\Nepal\IrdSettingController;
 use App\Http\Controllers\Api\Admin\Nepal\TdsChallanController;
+use App\Http\Controllers\Api\Admin\Nepal\TdsReceivableController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
 use App\Http\Controllers\Api\Admin\BillingController;
 use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
@@ -38,6 +39,7 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         // profile
         Route::prefix('profile')->as('profile')->controller(ProfileController::class)->group(function () {
             Route::get('/', 'profile')->name('index');
+            Route::get('permissions', 'permissions')->name('permissions');
             Route::post('update', 'updateProfile')->name('update');
             Route::put('change-password', 'changePassword')->name('changePassword');
         });
@@ -120,17 +122,36 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
                 Route::get('challan-pdf', 'downloadChallan')->name('challan-pdf');
                 Route::get('certificate-pdf', 'downloadCertificate')->name('certificate-pdf');
             });
+
+            // TDS Receivables (customer-withheld TDS certificate tracking & settlement)
+            Route::prefix('tds-receivables')->as('tds-receivables.')->controller(TdsReceivableController::class)->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::get('{tdsReceivable}', 'show')->name('show');
+                Route::post('{tdsReceivable}/approve', 'approve')->name('approve');
+                Route::post('{tdsReceivable}/settle', 'settle')->name('settle');
+            });
         });
 
     });
 
     // POS
     Route::prefix('pos')->as('pos.')->middleware('checkRole')->controller(PosController::class)->group(function () {
+        Route::get('categories', 'categories')->name('categories');
         Route::get('products', 'products')->name('products');
         Route::get('variants/{productVariant}/warehouses', 'variantWarehouses')->name('variants.warehouses');
         Route::get('customers', 'customers')->name('customers');
         Route::get('warehouses', 'warehouses')->name('warehouses');
         Route::get('today-summary', 'todaySummary')->name('today-summary');
+        Route::get('transactions', 'transactions')->name('transactions');
+        Route::get('receipt/{invoice}', 'receiptData')->name('receipt');
+        // Till management
+        Route::get('till/current', 'currentSession')->name('till.current');
+        Route::post('till/open', 'openTill')->name('till.open');
+        Route::post('till/close', 'closeTill')->name('till.close');
+        Route::post('till/cash-movement', 'cashMovement')->name('till.cash-movement');
+        Route::get('till/summary', 'tillSummary')->name('till.summary');
+        Route::post('return', 'processReturn')->name('return');
         Route::post('checkout', 'checkout')->name('checkout');
         Route::post('hold', 'holdOrder')->name('hold');
         Route::get('held-orders', 'heldOrders')->name('held-orders');
@@ -144,5 +165,8 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
     });
 
     // enum
-    Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {});
+    Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {
+        Route::get('journal-type', 'journalTypes')->name('journal-type');
+        Route::get('tds-categories', 'tdsCategories')->name('tds-categories');
+    });
 });

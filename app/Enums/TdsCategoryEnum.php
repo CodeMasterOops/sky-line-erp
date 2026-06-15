@@ -59,14 +59,19 @@ enum TdsCategoryEnum: string
     public function revenueCode(): string
     {
         return match ($this) {
-            self::SERVICE_VAT_BILL, self::SERVICE_PAN_BILL, self::SERVICE_VAT_EXEMPT_INSTITUTION => '11112',
-            self::CONTRACT_VAT_REGISTERED => '11112',
-            self::RENT_PROPERTY, self::RENT_VEHICLE_VAT, self::RENT_VEHICLE_NO_VAT => '11112',
-            self::INTEREST_BANK_NATURAL_PERSON, self::INTEREST_COMPANY => '11212',
-            self::DIVIDEND => '11213',
-            self::ROYALTY => '11112',
+            self::SERVICE_VAT_BILL,
+            self::SERVICE_PAN_BILL,
+            self::SERVICE_VAT_EXEMPT_INSTITUTION,
+            self::CONTRACT_VAT_REGISTERED,
             self::COMMISSION => '11112',
-            self::WINDFALL => '11112',
+            self::RENT_PROPERTY,
+            self::RENT_VEHICLE_VAT,
+            self::RENT_VEHICLE_NO_VAT => '11113',
+            self::INTEREST_BANK_NATURAL_PERSON,
+            self::INTEREST_COMPANY => '11212',
+            self::DIVIDEND => '11213',
+            self::ROYALTY => '11211',
+            self::WINDFALL => '11214',
         };
     }
 }

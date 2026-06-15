@@ -159,6 +159,11 @@
                                                     :class="{ 'is-over': Number(item.quantity) > item.stock_qty }">
                                                     Stock {{ item.stock_qty }}
                                                 </span>
+                                                <span
+                                                    v-if="errors[`items[${index}].warehouse_id`]"
+                                                    class="text-danger small">
+                                                    {{ errors[`items[${index}].warehouse_id`] }}
+                                                </span>
                                             </div>
                                         </td>
                                         <td>
@@ -227,6 +232,9 @@
                                     </tr>
                                     </tbody>
                                 </table>
+                            </div>
+                            <div v-if="errors.items" class="text-danger small mt-2">
+                                {{ errors.items }}
                             </div>
                         </div>
 
@@ -338,10 +346,16 @@ import {useCreditNoteStore} from '@/stores/admin/sales/credit-note.js';
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {warehouseIdForLineItem} from '@/helpers/productLineValidation.js';
+import {
+    firstFormValidationError,
+    lineFromInvoiceItem,
+    productLabelFromInvoiceLine,
+    variantLabel,
+} from '@/helpers/creditNoteLineItem.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
@@ -367,9 +381,9 @@ const createCustomerOpened = ref(false);
 
 const {creditNote} = storeToRefs(creditNoteStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const notifier = useToast();
 
@@ -487,14 +501,6 @@ watch(
     }
 );
 
-function variantLabel(variant) {
-    let label = variant.name || '';
-    if (variant.sku) {
-        label += ` (${variant.sku})`;
-    }
-    return label;
-}
-
 function defaultLineRateString(variant) {
     const n = Number(variant.sales_price ?? variant.purchase_price ?? 0);
     return String(Number.isFinite(n) ? n : 0);
@@ -508,14 +514,6 @@ function rateStringFromApiLine(item) {
         return defaultLineRateString(item.product_variant);
     }
     return '0';
-}
-
-function productLabelFromInvoiceLine(line) {
-    const v = line.product_variant;
-    if (!v) {
-        return 'Unknown product';
-    }
-    return variantLabel(v);
 }
 
 function maxQtyForLine(item) {
@@ -539,32 +537,6 @@ const invoiceLinePickOptions = computed(() => {
     }));
 });
 
-function lineFromInvoiceItem(item, invoicedQty) {
-    const ldv =
-        item.line_discount_value !== null && item.line_discount_value !== undefined && item.line_discount_value !== ''
-            ? String(item.line_discount_value)
-            : '0';
-    const qtyDefault = Math.min(1, Math.max(1, invoicedQty));
-    return {
-        id: '',
-        invoice_item_id: item.id,
-        product_variant_id: item.product_variant_id,
-        product_label: productLabelFromInvoiceLine(item),
-        sku: item.product_variant?.sku ?? '',
-        purchase_snapshot: item.product_variant?.purchase_price ?? 0,
-        unit_id: item.unit_id ?? '',
-        quantity: String(qtyDefault),
-        rate: String(Number(item.rate ?? 0)),
-        tax_id: item.tax_id || '',
-        line_discount_type: item.line_discount_type || 'fixed',
-        line_discount_value: ldv,
-        is_service: !!item.product_variant?.is_service,
-        warehouse_id: item.warehouse_id || '',
-        warehouse_name: item.warehouse?.name ?? '',
-        stock_qty: null,
-    };
-}
-
 function addOrMergeLineFromInvoiceItem(invoiceItemId) {
     const item = loadedInvoice.value?.items?.find((l) => String(l.id) === String(invoiceItemId));
     if (!item) {
@@ -583,7 +555,7 @@ function addOrMergeLineFromInvoiceItem(invoiceItemId) {
         }
         return;
     }
-    form.items.push(lineFromInvoiceItem(item, maxInv));
+    form.items.push(lineFromInvoiceItem(item, maxInv, { includeId: true }));
 }
 
 watch(invoiceLinePickSelection, async (pickId) => {
@@ -661,6 +633,7 @@ watch(
         loadedInvoice.value = null;
         invoiceLinePickSelection.value = '';
         taxStore.getTaxes();
+        taxStore.getTaxGroups();
         await creditNoteStore.getCreditNote(id);
         const data = creditNote.value.data;
 
@@ -793,7 +766,7 @@ const buildCreditNotePayload = () => {
             unit_id: item.unit_id || null,
             quantity: lineQtyInt(item.quantity),
             rate: Number(item.rate || 0),
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: calcLineTax(item, index),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
@@ -806,18 +779,22 @@ const updateCreditNote = async (id) => {
     if (!isDraft.value) {
         return;
     }
-    const validated = await validateForm(validations, form);
-    if (validated) {
-        isSubmitting.value = true;
-        try {
-            const res = await creditNoteStore.updateCreditNote(id, buildCreditNotePayload());
-            toast(res.status, res.data.message);
-            closeEditModal();
-        } catch (e) {
-            showErrors(e);
-        } finally {
-            isSubmitting.value = false;
-        }
+    const validated = await validateForm();
+    if (!validated) {
+        notifier.warning(firstFormValidationError(errors));
+
+        return;
+    }
+
+    isSubmitting.value = true;
+    try {
+        const res = await creditNoteStore.updateCreditNote(id, buildCreditNotePayload());
+        toast(res.status, res.data.message);
+        closeEditModal();
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        isSubmitting.value = false;
     }
 };
 

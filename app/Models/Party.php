@@ -16,6 +16,7 @@ class Party extends Model
 
     protected $fillable = [
         'company_id',
+        'import_batch_id',
         'type',
         'name',
         'code',

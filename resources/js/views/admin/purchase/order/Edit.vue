@@ -274,7 +274,7 @@ import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
 import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
@@ -286,9 +286,9 @@ const edit_order_id = defineModel('order_id');
 
 const {order} = storeToRefs(purchaseOrderStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
@@ -374,6 +374,7 @@ watch(
             return;
         }
         taxStore.getTaxes();
+        taxStore.getTaxGroups();
         await purchaseOrderStore.getOrder(id);
         const data = order.value.data;
         await partyStore.getParties({
@@ -479,7 +480,7 @@ const buildOrderPayload = () => {
             rate: item.rate,
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: item.tax_amount ?? 0,
             discount_amount: String(lineDiscountMoneyFromItem(item)),
         })),

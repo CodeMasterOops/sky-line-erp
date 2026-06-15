@@ -6,30 +6,24 @@
         modal-class="add-centered"
         title="Add Bill">
         <template #modal-body>
-            <div class="card border-0 shadow-none mb-0">
-                <div class="card-body p-0 border-0">
-                    <form @submit.prevent="storeBillWithStatus('draft')" class="row g-1">
+            <form @submit.prevent="storeBillWithStatus('draft')" class="row g-3">
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="bill_date"
-                                    v-model="form.bill_date"
-                                    label="Bill Date"
-                                    @validate="validateField('bill_date')"
-                                    :error="errors.bill_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="bill_date"
+                                v-model="form.bill_date"
+                                label="Bill Date"
+                                @validate="validateField('bill_date')"
+                                :error="errors.bill_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="due_date"
-                                    v-model="form.due_date"
-                                    label="Due Date"
-                                    @validate="validateField('due_date')"
-                                    :error="errors.due_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="due_date"
+                                v-model="form.due_date"
+                                label="Due Date"
+                                @validate="validateField('due_date')"
+                                :error="errors.due_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="d-flex gap-2 align-items-end">
@@ -65,16 +59,14 @@
                             />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VMultiselect
-                                    id="warehouse_id"
-                                    v-model="form.warehouse_id"
-                                    :options="warehouseOptionsTree"
-                                    label="Warehouse"
-                                    @validate="validateField('warehouse_id')"
-                                    :error="errors.warehouse_id"
-                                />
-                            </div>
+                            <VMultiselect
+                                id="warehouse_id"
+                                v-model="form.warehouse_id"
+                                :options="warehouseOptionsTree"
+                                label="Warehouse"
+                                @validate="validateField('warehouse_id')"
+                                :error="errors.warehouse_id"
+                            />
                         </div>
                         <div v-if="form.party_id" class="col-12">
                             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -212,7 +204,7 @@
                                     <thead>
                                     <tr>
                                         <th>Type</th>
-                                        <th>Treatment</th>
+                                        <th>Post As</th>
                                         <th class="text-end">Amount</th>
                                         <th class="text-end">VAT</th>
                                     </tr>
@@ -220,7 +212,7 @@
                                     <tbody>
                                     <tr v-for="(cost, idx) in grnLandedCosts" :key="idx">
                                         <td>{{ cost.cost_type }}</td>
-                                        <td>{{ cost.treatment }}</td>
+                                        <td>{{ cost.treatment === 'capitalized' ? 'Add to item cost' : 'Post as expense' }}</td>
                                         <td class="text-end">{{ formatMoney(cost.amount) }}</td>
                                         <td class="text-end">{{ formatMoney(cost.vat_amount) }}</td>
                                     </tr>
@@ -230,11 +222,26 @@
                         </div>
 
                         <div v-if="!hasGrnLines" class="col-12">
+                            <div class="form-check mb-2">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    id="show_landed_costs_create"
+                                    v-model="showLandedCosts"
+                                    @change="!showLandedCosts && (form.landed_costs = [])"
+                                />
+                                <label class="form-check-label" for="show_landed_costs_create">
+                                    Add Additional Charges (freight, customs, etc.)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div v-if="!hasGrnLines && showLandedCosts" class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
-                                    <h6 class="mb-0">Additional Charges / Landed Costs</h6>
+                                    <h6 class="mb-0">Additional Charges</h6>
                                     <small class="text-muted">
-                                        Capitalized charges increase inventory cost; expense charges post separately.
+                                        "Add to item cost" increases inventory cost. "Post as expense" posts separately.
                                     </small>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary" @click="addLandedCost">
@@ -245,30 +252,54 @@
                                 <table class="table datanew table-bordered mb-0 landed-costs-table">
                                     <thead>
                                     <tr>
-                                        <th class="landed-col-type">Type</th>
-                                        <th class="landed-col-treatment">Treatment</th>
-                                        <th class="landed-col-allocation">Allocation</th>
+                                        <th class="landed-col-type">Type / Note</th>
+                                        <th class="landed-col-treatment">Post As</th>
+                                        <th class="landed-col-allocation">Distribute By</th>
                                         <th class="text-end landed-col-amount">Amount</th>
-                                        <th class="text-end landed-col-amount">VAT</th>
-                                        <th class="text-end landed-col-amount">Claimable VAT</th>
+                                        <th class="landed-col-vat">VAT</th>
                                         <th class="landed-col-account">Account</th>
-                                        <th class="landed-col-description">Description</th>
                                         <th class="text-center landed-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.landed_costs.length">
-                                        <td colspan="9" class="text-center text-muted py-3">No additional charges added.</td>
+                                        <td colspan="7" class="text-center text-muted py-3">No additional charges added.</td>
                                     </tr>
                                     <tr v-for="(cost, index) in form.landed_costs" :key="index">
-                                        <td><VInput input-class="form-control form-control-sm" v-model="form.landed_costs[index].cost_type" placeholder="Transport" /></td>
-                                        <td><VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].treatment" :options="treatmentOptions" /></td>
-                                        <td><VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].allocation_method" :options="allocationOptions" :disabled="cost.treatment === 'expense'" /></td>
-                                        <td><VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].amount" :min-value="0" /></td>
-                                        <td><VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].vat_amount" :min-value="0" /></td>
-                                        <td><VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].vat_claimable_amount" :min-value="0" /></td>
-                                        <td><VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].account_id" :options="accounts.data" placeholder="Account" /></td>
-                                        <td><VInput input-class="form-control form-control-sm" v-model="form.landed_costs[index].description" placeholder="Optional note" /></td>
+                                        <td>
+                                            <VInput input-class="form-control form-control-sm" v-model="form.landed_costs[index].cost_type" placeholder="e.g. Transport" />
+                                            <VInput input-class="form-control form-control-sm mt-1" v-model="form.landed_costs[index].description" placeholder="Note (optional)" />
+                                        </td>
+                                        <td>
+                                            <VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].treatment" :options="treatmentOptions" />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-if="cost.treatment !== 'expense'"
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].allocation_method"
+                                                :options="allocationOptions"
+                                            />
+                                            <span v-else class="text-muted small">—</span>
+                                        </td>
+                                        <td>
+                                            <VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].amount" :min-value="0" />
+                                        </td>
+                                        <td>
+                                            <VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].vat_amount" :min-value="0" />
+                                            <div v-if="Number(form.landed_costs[index].vat_amount) > 0" class="d-flex align-items-center gap-1 mt-1">
+                                                <input
+                                                    type="checkbox"
+                                                    class="form-check-input mt-0 flex-shrink-0"
+                                                    :id="`lc_claim_${index}`"
+                                                    v-model="form.landed_costs[index].vat_claim"
+                                                />
+                                                <label :for="`lc_claim_${index}`" class="small text-muted mb-0" style="cursor:pointer">Claim input VAT</label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].account_id" :options="accounts.data" placeholder="Account" />
+                                        </td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-sm btn-outline-danger" @click="removeLandedCost(index)"><i class="ti ti-trash"></i></button>
                                         </td>
@@ -279,8 +310,7 @@
                                         <td colspan="3" class="text-end">Charge Total</td>
                                         <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
                                         <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
-                                        <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
-                                        <td colspan="3"></td>
+                                        <td colspan="2"></td>
                                     </tr>
                                     </tfoot>
                                 </table>
@@ -338,15 +368,13 @@
                         </div>
 
                         <div class="col-md-12">
-                            <div class="input-blocks">
-                                <VTextarea
-                                    id="remarks"
-                                    v-model="form.remarks"
-                                    label="Remarks"
-                                    @validate="validateField('remarks')"
-                                    :error="errors.remarks"
-                                />
-                            </div>
+                            <VTextarea
+                                id="remarks"
+                                v-model="form.remarks"
+                                label="Remarks"
+                                @validate="validateField('remarks')"
+                                :error="errors.remarks"
+                            />
                         </div>
 
                         <div class="col-12 text-end">
@@ -358,19 +386,17 @@
                                 class="btn btn-outline-primary me-2"
                                 :disabled="isSubmitting"
                                 @click="storeBillWithStatus('draft')">
-                                Create
+                                Save as Draft
                             </button>
                             <button
                                 type="button"
                                 class="btn btn-submit add-sale btn-primary"
                                 :disabled="isSubmitting"
                                 @click="storeBillWithStatus('approved')">
-                                Create &amp; Approve
+                                Save &amp; Approve
                             </button>
                         </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </template>
     </VModal>
     <VModal
@@ -433,7 +459,7 @@ import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -456,9 +482,10 @@ const {currentAdDate} = useDateHelper();
 const createModalOpened = defineModel('createModalOpened');
 const purchaseOrderId = defineModel('purchaseOrderId');
 const createSupplierOpened = ref(false);
+const showLandedCosts = ref(false);
 
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {order} = storeToRefs(purchaseOrderStore);
 const {accounts} = storeToRefs(accountStore);
@@ -469,8 +496,8 @@ const billableGrnItems = ref([]);
 const selectedGrnItemIds = ref([]);
 
 const treatmentOptions = [
-    {id: 'capitalized', name: 'Capitalize'},
-    {id: 'expense', name: 'Expense'},
+    {id: 'capitalized', name: 'Add to item cost'},
+    {id: 'expense', name: 'Post as expense'},
 ];
 
 const allocationOptions = [
@@ -486,11 +513,11 @@ const newLandedCostTemplate = () => ({
     allocation_method: 'value',
     amount: 0,
     vat_amount: 0,
-    vat_claimable_amount: 0,
+    vat_claim: true,
     account_id: '',
 });
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 const debouncedSupplierSearch = debounce((query) => {
     partyStore.getParties({
@@ -505,6 +532,7 @@ const debouncedSupplierSearch = debounce((query) => {
 watch(createModalOpened, (opened) => {
         if (opened) {
             taxStore.getTaxes();
+            taxStore.getTaxGroups();
             warehouseStore.getWarehouses();
             accountStore.getAccounts();
             partyStore.getParties({
@@ -557,9 +585,8 @@ const landedCostSummary = computed(() =>
     form.landed_costs.reduce((summary, cost) => {
         summary.amount += Number(cost.amount || 0);
         summary.vat += Number(cost.vat_amount || 0);
-        summary.claimableVat += Number(cost.vat_claimable_amount || 0);
         return summary;
-    }, {amount: 0, vat: 0, claimableVat: 0})
+    }, {amount: 0, vat: 0})
 );
 
 
@@ -779,7 +806,7 @@ const buildBillPayload = () => {
             rate: Number(item.rate || 0),
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
-            tax_id: item.tax_id || null,
+            ...parseTaxSelection(item.tax_id),
             tax_amount: item.tax_amount ?? 0,
             discount_amount: String(lineDiscountMoneyFromItem(item)),
             tax_line_type: item.tax_line_type || 'taxable',
@@ -787,16 +814,19 @@ const buildBillPayload = () => {
         landed_costs: canEnterLandedCosts.value
             ? form.landed_costs
                 .filter((cost) => cost.cost_type || Number(cost.amount || 0) > 0 || Number(cost.vat_amount || 0) > 0)
-                .map((cost) => ({
-                    cost_type: cost.cost_type,
-                    description: cost.description || null,
-                    treatment: cost.treatment || 'capitalized',
-                    allocation_method: cost.allocation_method || 'value',
-                    amount: Number(cost.amount || 0),
-                    vat_amount: Number(cost.vat_amount || 0),
-                    vat_claimable_amount: Number(cost.vat_claimable_amount || 0),
-                    account_id: cost.account_id || null,
-                }))
+                .map((cost) => {
+                    const vatAmount = Number(cost.vat_amount || 0);
+                    return {
+                        cost_type: cost.cost_type,
+                        description: cost.description || null,
+                        treatment: cost.treatment || 'capitalized',
+                        allocation_method: cost.treatment === 'expense' ? null : (cost.allocation_method || 'value'),
+                        amount: Number(cost.amount || 0),
+                        vat_amount: vatAmount,
+                        vat_claimable_amount: cost.vat_claim ? vatAmount : 0,
+                        account_id: cost.account_id || null,
+                    };
+                })
             : [],
     };
 };
@@ -826,6 +856,7 @@ const closeCreateModal = () => {
 function resetForm() {
     Object.assign(form, getInitialState());
     errors.value = {};
+    showLandedCosts.value = false;
 }
 </script>
 
@@ -909,7 +940,10 @@ function resetForm() {
     min-width: 6rem;
 }
 
-.landed-col-type,
+.landed-col-type {
+    min-width: 11rem;
+}
+
 .landed-col-treatment,
 .landed-col-allocation {
     min-width: 8rem;
@@ -917,14 +951,15 @@ function resetForm() {
 
 .landed-col-amount {
     min-width: 7rem;
+    width: 7rem;
+}
+
+.landed-col-vat {
+    min-width: 9rem;
 }
 
 .landed-col-account {
     min-width: 10rem;
-}
-
-.landed-col-description {
-    min-width: 12rem;
 }
 
 .landed-col-action {

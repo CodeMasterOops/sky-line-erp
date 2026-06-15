@@ -48,10 +48,23 @@ class ProductImportLookupCache
 
     public function warm(): self
     {
-        ProductCategory::query()
+        $categories = ProductCategory::query()
             ->where('company_id', $this->companyId)
-            ->get(['id', 'name'])
-            ->each(fn ($c) => $this->categoriesByKey[strtolower($c->name)] = $c->id);
+            ->get(['id', 'name', 'parent_id']);
+
+        /** @var array<int, ProductCategory> $byId */
+        $byId = $categories->keyBy('id')->all();
+        $parentIds = $categories->pluck('parent_id')->filter()->unique();
+
+        foreach ($categories as $category) {
+            if ($parentIds->contains($category->id)) {
+                continue;
+            }
+
+            $fullPath = ProductCategory::buildFullPathFromMap($category, $byId);
+            $this->categoriesByKey[strtolower($fullPath)] = $category->id;
+            $this->categoriesByKey[strtolower($category->name)] = $category->id;
+        }
 
         Unit::query()
             ->where('company_id', $this->companyId)

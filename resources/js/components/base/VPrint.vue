@@ -1,36 +1,37 @@
 <template>
-    <button type="button" @click="printContent(target,title)" class="btn btn-sm btn-outline-primary">
-    <span
-        v-if="printLoading"
-        class="spinner-border spinner-border-sm"
-        role="status"
-        aria-hidden="true"
-    ></span>
-        <i v-else class="fa fa-print"> </i>
+    <button type="button" @click="handlePrint" class="btn btn-sm btn-outline-primary">
+        <span
+            v-if="printing"
+            class="spinner-border spinner-border-sm"
+            role="status"
+            aria-hidden="true"
+        />
+        <i v-else class="fa fa-print" />
         {{ buttonLabel }}
     </button>
 </template>
 
 <script setup>
-import {ref} from "vue";
-import {usePrint} from "@/composables/print.js";
+import {useDocumentPrint} from '@/composables/useDocumentPrint.js';
 
-defineProps({
+const props = defineProps({
     title: {
         type: String,
-        default: 'Document'
+        default: 'Document',
     },
     target: {
-        type: String
+        type: String,
+        default: '#document-print-area',
     },
     buttonLabel: {
         type: String,
-        default: 'PRINT'
-    }
-})
+        default: 'PRINT',
+    },
+});
 
-const {printContent}=usePrint();
+const {printing, printElement} = useDocumentPrint();
 
-const printLoading = ref(false);
-
+const handlePrint = () => {
+    printElement(props.target, props.title);
+};
 </script>

@@ -64,10 +64,11 @@
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
                                 @click="setFilter('product_category_id', '')">All Categories</a>
                         </li>
-                        <li v-for="category in categoryList" :key="category.id">
+                        <li v-for="category in categoryFilterOptions" :key="category.id">
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('product_category_id', category.id, category.name)">
-                                {{ category.name }}
+                                :style="{ paddingLeft: `${0.75 + category.depth * 1}rem` }"
+                                @click="setFilter('product_category_id', category.id, category.label)">
+                                {{ category.label }}
                             </a>
                         </li>
                     </ul>
@@ -90,6 +91,16 @@
                         </li>
                     </ul>
                 </div>
+                <!-- Warehouse filter -->
+                <div class="me-2" style="min-width: 220px;">
+                    <VMultiselect
+                        id="warehouse_ids"
+                        v-model="selectedWarehouseId"
+                        :options="warehouseStore.optionsTree"
+                        :loading="warehouseStore.warehouses.loading"
+                        placeholder="Warehouse"
+                    />
+                </div>
             </template>
         </VTableToolbar>
 
@@ -100,11 +111,25 @@
                     :loading="products.loading" @change="handleTableChange">
                     <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'Product'">
-                            <div class="productimgname">
-                                <a href="javascript:void(0);" class="avatar avatar-md me-2">
+                            <div class="productimgname d-flex align-items-start">
+                                <a href="javascript:void(0);" class="avatar avatar-md me-2 flex-shrink-0">
                                     <img :src="record.image || 'https://placehold.co/40x40'" alt="product">
                                 </a>
-                                <a href="javascript:void(0);">{{ record.name }}</a>
+                                <div class="min-w-0">
+                                    <a href="javascript:void(0);" class="fw-medium d-block text-truncate">
+                                        {{ record.name }}
+                                    </a>
+                                    <div v-if="record.code || record.hsn_code" class="small text-muted">
+                                        <span v-if="record.code">
+                                            Code: <span class="font-monospace">{{ record.code }}</span>
+                                        </span>
+                                        <span v-if="record.code && record.hsn_code" class="mx-1">·</span>
+                                        <span v-if="record.hsn_code">
+                                            {{ formatHsnLabel(record.product_type) }}:
+                                            <span class="font-monospace">{{ record.hsn_code }}</span>
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </template>
 
@@ -126,6 +151,16 @@
                         <template v-else-if="column.key === 'total_inventory_value'">
                             <template v-if="record.product_type === 'service'">—</template>
                             <template v-else>{{ formatMoney(record.total_inventory_value) }}</template>
+                        </template>
+
+                        <template v-else-if="column.key === 'purchase_price'">
+                            <template v-if="record.product_type === 'service'">—</template>
+                            <template v-else>
+                                <div>{{ purchasePriceDisplay(record).price }}</div>
+                                <div v-if="purchasePriceDisplay(record).unit" class="small text-muted">
+                                    / {{ purchasePriceDisplay(record).unit }}
+                                </div>
+                            </template>
                         </template>
 
                         <template v-else-if="column.key === 'tax'">
@@ -151,29 +186,45 @@ import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
+import VMultiselect from '@/components/base/VMultiselect.vue';
 import StockDetailModal from './StockDetailModal.vue';
 import ProductImportWizard from '@/views/admin/data-transfer/ProductImportWizard.vue';
 import { useProductStore } from '@/stores/admin/inventory/product.js';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
 import { useBrandStore } from '@/stores/admin/inventory/brand.js';
+import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { formatMoney } from '@/helpers/formatMoney.js';
-import { getProductColumns, createRowActions, formatProductType } from './tableConfig.js';
+import {
+    getProductColumns,
+    createRowActions,
+    formatProductType,
+    formatHsnLabel,
+    formatPriceWithUnit,
+} from './tableConfig.js';
+import { flattenCategoriesWithOutline, formatCategoryDisplayName } from '@/helpers/categoryTree.js';
 
 const router = useRouter();
 const productStore = useProductStore();
 const importWizardRef = ref(null);
 const categoryStore = useProductCategoryStore();
 const brandStore = useBrandStore();
+const warehouseStore = useWarehouseStore();
 
 const { products } = storeToRefs(productStore);
 const { productCategories: categories } = storeToRefs(categoryStore);
 const { brands: brandList } = storeToRefs(brandStore);
 
 const brands = computed(() => brandList.value.data || []);
-const categoryList = computed(() => categories.value.data || []);
+const categoryFilterOptions = computed(() =>
+    flattenCategoriesWithOutline(categories.value.data || []).map((category) => ({
+        id: category.id,
+        depth: category.depth,
+        label: formatCategoryDisplayName(category),
+    })),
+);
 
 const selectedCategoryName = ref('');
 const selectedBrandName = ref('');
@@ -192,11 +243,19 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
         product_type: '',
         product_category_id: '',
         brand_id: '',
+        warehouse_ids: '',
         page: 1,
         limit: 10,
         include_inventory_value: 1,
     },
     onFilter: fetchProducts,
+});
+
+const selectedWarehouseId = computed({
+    get: () => (filter.warehouse_ids ? Number(filter.warehouse_ids) : ''),
+    set: (id) => {
+        filter.warehouse_ids = id ? String(id) : '';
+    },
 });
 
 const { handleTableChange } = useTablePagination({
@@ -207,7 +266,11 @@ const { handleTableChange } = useTablePagination({
 const { confirmDelete } = useConfirmAction();
 
 onMounted(async () => {
-    await Promise.all([categoryStore.getProductCategories(), brandStore.getBrands()]);
+    await Promise.all([
+        categoryStore.getProductCategories(),
+        brandStore.getBrands(),
+        warehouseStore.getWarehouses(),
+    ]);
 });
 
 const rowKey = (row) => row.id;
@@ -228,6 +291,7 @@ const getProductExportFilters = () => ({
     product_category_id: filter.product_category_id,
     brand_id: filter.brand_id,
     product_type: filter.product_type,
+    warehouse_ids: filter.warehouse_ids,
 });
 
 const editProduct = (id) => {
@@ -254,5 +318,9 @@ function formatProductTax(record) {
         return `${t.name} (${Number(rate)}%)`;
     }
     return t.name;
+}
+
+function purchasePriceDisplay(record) {
+    return formatPriceWithUnit(record.defaultVariant?.purchase_price, record.unit);
 }
 </script>

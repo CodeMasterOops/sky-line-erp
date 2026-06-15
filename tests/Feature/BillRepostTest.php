@@ -26,7 +26,8 @@ function billRepostWarmAllTablesCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
-        $tables[$table] = Schema::getColumnListing($table);
+        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+        $tables[$table] = Schema::getColumnListing($plainName);
     }
     Cache::forget('allTables');
     Cache::forever('allTables', $tables);
@@ -95,6 +96,14 @@ beforeEach(function () {
         'company_id' => $this->company->id,
         'name' => 'Biller',
         'email' => 'biller-'.uniqid().'@example.com',
+        'password' => bcrypt('password'),
+        'user_type' => UserTypeEnum::ADMIN,
+    ]);
+
+    $this->approver = User::create([
+        'company_id' => $this->company->id,
+        'name' => 'Approver',
+        'email' => 'approver-'.uniqid().'@example.com',
         'password' => bcrypt('password'),
         'user_type' => UserTypeEnum::ADMIN,
     ]);
@@ -190,6 +199,10 @@ it('blocks bill approval when purchase accounts are not configured', function ()
         'tax_amount' => 0,
         'tax_line_type' => 'taxable',
     ]);
+
+    // Approve as a different user (maker-checker) so the GL accounts check is reached
+    Sanctum::actingAs($this->approver, ['*'], 'admin');
+    TenantService::setCompanyId($this->company->id);
 
     $this->postJson("/api/admin/bill/{$bill->id}/approve")
         ->assertStatus(422)

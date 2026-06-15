@@ -53,10 +53,10 @@ export const useAdminDashboardStore = defineStore('adminDashboard', {
         summaryCards: (state) => {
             const d = state.dashboard.data;
             return [
-                {label: 'Total Sales',           value: d.total_sales,           icon: 'ti-file-text',     color: 'primary'},
-                {label: 'Total Sales Return',     value: d.total_sales_return,    icon: 'ti-repeat',        color: 'secondary'},
-                {label: 'Total Purchase',         value: d.total_purchase,        icon: 'ti-gift',          color: 'teal'},
-                {label: 'Total Purchase Return',  value: d.total_purchase_return, icon: 'ti-brand-pocket',  color: 'info'},
+                {label: 'Total Sales',           value: d.total_sales,           icon: 'ti-file-invoice',   color: 'primary'},
+                {label: 'Total Sales Return',     value: d.total_sales_return,    icon: 'ti-receipt-refund', color: 'orange'},
+                {label: 'Total Purchase',         value: d.total_purchase,        icon: 'ti-shopping-cart',  color: 'success'},
+                {label: 'Total Purchase Return',  value: d.total_purchase_return, icon: 'ti-receipt-2',      color: 'info'},
             ];
         },
     },

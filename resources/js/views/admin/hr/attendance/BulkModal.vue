@@ -3,7 +3,7 @@
         <template #modal-body>
             <div class="row g-2 mb-3">
                 <div class="col-md-4">
-                    <VInput id="date" v-model="form.date" label="Date *" type="date" />
+                    <VDatepicker id="date" v-model="form.date" label="Date" required />
                 </div>
             </div>
 
@@ -54,6 +54,7 @@ import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { useEmployeeStore } from '@/stores/admin/hr/employee.js';
 import { useAttendanceStore } from '@/stores/admin/hr/attendance.js';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const props = defineProps({ show: Boolean, month: Number, year: Number });
 const emit = defineEmits(['update:show', 'saved']);

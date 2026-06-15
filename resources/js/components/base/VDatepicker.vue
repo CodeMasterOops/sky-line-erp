@@ -5,7 +5,7 @@
     </label>
     <div class="input-group">
         <flat-pickr
-            v-if="dateType==='en'"
+            v-if="dateType === 'en'"
             :config="config"
             v-model="ad_date"
             @on-change="updateAdDateValue"
@@ -23,11 +23,22 @@
             v-model="nep_date"
             v-bind:class="[inputClass, { 'is-invalid': error }]"
         />
-        <span v-if="showSwitcher" class="input-group-text m-0 p-0 bg-light date-switcher">
-            <input :disabled="disabled" type="checkbox" :id="'switch'+id" data-switch="success" @change="updateDateType"
-                   :checked="dateType==='ne'">
-            <label :for="'switch'+id" data-on-label="NP" data-off-label="EN" class="mb-0 d-block"></label>
-        </span>
+        <div v-if="showSwitcher" class="btn-group btn-group-sm" role="group" aria-label="Date format">
+            <button
+                type="button"
+                class="btn"
+                :class="dateType === 'en' ? 'btn-primary' : 'btn-outline-secondary'"
+                :disabled="disabled"
+                @click.prevent="setLocalMode('en')"
+            >AD</button>
+            <button
+                type="button"
+                class="btn"
+                :class="dateType === 'ne' ? 'btn-primary' : 'btn-outline-secondary'"
+                :disabled="disabled"
+                @click.prevent="setLocalMode('ne')"
+            >BS</button>
+        </div>
     </div>
     <p v-if="error" class="text-danger">
         {{ error }}
@@ -39,6 +50,8 @@ import {onMounted, ref, watch} from "vue";
 import {useDateHelper} from "@/composables/dateHelper";
 import flatPickr from 'vue-flatpickr-component';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';
+import {useDatePreferenceStore} from "@/stores/admin/datePreference.js";
+import {storeToRefs} from "pinia";
 
 const emit = defineEmits(['validate'])
 
@@ -68,12 +81,9 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
-    defaultDate: {
-        default: 'ne'
-    },
     showSwitcher: {
         type: Boolean,
-        default: false
+        default: true
     },
     disableAfter: {
         type: String
@@ -92,12 +102,23 @@ const props = defineProps({
 
 const {adToBs, bsToAd} = useDateHelper();
 
-const dateType = ref(props.defaultDate)
+const datePreferenceStore = useDatePreferenceStore();
+const {mode: globalMode} = storeToRefs(datePreferenceStore);
+
+const dateType = ref(globalMode.value);
 const neDateElement = ref('');
 
 const form_date = defineModel();
 const nep_date = ref('');
 const ad_date = ref('');
+
+watch(globalMode, (m) => {
+    dateType.value = m;
+});
+
+const setLocalMode = (mode) => {
+    dateType.value = mode;
+};
 
 onMounted(() => {
     setDate();
@@ -105,9 +126,8 @@ onMounted(() => {
 
 watch(() => neDateElement.value, (e) => {
     if (e) {
-        neDateElement.value.NepaliDatePicker({
+        e.NepaliDatePicker({
             dateFormat: "YYYY-MM-DD",
-            //language: 'english',
             value: nep_date.value,
             maxDate: props.disableAfter ? adToBs(props.disableAfter) : '',
             minDate: props.disableBefore ? adToBs(props.disableBefore) : '',
@@ -130,10 +150,6 @@ const config = ref({
 const updateAdDateValue = (selectedDates, dateStr) => {
     emit('update:modelValue', dateStr)
     emit('validate');
-}
-
-const updateDateType = () => {
-    dateType.value = dateType.value === 'en' ? 'ne' : 'en';
 }
 
 watch(() => form_date.value, () => {

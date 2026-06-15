@@ -1,13 +1,12 @@
 <template>
     <PageHeader hide-action-buttons title="Accounts Payable Aging" subtitle="Outstanding bills by age" />
 
-    <div class="card border-0 mb-3">
+    <div class="card border-0 mb-3 no-print">
         <div class="card-body pb-1">
             <div class="row align-items-end">
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label class="form-label">As of Date (End Date)</label>
-                        <input type="date" class="form-control" v-model="filters.end_date" />
+                        <VDatepicker id="end_date" label="As of Date (End Date)" v-model="filters.end_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -22,6 +21,12 @@
         </div>
     </div>
 
+    <ReportPrintShell
+        v-if="rows.length || buckets"
+        report-title="Accounts Payable Aging"
+        :subtitle="data.as_of ? `As of ${data.as_of}` : ''"
+        landscape
+    >
     <div v-if="buckets" class="row g-3 mb-3">
         <div class="col" v-for="(b, key) in bucketLabels" :key="key">
             <div class="card border-0" :class="b.bg">
@@ -33,12 +38,7 @@
         </div>
     </div>
 
-    <div class="card border-0">
-        <div class="card-header">
-            <h6 class="mb-0">Outstanding Bills {{ data.as_of ? '– As of ' + data.as_of : '' }}</h6>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
+    <div class="table-responsive">
                 <table class="table table-sm table-hover">
                     <thead class="table-light">
                         <tr>
@@ -67,8 +67,7 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
+    </ReportPrintShell>
 </template>
 
 <script setup>
@@ -76,6 +75,8 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const filters = ref({ end_date: new Date().toISOString().split('T')[0] });
 const loading = ref(false);

@@ -1118,6 +1118,16 @@ hr{
             max-width: 100%;
         }
     }
+    .date-mode-nav {
+        display: flex;
+        align-items: center;
+        .btn-group .btn {
+            height: 32px;
+            padding: 0 10px;
+            font-size: variables.$font-size-13;
+            line-height: 1;
+        }
+    }
     .nav-item-box > a {
         display: -webkit-box;
         display: -ms-flexbox;

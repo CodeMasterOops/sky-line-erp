@@ -8,6 +8,7 @@ use App\Annotation\Permissions;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\TdsCertificateSequence;
 use App\Services\Nepal\TdsReturnService;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Nepal\NepaliNumberService;
@@ -77,6 +78,8 @@ class TdsChallanController extends Controller
                 'tds_deductions.base_amount',
                 'tds_deductions.tds_amount',
                 'tds_deductions.period_month',
+                'tds_deductions.deductible_type',
+                'tds_deductions.deductible_id',
                 DB::raw('COALESCE(journals.date, DATE(tds_deductions.created_at)) as effective_date'),
             ])
             ->orderBy('effective_date')
@@ -212,7 +215,11 @@ class TdsChallanController extends Controller
         $totalBase = round($deductions->sum('base_amount'), 2);
         $totalTds = round($deductions->sum('tds_amount'), 2);
         $amountInWords = $this->nepaliNumber->amountToWords($totalTds);
-        $certNo = strtoupper(substr(md5($partyId.$startDate.$endDate), 0, 8));
+
+        $seq = DB::transaction(
+            fn () => TdsCertificateSequence::nextFor($companyId, $fiscalYearCode ?: 'NA')
+        );
+        $certNo = sprintf('TDS-%s-%04d', $fiscalYearCode ?: 'NA', $seq);
 
         $pdf = Pdf::loadView('pdf.tds-certificate', compact(
             'company', 'party', 'deductions', 'taxYearBs', 'fiscalYearCode',

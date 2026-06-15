@@ -5,7 +5,18 @@
         title="Add Product Category">
         <template #modal-body>
             <form @submit.prevent="storeProductCategory" class="row g-3">
-                <div class="col-md-12">
+                <div class="col-md-6">
+                    <VMultiselect
+                        id="parent_id"
+                        v-model="form.parent_id"
+                        :options="parentOptionsTree"
+                        label="Parent category"
+                        placeholder="category"
+                        @validate="validateField('parent_id')"
+                        :error="errors.parent_id"
+                    />
+                </div>
+                <div class="col-md-6">
                     <VInput
                         id="name"
                         v-model="form.name"
@@ -35,18 +46,27 @@
 </template>
 
 <script setup>
-import {reactive, ref} from 'vue';
+import {computed, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {object, string} from 'yup';
+import {object, string, mixed} from 'yup';
 import {useYup} from '@/helpers/yup';
+import {storeToRefs} from 'pinia';
 import {useProductCategoryStore} from '@/stores/admin/inventory/product-category.js';
 
 const categoryStore = useProductCategoryStore();
+const {optionsTree: parentOptionsTree} = storeToRefs(categoryStore);
 
 const createModalOpened = defineModel('createModalOpened');
 
+watch(createModalOpened, (open) => {
+    if (open) {
+        categoryStore.getProductCategories();
+    }
+});
+
 const initialState = {
+    parent_id: '',
     name: '',
     description: ''
 };
@@ -55,6 +75,7 @@ const form = reactive({...initialState});
 const isSubmitting = ref(false);
 
 const validations = object({
+    parent_id: mixed().nullable(),
     name: string().required('Name is required.'),
     description: string().nullable()
 });

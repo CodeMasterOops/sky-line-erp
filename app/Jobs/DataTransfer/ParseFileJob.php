@@ -10,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use App\Services\DataTransfer\FileParserService;
 use App\Enums\DataTransfer\DataTransferStatusEnum;
+use App\Services\DataTransfer\DataTransferFieldRegistry;
 use App\Jobs\DataTransfer\Concerns\SetsTenantFromDataTransferJob;
 
 class ParseFileJob implements ShouldQueue
@@ -41,7 +42,7 @@ class ParseFileJob implements ShouldQueue
 
         $suggested = $parser->suggestMapping(
             $inspect['headers'],
-            config('data_transfer.product_fields', [])
+            DataTransferFieldRegistry::fieldsFor($job->entity_type)
         );
 
         $job->update([

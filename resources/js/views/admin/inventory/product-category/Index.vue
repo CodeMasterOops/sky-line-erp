@@ -18,13 +18,21 @@
                     <a-table
                         class="table datanew table-hover table-center mb-0"
                         :columns="columns"
-                        :data-source="productCategories.data"
+                        :data-source="categoryRows"
                         :loading="productCategories.loading"
                         :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
                                 {{ (productCategories.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                            </template>
+                            <template v-else-if="column.key === 'name'">
+                                <span :style="{ paddingLeft: `${record.depth * 1.25}rem` }">
+                                    {{ record.name }}
+                                </span>
+                            </template>
+                            <template v-else-if="column.key === 'parent'">
+                                {{ record.parent?.name || '—' }}
                             </template>
                             <template v-if="column.key === 'action'">
                                 <div class="action-icon d-inline-flex">
@@ -50,7 +58,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -60,6 +68,7 @@ import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateProductCategory from './Create.vue';
 import EditProductCategory from './Edit.vue';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
+import { flattenCategoriesWithOutline } from '@/helpers/categoryTree.js';
 
 const categoryStore = useProductCategoryStore();
 const edit_product_category_id = ref('');
@@ -71,9 +80,12 @@ const { filter, fetch } = usePaginatedList({
     defaults: { page: 1, limit: 10 },
 });
 
+const categoryRows = computed(() => flattenCategoriesWithOutline(productCategories.value.data));
+
 const columns = [
     { title: 'SN', key: 'sn', width: 60 },
-    { title: 'Name', dataIndex: 'name' },
+    { title: 'Name', key: 'name' },
+    { title: 'Parent', key: 'parent' },
     { title: 'Description', dataIndex: 'description' },
     { title: 'Action', key: 'action', align: 'center' },
 ];

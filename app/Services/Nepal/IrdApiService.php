@@ -60,12 +60,13 @@ class IrdApiService
             ];
         }
 
-        $invoice->loadMissing(['invoiceItems.tax', 'party', 'fiscalYear']);
+        $invoice->loadMissing(['invoiceItems.tax', 'party', 'fiscalYear', 'discount']);
 
         $payload = $this->buildInvoicePayload($invoice, $company);
 
         try {
             $response = Http::timeout(30)
+                ->retry(3, 2000, fn (\Throwable $e) => $e instanceof \Illuminate\Http\Client\ConnectionException)
                 ->withBasicAuth($company->ird_username, decrypt($company->ird_password))
                 ->post($this->baseUrl().'billing/invoice', $payload);
 
@@ -131,6 +132,13 @@ class IrdApiService
             ->where('tax_line_type', 'zero_rated')
             ->sum(fn ($item) => ($item->quantity * $item->rate) - $item->discount_amount);
 
+        $orderDiscountAmount = (float) ($invoice->discount?->amount ?? 0);
+        $totalBase = $vatTaxableAmount + $exemptAmount + $zeroRatedAmount;
+        if ($totalBase > 0 && $orderDiscountAmount > 0) {
+            $vatTaxableAmount = max(0, round($vatTaxableAmount - $orderDiscountAmount * ($vatTaxableAmount / $totalBase), 2));
+            $exemptAmount = max(0, round($exemptAmount - $orderDiscountAmount * ($exemptAmount / $totalBase), 2));
+            $zeroRatedAmount = max(0, round($zeroRatedAmount - $orderDiscountAmount * ($zeroRatedAmount / $totalBase), 2));
+        }
         $grandTotal = round($vatTaxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount, 2);
 
         $items = $invoice->invoiceItems->map(function ($item) {
@@ -160,10 +168,10 @@ class IrdApiService
                                     : $invoice->invoice_date->toDateString(),
             'invoiceDateBs' => $bsDate,
             'customerName' => $invoice->party?->name ?? 'Cash Customer',
-            'vatTaxable' => round($vatTaxableAmount, 2),
+            'vatTaxable' => $vatTaxableAmount,
             'vatAmount' => round($vatAmount, 2),
-            'exemptAmount' => round($exemptAmount, 2),
-            'zeroRated' => round($zeroRatedAmount, 2),
+            'exemptAmount' => $exemptAmount,
+            'zeroRated' => $zeroRatedAmount,
             'grandTotal' => $grandTotal,
             'items' => $items,
         ];
@@ -175,6 +183,15 @@ class IrdApiService
             && ! empty($company->ird_password)
             && ! empty($company->ird_branch_office)
             && ! empty($company->ird_unit_name)
-            && ! empty($company->ird_fiscal_device);
+            && $this->isValidFiscalDeviceId((string) ($company->ird_fiscal_device ?? ''));
+    }
+
+    /**
+     * IRD fiscal device IDs are alphanumeric strings (with optional hyphens/underscores),
+     * between 3 and 30 characters, as issued by the IRD office.
+     */
+    public function isValidFiscalDeviceId(string $deviceId): bool
+    {
+        return $deviceId !== '' && (bool) preg_match('/^[A-Za-z0-9\-_]{3,30}$/', $deviceId);
     }
 }

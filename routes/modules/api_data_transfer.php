@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('data-transfers')->as('data-transfers.')->controller(DataTransferController::class)->group(function () {
     Route::get('/', 'index')->name('index');
     Route::get('templates/product', 'productTemplate')->name('templates.product');
+    Route::get('templates/warehouse', 'warehouseTemplate')->name('templates.warehouse');
+    Route::get('templates/party', 'partyTemplate')->name('templates.party');
     Route::post('imports', 'storeImport')->name('imports.store');
     Route::post('exports', 'storeExport')->name('exports.store');
     Route::get('schedules', 'schedules')->name('schedules.index');

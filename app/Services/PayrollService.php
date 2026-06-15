@@ -19,9 +19,17 @@ use App\Enums\JournalTypeEnum;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AttendanceStatusEnum;
 use App\Enums\SalaryComponentTypeEnum;
+use App\Services\Accounting\PeriodLockGuard;
+use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalBalanceGuard;
 
 class PayrollService
 {
+    public function __construct(
+        private PeriodLockGuard $periodGuard,
+        private JournalBalanceGuard $balanceGuard,
+    ) {}
+
     public function calculate(PayrollRun $payrollRun): PayrollRun
     {
         $payrollRun->loadMissing('fiscalYear');
@@ -175,7 +183,10 @@ class PayrollService
         $fiscalYear = $payrollRun->fiscalYear;
         $companyId = $payrollRun->company_id;
 
-        return DB::transaction(function () use ($payrollRun, $paidAccountId, $fiscalYear, $companyId) {
+        $postingDate = now()->toDateString();
+        $this->periodGuard->assertPostable($companyId, $fiscalYear->id, $postingDate);
+
+        return DB::transaction(function () use ($payrollRun, $paidAccountId, $fiscalYear, $companyId, $postingDate) {
             $monthLabel = date('F Y', mktime(0, 0, 0, $payrollRun->month, 1, $fiscalYear->start_date->year));
 
             $journal = Journal::create([
@@ -185,7 +196,7 @@ class PayrollService
                 'reference_type' => PayrollRun::class,
                 'reference_id' => $payrollRun->id,
                 'voucher_no' => 'PAY-'.$payrollRun->id.'-'.$payrollRun->month,
-                'date' => now()->toDateString(),
+                'date' => $postingDate,
                 'remarks' => "Salary payment for {$monthLabel}",
                 'create_user_id' => auth('admin')->id(),
                 'status' => StatusEnum::APPROVED,
@@ -235,19 +246,26 @@ class PayrollService
             // CR TDS payable account if there is TDS
             if ($totalTds > 0) {
                 $tdsPayableAccount = Account::where('company_id', $companyId)
-                    ->where('name', 'like', '%TDS%Payable%')
-                    ->orWhere('name', 'like', '%Tax%Withheld%')
+                    ->where(function ($q) {
+                        $q->where('name', 'like', '%TDS%Payable%')
+                            ->orWhere('name', 'like', '%Tax%Withheld%');
+                    })
                     ->first();
 
-                if ($tdsPayableAccount) {
-                    JournalItem::create([
-                        'journal_id' => $journal->id,
-                        'account_id' => $tdsPayableAccount->id,
-                        'dr_amount' => 0,
-                        'cr_amount' => round($totalTds, 2),
-                        'remarks' => "TDS withheld on salary – {$monthLabel}",
+                if (! $tdsPayableAccount) {
+                    throw ValidationException::withMessages([
+                        'account_setting' => 'Cannot post payroll journal: no TDS Payable account found. '
+                            .'Please configure an account with "TDS Payable" or "Tax Withheld" in its name.',
                     ]);
                 }
+
+                JournalItem::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $tdsPayableAccount->id,
+                    'dr_amount' => 0,
+                    'cr_amount' => round($totalTds, 2),
+                    'remarks' => "TDS withheld on salary – {$monthLabel}",
+                ]);
 
                 // Create TDS deduction records per payslip
                 foreach ($payrollRun->payslips as $payslip) {
@@ -273,6 +291,8 @@ class PayrollService
                     ]);
                 }
             }
+
+            $this->balanceGuard->assertBalanced($journal);
 
             // Save journal_id and paid_account_id on the payroll run
             $payrollRun->update([

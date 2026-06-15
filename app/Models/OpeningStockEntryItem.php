@@ -13,6 +13,7 @@ class OpeningStockEntryItem extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'company_id',
         'opening_stock_entry_id',
         'product_variant_id',
         'unit_id',

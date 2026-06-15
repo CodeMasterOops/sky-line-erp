@@ -10,9 +10,17 @@ use App\Annotation\Permissions;
 use App\Models\RecurringJournal;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Accounting\PeriodLockGuard;
+use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalBalanceGuard;
 
 class RecurringJournalController extends Controller
 {
+    public function __construct(
+        private PeriodLockGuard $periodGuard,
+        private JournalBalanceGuard $balanceGuard,
+    ) {}
+
     /**
      * @Permissions("list_recurring_journal", group="recurring_journal", desc="List Recurring Journals")
      */
@@ -54,6 +62,8 @@ class RecurringJournalController extends Controller
             'items.*.dr_amount' => ['required', 'numeric', 'min:0'],
             'items.*.cr_amount' => ['required', 'numeric', 'min:0'],
         ]);
+
+        $this->assertTemplateBalanced($validated['items']);
 
         $company = auth('admin')->user()->company;
 
@@ -105,6 +115,8 @@ class RecurringJournalController extends Controller
             'items.*.cr_amount' => ['required', 'numeric', 'min:0'],
         ]);
 
+        $this->assertTemplateBalanced($validated['items']);
+
         DB::transaction(function () use ($validated, $recurringJournal) {
             $recurringJournal->update([
                 'name' => $validated['name'],
@@ -153,13 +165,16 @@ class RecurringJournalController extends Controller
         }
 
         $company = auth('admin')->user()->company;
+        $postingDate = now()->toDateString();
 
-        $journal = DB::transaction(function () use ($recurringJournal, $company) {
+        $this->periodGuard->assertPostable($company->id, $company->fiscal_year_id, $postingDate);
+
+        $journal = DB::transaction(function () use ($recurringJournal, $company, $postingDate) {
             $journal = Journal::create([
                 'company_id' => $company->id,
                 'fiscal_year_id' => $company->fiscal_year_id,
                 'type' => JournalTypeEnum::RECURRING->value,
-                'date' => now()->toDateString(),
+                'date' => $postingDate,
                 'voucher_no' => 'REC-'.now()->format('YmdHis'),
                 'remarks' => $recurringJournal->name.': '.$recurringJournal->remarks,
                 'status' => StatusEnum::APPROVED->value,
@@ -177,6 +192,8 @@ class RecurringJournalController extends Controller
                 ]);
             }
 
+            $this->balanceGuard->assertBalanced($journal);
+
             $recurringJournal->update(['last_run_at' => now()]);
 
             return $journal;
@@ -186,5 +203,27 @@ class RecurringJournalController extends Controller
             'data' => $journal,
             'message' => 'Recurring journal posted successfully.',
         ]);
+    }
+
+    private function assertTemplateBalanced(array $items): void
+    {
+        $totalDr = collect($items)->sum(fn ($i) => (float) ($i['dr_amount'] ?? 0));
+        $totalCr = collect($items)->sum(fn ($i) => (float) ($i['cr_amount'] ?? 0));
+
+        if (JournalBalanceGuard::exceedsTolerance($totalDr - $totalCr)) {
+            throw ValidationException::withMessages([
+                'items' => sprintf(
+                    'Template is not balanced: DR %.2f vs CR %.2f. Total debit must equal total credit.',
+                    $totalDr,
+                    $totalCr,
+                ),
+            ]);
+        }
+
+        if ($totalDr <= 0) {
+            throw ValidationException::withMessages([
+                'items' => 'Template must have at least one debit and one credit line.',
+            ]);
+        }
     }
 }
