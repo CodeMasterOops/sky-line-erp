@@ -24,10 +24,11 @@ class StockAdjustmentRequest extends FormRequest
         $rules = [
             'reference_no' => ['nullable', 'string', 'max:255'],
             'date' => ['required', 'date', new WithinActiveFiscalYear],
-            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'warehouse_id' => ['nullable', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
+            'items.*.warehouse_id' => ['required', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.direction' => ['required', Rule::in([StockDirectionEnum::IN->value, StockDirectionEnum::OUT->value])],
@@ -44,15 +45,17 @@ class StockAdjustmentRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
-            $seenVariantIds = [];
+            $seen = [];
             foreach ($this->input('items', []) as $i => $item) {
                 $variantId = $item['product_variant_id'] ?? null;
+                $warehouseId = $item['warehouse_id'] ?? null;
 
-                if ($variantId !== null) {
-                    if (in_array($variantId, $seenVariantIds, true)) {
-                        $validator->errors()->add("items.$i.product_variant_id", __('Duplicate product variant in the same adjustment. Each variant may only appear once.'));
+                if ($variantId !== null && $warehouseId !== null) {
+                    $key = $variantId.':'.$warehouseId;
+                    if (in_array($key, $seen, true)) {
+                        $validator->errors()->add("items.$i.product_variant_id", __('Duplicate product and warehouse combination in the same adjustment.'));
                     } else {
-                        $seenVariantIds[] = $variantId;
+                        $seen[] = $key;
                     }
                 }
 

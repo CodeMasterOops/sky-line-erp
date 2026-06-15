@@ -54,7 +54,7 @@ class StockTransferController extends Controller
                 $transfer = StockTransfer::create([
                     'reference_no' => $formData['reference_no'] ?? null,
                     'date' => $formData['date'],
-                    'from_warehouse_id' => $formData['from_warehouse_id'],
+                    'from_warehouse_id' => $formData['from_warehouse_id'] ?? null,
                     'to_warehouse_id' => $formData['to_warehouse_id'],
                     'remarks' => $formData['remarks'] ?? null,
                     'create_user_id' => $user->id,
@@ -85,6 +85,7 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
+            'stockTransferItems.fromWarehouse',
         ]);
 
         return response()->json([
@@ -103,6 +104,7 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
+            'stockTransferItems.fromWarehouse',
         ]);
 
         return StockTransferResource::make($stockTransfer);
@@ -125,7 +127,7 @@ class StockTransferController extends Controller
             $stockTransfer->update([
                 'reference_no' => $formData['reference_no'] ?? null,
                 'date' => $formData['date'],
-                'from_warehouse_id' => $formData['from_warehouse_id'],
+                'from_warehouse_id' => $formData['from_warehouse_id'] ?? null,
                 'to_warehouse_id' => $formData['to_warehouse_id'],
                 'remarks' => $formData['remarks'] ?? null,
             ]);
@@ -144,6 +146,7 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
+            'stockTransferItems.fromWarehouse',
         ]);
 
         return response()->json([
@@ -209,6 +212,7 @@ class StockTransferController extends Controller
             'toWarehouse',
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
+            'stockTransferItems.fromWarehouse',
         ]);
 
         return response()->json([
@@ -244,6 +248,7 @@ class StockTransferController extends Controller
             return [
                 'product_variant_id' => $vid,
                 'unit_id' => $unitId,
+                'from_warehouse_id' => isset($item['from_warehouse_id']) ? (int) $item['from_warehouse_id'] : null,
                 'quantity' => (int) $item['quantity'],
             ];
         })->all();

@@ -21,6 +21,8 @@ class StockTransferItemResource extends JsonResource
                     'name' => $this->unit->name ?? '',
                 ];
             }),
+            'from_warehouse_id' => $this->from_warehouse_id ?? null,
+            'from_warehouse_name' => $this->whenLoaded('fromWarehouse', fn () => $this->fromWarehouse?->name ?? '', ''),
             'quantity' => $this->quantity ?? 0,
         ];
     }

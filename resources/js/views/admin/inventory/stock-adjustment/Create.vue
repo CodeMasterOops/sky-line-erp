@@ -32,19 +32,6 @@
                                 />
                             </div>
                         </div>
-                        <div class="col-lg-6 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VMultiselect
-                                    id="warehouse_id"
-                                    v-model="form.warehouse_id"
-                                    :options="warehouseOptionsTree"
-                                    label="Warehouse"
-                                    required
-                                    @validate="validateField('warehouse_id')"
-                                    :error="errors.warehouse_id"
-                                />
-                            </div>
-                        </div>
 
                         <div class="col-12">
                             <ProductVariantSearchInput
@@ -62,6 +49,8 @@
                                     <tr>
                                         <th class="sa-col-sn">SN</th>
                                         <th class="sa-col-product">Product</th>
+                                        <th class="sa-col-warehouse">Warehouse</th>
+                                        <th class="sa-col-stock">Stock</th>
                                         <th class="sa-col-type">Type</th>
                                         <th class="sa-col-qty">
                                             Qty
@@ -73,18 +62,28 @@
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="6" class="text-center text-muted py-4">
+                                        <td colspan="8" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
                                     <tr
                                         v-for="(item, index) in form.items"
-                                        :key="`${index}-${item.product_variant_id}`">
+                                        :key="`${index}-${item.product_variant_id}-${item.warehouse_id}`">
                                         <td>{{ index + 1 }}</td>
                                         <td
                                             class="text-start text-truncate sa-col-product"
                                             :title="item.product_label">
                                             {{ item.product_label }}
+                                        </td>
+                                        <td class="text-start text-truncate sa-col-warehouse" :title="item.warehouse_name">
+                                            {{ item.warehouse_name || '—' }}
+                                        </td>
+                                        <td class="sa-col-stock">
+                                            <span
+                                                class="badge"
+                                                :class="item.direction === 'out' && Number(item.quantity) > item.stock_qty ? 'bg-danger' : 'bg-success'">
+                                                {{ item.stock_qty }}
+                                            </span>
                                         </td>
                                         <td class="sa-col-type sa-cell-tight">
                                             <VSelect
@@ -99,7 +98,7 @@
                                         <td class="sa-col-qty sa-cell-tight">
                                             <VInput
                                                 input-type="number"
-                                                input-class="form-control form-control-sm"
+                                                :input-class="`form-control form-control-sm${item.direction === 'out' && Number(item.quantity) > item.stock_qty ? ' border-danger' : ''}`"
                                                 v-model="form.items[index].quantity"
                                                 @validate="validateField(`items[${index}].quantity`)"
                                                 :error="errors[`items[${index}].quantity`]"
@@ -162,6 +161,14 @@
                             </button>
                         </div>
                     </form>
+
+                    <WarehousePickerModal
+                        ref="warehousePickerRef"
+                        modal-id="adjustment-create-warehouse-picker"
+                        confirm-label="Select Warehouse"
+                        @confirm="onWarehousePicked"
+                        @cancel="onWarehousePickerCancelled"
+                    />
                 </div>
             </div>
         </template>
@@ -171,14 +178,17 @@
 <script setup>
 import {reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
+import {toastInterface} from '@/plugins/my-plugins.js';
 import showErrors from '@/helpers/showErrors';
-import {array, object, string} from 'yup';
+import {array, number, object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useStockAdjustmentStore} from '@/stores/admin/inventory/stock-adjustment.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
+import {fetchVariantWarehouses} from '@/composables/useVariantWarehousePicker.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
 const stockAdjustmentStore = useStockAdjustmentStore();
@@ -188,7 +198,7 @@ const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
 
-const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {warehouses} = storeToRefs(warehouseStore);
 
 watch(
     createModalOpened,
@@ -203,7 +213,6 @@ watch(
 const getInitialState = () => ({
     reference_no: '',
     date: currentAdDate,
-    warehouse_id: '',
     remarks: '',
     status: 'draft',
     items: [],
@@ -211,6 +220,27 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+
+// Warehouse picker modal state
+const warehousePickerRef = ref(null);
+let pendingPickerResolve = null;
+
+const onWarehousePicked = (warehouseOption) => {
+    pendingPickerResolve?.(warehouseOption);
+    pendingPickerResolve = null;
+};
+
+const onWarehousePickerCancelled = () => {
+    pendingPickerResolve?.(null);
+    pendingPickerResolve = null;
+};
+
+const openWarehousePicker = (options, variantName) => {
+    return new Promise((resolve) => {
+        pendingPickerResolve = resolve;
+        warehousePickerRef.value?.open({options, variantName});
+    });
+};
 
 const directionOptions = [
     {id: 'in', name: 'In'},
@@ -256,12 +286,64 @@ const onDirectionInput = (index, value) => {
     }
 };
 
-const onVariantSelected = (variant) => {
+const buildPickerOptions = (allWarehouses, stockWarehouses) => {
+    return allWarehouses.map((w) => {
+        const sw = stockWarehouses.find((s) => String(s.warehouse_id) === String(w.id));
+        return {
+            warehouse_id: w.id,
+            warehouse_name: w.name,
+            quantity: sw ? sw.quantity : 0,
+        };
+    });
+};
+
+const onVariantSelected = async (variant) => {
+    let stockWarehouses;
+    try {
+        stockWarehouses = await fetchVariantWarehouses(variant.id);
+    } catch {
+        toastInterface.warning('Could not load warehouse stock. Please try again.');
+        return;
+    }
+
+    const allWarehouses = warehouses.value.data ?? [];
+    if (allWarehouses.length === 0) {
+        toastInterface.warning('No warehouses available. Please create a warehouse first.');
+        return;
+    }
+
+    const pickerOptions = buildPickerOptions(allWarehouses, stockWarehouses);
+
+    let selectedWarehouse;
+    if (pickerOptions.length === 1) {
+        selectedWarehouse = pickerOptions[0];
+    } else {
+        selectedWarehouse = await openWarehousePicker(pickerOptions, variantLabel(variant));
+        if (!selectedWarehouse) {
+            return;
+        }
+    }
+
     const vid = variant.id;
+    const warehouseId = selectedWarehouse.warehouse_id;
     const defaultCost = defaultUnitCostFromVariant(variant);
+
+    // Duplicate: same product + same warehouse → increment qty
+    const existing = form.items.findIndex(
+        (i) => String(i.product_variant_id) === String(vid) && String(i.warehouse_id) === String(warehouseId)
+    );
+
+    if (existing !== -1) {
+        form.items[existing].quantity = String(Number(form.items[existing].quantity || 0) + 1);
+        return;
+    }
+
     form.items.push({
-        product_variant_id: String(vid),
+        product_variant_id: vid,
         product_label: variantLabel(variant),
+        warehouse_id: warehouseId,
+        warehouse_name: selectedWarehouse.warehouse_name,
+        stock_qty: selectedWarehouse.quantity,
         unit_id: unitIdFromVariant(variant),
         direction: 'in',
         quantity: '1',
@@ -282,6 +364,7 @@ const lineQtyInt = (q) => {
 const buildAdjustmentPayload = () => {
     const items = form.items.map((item) => {
         const base = {
+            warehouse_id: item.warehouse_id,
             product_variant_id: item.product_variant_id,
             unit_id: item.unit_id === '' || item.unit_id == null ? null : item.unit_id,
             direction: item.direction,
@@ -297,7 +380,6 @@ const buildAdjustmentPayload = () => {
     return {
         reference_no: form.reference_no || null,
         date: form.date,
-        warehouse_id: form.warehouse_id,
         remarks: form.remarks,
         status: form.status,
         items,
@@ -307,9 +389,10 @@ const buildAdjustmentPayload = () => {
 const validations = object({
     date: string().required('Date is required.'),
     reference_no: string().nullable(),
-    warehouse_id: string().required('Warehouse is required.'),
+    remarks: string().nullable(),
     items: array().of(
         object({
+            warehouse_id: number().required('Warehouse is required.'),
             product_variant_id: string().required('Product is required.'),
             direction: string().required('Type is required.'),
             quantity: string().required('Quantity is required.'),
@@ -371,7 +454,20 @@ function resetForm() {
 }
 
 .stock-adjustment-lines-table th.sa-col-product {
-    width: 40%;
+    width: 28%;
+}
+
+.stock-adjustment-lines-table th.sa-col-warehouse,
+.stock-adjustment-lines-table td.sa-col-warehouse {
+    width: 20%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.stock-adjustment-lines-table th.sa-col-stock,
+.stock-adjustment-lines-table td.sa-col-stock {
+    width: 4.5rem;
+    text-align: center;
 }
 
 .stock-adjustment-lines-table th.sa-col-type,

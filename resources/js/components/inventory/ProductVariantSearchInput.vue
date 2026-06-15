@@ -6,8 +6,8 @@
         </label>
         <div class="input-groupicon select-code">
             <input ref="inputRef" v-model="query" type="text" class="form-control" :placeholder="placeholder"
-                autocomplete="off" @input="onQueryInput" @keydown.enter.prevent="onEnter" @paste="onPaste"
-                @focus="open = true" />
+                autocomplete="off" :disabled="disabled" @input="onQueryInput" @keydown.enter.prevent="onEnter"
+                @paste="onPaste" @focus="open = true" />
             <div class="addonset">
                 <img src="@/assets/images/icons/qrcode-scan.svg" alt="img" />
             </div>
@@ -59,6 +59,10 @@ const props = defineProps({
     categoryId: {
         type: Number,
         default: null,
+    },
+    disabled: {
+        type: Boolean,
+        default: false,
     },
 });
 

@@ -12,6 +12,8 @@ class StockAdjustmentItemResource extends JsonResource
         return [
             'id' => $this->id ?? '',
             'stock_adjustment_id' => $this->stock_adjustment_id ?? '',
+            'warehouse_id' => $this->warehouse_id ?? null,
+            'warehouse_name' => $this->whenLoaded('warehouse', fn () => $this->warehouse?->name ?? '', ''),
             'product_variant_id' => $this->product_variant_id ?? '',
             'product_variant' => ProductVariantResource::make($this->whenLoaded('productVariant')),
             'unit_id' => $this->unit_id ?? '',
