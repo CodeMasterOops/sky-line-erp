@@ -15,9 +15,108 @@ use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
+use App\Services\Sales\SalesReportService;
 
 class SalesReportController extends Controller
 {
+    public function __construct(private readonly SalesReportService $service) {}
+
+    /**
+     * @Permissions("sales_summary_report", group="sales_report", desc="Sales Summary Report")
+     */
+    public function salesSummary(Request $request)
+    {
+        return response()->json(['data' => $this->service->salesSummary($request)]);
+    }
+
+    /**
+     * @Permissions("daily_sales_report", group="sales_report", desc="Daily Sales Report")
+     */
+    public function dailySales(Request $request)
+    {
+        return response()->json(['data' => $this->service->dailySales($request)]);
+    }
+
+    /**
+     * @Permissions("monthly_sales_report", group="sales_report", desc="Monthly Sales Report")
+     */
+    public function monthlySales(Request $request)
+    {
+        return response()->json(['data' => $this->service->monthlySales($request)]);
+    }
+
+    /**
+     * @Permissions("yearly_sales_report", group="sales_report", desc="Yearly Sales Report")
+     */
+    public function yearlySales(Request $request)
+    {
+        return response()->json(['data' => $this->service->yearlySales($request)]);
+    }
+
+    /**
+     * @Permissions("customer_wise_sales_report", group="sales_report", desc="Customer Wise Sales Report")
+     */
+    public function customerWiseSales(Request $request)
+    {
+        return response()->json(['data' => $this->service->customerWiseSales($request)]);
+    }
+
+    /**
+     * @Permissions("category_wise_sales_report", group="sales_report", desc="Category Wise Sales Report")
+     */
+    public function categoryWiseSales(Request $request)
+    {
+        return response()->json(['data' => $this->service->categoryWiseSales($request)]);
+    }
+
+    /**
+     * @Permissions("sales_return_report", group="sales_report", desc="Sales Return Report")
+     */
+    public function salesReturn(Request $request)
+    {
+        return response()->json(['data' => $this->service->salesReturn($request)]);
+    }
+
+    /**
+     * @Permissions("outstanding_sales_report", group="sales_report", desc="Outstanding Sales Report")
+     */
+    public function outstandingSales(Request $request)
+    {
+        return response()->json(['data' => $this->service->outstandingSales($request)]);
+    }
+
+    /**
+     * @Permissions("sales_tax_report", group="sales_report", desc="Sales Tax/VAT Report")
+     */
+    public function salesTax(Request $request)
+    {
+        return response()->json(['data' => $this->service->salesTax($request)]);
+    }
+
+    /**
+     * @Permissions("sales_profit_report", group="sales_report", desc="Sales Profit Report")
+     */
+    public function salesProfit(Request $request)
+    {
+        return response()->json(['data' => $this->service->salesProfit($request)]);
+    }
+
+    /**
+     * @Permissions("discount_report", group="sales_report", desc="Discount Report")
+     */
+    public function discountReport(Request $request)
+    {
+        return response()->json(['data' => $this->service->discountReport($request)]);
+    }
+
+    /**
+     * @Permissions("sales_ledger_report", group="sales_report", desc="Sales Ledger Report")
+     */
+    public function salesLedger(Request $request)
+    {
+        return response()->json(['data' => $this->service->salesLedger($request)]);
+    }
+
     /**
      * @Permissions("sales_report_dashboard", group="sales_report", desc="Sales Report Dashboard")
      */

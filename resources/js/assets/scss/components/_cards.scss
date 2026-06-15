@@ -307,6 +307,54 @@
     margin: 0;
   }
 }
+// ─── Sale Widget KPI Cards (shared across sales report pages) ────────────────
+.sale-widget {
+    overflow: hidden;
+    position: relative;
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: auto -22px -22px auto;
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        opacity: 0.08;
+        background: currentColor;
+    }
+}
+
+.sale-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.widget-success {
+    color: #198754;
+    background: linear-gradient(135deg, #ffffff 0%, #f1fbf5 100%);
+}
+
+.widget-info {
+    color: #0d6efd;
+    background: linear-gradient(135deg, #ffffff 0%, #eef6ff 100%);
+}
+
+.widget-warning {
+    color: #b7791f;
+    background: linear-gradient(135deg, #ffffff 0%, #fff9ed 100%);
+}
+
+.widget-danger {
+    color: #dc3545;
+    background: linear-gradient(135deg, #ffffff 0%, #fff1f3 100%);
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 .cals-icon {
     font-size: variables.$font-size-50;
     color: variables.$gray-500;

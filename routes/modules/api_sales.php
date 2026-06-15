@@ -23,6 +23,18 @@ Route::prefix('sales-report')->as('sales-report.')->controller(SalesReportContro
     Route::get('dashboard', 'dashboard')->name('dashboard');
     Route::get('report', 'salesReport')->name('report');
     Route::get('sales-by-item', 'salesByItems')->name('sales-by-item');
+    Route::get('sales-summary', 'salesSummary')->name('sales-summary');
+    Route::get('daily-sales', 'dailySales')->name('daily-sales');
+    Route::get('monthly-sales', 'monthlySales')->name('monthly-sales');
+    Route::get('yearly-sales', 'yearlySales')->name('yearly-sales');
+    Route::get('customer-wise-sales', 'customerWiseSales')->name('customer-wise-sales');
+    Route::get('category-wise-sales', 'categoryWiseSales')->name('category-wise-sales');
+    Route::get('sales-return', 'salesReturn')->name('sales-return');
+    Route::get('outstanding-sales', 'outstandingSales')->name('outstanding-sales');
+    Route::get('sales-tax', 'salesTax')->name('sales-tax');
+    Route::get('sales-profit', 'salesProfit')->name('sales-profit');
+    Route::get('discount-report', 'discountReport')->name('discount-report');
+    Route::get('sales-ledger', 'salesLedger')->name('sales-ledger');
 });
 
 // invoice

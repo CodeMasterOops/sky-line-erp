@@ -79,6 +79,18 @@ const REPORT_CATEGORIES = [
         items: [
             { label: 'Sales Report', name: 'admin.sales-report', permission: 'list_sales_order' },
             { label: 'Sales By Item', name: 'admin.sales-by-item', permission: 'list_sales_order' },
+            { label: 'Sales Summary', name: 'admin.sales-summary-report', permission: 'sales_summary_report' },
+            { label: 'Daily Sales', name: 'admin.daily-sales-report', permission: 'daily_sales_report' },
+            { label: 'Monthly Sales', name: 'admin.monthly-sales-report', permission: 'monthly_sales_report' },
+            { label: 'Yearly Sales', name: 'admin.yearly-sales-report', permission: 'yearly_sales_report' },
+            { label: 'Customer Wise Sales', name: 'admin.customer-wise-sales-report', permission: 'customer_wise_sales_report' },
+            { label: 'Category Wise Sales', name: 'admin.category-wise-sales-report', permission: 'category_wise_sales_report' },
+            { label: 'Sales Return', name: 'admin.sales-return-report', permission: 'sales_return_report' },
+            { label: 'Outstanding Sales', name: 'admin.outstanding-sales-report', permission: 'outstanding_sales_report' },
+            { label: 'Sales Tax', name: 'admin.sales-tax-report', permission: 'sales_tax_report' },
+            { label: 'Sales Profit', name: 'admin.sales-profit-report', permission: 'sales_profit_report' },
+            { label: 'Discount Report', name: 'admin.discount-report', permission: 'discount_report' },
+            { label: 'Sales Ledger', name: 'admin.sales-ledger-report', permission: 'sales_ledger_report' },
         ],
     },
     {
