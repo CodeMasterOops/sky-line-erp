@@ -43,4 +43,17 @@ Route::prefix('purchase-report')->as('purchase-report.')->controller(PurchaseRep
     Route::get('dashboard', 'dashboard')->name('dashboard');
     Route::get('report', 'purchaseReport')->name('report');
     Route::get('purchase-by-item', 'purchaseByItems')->name('purchase-by-item');
+    Route::get('purchase-summary', 'purchaseSummary')->name('purchase-summary');
+    Route::get('daily-purchase', 'dailyPurchase')->name('daily-purchase');
+    Route::get('monthly-purchase', 'monthlyPurchase')->name('monthly-purchase');
+    Route::get('yearly-purchase', 'yearlyPurchase')->name('yearly-purchase');
+    Route::get('supplier-wise-purchase', 'supplierWisePurchase')->name('supplier-wise-purchase');
+    Route::get('category-wise-purchase', 'categoryWisePurchase')->name('category-wise-purchase');
+    Route::get('purchase-return', 'purchaseReturn')->name('purchase-return');
+    Route::get('outstanding-purchase', 'outstandingPurchase')->name('outstanding-purchase');
+    Route::get('purchase-tax', 'purchaseTax')->name('purchase-tax');
+    Route::get('purchase-ledger', 'purchaseLedger')->name('purchase-ledger');
+    Route::get('grn-report', 'grnReport')->name('grn-report');
+    Route::get('pending-purchase', 'pendingPurchase')->name('pending-purchase');
+    Route::get('purchase-discount', 'purchaseDiscount')->name('purchase-discount');
 });

@@ -14,9 +14,12 @@ use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
+use App\Services\Purchase\PurchaseReportService;
 
 class PurchaseReportController extends Controller
 {
+    public function __construct(private readonly PurchaseReportService $service) {}
+
     /**
      * @Permissions("list_bill", group="bill", desc="Purchase Report Dashboard")
      */
@@ -175,6 +178,110 @@ class PurchaseReportController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * @Permissions("purchase_summary_report", group="purchase_report", desc="Purchase Summary Report")
+     */
+    public function purchaseSummary(Request $request)
+    {
+        return response()->json(['data' => $this->service->purchaseSummary($request)]);
+    }
+
+    /**
+     * @Permissions("daily_purchase_report", group="purchase_report", desc="Daily Purchase Report")
+     */
+    public function dailyPurchase(Request $request)
+    {
+        return response()->json(['data' => $this->service->dailyPurchase($request)]);
+    }
+
+    /**
+     * @Permissions("monthly_purchase_report", group="purchase_report", desc="Monthly Purchase Report")
+     */
+    public function monthlyPurchase(Request $request)
+    {
+        return response()->json(['data' => $this->service->monthlyPurchase($request)]);
+    }
+
+    /**
+     * @Permissions("yearly_purchase_report", group="purchase_report", desc="Yearly Purchase Report")
+     */
+    public function yearlyPurchase(Request $request)
+    {
+        return response()->json(['data' => $this->service->yearlyPurchase($request)]);
+    }
+
+    /**
+     * @Permissions("supplier_wise_purchase_report", group="purchase_report", desc="Supplier Wise Purchase Report")
+     */
+    public function supplierWisePurchase(Request $request)
+    {
+        return response()->json(['data' => $this->service->supplierWisePurchase($request)]);
+    }
+
+    /**
+     * @Permissions("category_wise_purchase_report", group="purchase_report", desc="Category Wise Purchase Report")
+     */
+    public function categoryWisePurchase(Request $request)
+    {
+        return response()->json(['data' => $this->service->categoryWisePurchase($request)]);
+    }
+
+    /**
+     * @Permissions("purchase_return_report", group="purchase_report", desc="Purchase Return Report")
+     */
+    public function purchaseReturn(Request $request)
+    {
+        return response()->json(['data' => $this->service->purchaseReturn($request)]);
+    }
+
+    /**
+     * @Permissions("outstanding_purchase_report", group="purchase_report", desc="Outstanding Purchase Report")
+     */
+    public function outstandingPurchase(Request $request)
+    {
+        return response()->json(['data' => $this->service->outstandingPurchase($request)]);
+    }
+
+    /**
+     * @Permissions("purchase_tax_report", group="purchase_report", desc="Purchase Tax Report")
+     */
+    public function purchaseTax(Request $request)
+    {
+        return response()->json(['data' => $this->service->purchaseTax($request)]);
+    }
+
+    /**
+     * @Permissions("purchase_ledger_report", group="purchase_report", desc="Purchase Ledger Report")
+     */
+    public function purchaseLedger(Request $request)
+    {
+        return response()->json(['data' => $this->service->purchaseLedger($request)]);
+    }
+
+    /**
+     * @Permissions("grn_report", group="purchase_report", desc="GRN Report")
+     */
+    public function grnReport(Request $request)
+    {
+        return response()->json(['data' => $this->service->grnReport($request)]);
+    }
+
+    /**
+     * @Permissions("pending_purchase_report", group="purchase_report", desc="Pending Purchase Report")
+     */
+    public function pendingPurchase(Request $request)
+    {
+        return response()->json(['data' => $this->service->pendingPurchase($request)]);
+    }
+
+    /**
+     * @Permissions("purchase_discount_report", group="purchase_report", desc="Purchase Discount Report")
+     */
+    public function purchaseDiscount(Request $request)
+    {
+        return response()->json(['data' => $this->service->purchaseDiscount($request)]);
     }
 
     private function buildBillQuery(Request $request): Builder
