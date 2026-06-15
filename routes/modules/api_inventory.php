@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Admin\Inventory\StockAdjustmentController;
 use App\Http\Controllers\Api\Admin\Inventory\GoodsReceivedNoteController;
 use App\Http\Controllers\Api\Admin\Inventory\InventoryStockReconciliationController;
 use App\Http\Controllers\Api\Admin\Inventory\InventoryStockReconciliationAlignController;
+use App\Http\Controllers\Api\Admin\Inventory\InventoryReportController;
 
 // unit
 Route::get('unit/next-code', [UnitController::class, 'nextCode'])->name('unit.next-code');
@@ -84,6 +85,17 @@ Route::apiResource('batch', BatchController::class)->except(['destroy']);
 
 // Bill of Materials
 Route::apiResource('bom', BomController::class);
+
+// inventory reports
+Route::prefix('inventory-report')->as('inventory-report.')->controller(InventoryReportController::class)->group(function () {
+    Route::get('stock-movement', 'stockMovement')->name('stock-movement');
+    Route::get('stock-ledger', 'stockLedger')->name('stock-ledger');
+    Route::get('warehouse-stock', 'warehouseStock')->name('warehouse-stock');
+    Route::get('warehouse-transfer', 'warehouseTransfer')->name('warehouse-transfer');
+    Route::get('expiry-stock', 'expiryStock')->name('expiry-stock');
+    Route::get('dead-stock', 'deadStock')->name('dead-stock');
+    Route::get('stock-opening', 'stockOpening')->name('stock-opening');
+});
 
 // Production Orders
 Route::post('production-order/{productionOrder}/start', [ProductionOrderController::class, 'start'])->name('production-order.start');

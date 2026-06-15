@@ -158,6 +158,48 @@ export default [
         component: () => import("@/views/admin/inventory/reports/ReorderAlerts.vue"),
     },
     {
+        path: "stock-movement",
+        name: "admin.stock-movement-report",
+        meta: {pageTitle: "Stock Movement Report"},
+        component: () => import("@/views/admin/inventory/reports/StockMovement.vue"),
+    },
+    {
+        path: "stock-ledger",
+        name: "admin.stock-ledger-report",
+        meta: {pageTitle: "Stock Ledger Report"},
+        component: () => import("@/views/admin/inventory/reports/StockLedger.vue"),
+    },
+    {
+        path: "warehouse-stock",
+        name: "admin.warehouse-stock-report",
+        meta: {pageTitle: "Warehouse Wise Stock Report"},
+        component: () => import("@/views/admin/inventory/reports/WarehouseStock.vue"),
+    },
+    {
+        path: "warehouse-transfer-report",
+        name: "admin.warehouse-transfer-report",
+        meta: {pageTitle: "Warehouse Transfer Report"},
+        component: () => import("@/views/admin/inventory/reports/WarehouseTransfer.vue"),
+    },
+    {
+        path: "expiry-stock",
+        name: "admin.expiry-stock-report",
+        meta: {pageTitle: "Expiry Stock Report"},
+        component: () => import("@/views/admin/inventory/reports/ExpiryStock.vue"),
+    },
+    {
+        path: "dead-stock",
+        name: "admin.dead-stock-report",
+        meta: {pageTitle: "Dead Stock Report"},
+        component: () => import("@/views/admin/inventory/reports/DeadStock.vue"),
+    },
+    {
+        path: "stock-opening-report",
+        name: "admin.stock-opening-report",
+        meta: {pageTitle: "Stock Opening Report"},
+        component: () => import("@/views/admin/inventory/reports/StockOpening.vue"),
+    },
+    {
         path: "serial-numbers",
         name: "admin.serial-numbers",
         meta: {pageTitle: "Serial / Lot Numbers"},

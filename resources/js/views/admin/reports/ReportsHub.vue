@@ -98,6 +98,13 @@ const REPORT_CATEGORIES = [
             { label: 'Inventory Valuation', name: 'admin.inventory-valuation', permission: 'list_product' },
             { label: 'Stock Aging', name: 'admin.stock-aging', permission: 'list_product' },
             { label: 'Reorder Alerts', name: 'admin.reorder-alerts', permission: 'list_product' },
+            { label: 'Stock Movement Report', name: 'admin.stock-movement-report', permission: 'list_product' },
+            { label: 'Stock Ledger Report', name: 'admin.stock-ledger-report', permission: 'list_product' },
+            { label: 'Warehouse Wise Stock', name: 'admin.warehouse-stock-report', permission: 'list_product' },
+            { label: 'Warehouse Transfer Report', name: 'admin.warehouse-transfer-report', permission: 'list_product' },
+            { label: 'Expiry Stock Report', name: 'admin.expiry-stock-report', permission: 'list_product' },
+            { label: 'Dead Stock Report', name: 'admin.dead-stock-report', permission: 'list_product' },
+            { label: 'Stock Opening Report', name: 'admin.stock-opening-report', permission: 'list_product' },
         ],
     },
     {
