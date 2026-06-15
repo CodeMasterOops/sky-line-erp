@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\Accounting\AccountController;
+use App\Http\Controllers\Api\Admin\Accounting\OpeningBalanceController;
 use App\Http\Controllers\Api\Admin\Accounting\AccountGroupController;
 use App\Http\Controllers\Api\Admin\Accounting\AccountingPeriodController;
 use App\Http\Controllers\Api\Admin\Accounting\AccountReportController;
@@ -16,6 +17,10 @@ use App\Http\Controllers\Api\Admin\Accounting\PaymentVoucherController;
 use App\Http\Controllers\Api\Admin\Accounting\ReceiptVoucherController;
 use App\Http\Controllers\Api\Admin\Accounting\RecurringJournalController;
 use Illuminate\Support\Facades\Route;
+
+// opening balance
+Route::get('opening-balance', [OpeningBalanceController::class, 'index'])->name('opening-balance.index');
+Route::post('opening-balance', [OpeningBalanceController::class, 'store'])->name('opening-balance.store');
 
 // account groups
 Route::apiResource('account-group', AccountGroupController::class);

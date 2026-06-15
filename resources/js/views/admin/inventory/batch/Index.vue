@@ -109,12 +109,10 @@
                             <input v-model="form.initial_qty" type="number" class="form-control" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Mfg Date</label>
-                            <input v-model="form.mfg_date" type="date" class="form-control" />
+                            <VDatepicker id="mfg_date" label="Mfg Date" v-model="form.mfg_date" />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Expiry Date</label>
-                            <input v-model="form.expiry_date" type="date" class="form-control" />
+                            <VDatepicker id="expiry_date" label="Expiry Date" v-model="form.expiry_date" />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Unit Cost</label>
@@ -168,6 +166,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive, watch } from 'vue';
 import VPagination from '@/components/base/VPagination.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';

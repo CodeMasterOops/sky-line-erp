@@ -21,6 +21,7 @@ class PlanResource extends JsonResource
             'is_default' => $this->is_default,
             'is_recommended' => $this->is_recommended,
             'sort_order' => $this->sort_order,
+            'branch_limit' => $this->branch_limit,
             'subscriptions_count' => $this->whenCounted('subscriptions'),
             'active_subscriptions_count' => $this->when(
                 isset($this->active_subscriptions_count),

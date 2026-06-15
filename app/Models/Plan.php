@@ -25,6 +25,7 @@ class Plan extends Model
         'is_default',
         'is_recommended',
         'sort_order',
+        'branch_limit',
     ];
 
     protected function casts(): array
@@ -37,6 +38,7 @@ class Plan extends Model
             'is_default' => 'boolean',
             'is_recommended' => 'boolean',
             'sort_order' => 'integer',
+            'branch_limit' => 'integer',
         ];
     }
 

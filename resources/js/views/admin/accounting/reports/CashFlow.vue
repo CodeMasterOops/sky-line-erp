@@ -17,14 +17,12 @@
                 </div>
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" class="form-control" v-model="filters.start_date" />
+                        <VDatepicker id="start_date" label="Start Date" v-model="filters.start_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" class="form-control" v-model="filters.end_date" />
+                        <VDatepicker id="end_date" label="End Date" v-model="filters.end_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -100,6 +98,7 @@ import {ref, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const filters = ref({ fiscal_year_id: null, start_date: null, end_date: null });
 const loading = ref(false);

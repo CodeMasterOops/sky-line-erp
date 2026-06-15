@@ -16,6 +16,7 @@ class PlanSeeder extends Seeder
                 'description' => 'Starter — ideal for startups & shops',
                 'price_monthly' => 999,
                 'price_yearly' => 9999,
+                'branch_limit' => 1,
                 'features' => [
                     'Ideal for startups & shops',
                     '1 branch location',
@@ -35,6 +36,7 @@ class PlanSeeder extends Seeder
                 'description' => 'Growth — ideal for growing SMEs',
                 'price_monthly' => 1999,
                 'price_yearly' => 19999,
+                'branch_limit' => 2,
                 'features' => [
                     'Ideal for growing SMEs',
                     'Up to 2 branch locations',
@@ -55,6 +57,7 @@ class PlanSeeder extends Seeder
                 'description' => 'Established — ideal for large organizations',
                 'price_monthly' => 2999,
                 'price_yearly' => 29999,
+                'branch_limit' => 3,
                 'features' => [
                     'Ideal for large organizations',
                     'Up to 3 branch locations',
@@ -75,6 +78,7 @@ class PlanSeeder extends Seeder
                 'description' => 'Enterprise — ideal for corporations',
                 'price_monthly' => 26999,
                 'price_yearly' => 299999,
+                'branch_limit' => 15,
                 'features' => [
                     'Ideal for corporations',
                     'Up to 15 branch locations',

@@ -284,7 +284,8 @@ class BankReconciliationController extends Controller
 
         return response()->json([
             'message' => count($created).' rows imported from CSV.',
-            'imported_count' => count($created),
+            'imported' => count($created),
+            'skipped' => 0,
         ]);
     }
 }

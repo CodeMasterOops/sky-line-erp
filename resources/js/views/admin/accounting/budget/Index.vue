@@ -52,12 +52,10 @@
                 </div>
                 <div class="d-flex gap-2 align-items-end">
                     <div>
-                        <label class="form-label small mb-1">From</label>
-                        <input type="date" class="form-control form-control-sm" v-model="vsActualFilter.from_date" />
+                        <VDatepicker id="vs_from_date" label="From" v-model="vsActualFilter.from_date" />
                     </div>
                     <div>
-                        <label class="form-label small mb-1">To</label>
-                        <input type="date" class="form-control form-control-sm" v-model="vsActualFilter.to_date" />
+                        <VDatepicker id="vs_to_date" label="To" v-model="vsActualFilter.to_date" />
                     </div>
                     <button class="btn btn-sm btn-primary" @click="loadVsActual">Apply</button>
                     <button class="btn btn-sm btn-outline-secondary" @click="viewingBudget = null">Back</button>
@@ -222,6 +220,7 @@ import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const loading = ref(false);
 const saving = ref(false);

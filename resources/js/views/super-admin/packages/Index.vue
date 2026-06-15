@@ -107,6 +107,9 @@
                 <span v-if="record.is_default" class="badge badge-info badge-sm ms-1">Default</span>
                 <span v-if="record.is_recommended" class="badge badge-warning badge-sm ms-1">Recommended</span>
               </template>
+              <template v-if="column.key === 'branch_limit'">
+                {{ record.branch_limit ?? 'Unlimited' }}
+              </template>
               <template v-if="column.key === 'subscribers'">
                 {{ record.active_subscriptions_count ?? 0 }}
               </template>
@@ -163,6 +166,7 @@ const columns = [
     {title: 'SN', key: 'sn', width: 60},
     {title: 'Plan Name', dataIndex: 'name', key: 'name'},
     {title: 'Monthly / Yearly', key: 'price'},
+    {title: 'Branch Limit', key: 'branch_limit', align: 'center'},
     {title: 'Subscribers', key: 'subscribers'},
     {title: 'Status', key: 'status'},
     {title: 'Action', key: 'action', align: 'center'},

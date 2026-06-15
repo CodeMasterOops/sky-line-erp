@@ -6,8 +6,7 @@
             <div class="row align-items-end">
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label class="form-label">As of Date (End Date)</label>
-                        <input type="date" class="form-control" v-model="filters.end_date" />
+                        <VDatepicker id="end_date" label="As of Date (End Date)" v-model="filters.end_date" />
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -77,6 +76,7 @@ import {ref} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const filters = ref({ end_date: new Date().toISOString().split('T')[0] });
 const loading = ref(false);

@@ -21,7 +21,7 @@
                     <VDatepicker
                         id="date"
                         v-model="form.date"
-                        :show-switcher="false"
+                        
                         label="Date"
                         @validate="validateField('date')"
                         :error="errors.date"

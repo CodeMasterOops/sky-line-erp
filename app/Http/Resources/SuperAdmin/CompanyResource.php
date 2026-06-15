@@ -31,6 +31,7 @@ class CompanyResource extends JsonResource
             'palika_id' => $this->ward?->palika_id,
             'location_label' => $this->locationLabel(),
             'is_active' => $this->is_active ?? true,
+            'expires_at' => $this->whenLoaded('currentSubscription', fn () => $this->currentSubscription?->ends_at?->toDateString()),
             'current_subscription' => SubscriptionResource::make($this->whenLoaded('currentSubscription')),
         ];
     }

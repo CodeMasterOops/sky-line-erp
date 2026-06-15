@@ -50,6 +50,15 @@
                         :error="errors.price_yearly"
                     />
                 </div>
+                <div class="col-md-6">
+                    <VInput
+                        id="edit_branch_limit"
+                        v-model="form.branch_limit"
+                        type="number"
+                        label="Branch Limit"
+                        placeholder="Leave empty for unlimited"
+                    />
+                </div>
                 <div class="col-12">
                     <label class="form-label">Features (one per line)</label>
                     <textarea v-model="featuresText" class="form-control" rows="4"></textarea>
@@ -96,6 +105,7 @@ const form = reactive({
     description: '',
     price_monthly: 0,
     price_yearly: 0,
+    branch_limit: null,
     is_active: true,
     is_default: false,
     is_recommended: false,
@@ -125,6 +135,7 @@ watch(planId, async (id) => {
         description: data.description,
         price_monthly: data.price_monthly,
         price_yearly: data.price_yearly,
+        branch_limit: data.branch_limit ?? null,
         is_active: data.is_active,
         is_default: data.is_default,
         is_recommended: data.is_recommended,

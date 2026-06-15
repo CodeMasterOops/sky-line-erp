@@ -63,6 +63,18 @@ class BranchController extends Controller
      */
     public function store(BranchRequest $request)
     {
+        $company = auth('admin')->user()->company;
+        $plan = $company->currentSubscription?->plan;
+
+        if ($plan && $plan->branch_limit !== null) {
+            $branchCount = Branch::query()->count();
+            if ($branchCount >= $plan->branch_limit) {
+                return response()->json([
+                    'message' => "Your current plan \"{$plan->name}\" allows a maximum of {$plan->branch_limit} branch(es). Please upgrade to add more branches.",
+                ], 422);
+            }
+        }
+
         $data = $request->validated();
         $this->assignEntityCode($data, EntityCodeType::Branch);
         $branch = Branch::create($data);

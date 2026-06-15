@@ -94,6 +94,24 @@
                     <i class="fa fa-arrows-alt"></i>
                 </a>
             </li>
+
+            <li class="nav-item d-flex align-items-center">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Date format">
+                    <button
+                        type="button"
+                        class="btn"
+                        :class="dateMode === 'en' ? 'btn-primary' : 'btn-outline-secondary'"
+                        @click="setDateMode('en')"
+                    >AD</button>
+                    <button
+                        type="button"
+                        class="btn"
+                        :class="dateMode === 'ne' ? 'btn-primary' : 'btn-outline-secondary'"
+                        @click="setDateMode('ne')"
+                    >BS</button>
+                </div>
+            </li>
+
             <HeaderNotificationDropdown
                 :notifications="notifications.data"
                 :loading="notifications.loading"
@@ -175,6 +193,7 @@ import {useAdminNotificationStore} from "@/stores/admin/notification";
 import {useAdminSettingStore} from "@/stores/admin/settings/admin-setting.js";
 import {adToBsDate} from "@/helpers/helper.js";
 import {useBranchStore} from "@/stores/admin/settings/branch.js";
+import {useDatePreferenceStore} from "@/stores/admin/datePreference.js";
 import {useRoute} from "vue-router";
 import HeaderNotificationDropdown from "@/components/shared/HeaderNotificationDropdown.vue";
 import {watch} from "vue";
@@ -184,8 +203,12 @@ const profileStore = useProfileStore();
 const authStore = useAdminAuthStore();
 const adminSettingStore = useAdminSettingStore();
 const branchStore = useBranchStore();
+const datePreferenceStore = useDatePreferenceStore();
 const router = useRouter();
 const route = useRoute();
+
+const {mode: dateMode} = storeToRefs(datePreferenceStore);
+const setDateMode = (mode) => datePreferenceStore.setMode(mode);
 
 /** Name must match a route in `admin.js`; access follows `adminRoutePermissions.js`. */
 const QUICK_SHORTCUTS = [
