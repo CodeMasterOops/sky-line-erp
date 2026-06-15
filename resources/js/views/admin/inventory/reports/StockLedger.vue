@@ -24,10 +24,13 @@
                 <div class="col-md-2">
                     <VDatepicker id="to_date" label="To Date" v-model="filters.to_date" />
                 </div>
-                <div class="col-md-3">
-                    <button class="btn btn-primary w-100" @click="loadReport" :disabled="loading || !filters.product_variant_id">
+                <div class="col-md-3 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" @click="loadReport" :disabled="loading || !filters.product_variant_id">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                        Generate Report
+                        Generate
+                    </button>
+                    <button class="btn btn-outline-secondary" @click="exportCsv" :disabled="!rows.length" title="Export CSV">
+                        <i class="ti ti-file-export"></i>
                     </button>
                 </div>
             </div>
@@ -125,6 +128,19 @@ const filters = ref({
     from_date: '',
     to_date: '',
 });
+
+const exportCsv = () => {
+    if (!rows.value.length) { return; }
+    const headers = ['Date', 'Warehouse', 'Type', 'IN Qty', 'OUT Qty', 'Balance', 'Unit Cost', 'Total Cost', 'Remarks'];
+    const csvRows = rows.value.map(r => [
+        r.date, r.warehouse, r.type, r.in_qty, r.out_qty, r.balance, r.unit_cost, r.total_cost, r.remarks,
+    ].map(v => `"${v ?? ''}"`).join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = 'stock-ledger.csv';
+    a.click();
+};
 
 const loadReport = async () => {
     if (!filters.value.product_variant_id) { return; }

@@ -16,10 +16,13 @@
                     <button class="btn btn-outline-secondary" @click="filters.days = 60" :class="filters.days == 60 ? 'active' : ''">60d</button>
                     <button class="btn btn-outline-secondary" @click="filters.days = 90" :class="filters.days == 90 ? 'active' : ''">90d</button>
                 </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary" @click="loadReport" :disabled="loading">
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" @click="loadReport" :disabled="loading">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                        Generate Report
+                        Generate
+                    </button>
+                    <button class="btn btn-outline-secondary" @click="exportCsv" :disabled="!rows.length" title="Export CSV">
+                        <i class="ti ti-file-export"></i>
                     </button>
                 </div>
             </div>
@@ -105,6 +108,20 @@ const idleBadge = (days) => {
     if (days > 180) { return 'bg-danger'; }
     if (days > 90) { return 'bg-warning text-dark'; }
     return 'bg-secondary';
+};
+
+const exportCsv = () => {
+    if (!rows.value.length) { return; }
+    const headers = ['Product', 'Code', 'SKU', 'Category', 'Warehouse', 'Current Qty', 'Last Movement', 'Days Idle'];
+    const csvRows = rows.value.map(r => [
+        r.product_name, r.product_code, r.sku, r.category, r.warehouse,
+        r.quantity, r.last_movement_date ?? 'Never', r.days_since_movement ?? 'Never moved',
+    ].map(v => `"${v ?? ''}"`).join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = 'dead-stock.csv';
+    a.click();
 };
 
 const loadReport = async () => {

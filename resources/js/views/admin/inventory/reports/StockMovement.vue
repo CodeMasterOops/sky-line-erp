@@ -32,10 +32,13 @@
                         <option value="out">Out</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary w-100" @click="loadReport(1)" :disabled="loading">
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" @click="loadReport(1)" :disabled="loading">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                        Generate Report
+                        Generate
+                    </button>
+                    <button class="btn btn-outline-secondary" @click="exportCsv" :disabled="!rows.length" title="Export CSV">
+                        <i class="ti ti-file-export"></i>
                     </button>
                 </div>
             </div>
@@ -163,6 +166,20 @@ const loadReport = async (page = 1) => {
     } finally {
         loading.value = false;
     }
+};
+
+const exportCsv = () => {
+    if (!rows.value.length) { return; }
+    const headers = ['Date', 'Product', 'Code', 'SKU', 'Warehouse', 'Type', 'Direction', 'Qty', 'Unit Cost', 'Total Cost', 'Remarks'];
+    const csvRows = rows.value.map(r => [
+        r.date, r.product_name, r.product_code, r.sku, r.warehouse, r.type, r.direction,
+        r.quantity, r.unit_cost, r.total_cost, r.remarks,
+    ].map(v => `"${v ?? ''}"`).join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = 'stock-movement.csv';
+    a.click();
 };
 
 onMounted(async () => {

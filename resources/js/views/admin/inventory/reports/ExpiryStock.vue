@@ -15,10 +15,13 @@
                     <label class="form-label">Days Ahead</label>
                     <input type="number" class="form-control" v-model="filters.days" min="1" max="365" />
                 </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary" @click="loadReport" :disabled="loading">
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" @click="loadReport" :disabled="loading">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                        Generate Report
+                        Generate
+                    </button>
+                    <button class="btn btn-outline-secondary" @click="exportCsv" :disabled="!rows.length" title="Export CSV">
+                        <i class="ti ti-file-export"></i>
                     </button>
                 </div>
             </div>
@@ -114,6 +117,20 @@ const loading = ref(false);
 const hasLoaded = ref(false);
 
 const filters = ref({ type: 'near_expiry', days: 30 });
+
+const exportCsv = () => {
+    if (!rows.value.length) { return; }
+    const headers = ['Product', 'Code', 'SKU', 'Warehouse', 'Batch No', 'Lot No', 'Mfg Date', 'Expiry Date', 'Days', 'Qty', 'Unit Cost', 'Total Value'];
+    const csvRows = rows.value.map(r => [
+        r.product_name, r.product_code, r.sku, r.warehouse, r.batch_no, r.lot_no,
+        r.mfg_date, r.expiry_date, r.days_to_expiry, r.remaining_qty, r.unit_cost, r.total_value,
+    ].map(v => `"${v ?? ''}"`).join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = 'expiry-stock.csv';
+    a.click();
+};
 
 const loadReport = async () => {
     loading.value = true;

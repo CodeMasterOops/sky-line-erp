@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import {formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';

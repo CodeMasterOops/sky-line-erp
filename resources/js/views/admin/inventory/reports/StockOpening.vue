@@ -17,10 +17,13 @@
                         <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary w-100" @click="loadReport" :disabled="loading">
-                        <span v-if="loading" class="spinner-border spinner-border-sm"></span>
-                        <span v-else>Generate Report</span>
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" @click="loadReport" :disabled="loading">
+                        <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
+                        Generate
+                    </button>
+                    <button class="btn btn-outline-secondary" @click="exportCsv" :disabled="!rows.length" title="Export CSV">
+                        <i class="ti ti-file-export"></i>
                     </button>
                 </div>
             </div>
@@ -145,6 +148,19 @@ const filters = ref({
 });
 
 const toggleExpand = (idx) => { expanded.value[idx] = !expanded.value[idx]; };
+
+const exportCsv = () => {
+    if (!rows.value.length) { return; }
+    const headers = ['Date', 'Reference', 'Warehouse', 'Status', 'Items', 'Total Qty', 'Total Value', 'Remarks'];
+    const csvRows = rows.value.map(r => [
+        r.date, r.reference_no, r.warehouse, r.status, r.item_count, r.total_quantity, r.total_value, r.remarks,
+    ].map(v => `"${v ?? ''}"`).join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = 'stock-opening.csv';
+    a.click();
+};
 
 const loadReport = async () => {
     loading.value = true;

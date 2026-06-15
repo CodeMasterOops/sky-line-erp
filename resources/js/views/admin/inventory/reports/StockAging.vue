@@ -2,10 +2,13 @@
     <PageHeader hide-action-buttons title="Stock Aging Report" subtitle="Identify slow-moving and dead stock by FIFO layer age" />
 
     <div class="card border-0 mb-3">
-        <div class="card-body">
+        <div class="card-body d-flex align-items-center gap-2">
             <button class="btn btn-primary" @click="loadReport" :disabled="loading">
                 <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
                 Generate Report
+            </button>
+            <button class="btn btn-outline-secondary" @click="exportCsv" :disabled="!rows.length">
+                <i class="ti ti-file-export me-1"></i> Export CSV
             </button>
         </div>
     </div>
@@ -73,6 +76,20 @@ const loading = ref(false);
 const bucketLabels = { under_30: '< 30 days', '31_90': '31-90 days', '91_180': '91-180 days', over_180: '> 180 days', total: 'Total' };
 const bucketBg = { under_30: 'bg-success-subtle', '31_90': 'bg-warning-subtle', '91_180': 'bg-danger-subtle', over_180: 'bg-danger', total: 'bg-secondary-subtle' };
 const bucketBadge = { under_30: 'bg-success', '31_90': 'bg-warning text-dark', '91_180': 'bg-danger', over_180: 'bg-danger' };
+
+const exportCsv = () => {
+    if (!rows.value.length) { return; }
+    const headers = ['Product', 'Code', 'SKU', 'Warehouse', 'Qty', 'Unit Cost', 'Value', 'Age (days)', 'Bucket'];
+    const csvRows = rows.value.map(r => [
+        r.product_name, r.product_code, r.sku, r.warehouse,
+        r.quantity, r.unit_cost, r.total_value, r.age_days, r.age_bucket,
+    ].map(v => `"${v ?? ''}"`).join(','));
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = 'stock-aging.csv';
+    a.click();
+};
 
 const loadReport = async () => {
     loading.value = true;

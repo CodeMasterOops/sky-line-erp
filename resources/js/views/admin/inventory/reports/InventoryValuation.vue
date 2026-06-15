@@ -2,8 +2,8 @@
     <PageHeader title="Inventory Valuation Report" subtitle="Current stock value by product (FIFO costing)" hide-action-buttons />
 
     <div class="card border-0 mb-3">
-        <div class="card-body pb-1">
-            <div class="row align-items-end">
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <button class="btn btn-primary" @click="loadReport" :disabled="loading">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>

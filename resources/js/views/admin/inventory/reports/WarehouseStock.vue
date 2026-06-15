@@ -11,10 +11,13 @@
                         <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary" @click="loadReport" :disabled="loading">
+                <div class="col-md-2 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1" @click="loadReport" :disabled="loading">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-                        Generate Report
+                        Generate
+                    </button>
+                    <button class="btn btn-outline-secondary" @click="exportCsv" :disabled="!rows.length" title="Export CSV">
+                        <i class="ti ti-file-export"></i>
                     </button>
                 </div>
             </div>
@@ -90,6 +93,19 @@ const loading = ref(false);
 const warehouseOptions = ref([]);
 
 const filters = ref({ warehouse_id: '' });
+
+const exportCsv = () => {
+    if (!rows.value.length) { return; }
+    const headers = ['Warehouse', 'Product', 'Code', 'SKU', 'Category', 'Quantity'];
+    const csvRows = rows.value.flatMap(g => g.items.map(item => [
+        g.warehouse, item.product_name, item.product_code, item.sku, item.category, item.quantity,
+    ].map(v => `"${v ?? ''}"`).join(',')));
+    const csv = [headers.join(','), ...csvRows].join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+    a.download = 'warehouse-stock.csv';
+    a.click();
+};
 
 const loadReport = async () => {
     loading.value = true;
