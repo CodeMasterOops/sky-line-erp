@@ -35,7 +35,7 @@ class BillItem extends Model
         'warehouse_id' => 'integer',
         'unit_id' => 'integer',
         'tax_id' => 'integer',
-        'quantity' => 'integer',
+        'quantity' => 'float',
         'rate' => 'float',
         'tax_amount' => 'float',
         'discount_amount' => 'float',

@@ -92,10 +92,15 @@ readonly class PurchaseBillService
 
             $this->validateGrnItemQuantities($items);
 
+            $partyPan = isset($formData['party_id'])
+                ? \App\Models\Party::where('id', $formData['party_id'])->value('pan')
+                : null;
+
             $bill = Bill::create([
                 'company_id' => $user->company_id,
                 'fiscal_year_id' => $fiscalYearId,
                 'party_id' => $formData['party_id'] ?? null,
+                'supplier_pan' => $partyPan,
                 'purchase_order_id' => $formData['purchase_order_id'] ?? null,
                 'bill_no' => $billNo,
                 'bill_date' => $formData['bill_date'],

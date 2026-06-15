@@ -6,6 +6,7 @@ use App\Models\Bill;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
+use App\Rules\WithinActiveFiscalYear;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -20,7 +21,7 @@ class DebitNoteRequest extends FormRequest
     {
         return [
             'debit_note_no' => ['nullable', 'string', 'max:255'],
-            'debit_note_date' => ['required', 'date'],
+            'debit_note_date' => ['required', 'date', new WithinActiveFiscalYear],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'bill_id' => ['nullable', TRule::exists('bills', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],

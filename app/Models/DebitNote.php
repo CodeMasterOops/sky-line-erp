@@ -27,6 +27,7 @@ class DebitNote extends Model
         'branch_id',
         'fiscal_year_id',
         'party_id',
+        'supplier_pan',
         'bill_id',
         'debit_note_no',
         'debit_note_date',

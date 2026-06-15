@@ -8,6 +8,7 @@ use App\Enums\TaxTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use App\Rules\WithinActiveFiscalYear;
 use App\Enums\LandedCostTreatmentEnum;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
@@ -24,7 +25,7 @@ class BillRequest extends FormRequest
     {
         return [
             'bill_no' => ['nullable', 'string', 'max:255'],
-            'bill_date' => ['required', 'date'],
+            'bill_date' => ['required', 'date', new WithinActiveFiscalYear],
             'due_date' => ['nullable', 'date', 'after_or_equal:bill_date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
             'purchase_order_id' => ['nullable', TRule::exists('purchase_orders', 'id')->withoutTrashed()],

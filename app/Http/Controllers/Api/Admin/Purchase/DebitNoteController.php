@@ -64,10 +64,15 @@ class DebitNoteController extends Controller
                     $fiscalYearId,
                     $setting->fiscalYear?->year_code,
                 );
+                $partyPan = isset($formData['party_id'])
+                    ? \App\Models\Party::where('id', $formData['party_id'])->value('pan')
+                    : null;
+
                 $debitNote = DebitNote::create([
                     'company_id' => $user->company_id,
                     'fiscal_year_id' => $fiscalYearId,
                     'party_id' => $formData['party_id'] ?? null,
+                    'supplier_pan' => $partyPan,
                     'bill_id' => $formData['bill_id'] ?? null,
                     'debit_note_no' => $debitNoteNo,
                     'debit_note_date' => $formData['debit_note_date'],
