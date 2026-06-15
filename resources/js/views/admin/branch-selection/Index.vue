@@ -192,6 +192,12 @@ onMounted(async () => {
 
     if (!accessibleBranches.value.data.length && canOpenBranchSettings.value) {
         await router.replace({ name: 'admin.branch-list' });
+        return;
+    }
+
+    if (accessibleBranches.value.data.length === 1) {
+        branchStore.setSelectedBranch(accessibleBranches.value.data[0]);
+        await continueWithSelection();
     }
 });
 

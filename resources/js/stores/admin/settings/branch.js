@@ -37,11 +37,14 @@ export const useBranchStore = defineStore('branch', {
                 });
         },
         autoSelectDefault() {
-            const defaultId = this.accessibleBranches.defaultBranchId;
-            if (!defaultId || this.selectedBranchId) {
+            if (this.selectedBranchId) {
                 return;
             }
-            const branch = this.accessibleBranches.data.find(b => b.id === defaultId);
+            const defaultId = this.accessibleBranches.defaultBranchId;
+            const branches = this.accessibleBranches.data;
+            const branch = defaultId
+                ? branches.find(b => b.id === defaultId)
+                : branches.length === 1 ? branches[0] : null;
             if (branch) {
                 this.setSelectedBranch(branch);
             }
