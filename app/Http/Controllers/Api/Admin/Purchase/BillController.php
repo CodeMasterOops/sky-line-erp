@@ -124,7 +124,7 @@ class BillController extends Controller
     }
 
     /**
-     * @Permissions("approve_bill", group="bill", desc="Void Bill")
+     * @Permissions("void_bill", group="bill", desc="Void Bill")
      */
     public function void(Bill $bill)
     {
@@ -191,43 +191,65 @@ class BillController extends Controller
             ], 422);
         }
 
-        $rows = Bill::query()
-            ->where('bills.party_id', $partyId)
-            ->where('bills.status', StatusEnum::APPROVED->value)
-            ->with([
-                'discount:id,discountable_id,discountable_type,amount',
-                'billItems:id,bill_id,quantity,rate,discount_amount,tax_amount',
-                'paymentAllocations:id,payment_id,payable_id,payable_type,amount',
-                'paymentAllocations.payment:id,status',
-            ])
-            ->latest('bill_date')
-            ->get()
-            ->map(function (Bill $bill) {
-                $subtotal = (float) $bill->billItems->sum(fn ($item) => (float) $item->quantity * (float) $item->rate);
-                $discountTotal = (float) $bill->billItems->sum('discount_amount');
-                $taxTotal = (float) $bill->billItems->sum('tax_amount');
-                $orderDisc = (float) ($bill->discount?->amount ?? 0);
-                $grandTotal = $subtotal - $discountTotal - $orderDisc + $taxTotal;
-                $paidTotal = (float) $bill->paymentAllocations
-                    ->filter(fn ($allocation) => $allocation->payment?->status === StatusEnum::APPROVED)
-                    ->sum('amount');
-                $due = max($grandTotal - $paidTotal, 0);
+        $companyId = auth('admin')->user()?->company_id;
+        $billMorphClass = (new Bill)->getMorphClass();
+        $approved = StatusEnum::APPROVED->value;
 
-                return [
-                    'id' => $bill->id,
-                    'bill_no' => $bill->bill_no,
-                    'bill_date' => $bill->bill_date,
-                    'due_date' => $bill->due_date,
-                    'order_discount_amount' => round($orderDisc, 2),
-                    'subtotal' => round($subtotal, 2),
-                    'discount_total' => round($discountTotal, 2),
-                    'tax_total' => round($taxTotal, 2),
-                    'grand_total' => round($grandTotal, 2),
-                    'paid_total' => round($paidTotal, 2),
-                    'due_amount' => round($due, 2),
-                ];
-            })
-            ->filter(fn (array $row) => $row['due_amount'] > 0)
+        $billItemsAgg = \Illuminate\Support\Facades\DB::table('bill_items')
+            ->selectRaw('bill_id, COALESCE(SUM(quantity * rate), 0) as subtotal, COALESCE(SUM(discount_amount), 0) as line_discount, COALESCE(SUM(tax_amount), 0) as tax')
+            ->whereNull('deleted_at')
+            ->groupBy('bill_id');
+
+        $discountsAgg = \Illuminate\Support\Facades\DB::table('discounts')
+            ->selectRaw('discountable_id, COALESCE(SUM(amount), 0) as amount')
+            ->where('discountable_type', Bill::class)
+            ->groupBy('discountable_id');
+
+        $paAgg = \Illuminate\Support\Facades\DB::table('payment_allocations as pa')
+            ->join('payments as p', 'p.id', '=', 'pa.payment_id')
+            ->selectRaw('pa.payable_id, COALESCE(SUM(pa.amount), 0) as paid')
+            ->where('pa.payable_type', $billMorphClass)
+            ->where('p.status', $approved)
+            ->where('p.company_id', $companyId)
+            ->whereNull('pa.deleted_at')
+            ->whereNull('p.deleted_at')
+            ->groupBy('pa.payable_id');
+
+        $perBill = \Illuminate\Support\Facades\DB::table('bills as b')
+            ->select(['b.id', 'b.bill_no', 'b.bill_date', 'b.due_date'])
+            ->selectRaw('COALESCE(bi.subtotal, 0) as subtotal')
+            ->selectRaw('COALESCE(bi.line_discount, 0) as discount_total')
+            ->selectRaw('COALESCE(bi.tax, 0) as tax_total')
+            ->selectRaw('COALESCE(d.amount, 0) as order_discount_amount')
+            ->selectRaw('COALESCE(bi.subtotal, 0) - COALESCE(bi.line_discount, 0) + COALESCE(bi.tax, 0) - COALESCE(d.amount, 0) as grand_total')
+            ->selectRaw('COALESCE(pa.paid, 0) as paid_total')
+            ->leftJoinSub($billItemsAgg, 'bi', 'bi.bill_id', '=', 'b.id')
+            ->leftJoinSub($discountsAgg, 'd', 'd.discountable_id', '=', 'b.id')
+            ->leftJoinSub($paAgg, 'pa', 'pa.payable_id', '=', 'b.id')
+            ->where('b.party_id', $partyId)
+            ->where('b.company_id', $companyId)
+            ->where('b.status', $approved)
+            ->whereNull('b.voided_at')
+            ->whereNull('b.deleted_at');
+
+        $rows = \Illuminate\Support\Facades\DB::query()
+            ->fromSub($perBill, 'sub')
+            ->whereRaw('grand_total > paid_total')
+            ->orderByDesc('bill_date')
+            ->get()
+            ->map(fn ($row) => [
+                'id' => $row->id,
+                'bill_no' => $row->bill_no,
+                'bill_date' => $row->bill_date,
+                'due_date' => $row->due_date,
+                'order_discount_amount' => round((float) $row->order_discount_amount, 2),
+                'subtotal' => round((float) $row->subtotal, 2),
+                'discount_total' => round((float) $row->discount_total, 2),
+                'tax_total' => round((float) $row->tax_total, 2),
+                'grand_total' => round((float) $row->grand_total, 2),
+                'paid_total' => round((float) $row->paid_total, 2),
+                'due_amount' => round((float) $row->grand_total - (float) $row->paid_total, 2),
+            ])
             ->values();
 
         return response()->json([

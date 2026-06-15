@@ -100,6 +100,14 @@ beforeEach(function () {
         'user_type' => UserTypeEnum::ADMIN,
     ]);
 
+    $this->approver = User::create([
+        'company_id' => $this->company->id,
+        'name' => 'Approver',
+        'email' => 'approver-'.uniqid().'@example.com',
+        'password' => bcrypt('password'),
+        'user_type' => UserTypeEnum::ADMIN,
+    ]);
+
     $this->supplier = Party::create([
         'company_id' => $this->company->id,
         'name' => 'Supplier',
@@ -191,6 +199,10 @@ it('blocks bill approval when purchase accounts are not configured', function ()
         'tax_amount' => 0,
         'tax_line_type' => 'taxable',
     ]);
+
+    // Approve as a different user (maker-checker) so the GL accounts check is reached
+    Sanctum::actingAs($this->approver, ['*'], 'admin');
+    TenantService::setCompanyId($this->company->id);
 
     $this->postJson("/api/admin/bill/{$bill->id}/approve")
         ->assertStatus(422)

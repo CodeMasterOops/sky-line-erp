@@ -249,7 +249,7 @@ class DebitNoteController extends Controller
     }
 
     /**
-     * @Permissions("approve_debit_note", group="debit_note", desc="Void Debit Note")
+     * @Permissions("void_debit_note", group="debit_note", desc="Void Debit Note")
      */
     public function void(DebitNote $debitNote)
     {

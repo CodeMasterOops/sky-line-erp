@@ -64,29 +64,35 @@
                     </div>
 
                     <div v-if="displayLandedCosts.length" class="mt-4">
-                        <h5 class="order-text mb-3">Additional charges / landed costs</h5>
+                        <h5 class="order-text mb-3">Additional Charges</h5>
                         <div class="table-responsive no-pagination">
                             <table class="table datanew table-bordered mb-0">
                                 <thead class="thead-light">
                                 <tr>
-                                    <th>Type</th>
-                                    <th>Treatment</th>
-                                    <th>Allocation</th>
+                                    <th>Type / Note</th>
+                                    <th>Post As</th>
+                                    <th>Distribute By</th>
                                     <th>Account</th>
                                     <th class="text-end">Amount</th>
                                     <th class="text-end">VAT</th>
-                                    <th class="text-end">Claimable VAT</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr v-for="(cost, idx) in displayLandedCosts" :key="cost.id || idx">
-                                    <td>{{ cost.cost_type }}</td>
-                                    <td>{{ cost.treatment }}</td>
-                                    <td>{{ cost.allocation_method || '—' }}</td>
+                                    <td>
+                                        <div>{{ cost.cost_type || '—' }}</div>
+                                        <div v-if="cost.description" class="text-muted small">{{ cost.description }}</div>
+                                    </td>
+                                    <td>{{ treatmentLabel(cost.treatment) }}</td>
+                                    <td>{{ cost.treatment === 'expense' ? '—' : allocationLabel(cost.allocation_method) }}</td>
                                     <td>{{ cost.account?.name || '—' }}</td>
                                     <td class="text-end">{{ formatMoney(cost.amount) }}</td>
-                                    <td class="text-end">{{ formatMoney(cost.vat_amount) }}</td>
-                                    <td class="text-end">{{ formatMoney(cost.vat_claimable_amount) }}</td>
+                                    <td class="text-end">
+                                        <div>{{ formatMoney(cost.vat_amount) }}</div>
+                                        <div v-if="Number(cost.vat_amount) > 0" class="small" :class="Number(cost.vat_claimable_amount) > 0 ? 'text-success' : 'text-muted'">
+                                            {{ Number(cost.vat_claimable_amount) > 0 ? 'VAT claimed' : 'Not claimed' }}
+                                        </div>
+                                    </td>
                                 </tr>
                                 </tbody>
                             </table>
@@ -235,6 +241,11 @@ watch(() => detailBillId.value, async (id) => {
         billStore.getBill(id);
     }
 });
+
+const treatmentOptions = [{id: 'capitalized', name: 'Add to item cost'}, {id: 'expense', name: 'Post as expense'}];
+const allocationOptions = [{id: 'value', name: 'By Value'}, {id: 'quantity', name: 'By Quantity'}, {id: 'equal', name: 'Equal'}];
+const treatmentLabel = (value) => treatmentOptions.find((o) => o.id === value)?.name ?? value ?? '—';
+const allocationLabel = (value) => allocationOptions.find((o) => o.id === value)?.name ?? value ?? '—';
 
 const closeModal = () => { detailBillId.value = ''; };
 const emitRecordPayment = () => {

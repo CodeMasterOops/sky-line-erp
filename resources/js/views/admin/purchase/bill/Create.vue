@@ -212,7 +212,7 @@
                                     <thead>
                                     <tr>
                                         <th>Type</th>
-                                        <th>Treatment</th>
+                                        <th>Post As</th>
                                         <th class="text-end">Amount</th>
                                         <th class="text-end">VAT</th>
                                     </tr>
@@ -220,7 +220,7 @@
                                     <tbody>
                                     <tr v-for="(cost, idx) in grnLandedCosts" :key="idx">
                                         <td>{{ cost.cost_type }}</td>
-                                        <td>{{ cost.treatment }}</td>
+                                        <td>{{ cost.treatment === 'capitalized' ? 'Add to item cost' : 'Post as expense' }}</td>
                                         <td class="text-end">{{ formatMoney(cost.amount) }}</td>
                                         <td class="text-end">{{ formatMoney(cost.vat_amount) }}</td>
                                     </tr>
@@ -232,9 +232,9 @@
                         <div v-if="!hasGrnLines" class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
-                                    <h6 class="mb-0">Additional Charges / Landed Costs</h6>
+                                    <h6 class="mb-0">Additional Charges</h6>
                                     <small class="text-muted">
-                                        Capitalized charges increase inventory cost; expense charges post separately.
+                                        "Add to item cost" increases inventory cost. "Post as expense" posts separately.
                                     </small>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary" @click="addLandedCost">
@@ -245,30 +245,54 @@
                                 <table class="table datanew table-bordered mb-0 landed-costs-table">
                                     <thead>
                                     <tr>
-                                        <th class="landed-col-type">Type</th>
-                                        <th class="landed-col-treatment">Treatment</th>
-                                        <th class="landed-col-allocation">Allocation</th>
+                                        <th class="landed-col-type">Type / Note</th>
+                                        <th class="landed-col-treatment">Post As</th>
+                                        <th class="landed-col-allocation">Distribute By</th>
                                         <th class="text-end landed-col-amount">Amount</th>
-                                        <th class="text-end landed-col-amount">VAT</th>
-                                        <th class="text-end landed-col-amount">Claimable VAT</th>
+                                        <th class="landed-col-vat">VAT</th>
                                         <th class="landed-col-account">Account</th>
-                                        <th class="landed-col-description">Description</th>
                                         <th class="text-center landed-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.landed_costs.length">
-                                        <td colspan="9" class="text-center text-muted py-3">No additional charges added.</td>
+                                        <td colspan="7" class="text-center text-muted py-3">No additional charges added.</td>
                                     </tr>
                                     <tr v-for="(cost, index) in form.landed_costs" :key="index">
-                                        <td><VInput input-class="form-control form-control-sm" v-model="form.landed_costs[index].cost_type" placeholder="Transport" /></td>
-                                        <td><VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].treatment" :options="treatmentOptions" /></td>
-                                        <td><VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].allocation_method" :options="allocationOptions" :disabled="cost.treatment === 'expense'" /></td>
-                                        <td><VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].amount" :min-value="0" /></td>
-                                        <td><VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].vat_amount" :min-value="0" /></td>
-                                        <td><VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].vat_claimable_amount" :min-value="0" /></td>
-                                        <td><VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].account_id" :options="accounts.data" placeholder="Account" /></td>
-                                        <td><VInput input-class="form-control form-control-sm" v-model="form.landed_costs[index].description" placeholder="Optional note" /></td>
+                                        <td>
+                                            <VInput input-class="form-control form-control-sm" v-model="form.landed_costs[index].cost_type" placeholder="e.g. Transport" />
+                                            <VInput input-class="form-control form-control-sm mt-1" v-model="form.landed_costs[index].description" placeholder="Note (optional)" />
+                                        </td>
+                                        <td>
+                                            <VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].treatment" :options="treatmentOptions" />
+                                        </td>
+                                        <td>
+                                            <VSelect
+                                                v-if="cost.treatment !== 'expense'"
+                                                select-class="form-select form-select-sm"
+                                                v-model="form.landed_costs[index].allocation_method"
+                                                :options="allocationOptions"
+                                            />
+                                            <span v-else class="text-muted small">—</span>
+                                        </td>
+                                        <td>
+                                            <VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].amount" :min-value="0" />
+                                        </td>
+                                        <td>
+                                            <VInput input-type="number" input-class="form-control form-control-sm text-end" v-model="form.landed_costs[index].vat_amount" :min-value="0" />
+                                            <div v-if="Number(form.landed_costs[index].vat_amount) > 0" class="d-flex align-items-center gap-1 mt-1">
+                                                <input
+                                                    type="checkbox"
+                                                    class="form-check-input mt-0 flex-shrink-0"
+                                                    :id="`lc_claim_${index}`"
+                                                    v-model="form.landed_costs[index].vat_claim"
+                                                />
+                                                <label :for="`lc_claim_${index}`" class="small text-muted mb-0" style="cursor:pointer">Claim input VAT</label>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <VSelect select-class="form-select form-select-sm" v-model="form.landed_costs[index].account_id" :options="accounts.data" placeholder="Account" />
+                                        </td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-sm btn-outline-danger" @click="removeLandedCost(index)"><i class="ti ti-trash"></i></button>
                                         </td>
@@ -279,8 +303,7 @@
                                         <td colspan="3" class="text-end">Charge Total</td>
                                         <td class="text-end">{{ formatMoney(landedCostSummary.amount) }}</td>
                                         <td class="text-end">{{ formatMoney(landedCostSummary.vat) }}</td>
-                                        <td class="text-end">{{ formatMoney(landedCostSummary.claimableVat) }}</td>
-                                        <td colspan="3"></td>
+                                        <td colspan="2"></td>
                                     </tr>
                                     </tfoot>
                                 </table>
@@ -469,8 +492,8 @@ const billableGrnItems = ref([]);
 const selectedGrnItemIds = ref([]);
 
 const treatmentOptions = [
-    {id: 'capitalized', name: 'Capitalize'},
-    {id: 'expense', name: 'Expense'},
+    {id: 'capitalized', name: 'Add to item cost'},
+    {id: 'expense', name: 'Post as expense'},
 ];
 
 const allocationOptions = [
@@ -486,7 +509,7 @@ const newLandedCostTemplate = () => ({
     allocation_method: 'value',
     amount: 0,
     vat_amount: 0,
-    vat_claimable_amount: 0,
+    vat_claim: true,
     account_id: '',
 });
 
@@ -558,9 +581,8 @@ const landedCostSummary = computed(() =>
     form.landed_costs.reduce((summary, cost) => {
         summary.amount += Number(cost.amount || 0);
         summary.vat += Number(cost.vat_amount || 0);
-        summary.claimableVat += Number(cost.vat_claimable_amount || 0);
         return summary;
-    }, {amount: 0, vat: 0, claimableVat: 0})
+    }, {amount: 0, vat: 0})
 );
 
 
@@ -788,16 +810,19 @@ const buildBillPayload = () => {
         landed_costs: canEnterLandedCosts.value
             ? form.landed_costs
                 .filter((cost) => cost.cost_type || Number(cost.amount || 0) > 0 || Number(cost.vat_amount || 0) > 0)
-                .map((cost) => ({
-                    cost_type: cost.cost_type,
-                    description: cost.description || null,
-                    treatment: cost.treatment || 'capitalized',
-                    allocation_method: cost.allocation_method || 'value',
-                    amount: Number(cost.amount || 0),
-                    vat_amount: Number(cost.vat_amount || 0),
-                    vat_claimable_amount: Number(cost.vat_claimable_amount || 0),
-                    account_id: cost.account_id || null,
-                }))
+                .map((cost) => {
+                    const vatAmount = Number(cost.vat_amount || 0);
+                    return {
+                        cost_type: cost.cost_type,
+                        description: cost.description || null,
+                        treatment: cost.treatment || 'capitalized',
+                        allocation_method: cost.treatment === 'expense' ? null : (cost.allocation_method || 'value'),
+                        amount: Number(cost.amount || 0),
+                        vat_amount: vatAmount,
+                        vat_claimable_amount: cost.vat_claim ? vatAmount : 0,
+                        account_id: cost.account_id || null,
+                    };
+                })
             : [],
     };
 };
@@ -910,7 +935,10 @@ function resetForm() {
     min-width: 6rem;
 }
 
-.landed-col-type,
+.landed-col-type {
+    min-width: 11rem;
+}
+
 .landed-col-treatment,
 .landed-col-allocation {
     min-width: 8rem;
@@ -918,14 +946,15 @@ function resetForm() {
 
 .landed-col-amount {
     min-width: 7rem;
+    width: 7rem;
+}
+
+.landed-col-vat {
+    min-width: 9rem;
 }
 
 .landed-col-account {
     min-width: 10rem;
-}
-
-.landed-col-description {
-    min-width: 12rem;
 }
 
 .landed-col-action {

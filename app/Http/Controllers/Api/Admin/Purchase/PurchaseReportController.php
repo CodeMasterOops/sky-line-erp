@@ -11,6 +11,7 @@ use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -24,15 +25,6 @@ class PurchaseReportController extends Controller
         $company = auth('admin')->user()?->company?->loadMissing('fiscalYear');
         $fiscalYear = $company?->fiscalYear;
 
-        $bills = Bill::query()
-            ->where('status', StatusEnum::APPROVED)
-            ->whereNull('voided_at')
-            ->when($company?->fiscal_year_id, function (Builder $query) use ($company) {
-                $query->where('fiscal_year_id', $company->fiscal_year_id);
-            })
-            ->with(['billItems', 'discount', 'paymentAllocations.payment'])
-            ->get();
-
         return response()->json([
             'data' => [
                 'period' => [
@@ -42,7 +34,7 @@ class PurchaseReportController extends Controller
                         ? $fiscalYear->year_name.' ('.$fiscalYear->start_date?->format('d M Y').' - '.$fiscalYear->end_date?->format('d M Y').')'
                         : 'Current fiscal year',
                 ],
-                'summary' => $this->buildSummary($bills),
+                'summary' => $this->buildSummaryFromDb($company?->id, $company?->fiscal_year_id),
             ],
         ]);
     }
@@ -214,6 +206,64 @@ class PurchaseReportController extends Controller
             'from_date' => $fromDate->toDateString(),
             'to_date' => $toDate->toDateString(),
             'label' => $fromDate->format('d M Y').' - '.$toDate->format('d M Y'),
+        ];
+    }
+
+    private function buildSummaryFromDb(?int $companyId, ?int $fiscalYearId): array
+    {
+        $billMorphClass = (new Bill)->getMorphClass();
+        $approved = StatusEnum::APPROVED->value;
+
+        $billItemsAgg = DB::table('bill_items')
+            ->selectRaw('bill_id, COALESCE(SUM(quantity * rate), 0) as subtotal, COALESCE(SUM(discount_amount), 0) as line_discount, COALESCE(SUM(tax_amount), 0) as tax')
+            ->whereNull('deleted_at')
+            ->groupBy('bill_id');
+
+        $discountsAgg = DB::table('discounts')
+            ->selectRaw('discountable_id, COALESCE(SUM(amount), 0) as amount')
+            ->where('discountable_type', Bill::class)
+            ->groupBy('discountable_id');
+
+        $paAgg = DB::table('payment_allocations as pa')
+            ->join('payments as p', 'p.id', '=', 'pa.payment_id')
+            ->selectRaw('pa.payable_id, COALESCE(SUM(pa.amount), 0) as paid')
+            ->where('pa.payable_type', $billMorphClass)
+            ->where('p.status', $approved)
+            ->when($companyId, fn ($q) => $q->where('p.company_id', $companyId))
+            ->whereNull('pa.deleted_at')
+            ->whereNull('p.deleted_at')
+            ->groupBy('pa.payable_id');
+
+        $perBill = DB::table('bills as b')
+            ->selectRaw('b.due_date')
+            ->selectRaw('COALESCE(bi.subtotal, 0) - COALESCE(bi.line_discount, 0) + COALESCE(bi.tax, 0) - COALESCE(d.amount, 0) as grand_total')
+            ->selectRaw('COALESCE(pa.paid, 0) as paid_total')
+            ->leftJoinSub($billItemsAgg, 'bi', 'bi.bill_id', '=', 'b.id')
+            ->leftJoinSub($discountsAgg, 'd', 'd.discountable_id', '=', 'b.id')
+            ->leftJoinSub($paAgg, 'pa', 'pa.payable_id', '=', 'b.id')
+            ->where('b.status', $approved)
+            ->whereNull('b.voided_at')
+            ->whereNull('b.deleted_at')
+            ->when($companyId, fn ($q) => $q->where('b.company_id', $companyId))
+            ->when($fiscalYearId, fn ($q) => $q->where('b.fiscal_year_id', $fiscalYearId));
+
+        $today = Carbon::today()->toDateString();
+
+        $row = DB::query()
+            ->fromSub($perBill, 'sub')
+            ->selectRaw('COUNT(*) as total_bills')
+            ->selectRaw('COALESCE(SUM(grand_total), 0) as total_amount')
+            ->selectRaw('COALESCE(SUM(paid_total), 0) as total_paid')
+            ->selectRaw('COALESCE(SUM(CASE WHEN grand_total > paid_total THEN grand_total - paid_total ELSE 0 END), 0) as total_unpaid')
+            ->selectRaw('COALESCE(SUM(CASE WHEN due_date < ? AND grand_total > paid_total THEN grand_total - paid_total ELSE 0 END), 0) as overdue_amount', [$today])
+            ->first();
+
+        return [
+            'total_amount' => round((float) $row->total_amount, 2),
+            'total_paid' => round((float) $row->total_paid, 2),
+            'total_unpaid' => round((float) $row->total_unpaid, 2),
+            'overdue_amount' => round((float) $row->overdue_amount, 2),
+            'total_bills' => (int) $row->total_bills,
         ];
     }
 

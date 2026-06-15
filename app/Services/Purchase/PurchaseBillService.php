@@ -231,6 +231,12 @@ readonly class PurchaseBillService
     {
         $user = auth('admin')->user();
 
+        if ($bill->create_user_id === $user->id) {
+            throw ValidationException::withMessages([
+                'status' => __('The bill creator cannot also approve it (maker-checker policy).'),
+            ]);
+        }
+
         DB::transaction(function () use ($bill, $user) {
             $bill->loadMissing('billItems');
             $this->validateGrnItemQuantities($bill->billItems->map(fn ($item) => [
