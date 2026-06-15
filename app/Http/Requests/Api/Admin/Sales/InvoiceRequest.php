@@ -21,7 +21,29 @@ class InvoiceRequest extends FormRequest
     {
         return [
             'invoice_no' => ['nullable', 'string', 'max:255'],
-            'bijak_no' => ['nullable', 'string', 'max:255'],
+            'bijak_no' => [
+                'nullable',
+                'string',
+                'max:255',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if ($value === null) {
+                        return;
+                    }
+                    $user = auth('admin')->user();
+                    $company = $user->company;
+                    $query = \App\Models\Invoice::withoutGlobalScopes()
+                        ->where('bijak_no', $value)
+                        ->where('company_id', $company->id)
+                        ->where('fiscal_year_id', $company->fiscal_year_id)
+                        ->whereNull('deleted_at');
+                    if ($this->route('invoice')) {
+                        $query->where('id', '!=', $this->route('invoice')->id);
+                    }
+                    if ($query->exists()) {
+                        $fail('The bijak no has already been used for another invoice in this fiscal year.');
+                    }
+                },
+            ],
             'invoice_date' => [
                 'required',
                 'date',
@@ -88,5 +110,38 @@ class InvoiceRequest extends FormRequest
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            // IRD: bijak_no is mandatory for B2B taxable transactions above Rs 50,000.
+            if ($this->filled('bijak_no')) {
+                return;
+            }
+
+            $partyId = $this->input('party_id');
+            if (! $partyId) {
+                return;
+            }
+
+            $items = $this->input('items', []);
+            $taxableTotal = collect($items)->sum(function ($item) {
+                if (($item['tax_line_type'] ?? '') !== 'taxable') {
+                    return 0;
+                }
+
+                $lineTotal = ((float) ($item['quantity'] ?? 0)) * ((float) ($item['rate'] ?? 0));
+
+                return $lineTotal - (float) ($item['discount_amount'] ?? 0);
+            });
+
+            if ($taxableTotal >= 50000) {
+                $validator->errors()->add(
+                    'bijak_no',
+                    'Bijak number (tax invoice serial) is required for B2B taxable transactions of Rs 50,000 or above (Nepal VAT Act).'
+                );
+            }
+        });
     }
 }

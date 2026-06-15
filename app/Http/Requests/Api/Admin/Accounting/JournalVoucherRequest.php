@@ -21,7 +21,7 @@ class JournalVoucherRequest extends FormRequest
             'reference_no' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:2'],
-            'items.*.account_id' => ['required', 'distinct', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'items.*.account_id' => ['required', 'distinct', TRule::exists('accounts', 'id')->where('is_active', true)->withoutTrashed()],
             'items.*.dr_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.cr_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string'],

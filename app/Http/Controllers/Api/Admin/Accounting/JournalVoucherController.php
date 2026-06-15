@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Accounting\PeriodLockGuard;
+use Illuminate\Validation\ValidationException;
 use App\Http\Resources\Admin\Accounting\JournalVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\JournalVoucherRequest;
 
@@ -168,6 +169,12 @@ class JournalVoucherController extends Controller
         }
 
         $user = auth('admin')->user();
+
+        if ($journalVoucher->create_user_id === $user->id) {
+            throw ValidationException::withMessages([
+                'status' => __('The journal voucher creator cannot also approve it (maker-checker policy).'),
+            ]);
+        }
 
         $this->periodGuard->assertPostable(
             $journalVoucher->company_id,

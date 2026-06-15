@@ -147,6 +147,15 @@ it('allows creating a DRAFT journal voucher into a closed period', function () {
 // ─── JournalVoucher: period lock on approve ───────────────────────────────────
 
 it('blocks approving a journal voucher dated in a closed period', function () {
+    // Use a different creator so the maker-checker check doesn't fire before the period lock check.
+    $creator = User::create([
+        'company_id' => $this->company->id,
+        'name' => 'Creator',
+        'email' => 'creator-'.uniqid().'@example.com',
+        'password' => bcrypt('password'),
+        'user_type' => UserTypeEnum::ADMIN,
+    ]);
+
     $jv = Journal::create([
         'company_id' => $this->company->id,
         'fiscal_year_id' => $this->fy->id,
@@ -154,7 +163,7 @@ it('blocks approving a journal voucher dated in a closed period', function () {
         'voucher_no' => 'JV-TEST-001',
         'date' => '2026-01-15',
         'status' => StatusEnum::DRAFT,
-        'create_user_id' => $this->user->id,
+        'create_user_id' => $creator->id,
     ]);
 
     p0ClosePeriod($this->company, $this->fy, $this->user, '2026-01-01', '2026-01-31');
