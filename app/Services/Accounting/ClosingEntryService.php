@@ -9,6 +9,7 @@ use App\Models\JournalItem;
 use App\Models\AccountGroup;
 use App\Enums\JournalTypeEnum;
 use Illuminate\Support\Facades\DB;
+use App\Enums\AccountGroupTypeEnum;
 
 /**
  * Posts the year-end closing entry: zeroes every nominal (income/expense)
@@ -156,12 +157,23 @@ class ClosingEntryService
             $group->setRelation('childrenRecursive', $allGroups->where('parent_id', $group->id)->values());
         }
 
+        $nominalTypes = [AccountGroupTypeEnum::Income, AccountGroupTypeEnum::Expense];
+        $nominalNameFallback = [
+            'income', 'incomes', 'revenue', 'revenues', 'other income',
+            'expense', 'expenses', 'expenditure', 'expenditures', 'costs', 'operating expenses',
+        ];
+
         $rootGroups = $allGroups
             ->filter(fn (AccountGroup $group) => is_null($group->parent_id))
-            ->filter(fn (AccountGroup $group) => in_array(strtolower($group->name), [
-                'income', 'incomes', 'revenue', 'revenues', 'other income',
-                'expense', 'expenses', 'expenditure', 'expenditures', 'costs', 'operating expenses',
-            ], true));
+            ->filter(function (AccountGroup $group) use ($nominalTypes, $nominalNameFallback) {
+                // Use explicit account_type when available (reliable); otherwise fall
+                // back to name-based matching for groups not yet classified.
+                if ($group->account_type !== null) {
+                    return in_array($group->account_type, $nominalTypes, true);
+                }
+
+                return in_array(strtolower($group->name), $nominalNameFallback, true);
+            });
 
         $ids = [];
         foreach ($rootGroups as $group) {

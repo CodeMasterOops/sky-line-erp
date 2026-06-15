@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Enums\AccountGroupTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,7 +20,15 @@ class AccountGroup extends Model
         'code',
         'description',
         'is_active',
+        'account_type',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'account_type' => AccountGroupTypeEnum::class,
+        ];
+    }
 
     public function children(): HasMany
     {

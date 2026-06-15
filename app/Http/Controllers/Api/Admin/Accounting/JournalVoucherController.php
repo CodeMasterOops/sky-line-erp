@@ -7,19 +7,18 @@ use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Services\DocumentNumberGenerator;
 use App\Services\Accounting\PeriodLockGuard;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoucherService;
 use App\Http\Resources\Admin\Accounting\JournalVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\JournalVoucherRequest;
 
 class JournalVoucherController extends Controller
 {
     public function __construct(
-        private DocumentNumberGenerator $documentNumberGenerator,
-        private PeriodLockGuard $periodGuard,
+        private readonly JournalVoucherService $journalVoucherService,
+        private readonly PeriodLockGuard $periodGuard,
     ) {}
 
     /**
@@ -50,36 +49,7 @@ class JournalVoucherController extends Controller
             ], 400);
         }
 
-        $user = auth('admin')->user();
-        $status = $formData['status'] ?? StatusEnum::DRAFT->value;
-        $setting = $user->company;
-        $fiscalYearId = $setting->fiscal_year_id;
-
-        if ($status === StatusEnum::APPROVED->value) {
-            $this->periodGuard->assertPostable($setting->id, $fiscalYearId, $formData['date']);
-        }
-
-        $formData['fiscal_year_id'] = $fiscalYearId;
-        $formData['type'] = JournalTypeEnum::JOURNAL_VOUCHER->value;
-        $formData['create_user_id'] = $user->id;
-        $formData['approve_user_id'] = $status === StatusEnum::APPROVED->value ? $user->id : null;
-        $formData['approved_at'] = $status === StatusEnum::APPROVED->value ? now() : null;
-        $formData['status'] = $status;
-
-        $journal = DB::transaction(function () use ($formData, $fiscalYearId, $setting) {
-            // See InvoiceService for the lock-inside-transaction concurrency note.
-            $formData['voucher_no'] = $this->documentNumberGenerator->journalVoucher(
-                JournalTypeEnum::JOURNAL_VOUCHER,
-                'JV-',
-                $fiscalYearId,
-                $setting->fiscalYear?->year_code,
-            );
-            $journal = Journal::create($formData);
-
-            $journal->journalItems()->createMany($formData['items']);
-
-            return $journal;
-        });
+        $journal = $this->journalVoucherService->create($formData, auth('admin')->user());
 
         $journal->load(['journalItems.account']);
 
@@ -116,14 +86,7 @@ class JournalVoucherController extends Controller
 
         $formData = $request->validated();
 
-        $journalVoucher = DB::transaction(function () use ($journalVoucher, $formData) {
-            $journalVoucher->update($formData);
-
-            $journalVoucher->journalItems()->delete();
-            $journalVoucher->journalItems()->createMany($formData['items']);
-
-            return $journalVoucher;
-        });
+        $journalVoucher = $this->journalVoucherService->update($journalVoucher, $formData);
 
         $journalVoucher->load(['journalItems.account']);
 

@@ -551,22 +551,64 @@ class AccountReportService
             ->whereNull('parent_id')
             ->get();
 
-        $getAccountIds = function (Collection $groups) use (&$getAccountIds) {
-            $ids = [];
+        // Resolve a root group's cash-flow classification using account_type when
+        // set, falling back to name-based matching for unclassified groups.
+        $resolveCashFlowCategory = function (AccountGroup $rootGroup): string {
+            if ($rootGroup->account_type !== null) {
+                return match ($rootGroup->account_type) {
+                    \App\Enums\AccountGroupTypeEnum::Income,
+                    \App\Enums\AccountGroupTypeEnum::Expense => 'operating',
+                    \App\Enums\AccountGroupTypeEnum::Asset => 'investing',
+                    \App\Enums\AccountGroupTypeEnum::Liability,
+                    \App\Enums\AccountGroupTypeEnum::Equity => 'financing',
+                };
+            }
+
+            $name = strtolower($rootGroup->name);
+
+            if (in_array($name, ['income', 'incomes', 'revenue', 'revenues', 'expense', 'expenses', 'expenditure', 'expenditures', 'costs', 'operating expenses'], true)) {
+                return 'operating';
+            }
+            if (in_array($name, ['asset', 'assets'], true)) {
+                return 'investing';
+            }
+            if (in_array($name, ['liability', 'liabilities', 'equity', 'equities'], true)) {
+                return 'financing';
+            }
+
+            return '';
+        };
+
+        // Build account_id → category map, propagating the root group's category
+        // down through all descendants so nested accounts are classified correctly.
+        $collectAccountCategory = function (Collection $groups, string $category) use (&$collectAccountCategory): array {
+            $map = [];
             foreach ($groups as $group) {
-                $lowerName = strtolower($group->name);
                 foreach ($group->accounts as $account) {
-                    $ids[$account->id] = $lowerName;
+                    $map[$account->id] = $category;
                 }
                 if ($group->childrenRecursive->isNotEmpty()) {
-                    $ids = $ids + $getAccountIds($group->childrenRecursive);
+                    $map += $collectAccountCategory($group->childrenRecursive, $category);
                 }
             }
 
-            return $ids;
+            return $map;
         };
 
-        $accountGroupMap = $getAccountIds(collect($accountGroups));
+        $accountCategoryMap = [];
+        foreach ($accountGroups as $rootGroup) {
+            $category = $resolveCashFlowCategory($rootGroup);
+            if ($category === '') {
+                continue;
+            }
+            $accountCategoryMap[$rootGroup->id] = $category;
+            foreach ($rootGroup->accounts as $account) {
+                $accountCategoryMap[$account->id] = $category;
+            }
+            if ($rootGroup->childrenRecursive->isNotEmpty()) {
+                $accountCategoryMap += $collectAccountCategory($rootGroup->childrenRecursive, $category);
+            }
+        }
 
         $items = JournalItem::query()
             ->select('journal_items.account_id')
@@ -585,14 +627,14 @@ class AccountReportService
         $financing = 0;
 
         foreach ($items as $accountId => $row) {
-            $groupName = $accountGroupMap[$accountId] ?? '';
+            $category = $accountCategoryMap[$accountId] ?? '';
             $net = (float) $row->net;
 
-            if (in_array($groupName, ['income', 'expenses'])) {
+            if ($category === 'operating') {
                 $operating += $net;
-            } elseif (in_array($groupName, ['assets'])) {
+            } elseif ($category === 'investing') {
                 $investing += -$net;
-            } elseif (in_array($groupName, ['liabilities', 'equity'])) {
+            } elseif ($category === 'financing') {
                 $financing += $net;
             }
         }
@@ -624,6 +666,7 @@ class AccountReportService
             ->get();
 
         $invoiceIds = $invoices->pluck('id');
+
         $paidByInvoice = DB::table('receipt_allocations')
             ->whereIn('invoice_id', $invoiceIds)
             ->whereNull('deleted_at')
@@ -631,17 +674,31 @@ class AccountReportService
             ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
             ->pluck('paid', 'invoice_id');
 
-        $invoices = $invoices->filter(function (Invoice $invoice) use ($paidByInvoice) {
+        // Pre-aggregate approved, non-voided credit note totals by invoice_id.
+        $creditNoteOffsetByInvoice = DB::table('credit_note_items')
+            ->join('credit_notes', 'credit_notes.id', '=', 'credit_note_items.credit_note_id')
+            ->whereIn('credit_notes.invoice_id', $invoiceIds)
+            ->where('credit_notes.status', StatusEnum::APPROVED->value)
+            ->whereNull('credit_notes.voided_at')
+            ->whereNull('credit_notes.deleted_at')
+            ->whereNull('credit_note_items.deleted_at')
+            ->groupBy('credit_notes.invoice_id')
+            ->selectRaw('credit_notes.invoice_id, COALESCE(SUM((credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount + credit_note_items.tax_amount), 0) as offset_amount')
+            ->pluck('offset_amount', 'invoice_id');
+
+        $invoices = $invoices->filter(function (Invoice $invoice) use ($paidByInvoice, $creditNoteOffsetByInvoice) {
             $paid = (float) ($paidByInvoice->get($invoice->id, 0));
+            $creditNoteOffset = (float) ($creditNoteOffsetByInvoice->get($invoice->id, 0));
             $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
 
-            return round($total - $paid, 2) > 0;
+            return round($total - $paid - $creditNoteOffset, 2) > 0;
         });
 
-        $rows = $invoices->map(function (Invoice $invoice) use ($asOf, $paidByInvoice) {
+        $rows = $invoices->map(function (Invoice $invoice) use ($asOf, $paidByInvoice, $creditNoteOffsetByInvoice) {
             $paid = (float) ($paidByInvoice->get($invoice->id, 0));
+            $creditNoteOffset = (float) ($creditNoteOffsetByInvoice->get($invoice->id, 0));
             $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
-            $outstanding = round($total - $paid, 2);
+            $outstanding = round($total - $paid - $creditNoteOffset, 2);
             $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date) : Carbon::parse($invoice->invoice_date)->addDays(30);
             $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);
 
