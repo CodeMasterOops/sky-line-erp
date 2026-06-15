@@ -7,7 +7,7 @@
   --bs-table-color-state: $black;
   border-color: var(--bs-table-border-color);
   --bs-table-bg: rgba(#{$color-bg}, 0.1);
-  --bs-table-border-color: rgba(#{$color-bg}, 0.05);
+  --bs-table-border-color: #{variables.$secondary-transparent};
   --bs-table-striped-bg: rgba(#{$color-bg}, 0.2);
   --bs-table-active-bg: rgba(#{$color-bg}, 0.2);
   --bs-table-hover-bg: rgba(#{$color-bg}, 0.2);
@@ -39,7 +39,7 @@ caption {
   --bs-table-color-state: #000;
   --bs-table-color: #{variables.$black};
   --bs-table-bg: rgba(#{$color-bg}, 0.1);
-  --bs-table-border-color: rgba(#{$color-bg}, 0.1);
+  --bs-table-border-color: #{variables.$secondary-transparent};
   --bs-table-striped-bg: rgba(#{$color-bg}, 0.5);
   --bs-table-striped-color: #{variables.$black};
   --bs-table-active-bg: rgba(#{$color-bg}, 0.5);
@@ -51,7 +51,7 @@ caption {
   --bs-table-color: #{variables.$black};
   --bs-table-color-state: $black;
   --bs-table-bg: rgba(#{$color-bg}, 0.1);
-  --bs-table-border-color: rgba(#{$color-bg}, 0.1);
+  --bs-table-border-color: #{variables.$secondary-transparent};
   --bs-table-striped-bg: rgba(#{$color-bg}, 0.3);
   --bs-table-striped-color: #{variables.$black};
   --bs-table-active-bg: rgba(#{$color-bg}, 0.3);
@@ -59,7 +59,7 @@ caption {
   --bs-table-hover-bg: rgba(#{$color-bg}, 0.3);
   --bs-table-hover-color: #{variables.$black};
   color: #{variables.$black};
-  border-color: rgba(#{$color-bg}, 0.1);
+  border-color: variables.$secondary-transparent;
   background-color: #{variables.$white};
 }
 .table {
@@ -438,6 +438,28 @@ thead tr{
             }
         }
         
+    }
+    tfoot {
+        tr {
+            border-color: variables.$secondary-transparent;
+            td,
+            th {
+                border-color: variables.$secondary-transparent;
+                color: variables.$gray-900;
+                font-weight: variables.$font-weight-semibold;
+                background-color: variables.$secondary-transparent;
+            }
+        }
+        &.table-light tr td,
+        &.table-light tr th {
+            background-color: variables.$light;
+            border-color: variables.$secondary-transparent;
+        }
+        &.table-secondary tr td,
+        &.table-secondary tr th {
+            background-color: variables.$secondary-100;
+            border-color: variables.$secondary-transparent;
+        }
     }
     .Expense-list {
        tr {
