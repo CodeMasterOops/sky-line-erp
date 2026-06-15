@@ -244,6 +244,16 @@ class AccountReportController extends Controller
     }
 
     /**
+     * @Permissions("expense_statement_report", group="account_report", desc="Expense Statement Report")
+     */
+    public function expenseStatement(Request $request)
+    {
+        return response()->json([
+            'data' => $this->accountReportService->expenseStatement($request),
+        ]);
+    }
+
+    /**
      * Idempotently post a sales journal for an approved invoice that is missing
      * one (e.g. approved before GL accounts were configured). Safe to retry:
      * the posting service no-ops if a journal already exists.

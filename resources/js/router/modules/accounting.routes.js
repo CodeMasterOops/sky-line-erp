@@ -126,6 +126,42 @@ export default [
         component: () => import("@/views/admin/accounting/reports/ApAging.vue"),
     },
     {
+        path: "cash-ledger-report",
+        name: "admin.cash-ledger-report",
+        meta: {pageTitle: "Cash Ledger"},
+        component: () => import("@/views/admin/accounting/reports/CashLedgerReport.vue"),
+    },
+    {
+        path: "bank-ledger-report",
+        name: "admin.bank-ledger-report",
+        meta: {pageTitle: "Bank Ledger"},
+        component: () => import("@/views/admin/accounting/reports/BankLedgerReport.vue"),
+    },
+    {
+        path: "payment-voucher-report",
+        name: "admin.payment-voucher-report",
+        meta: {pageTitle: "Payment Voucher Report"},
+        component: () => import("@/views/admin/accounting/reports/PaymentVoucherReport.vue"),
+    },
+    {
+        path: "receipt-voucher-report",
+        name: "admin.receipt-voucher-report",
+        meta: {pageTitle: "Receipt Voucher Report"},
+        component: () => import("@/views/admin/accounting/reports/ReceiptVoucherReport.vue"),
+    },
+    {
+        path: "all-voucher-register",
+        name: "admin.all-voucher-register",
+        meta: {pageTitle: "All Voucher Register"},
+        component: () => import("@/views/admin/accounting/reports/AllVoucherRegister.vue"),
+    },
+    {
+        path: "expense-statement-report",
+        name: "admin.expense-statement-report",
+        meta: {pageTitle: "Expense Statement"},
+        component: () => import("@/views/admin/accounting/reports/ExpenseStatementReport.vue"),
+    },
+    {
         path: "opening-balances",
         name: "admin.opening-balances",
         meta: {pageTitle: "Opening Balances"},

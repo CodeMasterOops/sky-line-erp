@@ -19,6 +19,7 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Enums\AccountGroupTypeEnum;
 
 class AccountReportService
 {
@@ -1896,6 +1897,80 @@ class AccountReportService
         return [
             'dr' => 0,
             'cr' => 0,
+        ];
+    }
+
+    public function expenseStatement(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+
+        $expenseGroups = $this->loadSortedRootGroups()
+            ->filter(fn (AccountGroup $group) => $group->account_type === AccountGroupTypeEnum::Expense)
+            ->values();
+
+        $balances = $this->fetchBalancesForPeriod($expenseGroups, $period['start_date'], $period['end_date']);
+
+        $rows = $expenseGroups->map(fn (AccountGroup $group) => $this->buildExpenseGroup($group, $balances))->values()->all();
+
+        $totalExpenses = round(array_sum(array_column($rows, 'subtotal')), 2);
+
+        return [
+            'period' => [
+                'start_date' => $period['start_date']->toDateString(),
+                'end_date' => $period['end_date']->toDateString(),
+                'label' => sprintf(
+                    'For the period %s to %s',
+                    $period['start_date']->format('d-m-Y'),
+                    $period['end_date']->format('d-m-Y')
+                ),
+            ],
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'rows' => $rows,
+            'summary' => [
+                'total_expenses' => $totalExpenses,
+            ],
+        ];
+    }
+
+    private function buildExpenseGroup(AccountGroup $group, Collection $balances): array
+    {
+        $accounts = collect($group->accounts)->map(function ($account) use ($balances) {
+            $amounts = $balances->get($account->id, [
+                'opening' => ['dr' => 0, 'cr' => 0],
+                'transaction' => ['dr' => 0, 'cr' => 0],
+            ]);
+
+            $closingDr = round((float) $amounts['opening']['dr'] + (float) $amounts['transaction']['dr'], 2);
+            $closingCr = round((float) $amounts['opening']['cr'] + (float) $amounts['transaction']['cr'], 2);
+            $periodDr = round((float) $amounts['transaction']['dr'], 2);
+            $periodCr = round((float) $amounts['transaction']['cr'], 2);
+
+            return [
+                'id' => $account->id,
+                'name' => $account->name,
+                'code' => $account->code,
+                'period_dr' => $periodDr,
+                'period_cr' => $periodCr,
+                'net' => round($closingDr - $closingCr, 2),
+            ];
+        })->values()->all();
+
+        $children = collect($group->childrenRecursive)
+            ->map(fn (AccountGroup $child) => $this->buildExpenseGroup($child, $balances))
+            ->values()->all();
+
+        $subtotal = round(
+            array_sum(array_column($accounts, 'net')) + array_sum(array_column($children, 'subtotal')),
+            2
+        );
+
+        return [
+            'id' => $group->id,
+            'name' => $group->name,
+            'code' => $group->code,
+            'accounts' => $accounts,
+            'children' => $children,
+            'subtotal' => $subtotal,
         ];
     }
 

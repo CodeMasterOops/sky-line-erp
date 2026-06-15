@@ -113,6 +113,7 @@ Route::prefix('account-report')->as('account-report.')->controller(AccountReport
     Route::get('unbalanced-journals', 'unbalancedJournals')->name('unbalanced-journals');
     Route::get('ar-ap-reconciliation', 'arApReconciliation')->name('ar-ap-reconciliation');
     Route::get('inventory-gl-reconciliation', 'inventoryGlReconciliation')->name('inventory-gl-reconciliation');
+    Route::get('expense-statement', 'expenseStatement')->name('expense-statement');
     Route::post('invoice/{invoice}/repost', 'repostInvoice')->name('invoice.repost');
     Route::post('bill/{bill}/repost', 'repostBill')->name('bill.repost');
     Route::post('expense/{expense}/repost', 'repostExpense')->name('expense.repost');

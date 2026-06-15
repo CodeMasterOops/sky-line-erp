@@ -21,6 +21,7 @@ export const useAccountingReportStore = defineStore('accounting-report', {
         inventoryValuation: { data: { rows: [], summary: null }, loading: false },
         stockAging: { data: { as_of: null, rows: [], buckets: null }, loading: false },
         reorderAlerts: { data: { rows: [], count: 0 }, loading: false },
+        expenseStatement: { data: { period: null, fiscal_year: null, rows: [], summary: null }, loading: false },
     }),
 
     actions: {
@@ -163,6 +164,13 @@ export const useAccountingReportStore = defineStore('accounting-report', {
                 .then((res) => { this.reorderAlerts.data = res.data.data; return res; })
                 .catch((err) => { showErrors(err); throw err; })
                 .finally(() => { this.reorderAlerts.loading = false; });
+        },
+        getExpenseStatement(filters = {}) {
+            this.expenseStatement.loading = true;
+            return apiAdmin(`${apiUrl}/expense-statement`, 'get', filters)
+                .then((res) => { this.expenseStatement.data = res.data.data; return res; })
+                .catch((err) => { showErrors(err); throw err; })
+                .finally(() => { this.expenseStatement.loading = false; });
         },
     }
 })
