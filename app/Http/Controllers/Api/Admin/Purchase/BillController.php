@@ -115,6 +115,7 @@ class BillController extends Controller
 
         $bill->billItems()->delete();
         $bill->landedCosts()->delete();
+        $bill->paymentAllocations()->delete();
         $bill->delete();
 
         return response()->json([

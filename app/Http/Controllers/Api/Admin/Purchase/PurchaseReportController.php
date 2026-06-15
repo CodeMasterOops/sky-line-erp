@@ -30,7 +30,7 @@ class PurchaseReportController extends Controller
             ->when($company?->fiscal_year_id, function (Builder $query) use ($company) {
                 $query->where('fiscal_year_id', $company->fiscal_year_id);
             })
-            ->with(['billItems', 'paymentAllocations.payment'])
+            ->with(['billItems', 'discount', 'paymentAllocations.payment'])
             ->get();
 
         return response()->json([
@@ -57,6 +57,7 @@ class PurchaseReportController extends Controller
         $bills = $this->buildBillQuery($request)
             ->with([
                 'party',
+                'discount',
                 'billItems.productVariant.product',
                 'billItems.productVariant.variantOptions.attribute',
                 'paymentAllocations.payment',
@@ -263,7 +264,8 @@ class PurchaseReportController extends Controller
             $taxTotal += (float) $item->tax_amount;
         }
 
-        $grandTotal = $subtotal - $discountTotal + $taxTotal;
+        $orderDiscount = (float) ($bill->discount?->amount ?? 0);
+        $grandTotal = $subtotal - $discountTotal - $orderDiscount + $taxTotal;
 
         return [
             'grand_total' => round($grandTotal, 2),

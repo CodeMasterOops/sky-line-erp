@@ -48,10 +48,12 @@ class DebitNoteGlPostingService
             return;
         }
 
-        $debitNote->loadMissing('debitNoteItems');
+        $debitNote->loadMissing('debitNoteItems', 'discount');
 
-        $purchaseBase = round((float) $debitNote->debitNoteItems
-            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount), 2);
+        $lineTotal = (float) $debitNote->debitNoteItems
+            ->sum(fn ($item) => ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount);
+        $orderDiscountAmount = (float) ($debitNote->discount?->amount ?? 0);
+        $purchaseBase = round($lineTotal - $orderDiscountAmount, 2);
         $vatAmount = round((float) $debitNote->debitNoteItems->sum('tax_amount'), 2);
         $grandTotal = round($purchaseBase + $vatAmount, 2);
 
@@ -97,7 +99,7 @@ class DebitNoteGlPostingService
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $debitNote->company_id,
                 'fiscal_year_id' => $company->fiscal_year_id,
-                'type' => JournalTypeEnum::DEBIT_NOTE,
+                'type' => JournalTypeEnum::DEBIT_NOTE->value,
                 'reference_type' => $debitNote->getMorphClass(),
                 'reference_id' => $debitNote->id,
                 'voucher_no' => $voucherNo,
@@ -107,7 +109,7 @@ class DebitNoteGlPostingService
                 'create_user_id' => $user->id,
                 'approve_user_id' => $user->id,
                 'approved_at' => now(),
-                'status' => StatusEnum::APPROVED,
+                'status' => StatusEnum::APPROVED->value,
             ]);
 
             // DR Accounts Payable — reduce what we owe the supplier

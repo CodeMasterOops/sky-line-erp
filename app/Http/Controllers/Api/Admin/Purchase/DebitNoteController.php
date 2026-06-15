@@ -10,11 +10,13 @@ use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
+use App\Enums\AmountOrPercentDiscountTypeEnum;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalVoidService;
 use App\Services\Accounting\DebitNoteGlPostingService;
 use App\Services\Inventory\InventoryLayerIssueService;
 use App\Http\Resources\Admin\Purchase\DebitNoteResource;
+use App\Services\Purchase\PurchaseOrderTotalsCalculator;
 use App\Http\Requests\Api\Admin\Purchase\DebitNoteRequest;
 use App\Services\Inventory\InventoryDocumentReversalService;
 
@@ -26,6 +28,7 @@ class DebitNoteController extends Controller
         private DocumentNumberGenerator $documentNumberGenerator,
         private DebitNoteGlPostingService $debitNoteGl,
         private JournalVoidService $journalVoid,
+        private PurchaseOrderTotalsCalculator $totalsCalculator,
     ) {}
 
     /**
@@ -46,7 +49,7 @@ class DebitNoteController extends Controller
      */
     public function store(DebitNoteRequest $request)
     {
-        $formData = $request->validated();
+        $formData = $this->applyResolvedDiscounts($request->validated());
         $user = auth('admin')->user();
         $status = $formData['status'] ?? StatusEnum::DRAFT->value;
         $setting = $user->company;
@@ -75,13 +78,11 @@ class DebitNoteController extends Controller
                     'status' => $status,
                 ]);
 
-                if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                    $debitNote->saveDiscount(
-                        $formData['order_discount_type'] ?? 'fixed',
-                        isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                        0,
-                    );
-                }
+                $debitNote->saveDiscount(
+                    $formData['order_discount_type'],
+                    $formData['order_discount_value'] ?? null,
+                    $formData['order_discount_amount'],
+                );
 
                 foreach ($formData['items'] ?? [] as $item) {
                     $debitNoteItem = $debitNote->debitNoteItems()->create([
@@ -95,13 +96,11 @@ class DebitNoteController extends Controller
                         'discount_amount' => $item['discount_amount'] ?? 0,
                     ]);
 
-                    if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                        $debitNoteItem->saveDiscount(
-                            $item['line_discount_type'] ?? 'fixed',
-                            isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                            (float) ($item['discount_amount'] ?? 0),
-                        );
-                    }
+                    $debitNoteItem->saveDiscount(
+                        $item['line_discount_type'],
+                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                        (float) ($item['discount_amount'] ?? 0),
+                    );
                 }
 
                 if ($status === StatusEnum::APPROVED->value) {
@@ -168,7 +167,7 @@ class DebitNoteController extends Controller
             ], 422);
         }
 
-        $formData = $request->validated();
+        $formData = $this->applyResolvedDiscounts($request->validated());
         $debitNoteNo = $formData['debit_note_no'] ?? $debitNote->debit_note_no;
 
         $debitNote = DB::transaction(function () use ($debitNote, $formData, $debitNoteNo) {
@@ -182,13 +181,11 @@ class DebitNoteController extends Controller
 
             $debitNote->debitNoteItems()->delete();
 
-            if (isset($formData['order_discount_type']) || isset($formData['order_discount_value'])) {
-                $debitNote->saveDiscount(
-                    $formData['order_discount_type'] ?? 'fixed',
-                    isset($formData['order_discount_value']) ? (float) $formData['order_discount_value'] : null,
-                    0,
-                );
-            }
+            $debitNote->saveDiscount(
+                $formData['order_discount_type'],
+                $formData['order_discount_value'] ?? null,
+                $formData['order_discount_amount'],
+            );
 
             foreach ($formData['items'] ?? [] as $item) {
                 $debitNoteItem = $debitNote->debitNoteItems()->create([
@@ -202,13 +199,11 @@ class DebitNoteController extends Controller
                     'discount_amount' => $item['discount_amount'] ?? 0,
                 ]);
 
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $debitNoteItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        (float) ($item['discount_amount'] ?? 0),
-                    );
-                }
+                $debitNoteItem->saveDiscount(
+                    $item['line_discount_type'],
+                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
+                    (float) ($item['discount_amount'] ?? 0),
+                );
             }
 
             return $debitNote;
@@ -351,6 +346,31 @@ class DebitNoteController extends Controller
             'data' => DebitNoteResource::make($debitNote),
             'message' => 'Debit Note Approved Successfully',
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $formData
+     * @return array<string, mixed>
+     */
+    private function applyResolvedDiscounts(array $formData): array
+    {
+        $orderType = AmountOrPercentDiscountTypeEnum::tryFromString($formData['order_discount_type'] ?? null);
+        $orderValue = (float) ($formData['order_discount_value'] ?? 0);
+
+        $result = $this->totalsCalculator->resolveItemsAndOrderDiscount(
+            $formData['items'],
+            $orderType,
+            $orderValue,
+        );
+
+        $formData['items'] = $result['items'];
+        $formData['order_discount_type'] = $orderType->value;
+        if (array_key_exists('order_discount_value', $formData) && $formData['order_discount_value'] !== null) {
+            $formData['order_discount_value'] = round((float) $formData['order_discount_value'], 2);
+        }
+        $formData['order_discount_amount'] = $result['order_discount_amount'];
+
+        return $formData;
     }
 
     private function applyInventoryForApprovedDebitNote(DebitNote $debitNote, \App\Models\Company $company, \App\Models\User $user): void

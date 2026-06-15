@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalVoidService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
 readonly class PaymentService
@@ -20,6 +21,7 @@ readonly class PaymentService
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
         private NepaliDateService $nepaliDate,
+        private JournalVoidService $journalVoid,
     ) {}
 
     public function createPayment(array $formData): Payment
@@ -56,7 +58,7 @@ readonly class PaymentService
                 'currency_code' => $formData['currency_code'] ?: 'NPR',
                 'exchange_rate' => $formData['exchange_rate'] ?: 1,
                 'create_user_id' => $user->id,
-                'approve_user_id' => $user->id,
+                'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
                 'approved_at' => $status === StatusEnum::APPROVED->value ? now() : null,
                 'status' => $status,
             ]);
@@ -71,8 +73,28 @@ readonly class PaymentService
         });
     }
 
+    public function voidPayment(Payment $payment): void
+    {
+        DB::transaction(function () use ($payment) {
+            $this->journalVoid->reverseForReference($payment);
+
+            TdsDeduction::where('deductible_type', Payment::class)
+                ->where('deductible_id', $payment->id)
+                ->delete();
+
+            $payment->allocations()->delete();
+            $payment->update(['voided_at' => now()]);
+        });
+    }
+
     public function updatePayment(array $formData, Payment $payment): void
     {
+        if ($payment->voided_at) {
+            throw ValidationException::withMessages([
+                'status' => 'Voided payments cannot be edited.',
+            ]);
+        }
+
         if ($payment->status === StatusEnum::APPROVED) {
             throw ValidationException::withMessages([
                 'status' => 'Approved payments cannot be edited. Please void this payment and create a new one.',
@@ -108,6 +130,12 @@ readonly class PaymentService
 
     public function approvePayment(Payment $payment): void
     {
+        if ($payment->voided_at) {
+            throw ValidationException::withMessages([
+                'status' => 'Voided payments cannot be approved.',
+            ]);
+        }
+
         $user = auth('admin')->user();
 
         DB::transaction(function () use ($payment, $user) {
@@ -238,8 +266,9 @@ readonly class PaymentService
 
         $billIds = $allocations->where('payable_type', 'bill')->pluck('payable_id')->unique()->values()->all();
         $expenseIds = $allocations->where('payable_type', 'expense')->pluck('payable_id')->unique()->values()->all();
-        $billDueMap = $this->getBillDueMap($billIds, (int) $formData['party_id']);
-        $expenseDueMap = $this->getExpenseDueMap($expenseIds, (int) $formData['party_id']);
+        $companyId = (int) (auth('admin')->user()?->company_id ?? 0);
+        $billDueMap = $this->getBillDueMap($billIds, (int) $formData['party_id'], $companyId);
+        $expenseDueMap = $this->getExpenseDueMap($expenseIds, (int) $formData['party_id'], $companyId);
 
         foreach ($allocations as $allocation) {
             $type = $allocation['payable_type'];
@@ -278,7 +307,7 @@ readonly class PaymentService
         })->all();
     }
 
-    private function getBillDueMap(array $billIds, int $partyId): array
+    private function getBillDueMap(array $billIds, int $partyId, int $companyId): array
     {
         if (empty($billIds)) {
             return [];
@@ -306,6 +335,7 @@ readonly class PaymentService
                 $join->on('bills.id', '=', 'paid_totals.payable_id');
             })
             ->whereIn('bills.id', $billIds)
+            ->where('bills.company_id', $companyId)
             ->where('bills.party_id', $partyId)
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.deleted_at')
@@ -333,7 +363,7 @@ readonly class PaymentService
         return $map;
     }
 
-    private function getExpenseDueMap(array $expenseIds, int $partyId): array
+    private function getExpenseDueMap(array $expenseIds, int $partyId, int $companyId): array
     {
         if (empty($expenseIds)) {
             return [];
@@ -361,6 +391,7 @@ readonly class PaymentService
                 $join->on('expenses.id', '=', 'paid_totals.payable_id');
             })
             ->whereIn('expenses.id', $expenseIds)
+            ->where('expenses.company_id', $companyId)
             ->where('expenses.party_id', $partyId)
             ->where('expenses.status', StatusEnum::APPROVED->value)
             ->whereNull('expenses.deleted_at')

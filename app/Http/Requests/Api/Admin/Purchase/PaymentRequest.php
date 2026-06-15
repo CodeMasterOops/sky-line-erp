@@ -45,18 +45,23 @@ class PaymentRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            $companyId = auth('admin')->user()?->company_id;
             $allocations = $this->input('allocations', []);
+
             foreach ($allocations as $index => $allocation) {
                 $type = $allocation['payable_type'] ?? null;
                 $id = $allocation['payable_id'] ?? null;
+
                 if (! $type || ! $id) {
                     continue;
                 }
+
                 $exists = match ($type) {
-                    'bill' => Bill::whereKey($id)->whereNull('deleted_at')->exists(),
-                    'expense' => Expense::whereKey($id)->whereNull('deleted_at')->exists(),
+                    'bill' => Bill::where('company_id', $companyId)->whereKey($id)->whereNull('deleted_at')->exists(),
+                    'expense' => Expense::where('company_id', $companyId)->whereKey($id)->whereNull('deleted_at')->exists(),
                     default => false,
                 };
+
                 if (! $exists) {
                     $validator->errors()->add("allocations.$index.payable_id", 'Invalid payable id.');
                 }
