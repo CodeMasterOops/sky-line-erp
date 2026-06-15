@@ -6,30 +6,24 @@
         modal-class="add-centered"
         title="Add Bill">
         <template #modal-body>
-            <div class="card border-0 shadow-none mb-0">
-                <div class="card-body p-0 border-0">
-                    <form @submit.prevent="storeBillWithStatus('draft')" class="row g-1">
+            <form @submit.prevent="storeBillWithStatus('draft')" class="row g-3">
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="bill_date"
-                                    v-model="form.bill_date"
-                                    label="Bill Date"
-                                    @validate="validateField('bill_date')"
-                                    :error="errors.bill_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="bill_date"
+                                v-model="form.bill_date"
+                                label="Bill Date"
+                                @validate="validateField('bill_date')"
+                                :error="errors.bill_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="due_date"
-                                    v-model="form.due_date"
-                                    label="Due Date"
-                                    @validate="validateField('due_date')"
-                                    :error="errors.due_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="due_date"
+                                v-model="form.due_date"
+                                label="Due Date"
+                                @validate="validateField('due_date')"
+                                :error="errors.due_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="d-flex gap-2 align-items-end">
@@ -65,16 +59,14 @@
                             />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VMultiselect
-                                    id="warehouse_id"
-                                    v-model="form.warehouse_id"
-                                    :options="warehouseOptionsTree"
-                                    label="Warehouse"
-                                    @validate="validateField('warehouse_id')"
-                                    :error="errors.warehouse_id"
-                                />
-                            </div>
+                            <VMultiselect
+                                id="warehouse_id"
+                                v-model="form.warehouse_id"
+                                :options="warehouseOptionsTree"
+                                label="Warehouse"
+                                @validate="validateField('warehouse_id')"
+                                :error="errors.warehouse_id"
+                            />
                         </div>
                         <div v-if="form.party_id" class="col-12">
                             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -230,6 +222,21 @@
                         </div>
 
                         <div v-if="!hasGrnLines" class="col-12">
+                            <div class="form-check mb-2">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    id="show_landed_costs_create"
+                                    v-model="showLandedCosts"
+                                    @change="!showLandedCosts && (form.landed_costs = [])"
+                                />
+                                <label class="form-check-label" for="show_landed_costs_create">
+                                    Add Additional Charges (freight, customs, etc.)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div v-if="!hasGrnLines && showLandedCosts" class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
                                     <h6 class="mb-0">Additional Charges</h6>
@@ -361,15 +368,13 @@
                         </div>
 
                         <div class="col-md-12">
-                            <div class="input-blocks">
-                                <VTextarea
-                                    id="remarks"
-                                    v-model="form.remarks"
-                                    label="Remarks"
-                                    @validate="validateField('remarks')"
-                                    :error="errors.remarks"
-                                />
-                            </div>
+                            <VTextarea
+                                id="remarks"
+                                v-model="form.remarks"
+                                label="Remarks"
+                                @validate="validateField('remarks')"
+                                :error="errors.remarks"
+                            />
                         </div>
 
                         <div class="col-12 text-end">
@@ -381,19 +386,17 @@
                                 class="btn btn-outline-primary me-2"
                                 :disabled="isSubmitting"
                                 @click="storeBillWithStatus('draft')">
-                                Create
+                                Save as Draft
                             </button>
                             <button
                                 type="button"
                                 class="btn btn-submit add-sale btn-primary"
                                 :disabled="isSubmitting"
                                 @click="storeBillWithStatus('approved')">
-                                Create &amp; Approve
+                                Save &amp; Approve
                             </button>
                         </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </template>
     </VModal>
     <VModal
@@ -479,6 +482,7 @@ const {currentAdDate} = useDateHelper();
 const createModalOpened = defineModel('createModalOpened');
 const purchaseOrderId = defineModel('purchaseOrderId');
 const createSupplierOpened = ref(false);
+const showLandedCosts = ref(false);
 
 const {parties} = storeToRefs(partyStore);
 const {taxes, taxGroups} = storeToRefs(taxStore);
@@ -852,6 +856,7 @@ const closeCreateModal = () => {
 function resetForm() {
     Object.assign(form, getInitialState());
     errors.value = {};
+    showLandedCosts.value = false;
 }
 </script>
 

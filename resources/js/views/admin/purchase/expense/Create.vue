@@ -45,19 +45,30 @@
                 </div>
 
                 <div class="col-12">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Expense Lines</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary" @click="addItem">
+                            <i class="ti ti-plus me-1"></i> Add Line
+                        </button>
+                    </div>
+                    <div class="table-responsive no-pagination">
+                        <table class="table datanew table-bordered mb-0 expense-lines-table">
                             <thead>
                             <tr>
-                                <th style="width: 50px;">SN</th>
+                                <th class="exp-col-sn">SN</th>
                                 <th>Account</th>
-                                <th style="width: 160px;">Amount</th>
-                                <th style="width: 160px;">Tax</th>
-                                <th style="width: 170px;">Discount Amount</th>
-                                <th style="width: 60px;">Action</th>
+                                <th class="exp-col-amount">Amount</th>
+                                <th class="exp-col-tax">Tax</th>
+                                <th class="exp-col-discount">Discount</th>
+                                <th class="text-center exp-col-action">Action</th>
                             </tr>
                             </thead>
                             <tbody>
+                            <tr v-if="!form.items.length">
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Add at least one expense line.
+                                </td>
+                            </tr>
                             <tr v-for="(item, index) in form.items" :key="index">
                                 <td>{{ index + 1 }}</td>
                                 <td>
@@ -71,6 +82,7 @@
                                 <td>
                                     <VInput
                                         input-type="number"
+                                        input-class="form-control form-control-sm"
                                         v-model="form.items[index].amount"
                                         @validate="validateField(`items[${index}].amount`)"
                                         :error="errors[`items[${index}].amount`]"
@@ -88,6 +100,7 @@
                                 <td>
                                     <VInput
                                         input-type="number"
+                                        input-class="form-control form-control-sm"
                                         v-model="form.items[index].discount_amount"
                                         @validate="validateField(`items[${index}].discount_amount`)"
                                         :error="errors[`items[${index}].discount_amount`]"
@@ -99,72 +112,91 @@
                                         class="btn btn-sm btn-outline-danger"
                                         @click="removeItem(index)"
                                         :disabled="form.items.length === 1">
-                                        <i class="fa fa-trash"></i>
+                                        <i class="ti ti-trash"></i>
                                     </button>
                                 </td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
-                        Add Item
-                    </button>
                 </div>
 
-                <div class="col-12">
-                    <div class="card bg-light">
-                        <div class="card-body py-2">
-                            <div class="d-flex justify-content-between">
-                                <span>Sub Total</span>
-                                <strong>{{ formatMoney(summary.subtotal) }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Discount</span>
-                                <strong>{{ summary.discount }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>Tax</span>
-                                <strong>{{ formatMoney(summary.tax) }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between border-top pt-2 mt-2">
-                                <span>Grand Total</span>
-                                <strong>{{ formatMoney(summary.grandTotal) }}</strong>
-                            </div>
-                        </div>
+                <div class="col-lg-6 ms-auto">
+                    <div class="total-order w-100 max-widthauto m-auto mb-4">
+                        <ul>
+                            <li>
+                                <h4>Sub Total</h4>
+                                <h5>{{ formatMoney(summary.subtotal) }}</h5>
+                            </li>
+                            <li>
+                                <h4>Discount</h4>
+                                <h5>{{ formatMoney(summary.discount) }}</h5>
+                            </li>
+                            <li>
+                                <h4>Tax</h4>
+                                <h5>{{ formatMoney(summary.tax) }}</h5>
+                            </li>
+                            <li>
+                                <h4>Grand Total</h4>
+                                <h5>{{ formatMoney(summary.grandTotal) }}</h5>
+                            </li>
+                        </ul>
                     </div>
                 </div>
 
                 <div class="col-12">
-                    <div class="card border bg-light">
+                    <div class="form-check">
+                        <input
+                            type="checkbox"
+                            class="form-check-input"
+                            id="show_tds_create"
+                            v-model="showTds"
+                        />
+                        <label class="form-check-label" for="show_tds_create">
+                            Apply TDS (Tax Deducted at Source)
+                        </label>
+                    </div>
+                </div>
+
+                <div v-if="showTds" class="col-12">
+                    <div class="card border">
                         <div class="card-header py-2 px-3">
-                            <strong class="small">TDS (Optional)</strong>
+                            <strong class="small">TDS Details</strong>
                         </div>
-                        <div class="card-body py-2 px-3 row g-2">
+                        <div class="card-body border-0 py-2 px-3 row g-2">
                             <div class="col-md-6">
-                                <label class="form-label small">TDS Category</label>
-                                <select class="form-select form-select-sm" v-model="form.tds_category">
-                                    <option value="">None</option>
-                                    <option value="rent">Rent (10%)</option>
-                                    <option value="service_payment">Service Payment (15%)</option>
-                                    <option value="commission">Commission (15%)</option>
-                                    <option value="dividend">Dividend (5%)</option>
-                                    <option value="interest">Interest (15%)</option>
-                                    <option value="contract">Contract / Work (1.5%)</option>
-                                    <option value="royalty">Royalty (15%)</option>
-                                    <option value="others">Others</option>
-                                </select>
+                                <VSelect
+                                    label="TDS Category"
+                                    select-class="form-select form-select-sm"
+                                    v-model="form.tds_category"
+                                    :options="tdsCategories"
+                                />
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small">TDS Rate (%)</label>
-                                <input type="number" class="form-control form-control-sm" v-model="form.tds_rate" placeholder="Auto" readonly />
+                                <VInput
+                                    label="TDS Rate (%)"
+                                    input-class="form-control form-control-sm"
+                                    v-model="form.tds_rate"
+                                    :disabled="true"
+                                    placeholder="Auto"
+                                />
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label small">Gross Amount</label>
-                                <input type="number" class="form-control form-control-sm" v-model="form.gross_amount" placeholder="0.00" min="0" step="0.01" />
+                                <VInput
+                                    label="Gross Amount"
+                                    input-type="number"
+                                    input-class="form-control form-control-sm"
+                                    v-model="form.gross_amount"
+                                    placeholder="0.00"
+                                />
                             </div>
-                            <div class="col-md-6" v-if="form.tds_category">
-                                <label class="form-label small">TDS Amount (computed)</label>
-                                <input type="text" class="form-control form-control-sm bg-white" :value="computedTdsAmount" readonly />
+                            <div v-if="form.tds_category" class="col-md-6">
+                                <VInput
+                                    label="TDS Amount (computed)"
+                                    input-class="form-control form-control-sm bg-white"
+                                    :model-value="computedTdsAmount"
+                                    :disabled="true"
+                                />
                             </div>
                         </div>
                     </div>
@@ -181,22 +213,22 @@
                 </div>
 
                 <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
-                        Close
+                    <button @click="closeCreateModal" class="btn btn-cancel add-cancel me-2" type="button">
+                        Cancel
                     </button>
                     <button
                         type="button"
-                        class="btn btn-outline-primary me-1"
+                        class="btn btn-outline-primary me-2"
                         :disabled="isSubmitting"
                         @click="storeExpenseWithStatus('draft')">
-                        Create
+                        Save as Draft
                     </button>
                     <button
                         type="button"
                         class="btn btn-primary"
                         :disabled="isSubmitting"
                         @click="storeExpenseWithStatus('approved')">
-                        Create & Approve
+                        Save &amp; Approve
                     </button>
                 </div>
             </form>
@@ -216,37 +248,31 @@ import {useAccountStore} from '@/stores/admin/accounting/account.js';
 import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useExpenseStore} from '@/stores/admin/purchase/expense.js';
+import {useEnumStore} from '@/stores/admin/enum.js';
 import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
 
 const expenseStore = useExpenseStore();
 const accountStore = useAccountStore();
 const partyStore = usePartyStore();
 const taxStore = useTaxStore();
+const enumStore = useEnumStore();
 
 const createModalOpened = defineModel('createModalOpened');
 
 const {accounts} = storeToRefs(accountStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes} = storeToRefs(taxStore);
+const {tdsCategories} = storeToRefs(enumStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes);
+const showTds = ref(false);
 
 onMounted(() => {
     accountStore.getAccounts();
     partyStore.getParties({filter: {type: 'supplier'}});
     taxStore.getTaxes();
+    enumStore.getTdsCategories();
 });
-
-const TDS_RATES = {
-    rent: 10,
-    service_payment: 15,
-    commission: 15,
-    dividend: 5,
-    interest: 15,
-    contract: 1.5,
-    royalty: 15,
-    others: 0,
-};
 
 const initialState = {
     date: new Date().toISOString().slice(0, 10),
@@ -271,8 +297,17 @@ const initialState = {
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
 
-watch(() => form.tds_category, (cat) => {
-    form.tds_rate = cat && TDS_RATES[cat] != null ? String(TDS_RATES[cat]) : '';
+watch(() => form.tds_category, (value) => {
+    const match = tdsCategories.value.find((c) => c.id === value);
+    form.tds_rate = match ? String(match.rate) : '';
+});
+
+watch(showTds, (enabled) => {
+    if (!enabled) {
+        form.tds_category = '';
+        form.tds_rate = '';
+        form.gross_amount = '';
+    }
 });
 
 const computedTdsAmount = computed(() => {
@@ -388,5 +423,31 @@ const closeCreateModal = () => {
 function resetForm() {
     Object.assign(form, {...initialState});
     errors.value = {};
+    showTds.value = false;
 }
 </script>
+
+<style scoped>
+.expense-lines-table th,
+.expense-lines-table td {
+    vertical-align: middle;
+}
+
+.exp-col-sn {
+    width: 2.5rem;
+}
+
+.exp-col-amount,
+.exp-col-discount {
+    width: 10rem;
+}
+
+.exp-col-tax {
+    min-width: 8rem;
+    width: 10rem;
+}
+
+.exp-col-action {
+    width: 3.5rem;
+}
+</style>

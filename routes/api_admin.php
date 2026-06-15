@@ -165,5 +165,8 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
     });
 
     // enum
-    Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {});
+    Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {
+        Route::get('journal-type', 'journalTypes')->name('journal-type');
+        Route::get('tds-categories', 'tdsCategories')->name('tds-categories');
+    });
 });

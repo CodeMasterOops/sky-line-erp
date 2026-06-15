@@ -7,34 +7,28 @@
         title="Update Bill">
         <template #modal-body>
             <VLoader v-if="bill.loading" loader-type="progress"/>
-            <div v-else class="card border-0 shadow-none mb-0">
-                <div class="card-body p-0">
-                    <form @submit.prevent="updateBill(bill.data.id)" class="row g-1">
+            <form v-else @submit.prevent="updateBill(bill.data.id)" class="row g-3">
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="bill_date"
-                                    input-type="date"
-                                    v-model="form.bill_date"
-                                    label="Bill Date"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('bill_date')"
-                                    :error="errors.bill_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="bill_date"
+                                input-type="date"
+                                v-model="form.bill_date"
+                                label="Bill Date"
+                                :disabled="!isDraft"
+                                @validate="validateField('bill_date')"
+                                :error="errors.bill_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VDatepicker
-                                    id="due_date"
-                                    input-type="date"
-                                    v-model="form.due_date"
-                                    label="Due Date"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('due_date')"
-                                    :error="errors.due_date"
-                                />
-                            </div>
+                            <VDatepicker
+                                id="due_date"
+                                input-type="date"
+                                v-model="form.due_date"
+                                label="Due Date"
+                                :disabled="!isDraft"
+                                @validate="validateField('due_date')"
+                                :error="errors.due_date"
+                            />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
                             <div class="d-flex gap-2 align-items-end">
@@ -71,17 +65,15 @@
                             />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <div class="input-blocks">
-                                <VMultiselect
-                                    id="warehouse_id"
-                                    v-model="form.warehouse_id"
-                                    :options="warehouseOptionsTree"
-                                    label="Warehouse"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('warehouse_id')"
-                                    :error="errors.warehouse_id"
-                                />
-                            </div>
+                            <VMultiselect
+                                id="warehouse_id"
+                                v-model="form.warehouse_id"
+                                :options="warehouseOptionsTree"
+                                label="Warehouse"
+                                :disabled="!isDraft"
+                                @validate="validateField('warehouse_id')"
+                                :error="errors.warehouse_id"
+                            />
                         </div>
 
                         <div v-if="isDraft && form.party_id" class="col-12">
@@ -243,6 +235,21 @@
                         </div>
 
                         <div v-if="!hasGrnLines" class="col-12">
+                            <div class="form-check mb-2">
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input"
+                                    id="show_landed_costs_edit"
+                                    v-model="showLandedCosts"
+                                    @change="!showLandedCosts && (form.landed_costs = [])"
+                                />
+                                <label class="form-check-label" for="show_landed_costs_edit">
+                                    Add Additional Charges (freight, customs, etc.)
+                                </label>
+                            </div>
+                        </div>
+
+                        <div v-if="!hasGrnLines && showLandedCosts" class="col-12">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div>
                                     <h6 class="mb-0">Additional Charges</h6>
@@ -438,16 +445,14 @@
                         </div>
 
                         <div class="col-md-12">
-                            <div class="input-blocks">
-                                <VTextarea
-                                    id="remarks"
-                                    v-model="form.remarks"
-                                    label="Remarks"
-                                    :disabled="!isDraft"
-                                    @validate="validateField('remarks')"
-                                    :error="errors.remarks"
-                                />
-                            </div>
+                            <VTextarea
+                                id="remarks"
+                                v-model="form.remarks"
+                                label="Remarks"
+                                :disabled="!isDraft"
+                                @validate="validateField('remarks')"
+                                :error="errors.remarks"
+                            />
                         </div>
 
                         <div class="col-12 text-end">
@@ -459,9 +464,7 @@
                                 Approved
                             </button>
                         </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </template>
     </VModal>
     <VModal
@@ -541,6 +544,7 @@ const grnStore = useGrnStore();
 
 const edit_bill_id = defineModel('bill_id');
 const createSupplierOpened = ref(false);
+const showLandedCosts = ref(false);
 
 const {bill} = storeToRefs(billStore);
 const {parties} = storeToRefs(partyStore);
@@ -732,6 +736,7 @@ watch(
             data.order_discount_value != null && data.order_discount_value !== ''
                 ? String(data.order_discount_value)
                 : '0';
+        showLandedCosts.value = (data.landed_costs || []).length > 0;
         form.landed_costs = (data.landed_costs || []).map((cost) => ({
             cost_type: cost.cost_type || '',
             description: cost.description || '',
@@ -945,6 +950,7 @@ function resetForm() {
     isHydratingBill.value = false;
     Object.assign(form, {...initialState});
     errors.value = {};
+    showLandedCosts.value = false;
 }
 </script>
 
