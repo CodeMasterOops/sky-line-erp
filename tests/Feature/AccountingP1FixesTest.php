@@ -23,7 +23,7 @@ use App\Enums\InventoryCostingMethodEnum;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-function p1WarmCache(): void
+function accountP1WarmCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
@@ -35,7 +35,7 @@ function p1WarmCache(): void
 }
 
 beforeEach(function () {
-    p1WarmCache();
+    accountP1WarmCache();
 
     $this->fy = FiscalYear::create([
         'year_name' => 'FY-P1', 'year_code' => 'P1',

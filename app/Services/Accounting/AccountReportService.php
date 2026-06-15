@@ -621,16 +621,25 @@ class AccountReportService
             ->where('company_id', $companyId)
             ->where('status', StatusEnum::APPROVED->value)
             ->whereNull('voided_at')
-            ->get()
-            ->filter(function (Invoice $invoice) {
-                $paid = $invoice->receiptAllocations()->sum('amount');
-                $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            ->get();
 
-                return round($total - $paid, 2) > 0;
-            });
+        $invoiceIds = $invoices->pluck('id');
+        $paidByInvoice = DB::table('receipt_allocations')
+            ->whereIn('invoice_id', $invoiceIds)
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id')
+            ->selectRaw('invoice_id, COALESCE(SUM(amount), 0) as paid')
+            ->pluck('paid', 'invoice_id');
 
-        $rows = $invoices->map(function (Invoice $invoice) use ($asOf) {
-            $paid = $invoice->receiptAllocations()->sum('amount');
+        $invoices = $invoices->filter(function (Invoice $invoice) use ($paidByInvoice) {
+            $paid = (float) ($paidByInvoice->get($invoice->id, 0));
+            $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+
+            return round($total - $paid, 2) > 0;
+        });
+
+        $rows = $invoices->map(function (Invoice $invoice) use ($asOf, $paidByInvoice) {
+            $paid = (float) ($paidByInvoice->get($invoice->id, 0));
             $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
             $outstanding = round($total - $paid, 2);
             $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date) : Carbon::parse($invoice->invoice_date)->addDays(30);
@@ -671,16 +680,27 @@ class AccountReportService
             ->where('company_id', $companyId)
             ->where('status', StatusEnum::APPROVED->value)
             ->whereNull('voided_at')
-            ->get()
-            ->filter(function (Bill $bill) {
-                $paid = $bill->paymentAllocations()->sum('amount');
-                $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            ->get();
 
-                return round($total - $paid, 2) > 0;
-            });
+        $billIds = $bills->pluck('id');
+        $billMorphType = (new Bill)->getMorphClass();
+        $paidByBill = DB::table('payment_allocations')
+            ->where('payable_type', $billMorphType)
+            ->whereIn('payable_id', $billIds)
+            ->whereNull('deleted_at')
+            ->groupBy('payable_id')
+            ->selectRaw('payable_id, COALESCE(SUM(amount), 0) as paid')
+            ->pluck('paid', 'payable_id');
 
-        $rows = $bills->map(function (Bill $bill) use ($asOf) {
-            $paid = $bill->paymentAllocations()->sum('amount');
+        $bills = $bills->filter(function (Bill $bill) use ($paidByBill) {
+            $paid = (float) ($paidByBill->get($bill->id, 0));
+            $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+
+            return round($total - $paid, 2) > 0;
+        });
+
+        $rows = $bills->map(function (Bill $bill) use ($asOf, $paidByBill) {
+            $paid = (float) ($paidByBill->get($bill->id, 0));
             $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
             $outstanding = round($total - $paid, 2);
             $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date)->addDays(30);
@@ -1234,17 +1254,27 @@ class AccountReportService
      */
     private function arSubledgerOutstanding(int $companyId): float
     {
-        $invoiceTotal = (float) Invoice::query()
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereNull('voided_at')
-            ->with(['invoiceItems', 'discount'])
-            ->get()
-            ->sum(fn (Invoice $invoice) => $invoice->invoiceItems->sum(
-                fn ($item) => ((float) $item->quantity * (float) $item->rate)
-                    - (float) $item->discount_amount
-                    + (float) $item->tax_amount
-            ) - (float) ($invoice->discount?->amount ?? 0));
+        $itemTotals = (float) (DB::table('invoice_items')
+            ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
+            ->where('invoices.company_id', $companyId)
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->whereNull('invoice_items.deleted_at')
+            ->selectRaw('COALESCE(SUM((invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount + invoice_items.tax_amount), 0) as total')
+            ->value('total') ?? 0);
+
+        $orderDiscounts = (float) (DB::table('discounts')
+            ->join('invoices', 'discounts.discountable_id', '=', 'invoices.id')
+            ->where('discounts.discountable_type', Invoice::class)
+            ->where('invoices.company_id', $companyId)
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->selectRaw('COALESCE(SUM(discounts.amount), 0) as total')
+            ->value('total') ?? 0);
+
+        $invoiceTotal = $itemTotals - $orderDiscounts;
 
         $receiptAllocations = (float) DB::table('receipt_allocations')
             ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
@@ -1262,17 +1292,15 @@ class AccountReportService
      */
     private function apSubledgerOutstanding(int $companyId): float
     {
-        $billTotal = (float) Bill::query()
-            ->where('company_id', $companyId)
-            ->where('status', StatusEnum::APPROVED->value)
-            ->whereNull('voided_at')
-            ->with('billItems')
-            ->get()
-            ->sum(fn (Bill $bill) => $bill->billItems->sum(
-                fn ($item) => ((float) $item->quantity * (float) $item->rate)
-                    - (float) $item->discount_amount
-                    + (float) $item->tax_amount
-            ));
+        $billTotal = (float) (DB::table('bill_items')
+            ->join('bills', 'bills.id', '=', 'bill_items.bill_id')
+            ->where('bills.company_id', $companyId)
+            ->where('bills.status', StatusEnum::APPROVED->value)
+            ->whereNull('bills.voided_at')
+            ->whereNull('bills.deleted_at')
+            ->whereNull('bill_items.deleted_at')
+            ->selectRaw('COALESCE(SUM((bill_items.quantity * bill_items.rate) - bill_items.discount_amount + bill_items.tax_amount), 0) as total')
+            ->value('total') ?? 0);
 
         $paymentAllocations = (float) DB::table('payment_allocations')
             ->join('payments', 'payments.id', '=', 'payment_allocations.payment_id')

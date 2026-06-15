@@ -90,12 +90,12 @@ class CreditNoteGlPostingService
                 ->first();
 
         if (! $user) {
-            return;
+            throw new \RuntimeException("Cannot post GL for credit note {$creditNote->id}: no user found for company {$creditNote->company_id}.");
         }
 
         $company = Company::with('fiscalYear')->find($creditNote->company_id);
         if (! $company || ! $company->fiscal_year_id) {
-            return;
+            throw new \RuntimeException("Cannot post GL for credit note {$creditNote->id}: company or fiscal year not configured.");
         }
 
         $yearCode = $company->fiscalYear?->year_code ?? '';

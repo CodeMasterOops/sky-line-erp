@@ -80,12 +80,12 @@ class DebitNoteGlPostingService
                 ->first();
 
         if (! $user) {
-            return;
+            throw new \RuntimeException("Cannot post GL for debit note {$debitNote->id}: no user found for company {$debitNote->company_id}.");
         }
 
         $company = Company::with('fiscalYear')->find($debitNote->company_id);
         if (! $company || ! $company->fiscal_year_id) {
-            return;
+            throw new \RuntimeException("Cannot post GL for debit note {$debitNote->id}: company or fiscal year not configured.");
         }
 
         $yearCode = $company->fiscalYear?->year_code ?? '';
@@ -99,7 +99,7 @@ class DebitNoteGlPostingService
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $debitNote->company_id,
                 'fiscal_year_id' => $company->fiscal_year_id,
-                'type' => JournalTypeEnum::DEBIT_NOTE->value,
+                'type' => JournalTypeEnum::DEBIT_NOTE,
                 'reference_type' => $debitNote->getMorphClass(),
                 'reference_id' => $debitNote->id,
                 'voucher_no' => $voucherNo,
@@ -109,7 +109,7 @@ class DebitNoteGlPostingService
                 'create_user_id' => $user->id,
                 'approve_user_id' => $user->id,
                 'approved_at' => now(),
-                'status' => StatusEnum::APPROVED->value,
+                'status' => StatusEnum::APPROVED,
             ]);
 
             // DR Accounts Payable — reduce what we owe the supplier
