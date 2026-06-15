@@ -1,9 +1,29 @@
 <template>
-    <label v-if="label" :for="id" class="form-label">
-        {{ label }}
-        <VRequiredMark v-if="required" />
-    </label>
-    <div class="input-group">
+    <div>
+        <div class="d-flex align-items-center justify-content-between mb-1">
+            <label v-if="label" :for="id" class="form-label mb-0">
+                {{ label }}
+                <VRequiredMark v-if="required" />
+            </label>
+            <div v-if="showSwitcher" class="btn-group ms-auto" role="group" aria-label="Date format">
+                <button
+                    type="button"
+                    class="btn btn-xs py-0 px-2"
+                    style="font-size: 0.7rem; line-height: 1.4;"
+                    :class="dateType === 'en' ? 'btn-primary' : 'btn-outline-secondary'"
+                    :disabled="disabled"
+                    @click.prevent="setLocalMode('en')"
+                >AD</button>
+                <button
+                    type="button"
+                    class="btn btn-xs py-0 px-2"
+                    style="font-size: 0.7rem; line-height: 1.4;"
+                    :class="dateType === 'ne' ? 'btn-primary' : 'btn-outline-secondary'"
+                    :disabled="disabled"
+                    @click.prevent="setLocalMode('ne')"
+                >BS</button>
+            </div>
+        </div>
         <flat-pickr
             v-if="dateType === 'en'"
             :config="config"
@@ -23,26 +43,10 @@
             v-model="nep_date"
             v-bind:class="[inputClass, { 'is-invalid': error }]"
         />
-        <div v-if="showSwitcher" class="btn-group btn-group-sm" role="group" aria-label="Date format">
-            <button
-                type="button"
-                class="btn"
-                :class="dateType === 'en' ? 'btn-primary' : 'btn-outline-secondary'"
-                :disabled="disabled"
-                @click.prevent="setLocalMode('en')"
-            >AD</button>
-            <button
-                type="button"
-                class="btn"
-                :class="dateType === 'ne' ? 'btn-primary' : 'btn-outline-secondary'"
-                :disabled="disabled"
-                @click.prevent="setLocalMode('ne')"
-            >BS</button>
+        <div v-if="error" class="invalid-feedback d-block">
+            {{ error }}
         </div>
     </div>
-    <p v-if="error" class="text-danger">
-        {{ error }}
-    </p>
 </template>
 
 <script setup>
