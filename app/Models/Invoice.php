@@ -41,6 +41,9 @@ class Invoice extends Model
         'approve_user_id',
         'approved_at',
         'voided_at',
+        'written_off_at',
+        'write_off_amount',
+        'write_off_remarks',
         'status',
         'ird_sync_status',
         'ird_internal_id',
@@ -57,6 +60,8 @@ class Invoice extends Model
         'reference_id' => 'integer',
         'approved_at' => 'datetime',
         'voided_at' => 'datetime',
+        'written_off_at' => 'datetime',
+        'write_off_amount' => 'float',
         'ird_synced_at' => 'datetime',
         'status' => StatusEnum::class,
         'total_amount' => 'float',
@@ -155,13 +160,20 @@ class Invoice extends Model
             - $orderDiscount
             + (float) $itemTotals->tax_total;
 
-        $paidAmount = (float) DB::table('receipt_allocations')
+        $receiptPaid = (float) DB::table('receipt_allocations')
             ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
             ->where('receipt_allocations.invoice_id', $this->id)
             ->where('receipts.status', StatusEnum::APPROVED->value)
             ->whereNull('receipt_allocations.deleted_at')
             ->whereNull('receipts.deleted_at')
             ->sum('receipt_allocations.amount');
+
+        $advancePaid = (float) DB::table('advance_applications')
+            ->where('invoice_id', $this->id)
+            ->whereNull('deleted_at')
+            ->sum('amount');
+
+        $paidAmount = $receiptPaid + $advancePaid;
 
         $this->updateQuietly([
             'total_amount' => round($grandTotal, 4),

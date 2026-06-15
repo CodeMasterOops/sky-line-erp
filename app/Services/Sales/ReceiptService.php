@@ -321,18 +321,26 @@ readonly class ReceiptService
             return [];
         }
 
-        $itemsSub = DB::table('invoice_items')
-            ->selectRaw('invoice_id, SUM(quantity * rate) as subtotal, SUM(discount_amount) as discount_total, SUM(tax_amount) as tax_total')
-            ->whereNull('deleted_at')
-            ->groupBy('invoice_id');
-
+        // When total_amount is already stored (populated by InvoiceService::refreshTotals),
+        // skip the items subquery and use the denormalized column directly. paid_amount is
+        // always live-computed from allocations inside the lock to prevent over-allocation.
         $paidSub = DB::table('receipt_allocations')
             ->join('receipts', 'receipts.id', '=', 'receipt_allocations.receipt_id')
-            ->selectRaw('receipt_allocations.invoice_id, SUM(receipt_allocations.amount) as paid_total')
+            ->selectRaw('receipt_allocations.invoice_id, SUM(receipt_allocations.amount) as receipt_paid')
             ->whereNull('receipt_allocations.deleted_at')
             ->whereNull('receipts.deleted_at')
             ->where('receipts.status', StatusEnum::APPROVED->value)
             ->groupBy('receipt_allocations.invoice_id');
+
+        $advanceSub = DB::table('advance_applications')
+            ->selectRaw('invoice_id, SUM(amount) as advance_paid')
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id');
+
+        $itemsSub = DB::table('invoice_items')
+            ->selectRaw('invoice_id, SUM(quantity * rate) as subtotal, SUM(discount_amount) as discount_total, SUM(tax_amount) as tax_total')
+            ->whereNull('deleted_at')
+            ->groupBy('invoice_id');
 
         $rows = DB::table('invoices')
             ->leftJoinSub($itemsSub, 'item_totals', function ($join) {
@@ -340,6 +348,9 @@ readonly class ReceiptService
             })
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('invoices.id', '=', 'paid_totals.invoice_id');
+            })
+            ->leftJoinSub($advanceSub, 'advance_totals', function ($join) {
+                $join->on('invoices.id', '=', 'advance_totals.invoice_id');
             })
             ->leftJoin('discounts', function ($join) {
                 $join->on('invoices.id', '=', 'discounts.discountable_id')
@@ -353,18 +364,23 @@ readonly class ReceiptService
             ->lockForUpdate()
             ->select([
                 'invoices.id',
+                'invoices.total_amount',
                 DB::raw('COALESCE(discounts.amount, 0) as order_discount_amount'),
                 DB::raw('COALESCE(item_totals.subtotal, 0) as subtotal'),
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
                 DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
-                DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+                DB::raw('COALESCE(paid_totals.receipt_paid, 0) + COALESCE(advance_totals.advance_paid, 0) as paid_total'),
             ])
             ->get();
 
         $map = [];
         foreach ($rows as $row) {
-            $orderDisc = (float) ($row->order_discount_amount ?? 0);
-            $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
+            if ($row->total_amount !== null) {
+                $grandTotal = (float) $row->total_amount;
+            } else {
+                $orderDisc = (float) ($row->order_discount_amount ?? 0);
+                $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
+            }
             $paidTotal = (float) $row->paid_total;
             $due = max($grandTotal - $paidTotal, 0);
             $map[$row->id] = [

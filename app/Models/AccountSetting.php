@@ -36,5 +36,7 @@ class AccountSetting extends Model
         'opening_stock_equity_account_id',
         'tds_payable_account_id',
         'tds_receivable_account_id',
+        'customer_advance_account_id',
+        'bad_debt_account_id',
     ];
 }

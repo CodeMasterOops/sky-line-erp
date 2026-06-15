@@ -96,7 +96,7 @@ beforeEach(function () {
     TenantService::setCompanyId($this->company->id);
 });
 
-function makeInvoice(object $test, string $no = 'INV-TDS-001'): Invoice
+function makeTdsInvoice(object $test, string $no = 'INV-TDS-001'): Invoice
 {
     return Invoice::create([
         'company_id' => $test->company->id,
@@ -130,7 +130,7 @@ it('posts a balanced 3-line journal when receipt has a TDS deduction', function 
     ]);
 
     // Gross allocation 10,000; customer paid 9,850 cash (withheld 150 TDS)
-    $invoice = makeInvoice($this, 'INV-TDS-001');
+    $invoice = makeTdsInvoice($this, 'INV-TDS-001');
     ReceiptAllocation::create([
         'receipt_id' => $receipt->id,
         'invoice_id' => $invoice->id,
@@ -188,7 +188,7 @@ it('creates a TdsDeduction record when receipt has TDS', function () {
         'tds_amount' => 150.00,
     ]);
 
-    $invoice2 = makeInvoice($this, 'INV-TDS-002');
+    $invoice2 = makeTdsInvoice($this, 'INV-TDS-002');
     ReceiptAllocation::create([
         'receipt_id' => $receipt->id,
         'invoice_id' => $invoice2->id,
@@ -224,7 +224,7 @@ it('posts a standard 2-line journal when receipt has no TDS', function () {
         'status' => StatusEnum::APPROVED,
     ]);
 
-    $invoice3 = makeInvoice($this, 'INV-TDS-003');
+    $invoice3 = makeTdsInvoice($this, 'INV-TDS-003');
     ReceiptAllocation::create([
         'receipt_id' => $receipt->id,
         'invoice_id' => $invoice3->id,
@@ -271,7 +271,7 @@ it('skips TDS Receivable line and deduction record when tds_receivable_account_i
         'tds_amount' => 200.00,
     ]);
 
-    $invoice4 = makeInvoice($this, 'INV-TDS-004');
+    $invoice4 = makeTdsInvoice($this, 'INV-TDS-004');
     ReceiptAllocation::create([
         'receipt_id' => $receipt->id,
         'invoice_id' => $invoice4->id,

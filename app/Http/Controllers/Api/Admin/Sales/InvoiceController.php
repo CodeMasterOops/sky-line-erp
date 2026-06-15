@@ -9,6 +9,7 @@ use App\Annotation\Permissions;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Sales\BadDebtService;
 use App\Services\Sales\InvoiceService;
 use App\Http\Resources\Admin\Sales\InvoiceResource;
 use App\Http\Requests\Api\Admin\Sales\InvoiceRequest;
@@ -17,6 +18,7 @@ class InvoiceController extends Controller
 {
     public function __construct(
         private readonly InvoiceService $invoiceService,
+        private readonly BadDebtService $badDebtService,
     ) {}
 
     /**
@@ -165,6 +167,34 @@ class InvoiceController extends Controller
     }
 
     /**
+     * @Permissions("write_off_invoice", group="invoice", desc="Write Off Invoice Bad Debt")
+     */
+    public function writeOff(Request $request, Invoice $invoice)
+    {
+        $data = $request->validate([
+            'amount' => ['nullable', 'numeric', 'min:0.01'],
+            'remarks' => ['nullable', 'string'],
+            'written_off_at' => ['nullable', 'date'],
+        ]);
+
+        $amount = isset($data['amount'])
+            ? (float) $data['amount']
+            : round(max(((float) ($invoice->total_amount ?? 0)) - ((float) ($invoice->paid_amount ?? 0)), 0), 4);
+
+        $this->badDebtService->writeOff(
+            $invoice,
+            $amount,
+            $data['remarks'] ?? null,
+            $data['written_off_at'] ?? null,
+        );
+
+        return response()->json([
+            'data' => InvoiceResource::make($invoice->refresh()),
+            'message' => 'Invoice written off successfully.',
+        ]);
+    }
+
+    /**
      * @Permissions("approve_invoice", group="invoice", desc="Approve Invoice")
      */
     public function approve(Invoice $invoice)
@@ -241,11 +271,14 @@ class InvoiceController extends Controller
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')
+            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
             ->select([
                 'invoices.id',
                 'invoices.invoice_no',
                 'invoices.invoice_date',
                 'invoices.due_date',
+                'invoices.total_amount',
+                'invoices.paid_amount',
                 DB::raw('COALESCE(discounts.amount, 0) as order_discount_amount'),
                 DB::raw('COALESCE(item_totals.subtotal, 0) as subtotal'),
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
@@ -254,9 +287,15 @@ class InvoiceController extends Controller
             ])
             ->get()
             ->map(function ($row) {
-                $orderDisc = (float) ($row->order_discount_amount ?? 0);
-                $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
-                $paidTotal = (float) $row->paid_total;
+                if ($row->total_amount !== null) {
+                    $grandTotal = (float) $row->total_amount;
+                    $paidTotal = (float) ($row->paid_amount ?? 0);
+                } else {
+                    $orderDisc = (float) ($row->order_discount_amount ?? 0);
+                    $grandTotal = (float) $row->subtotal - (float) $row->discount_total - $orderDisc + (float) $row->tax_total;
+                    $paidTotal = (float) $row->paid_total;
+                }
+
                 $due = max($grandTotal - $paidTotal, 0);
                 $row->grand_total = round($grandTotal, 2);
                 $row->paid_total = round($paidTotal, 2);
