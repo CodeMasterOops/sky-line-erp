@@ -215,12 +215,10 @@
                             <input v-model="form.amount" type="number" class="form-control" min="0" step="0.01" />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Cheque Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" v-model="form.cheque_date" />
+                            <VDatepicker id="cheque_date" label="Cheque Date" v-model="form.cheque_date" required />
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">{{ depositDateLabel }}</label>
-                            <input type="date" class="form-control" v-model="form.deposit_date" />
+                            <VDatepicker id="deposit_date" :label="depositDateLabel" v-model="form.deposit_date" />
                         </div>
                         <div class="col-12">
                             <label class="form-label">Remarks</label>
@@ -254,11 +252,12 @@
                         · {{ actionModal.cheque?.party?.name }}
                     </p>
                     <div v-if="actionModal.type !== 'bounce'" class="mb-3">
-                        <label class="form-label">
-                            {{ actionModal.type === 'present' ? 'Deposit / Presentation Date' : 'Cleared Date' }}
-                            <span class="text-danger">*</span>
-                        </label>
-                        <input type="date" class="form-control" v-model="actionModal.date" />
+                        <VDatepicker
+                            id="action_date"
+                            :label="actionModal.type === 'present' ? 'Deposit / Presentation Date' : 'Cleared Date'"
+                            v-model="actionModal.date"
+                            required
+                        />
                     </div>
                     <div v-if="actionModal.type === 'bounce'" class="mb-3">
                         <label class="form-label">Bounce Reason</label>
@@ -293,6 +292,7 @@ import { adToBsDate } from '@/helpers/helper.js';
 import { formatMoney } from '@/helpers/formatMoney.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const loading = ref(false);
 const saving = ref(false);

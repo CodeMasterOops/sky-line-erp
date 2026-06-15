@@ -130,17 +130,11 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Fiscal Year <span class="text-danger">*</span></label>
-                            <select v-model="form.fiscal_year_id" class="form-select">
-                                <option v-for="fy in fiscalYears" :key="fy.id" :value="fy.id">{{ fy.year_code }}</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Budget Name <span class="text-danger">*</span></label>
                             <input v-model="form.name" class="form-control" />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Branch (optional)</label>
                             <select v-model="form.branch_id" class="form-select">
                                 <option value="">All Branches</option>
@@ -213,7 +207,7 @@
 </template>
 
 <script setup>
-import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import {formatMoney} from '@/helpers/formatMoney.js';
 import { ref, computed, onMounted } from 'vue';
 import VPagination from '@/components/base/VPagination.vue';
 import { usePaginatedList } from '@/composables/usePaginatedList.js';
@@ -227,7 +221,6 @@ const saving = ref(false);
 const vsActualLoading = ref(false);
 const budgets = ref([]);
 const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
-const fiscalYears = ref([]);
 const branches = ref([]);
 const accounts = ref([]);
 const accountSearch = ref('');
@@ -238,7 +231,7 @@ const vsActualData = ref(null);
 const vsActualFilter = ref({ from_date: '', to_date: '' });
 
 const emptyLine = () => ({ account_id: '', period_month: '', budgeted_amount: '' });
-const form = ref({ fiscal_year_id: '', branch_id: '', name: '', is_active: true, lines: [emptyLine()] });
+const form = ref({ branch_id: '', name: '', is_active: true, lines: [emptyLine()] });
 
 const filteredAccounts = computed(() => {
     const q = accountSearch.value.trim().toLowerCase();
@@ -284,17 +277,9 @@ const { filter, fetch: fetchBudgets } = usePaginatedList({
 });
 
 onMounted(() => {
-    fetchFiscalYears();
     fetchBranches();
     fetchAccounts();
 });
-
-async function fetchFiscalYears() {
-    try {
-        const { data } = await apiAdmin('admin-setting/fiscal-year');
-        fiscalYears.value = data.data;
-    } catch { /* optional */ }
-}
 
 async function fetchBranches() {
     try {
@@ -317,7 +302,7 @@ function addLine() {
 function openCreate() {
     editingId.value = null;
     accountSearch.value = '';
-    form.value = { fiscal_year_id: '', branch_id: '', name: '', is_active: true, lines: [emptyLine()] };
+    form.value = { branch_id: '', name: '', is_active: true, lines: [emptyLine()] };
     formModal.value = true;
 }
 
@@ -325,7 +310,6 @@ function openEdit(budget) {
     editingId.value = budget.id;
     accountSearch.value = '';
     form.value = {
-        fiscal_year_id: budget.fiscal_year_id,
         branch_id: budget.branch_id ?? '',
         name: budget.name,
         is_active: budget.is_active,
@@ -379,7 +363,6 @@ async function deleteBudget(id) {
     toast('success', 'Budget deleted.');
     fetchBudgets();
 }
-
 
 function progressColor(row) {
     const pct = row.budgeted_amount > 0 ? row.actual_amount / row.budgeted_amount * 100 : 0;

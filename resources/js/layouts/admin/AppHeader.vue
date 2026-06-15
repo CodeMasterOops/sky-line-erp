@@ -48,55 +48,9 @@
                     </span>
                 </router-link>
             </li>
-            <li
-                v-if="visibleQuickShortcuts.length"
-                class="nav-item dropdown link-nav"
-            >
-                <a
-                    href="javascript:void(0);"
-                    class="btn btn-primary btn-md d-inline-flex align-items-center"
-                    data-bs-toggle="dropdown"
-                    aria-label="Quick shortcuts"
-                    :title="'Jump to key screens'"
-                >
-                    <i class="fa fa-bolt me-1" aria-hidden="true"></i>
-                    <span class="d-none d-lg-inline">Shortcuts</span>
-                </a>
-                <div class="dropdown-menu dropdown-xl dropdown-menu-center">
-                    <div class="row g-2">
-                        <div
-                            v-for="s in visibleQuickShortcuts"
-                            :key="s.name"
-                            class="col-6 col-md-2"
-                        >
-                            <router-link
-                                :to="{ name: s.name }"
-                                class="link-item"
-                            >
-                                <span class="link-icon">
-                                    <i :class="s.icon"></i>
-                                </span>
-                                <p>{{ s.label }}</p>
-                            </router-link>
-                        </div>
-                    </div>
-                </div>
-            </li>
 
-            <li class="nav-item pos-nav">
-                <router-link :to="{ name: 'admin.pos' }" class="btn btn-dark btn-md d-inline-flex align-items-center">
-                    <i class="fa fa-laptop me-1"></i>POS
-                </router-link>
-            </li>
-
-            <li class="nav-item nav-item-box">
-                <a href="javascript:void(0);" id="btnFullscreen" @click.prevent="initFullScreen">
-                    <i class="fa fa-arrows-alt"></i>
-                </a>
-            </li>
-
-            <li class="nav-item d-flex align-items-center">
-                <div class="btn-group btn-group-sm" role="group" aria-label="Date format">
+            <li class="nav-item date-mode-nav">
+                <div class="btn-group" role="group" aria-label="Date format">
                     <button
                         type="button"
                         class="btn"
@@ -110,6 +64,16 @@
                         @click="setDateMode('ne')"
                     >BS</button>
                 </div>
+            </li>
+
+            <li class="nav-item d-flex align-items-center">
+                <div class="vr" style="height: 24px;"></div>
+            </li>
+
+            <li class="nav-item nav-item-box">
+                <a href="javascript:void(0);" id="btnFullscreen" @click.prevent="initFullScreen">
+                    <i class="fa fa-arrows-alt"></i>
+                </a>
             </li>
 
             <HeaderNotificationDropdown
@@ -181,8 +145,6 @@
 <script setup>
 import userIcon from '@/assets/images/user-icon.png';
 import {computed, onMounted} from "vue";
-import {getAdminRoutePermission} from "@/router/adminRoutePermissions";
-import {satisfiesAdminRoutePermission} from "@/helpers/checkPermission";
 import {useProfileStore} from "@/stores/admin/profile";
 import {storeToRefs} from "pinia";
 import {useAdminAuthStore} from "@/stores/admin/auth";
@@ -209,26 +171,6 @@ const route = useRoute();
 
 const {mode: dateMode} = storeToRefs(datePreferenceStore);
 const setDateMode = (mode) => datePreferenceStore.setMode(mode);
-
-/** Name must match a route in `admin.js`; access follows `adminRoutePermissions.js`. */
-const QUICK_SHORTCUTS = [
-    { label: 'Dashboard', name: 'admin.dashboard', icon: 'ti ti-layout-dashboard' },
-    { label: 'POS', name: 'admin.pos', icon: 'ti ti-device-laptop' },
-    { label: 'Sales', name: 'admin.sales-list', icon: 'ti ti-shopping-cart' },
-    { label: 'Bills', name: 'admin.bill-list', icon: 'ti ti-file-description' },
-    { label: 'Products', name: 'admin.product-list', icon: 'ti ti-package' },
-    { label: 'Invoices', name: 'admin.invoice-list', icon: 'ti ti-receipt' },
-    { label: 'Expenses', name: 'admin.expense-list', icon: 'ti ti-file-invoice' },
-    { label: 'Parties', name: 'admin.party-list', icon: 'ti ti-users' },
-    { label: 'Reports', name: 'admin.reports-hub', icon: 'ti ti-report-analytics' },
-    { label: 'Settings', name: 'admin.setting', icon: 'ti ti-settings' },
-];
-
-const visibleQuickShortcuts = computed(() =>
-    QUICK_SHORTCUTS.filter((s) =>
-        satisfiesAdminRoutePermission(getAdminRoutePermission(s.name))
-    )
-);
 
 const toggleMobileBtn = () => {
     document.body.classList.toggle('slide-nav');

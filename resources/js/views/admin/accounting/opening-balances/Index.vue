@@ -70,21 +70,10 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label">Fiscal Year</label>
-                            <Multiselect
-                                v-model="form.fiscal_year_id"
-                                :options="fiscalYearOptions"
-                                value-prop="value"
-                                label="label"
-                                :searchable="true"
-                                placeholder="Select Fiscal Year"
-                            />
-                        </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <VDatepicker id="form_date" label="As of Date" v-model="form.date" required />
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <label class="form-label">Remarks</label>
                             <input type="text" class="form-control" v-model="form.remarks" placeholder="Opening Balance Entry" />
                         </div>
@@ -108,45 +97,45 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(line, idx) in form.items" :key="idx">
-                                    <td>
-                                        <Multiselect
-                                            v-model="line.account_id"
-                                            :options="accountOptions"
-                                            value-prop="value"
-                                            label="label"
-                                            :searchable="true"
-                                            placeholder="Select account"
-                                        />
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="number"
-                                            class="form-control text-end"
-                                            v-model="line.dr_amount"
-                                            min="0"
-                                            step="0.01"
-                                            placeholder="0.00"
-                                            @change="onDrChange(line)"
-                                        />
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="number"
-                                            class="form-control text-end"
-                                            v-model="line.cr_amount"
-                                            min="0"
-                                            step="0.01"
-                                            placeholder="0.00"
-                                            @change="onCrChange(line)"
-                                        />
-                                    </td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-danger" @click="removeLine(idx)">
-                                            <i class="ti ti-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
+                                <template v-for="(line, idx) in form.items" :key="idx">
+                                    <tr>
+                                        <td>
+                                            <Multiselect
+                                                v-model="line.account_id"
+                                                :options="accountOptions"
+                                                value-prop="value"
+                                                label="label"
+                                                :searchable="true"
+                                                placeholder="Select account"
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                class="form-control text-end"
+                                                v-model="line.dr_amount"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="number"
+                                                class="form-control text-end"
+                                                v-model="line.cr_amount"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="0.00"
+                                            />
+                                        </td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-outline-danger" @click="removeLine(idx)">
+                                                <i class="ti ti-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
                                 <tr v-if="!form.items.length">
                                     <td colspan="4" class="text-center text-muted py-3">
                                         Click "Add Line" to add account entries.
@@ -250,11 +239,9 @@ const loading = ref(false);
 const showForm = ref(false);
 const saving = ref(false);
 const viewingEntry = ref(null);
-const fiscalYearOptions = ref([]);
 const accountOptions = ref([]);
 
 const defaultForm = () => ({
-    fiscal_year_id: null,
     date: new Date().toISOString().split('T')[0],
     remarks: 'Opening Balance Entry',
     items: [
@@ -322,16 +309,6 @@ const { handleTableChange } = useTablePagination({
     filter,
 });
 
-const loadFiscalYears = async () => {
-    try {
-        const res = await apiAdmin('admin-setting/fiscal-year', 'get');
-        fiscalYearOptions.value = (res.data.data || []).map((fy) => ({
-            label: fy.year_name,
-            value: fy.id,
-        }));
-    } catch { /* ignore */ }
-};
-
 const loadAccounts = async () => {
     try {
         const res = await apiAdmin('account', 'get', { per_page: 500 });
@@ -340,14 +317,6 @@ const loadAccounts = async () => {
             value: a.id,
         }));
     } catch { /* ignore */ }
-};
-
-const onDrChange = (line) => {
-    if (parseFloat(line.dr_amount) > 0) line.cr_amount = 0;
-};
-
-const onCrChange = (line) => {
-    if (parseFloat(line.cr_amount) > 0) line.dr_amount = 0;
 };
 
 const addLine = () => {
@@ -382,6 +351,5 @@ const postOpeningBalance = async () => {
     }
 };
 
-loadFiscalYears();
 loadAccounts();
 </script>

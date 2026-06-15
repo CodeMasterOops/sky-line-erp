@@ -61,14 +61,6 @@ class OpeningBalanceController extends Controller
             ]);
         }
 
-        foreach ($items->values() as $index => $item) {
-            if ((float) $item['dr_amount'] > 0 && (float) $item['cr_amount'] > 0) {
-                throw ValidationException::withMessages([
-                    "items.$index" => 'Each line must have either a Debit or a Credit amount — not both.',
-                ]);
-            }
-        }
-
         $totalDr = $items->sum(fn ($i) => (float) $i['dr_amount']);
         $totalCr = $items->sum(fn ($i) => (float) $i['cr_amount']);
 
