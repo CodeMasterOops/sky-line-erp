@@ -57,7 +57,7 @@ class StockAdjustmentController extends Controller
                 $adjustment = StockAdjustment::create([
                     'reference_no' => $formData['reference_no'] ?? null,
                     'date' => $formData['date'],
-                    'warehouse_id' => $formData['warehouse_id'],
+                    'warehouse_id' => $formData['warehouse_id'] ?? null,
                     'remarks' => $formData['remarks'] ?? null,
                     'create_user_id' => $user->id,
                     'approve_user_id' => $status === StatusEnum::APPROVED->value ? $user->id : null,
@@ -80,7 +80,7 @@ class StockAdjustmentController extends Controller
             ], 422);
         }
 
-        $adjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
+        $adjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($adjustment),
@@ -95,6 +95,7 @@ class StockAdjustmentController extends Controller
     {
         $stockAdjustment->load([
             'warehouse',
+            'stockAdjustmentItems.warehouse',
             'stockAdjustmentItems.productVariant.product',
             'stockAdjustmentItems.unit',
         ]);
@@ -119,7 +120,7 @@ class StockAdjustmentController extends Controller
             $stockAdjustment->update([
                 'reference_no' => $formData['reference_no'] ?? null,
                 'date' => $formData['date'],
-                'warehouse_id' => $formData['warehouse_id'],
+                'warehouse_id' => $formData['warehouse_id'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
             ]);
 
@@ -127,6 +128,7 @@ class StockAdjustmentController extends Controller
 
             $items = collect($formData['items'] ?? [])->map(function ($item) {
                 return [
+                    'warehouse_id' => $item['warehouse_id'] ?? null,
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'direction' => $item['direction'],
@@ -140,7 +142,7 @@ class StockAdjustmentController extends Controller
             return $stockAdjustment;
         });
 
-        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
+        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($stockAdjustment),
@@ -200,7 +202,7 @@ class StockAdjustmentController extends Controller
             ], 422);
         }
 
-        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
+        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($stockAdjustment),
@@ -219,6 +221,8 @@ class StockAdjustmentController extends Controller
                 continue;
             }
 
+            $warehouseId = $item->warehouse_id ?? $adjustment->warehouse_id;
+
             if ($item->direction === StockDirectionEnum::IN->value) {
                 $unitCost = (float) ($item->unit_cost ?? 0);
 
@@ -226,7 +230,7 @@ class StockAdjustmentController extends Controller
                     $company,
                     $adjustment,
                     $item->product_variant_id,
-                    $adjustment->warehouse_id,
+                    $warehouseId,
                     $quantity,
                     $unitCost,
                     ChangeTypeEnum::ADJUSTMENT_IN,
@@ -239,7 +243,7 @@ class StockAdjustmentController extends Controller
                     $company,
                     $adjustment,
                     $item->product_variant_id,
-                    $adjustment->warehouse_id,
+                    $warehouseId,
                     $quantity,
                     ChangeTypeEnum::ADJUSTMENT_OUT,
                     $user->id,

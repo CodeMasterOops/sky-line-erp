@@ -20,13 +20,14 @@ class StockTransferRequest extends FormRequest
         $rules = [
             'reference_no' => ['nullable', 'string', 'max:255'],
             'date' => ['required', 'date', new WithinActiveFiscalYear],
-            'from_warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
-            'to_warehouse_id' => ['required', 'different:from_warehouse_id', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'from_warehouse_id' => ['nullable', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'to_warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
+            'items.*.from_warehouse_id' => ['required', 'integer', 'different:to_warehouse_id', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ];
 

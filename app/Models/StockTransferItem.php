@@ -17,6 +17,7 @@ class StockTransferItem extends Model
         'stock_transfer_id',
         'product_variant_id',
         'unit_id',
+        'from_warehouse_id',
         'quantity',
     ];
 
@@ -33,5 +34,10 @@ class StockTransferItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function fromWarehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'from_warehouse_id');
     }
 }

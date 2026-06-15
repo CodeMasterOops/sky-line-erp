@@ -31,7 +31,7 @@ class InventoryLayerTransferService
         }
 
         $variantId = $item->product_variant_id;
-        $fromId = $transfer->from_warehouse_id;
+        $fromId = $item->from_warehouse_id ?? $transfer->from_warehouse_id;
         $toId = $transfer->to_warehouse_id;
 
         $lockFirstW = (int) min($fromId, $toId);

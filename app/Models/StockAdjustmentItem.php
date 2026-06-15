@@ -14,6 +14,7 @@ class StockAdjustmentItem extends Model
 
     protected $fillable = [
         'stock_adjustment_id',
+        'warehouse_id',
         'product_variant_id',
         'unit_id',
         'direction',
@@ -39,5 +40,10 @@ class StockAdjustmentItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 }

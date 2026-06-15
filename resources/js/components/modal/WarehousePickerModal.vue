@@ -1,5 +1,5 @@
 <template>
-  <div class="modal fade" :id="modalId" tabindex="-1" aria-hidden="true">
+  <div class="modal fade modal-default" :id="modalId" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
@@ -11,7 +11,7 @@
         <div class="modal-body">
           <p class="text-muted small mb-3">
             <span v-if="variantName" class="fw-medium text-body">{{ variantName }}</span>
-            is available in multiple warehouses. Choose where to issue stock from.
+            is available in multiple warehouses. Choose a warehouse.
           </p>
           <div class="list-group">
             <button
@@ -23,7 +23,9 @@
               @click="selectedId = opt.warehouse_id"
             >
               <span>{{ opt.warehouse_name }}</span>
-              <span class="badge bg-primary rounded-pill">{{ opt.quantity }} in stock</span>
+              <span class="badge rounded-pill" :class="selectedId === opt.warehouse_id ? 'bg-white text-primary' : 'bg-primary'">
+                {{ opt.quantity }} in stock
+              </span>
             </button>
           </div>
         </div>
@@ -73,7 +75,7 @@ export default {
   mounted() {
     const el = document.getElementById(this.modalId);
     if (el) {
-      this.modalInstance = Modal.getOrCreateInstance(el);
+      this.modalInstance = new Modal(el, { backdrop: false });
       el.addEventListener('hidden.bs.modal', () => {
         if (!this.confirmed) {
           this.$emit('cancel');
@@ -81,6 +83,10 @@ export default {
         this.confirmed = false;
       });
     }
+  },
+
+  beforeUnmount() {
+    this.modalInstance?.dispose();
   },
 
   methods: {
