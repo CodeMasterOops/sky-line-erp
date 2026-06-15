@@ -56,6 +56,7 @@ class StockMovementGlPostingService
             $purchaseId,
             $grniId,
             $settings->opening_stock_equity_account_id,
+            $settings->stock_adjustment_account_id,
         );
         if ($pair === null) {
             return;
@@ -131,11 +132,13 @@ class StockMovementGlPostingService
         ?int $purchaseId,
         ?int $grniId,
         ?int $openingStockEquityId,
+        ?int $stockAdjustmentId,
     ): ?array {
         if (! $inventoryId) {
             return null;
         }
 
+        // Sale issues: COGS Dr / Inventory Cr
         if ($movement->direction === StockDirectionEnum::OUT && $movement->type === ChangeTypeEnum::SALE) {
             if (! $cogsId) {
                 return null;
@@ -144,6 +147,16 @@ class StockMovementGlPostingService
             return [$cogsId, $inventoryId];
         }
 
+        // Delivery challan issues: same treatment as sale — COGS Dr / Inventory Cr
+        if ($movement->direction === StockDirectionEnum::OUT && $movement->type === ChangeTypeEnum::DELIVERY) {
+            if (! $cogsId) {
+                return null;
+            }
+
+            return [$cogsId, $inventoryId];
+        }
+
+        // Direct purchase receipt (no GRN): Inventory Dr / Purchase Cr
         if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::PURCHASE) {
             if (! $purchaseId) {
                 return null;
@@ -152,6 +165,7 @@ class StockMovementGlPostingService
             return [$inventoryId, $purchaseId];
         }
 
+        // GRN receipt: Inventory Dr / GRNI Cr
         if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::GRN_RECEIPT) {
             if (! $grniId) {
                 return null;
@@ -160,6 +174,7 @@ class StockMovementGlPostingService
             return [$inventoryId, $grniId];
         }
 
+        // Sales return: Inventory Dr / COGS Cr (reverses the original COGS entry)
         if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::RETURN_IN) {
             if (! $cogsId) {
                 return null;
@@ -168,6 +183,7 @@ class StockMovementGlPostingService
             return [$inventoryId, $cogsId];
         }
 
+        // Purchase return: Purchase Dr / Inventory Cr
         if ($movement->direction === StockDirectionEnum::OUT && $movement->type === ChangeTypeEnum::RETURN_OUT) {
             if (! $purchaseId) {
                 return null;
@@ -176,6 +192,7 @@ class StockMovementGlPostingService
             return [$purchaseId, $inventoryId];
         }
 
+        // Opening stock: Inventory Dr / Opening Stock Equity Cr
         if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::OPENING_STOCK) {
             if (! $openingStockEquityId) {
                 return null;
@@ -184,20 +201,22 @@ class StockMovementGlPostingService
             return [$inventoryId, $openingStockEquityId];
         }
 
+        // Positive adjustment (surplus/found stock): Inventory Dr / Stock Adjustment Cr
         if ($movement->direction === StockDirectionEnum::IN && $movement->type === ChangeTypeEnum::ADJUSTMENT_IN) {
-            if (! $purchaseId) {
+            if (! $stockAdjustmentId) {
                 return null;
             }
 
-            return [$inventoryId, $purchaseId];
+            return [$inventoryId, $stockAdjustmentId];
         }
 
+        // Negative adjustment (shrinkage/damage/write-off): Stock Adjustment Dr / Inventory Cr
         if ($movement->direction === StockDirectionEnum::OUT && $movement->type === ChangeTypeEnum::ADJUSTMENT_OUT) {
-            if (! $cogsId) {
+            if (! $stockAdjustmentId) {
                 return null;
             }
 
-            return [$cogsId, $inventoryId];
+            return [$stockAdjustmentId, $inventoryId];
         }
 
         return null;

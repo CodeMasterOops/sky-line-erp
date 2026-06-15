@@ -38,5 +38,6 @@ class AccountSetting extends Model
         'tds_receivable_account_id',
         'customer_advance_account_id',
         'bad_debt_account_id',
+        'stock_adjustment_account_id',
     ];
 }

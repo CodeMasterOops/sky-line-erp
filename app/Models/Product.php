@@ -133,8 +133,7 @@ class Product extends Model
 
     public function defaultVariant(): HasOne
     {
-        //        return $this->hasOne(ProductVariant::class)->where('is_default', true);
-        return $this->hasOne(ProductVariant::class);
+        return $this->hasOne(ProductVariant::class)->where('is_default', true)->orderBy('id');
     }
 
     public function variants(): HasMany

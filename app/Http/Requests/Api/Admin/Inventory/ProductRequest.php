@@ -169,7 +169,10 @@ class ProductRequest extends FormRequest
                         }
                     }
 
-                    $query = ProductVariant::query()->where('barcode', $value);
+                    $companyId = auth('admin')->user()?->company_id;
+                    $query = ProductVariant::query()
+                        ->where('barcode', $value)
+                        ->when($companyId, fn ($q) => $q->where('company_id', $companyId));
                     if ($variantId) {
                         $query->where('id', '!=', $variantId);
                     }

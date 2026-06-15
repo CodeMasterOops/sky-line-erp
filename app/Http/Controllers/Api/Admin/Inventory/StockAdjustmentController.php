@@ -152,8 +152,16 @@ class StockAdjustmentController extends Controller
      */
     public function destroy(StockAdjustment $stockAdjustment)
     {
-        $stockAdjustment->stockAdjustmentItems()->delete();
-        $stockAdjustment->delete();
+        if ($stockAdjustment->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved stock adjustments cannot be deleted. Please create a counter-adjustment to reverse the stock effects.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($stockAdjustment) {
+            $stockAdjustment->stockAdjustmentItems()->delete();
+            $stockAdjustment->delete();
+        });
 
         return response()->json([
             'message' => 'Stock Adjustment Deleted Successfully',

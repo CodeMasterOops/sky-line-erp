@@ -156,8 +156,16 @@ class StockTransferController extends Controller
      */
     public function destroy(StockTransfer $stockTransfer)
     {
-        $stockTransfer->stockTransferItems()->delete();
-        $stockTransfer->delete();
+        if ($stockTransfer->status === StatusEnum::APPROVED) {
+            return response()->json([
+                'message' => 'Approved stock transfers cannot be deleted. Please create a reverse transfer to correct the stock movement.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($stockTransfer) {
+            $stockTransfer->stockTransferItems()->delete();
+            $stockTransfer->delete();
+        });
 
         return response()->json([
             'message' => 'Stock Transfer Deleted Successfully',

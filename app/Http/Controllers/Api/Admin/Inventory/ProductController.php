@@ -25,8 +25,21 @@ class ProductController extends Controller
      */
     public function productVariants(Request $request)
     {
-        $variants = ProductVariant::with(['product:id,name,unit_id,product_type', 'variantOptions'])
-            ->get();
+        $limit = min((int) $request->get('limit', 500), 1000);
+        $search = trim((string) $request->get('search', ''));
+
+        $query = ProductVariant::with(['product:id,name,unit_id,product_type', 'variantOptions']);
+
+        if ($search !== '') {
+            $like = '%'.$search.'%';
+            $query->where(function ($q) use ($like) {
+                $q->where('sku', 'like', $like)
+                    ->orWhere('barcode', 'like', $like)
+                    ->orWhereHas('product', fn ($p) => $p->where('name', 'like', $like)->orWhere('code', 'like', $like));
+            });
+        }
+
+        $variants = $query->limit($limit)->get();
 
         return ProductVariantResource::collection($variants);
     }
@@ -243,8 +256,20 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
-        $product->variants()->delete();
-        $product->delete();
+        $hasStock = $product->variants()
+            ->whereHas('stocks', fn ($q) => $q->where('quantity', '>', 0))
+            ->exists();
+
+        if ($hasStock) {
+            return response()->json([
+                'message' => 'This product has stock on hand and cannot be deleted. Please adjust stock to zero before deleting.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($product) {
+            $product->variants()->delete();
+            $product->delete();
+        });
 
         return response()->json([
             'message' => 'Product Deleted Successfully',

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
+use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
@@ -53,8 +54,8 @@ class GoodsReceivedNoteController extends Controller
     public function billableItems(Request $request)
     {
         $request->validate([
-            'party_id' => ['required', 'integer', 'exists:parties,id'],
-            'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
+            'party_id' => ['required', 'integer', TRule::exists('parties', 'id')->withoutTrashed()],
+            'warehouse_id' => ['nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
         ]);
 
         $items = $this->grnService->billableItemsForParty(

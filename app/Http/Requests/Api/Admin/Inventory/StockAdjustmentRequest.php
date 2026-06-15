@@ -4,6 +4,8 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
+use App\Enums\ProductTypeEnum;
+use App\Models\ProductVariant;
 use Illuminate\Validation\Rule;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Validation\Validator;
@@ -41,7 +43,28 @@ class StockAdjustmentRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function ($validator) {
+            $seenVariantIds = [];
             foreach ($this->input('items', []) as $i => $item) {
+                $variantId = $item['product_variant_id'] ?? null;
+
+                if ($variantId !== null) {
+                    if (in_array($variantId, $seenVariantIds, true)) {
+                        $validator->errors()->add("items.$i.product_variant_id", __('Duplicate product variant in the same adjustment. Each variant may only appear once.'));
+                    } else {
+                        $seenVariantIds[] = $variantId;
+                    }
+                }
+
+                if ($variantId) {
+                    $variant = ProductVariant::withoutGlobalScopes()
+                        ->with('product:id,product_type')
+                        ->find($variantId);
+
+                    if ($variant?->product?->product_type === ProductTypeEnum::SERVICE) {
+                        $validator->errors()->add("items.$i.product_variant_id", __('Service products cannot have stock adjusted.'));
+                    }
+                }
+
                 if (($item['direction'] ?? '') === StockDirectionEnum::IN->value) {
                     $cost = $item['unit_cost'] ?? null;
                     if ($cost === null || $cost === '') {

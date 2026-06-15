@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OpeningStockEntryRequest extends FormRequest
@@ -28,5 +29,23 @@ class OpeningStockEntryRequest extends FormRequest
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            $seenVariantIds = [];
+            foreach ($this->input('items', []) as $i => $item) {
+                $variantId = $item['product_variant_id'] ?? null;
+                if ($variantId === null) {
+                    continue;
+                }
+                if (in_array($variantId, $seenVariantIds, true)) {
+                    $validator->errors()->add("items.$i.product_variant_id", __('Duplicate product variant in the same opening stock entry. Each variant may only appear once.'));
+                } else {
+                    $seenVariantIds[] = $variantId;
+                }
+            }
+        });
     }
 }
