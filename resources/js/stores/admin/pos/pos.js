@@ -615,7 +615,7 @@ export const usePosStore = defineStore('pos', {
         },
 
         async processReturn(invoiceId, items, reason = '') {
-            const res = await apiAdmin.post('pos/return', { invoice_id: invoiceId, items, reason });
+            const res = await apiAdmin('pos/return', 'post', { invoice_id: invoiceId, items, reason });
             return res.data.data;
         },
     },

@@ -39,11 +39,11 @@
           <button
             type="button"
             class="btn btn-md btn-success"
-            :disabled="cashTendered < grandTotal"
+            :disabled="cashTendered < grandTotal || checkoutLoading"
             @click="doCheckout()"
           >
-            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-            Confirm Payment
+            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+            {{ checkoutLoading ? 'Processing...' : 'Confirm Payment' }}
           </button>
         </div>
       </div>
@@ -71,9 +71,9 @@
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-primary" @click="doCheckout()">
-            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-            Confirm Payment
+          <button type="button" class="btn btn-md btn-primary" :disabled="checkoutLoading" @click="doCheckout()">
+            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+            {{ checkoutLoading ? 'Processing...' : 'Confirm Payment' }}
           </button>
         </div>
       </div>
@@ -101,9 +101,9 @@
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-primary" @click="doCheckout()">
-            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-            <i class="ti ti-credit-card me-1"></i>Charge Card
+          <button type="button" class="btn btn-md btn-primary" :disabled="checkoutLoading" @click="doCheckout()">
+            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="ti ti-credit-card me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Charge Card' }}
           </button>
         </div>
       </div>
@@ -132,9 +132,9 @@
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-info" @click="doCheckout()">
-            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-            <i class="ti ti-scan me-1"></i>Confirm Scan
+          <button type="button" class="btn btn-md btn-info" :disabled="checkoutLoading" @click="doCheckout()">
+            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="ti ti-scan me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Scan' }}
           </button>
         </div>
       </div>
@@ -170,9 +170,9 @@
         </div>
         <div class="modal-footer d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-warning" @click="doCheckout('credit')">
-            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-            <i class="ti ti-clock-dollar me-1"></i>Confirm Credit Sale
+          <button type="button" class="btn btn-md btn-warning" :disabled="checkoutLoading" @click="doCheckout('credit')">
+            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="ti ti-clock-dollar me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Credit Sale' }}
           </button>
         </div>
       </div>
@@ -244,11 +244,11 @@
           <button
             type="button"
             class="btn btn-md btn-primary"
-            :disabled="splitAllocated < grandTotal"
+            :disabled="splitAllocated < grandTotal || checkoutLoading"
             @click="doSplitCheckout()"
           >
-            <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
-            <i class="ti ti-arrows-split me-1"></i>Confirm Split Payment
+            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="ti ti-arrows-split me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Split Payment' }}
           </button>
         </div>
       </div>
@@ -1553,9 +1553,10 @@ export default {
     todaySummary:    { type: Object, default: () => ({ sale_count: 0, sale_total: 0, profit: 0, cogs: 0 }) },
     paymentModes:    { type: Array, default: () => [] },
     tillSession:     { type: Object, default: null },
+    checkoutLoading: { type: Boolean, default: false },
   },
 
-  emits: ['checkout', 'clear-cart', 'hold', 'restore-held-order', 'delete-held-order', 'customer-created', 'till-opened', 'till-closed', 'vat-toggle'],
+  emits: ['checkout', 'clear-cart', 'hold', 'restore-held-order', 'delete-held-order', 'customer-created', 'till-opened', 'till-closed', 'vat-toggle', 'return-processed'],
 
   data() {
     return {
@@ -1838,6 +1839,7 @@ export default {
         });
         this.returnResult = res.data.data;
         useToast().success(res.data.message ?? 'Return processed successfully.');
+        this.$emit('return-processed');
       } catch (err) {
         showErrors(err);
       } finally {

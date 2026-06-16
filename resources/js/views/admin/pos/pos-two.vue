@@ -485,6 +485,7 @@
     :today-summary="posStore.todaySummary"
     :payment-modes="posStore.paymentModes"
     :till-session="posStore.tillSession"
+    :checkout-loading="posStore.checkoutLoading"
     @checkout="processCheckout"
     @clear-cart="onNextOrder"
     @hold="onHold"
@@ -493,6 +494,7 @@
     @customer-created="onCustomerCreated"
     @till-opened="onTillOpened"
     @till-closed="onTillClosed"
+    @return-processed="onReturnProcessed"
   ></pos-two-modal>
 
   <WarehousePickerModal
@@ -811,6 +813,7 @@ export default {
         this.posStore.clearCart();
         this.selectedCustomerOption = null;
         this.$refs.productSearch?.focus();
+        this.posStore.fetchGridProducts(this.selectedCategoryId);
       } catch (err) {
         showErrors(err);
       }
@@ -879,6 +882,10 @@ export default {
 
     onTillClosed() {
       this.posStore.tillSession = null;
+    },
+
+    onReturnProcessed() {
+      this.posStore.fetchGridProducts(this.selectedCategoryId);
     },
   },
 };
