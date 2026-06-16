@@ -64,7 +64,7 @@
                                         <span v-if="notification.notification_type" class="noti-title">
                                             {{ notification.notification_type }}
                                         </span>
-                                        {{ notification.data?.notification_title }}
+                                        {{ notification.data?.message ?? notification.data?.notification_title }}
                                     </p>
                                     <p v-if="notification.time" class="noti-time">{{ notification.time }}</p>
                                 </div>

@@ -3,12 +3,14 @@
 namespace App\Providers;
 
 use App\Models\Bill;
+use App\Models\Stock;
 use App\Models\Branch;
 use App\Models\Expense;
 use App\Models\BranchUser;
 use Illuminate\Http\Request;
 use App\Models\StockMovement;
 use App\Policies\BranchPolicy;
+use App\Observers\StockObserver;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Gate;
 use App\Observers\BranchUserObserver;
@@ -49,6 +51,7 @@ class AppServiceProvider extends ServiceProvider
 
         StockMovement::observe(StockMovementObserver::class);
         BranchUser::observe(BranchUserObserver::class);
+        Stock::observe(StockObserver::class);
 
         $this->registerBranchGates();
 

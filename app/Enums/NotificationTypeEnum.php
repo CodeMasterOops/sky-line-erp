@@ -2,12 +2,14 @@
 
 namespace App\Enums;
 
+use App\Notifications\LowStockNotification;
 use App\Notifications\DataTransferCompletedNotification;
 
 enum NotificationTypeEnum: string
 {
     case Registration = 'registration';
     case DataTransferCompleted = 'data_transfer_completed';
+    case LowStock = 'low_stock';
 
     public function label(): string
     {
@@ -19,6 +21,7 @@ enum NotificationTypeEnum: string
         return match ($value) {
             self::Registration => 'Registration',
             self::DataTransferCompleted => 'Data Transfer Completed',
+            self::LowStock => 'Low Stock Alert',
         };
     }
 
@@ -26,6 +29,7 @@ enum NotificationTypeEnum: string
     {
         return match ($class) {
             DataTransferCompletedNotification::class => self::DataTransferCompleted,
+            LowStockNotification::class => self::LowStock,
             default => null,
         };
     }
