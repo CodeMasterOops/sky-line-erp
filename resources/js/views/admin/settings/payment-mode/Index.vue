@@ -31,6 +31,12 @@
                                     <template v-if="column.key === 'sn'">
                                         {{ (paymentModes.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                                     </template>
+                                    <template v-if="column.key === 'bank_account'">
+                                        <span v-if="record.bank_account" class="text-nowrap">
+                                            {{ record.bank_account.bank_name }} &ndash; {{ record.bank_account.account_number }}
+                                        </span>
+                                        <span v-else class="text-muted">—</span>
+                                    </template>
                                     <template v-if="column.key === 'status'">
                                         <span :class="record.is_active ? 'badge bg-success' : 'badge bg-secondary'">
                                             {{ record.is_active ? 'Active' : 'Inactive' }}
@@ -86,6 +92,7 @@ const { filter, fetch } = usePaginatedList({
 const columns = [
     { title: 'SN', key: 'sn', width: 60 },
     { title: 'Name', dataIndex: 'name' },
+    { title: 'Bank Account', key: 'bank_account' },
     { title: 'Status', key: 'status', align: 'center' },
     { title: 'Action', key: 'action', align: 'center' },
 ];

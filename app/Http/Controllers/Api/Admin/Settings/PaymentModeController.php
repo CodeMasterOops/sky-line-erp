@@ -17,6 +17,7 @@ class PaymentModeController extends Controller
     public function index(Request $request)
     {
         $paymentModes = PaymentMode::query()
+            ->with('bankAccount')
             ->orderBy('name')
             ->paginate($request->integer('limit', 25));
 
@@ -31,7 +32,7 @@ class PaymentModeController extends Controller
         $paymentMode = PaymentMode::create($request->validated());
 
         return response()->json([
-            'data' => PaymentModeResource::make($paymentMode),
+            'data' => PaymentModeResource::make($paymentMode->load('bankAccount')),
             'message' => 'Payment Mode Added Successfully',
         ], 201);
     }
@@ -41,7 +42,7 @@ class PaymentModeController extends Controller
      */
     public function show(PaymentMode $paymentMode)
     {
-        return PaymentModeResource::make($paymentMode);
+        return PaymentModeResource::make($paymentMode->load('bankAccount'));
     }
 
     /**
@@ -52,7 +53,7 @@ class PaymentModeController extends Controller
         $paymentMode->update($request->validated());
 
         return response()->json([
-            'data' => PaymentModeResource::make($paymentMode),
+            'data' => PaymentModeResource::make($paymentMode->load('bankAccount')),
             'message' => 'Payment Mode Updated Successfully',
         ]);
     }

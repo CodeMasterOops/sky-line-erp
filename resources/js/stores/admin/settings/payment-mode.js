@@ -14,10 +14,23 @@ export const usePaymentModeStore = defineStore('payment-mode', {
         paymentMode: {
             data: {},
             loading: false
-        }
+        },
+        bankAccounts: {
+            data: [],
+            loading: false,
+        },
     }),
 
     actions: {
+        getBankAccounts() {
+            this.bankAccounts.loading = true;
+            return apiAdmin('bank-reconciliation/bank-accounts')
+                .then((res) => {
+                    this.bankAccounts.data = res.data.data;
+                }).catch(showErrors).finally(() => {
+                    this.bankAccounts.loading = false;
+                });
+        },
         getPaymentModes({ filter } = {}) {
             const params = {
                 page: filter?.page ?? 1,

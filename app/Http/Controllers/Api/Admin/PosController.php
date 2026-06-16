@@ -11,6 +11,7 @@ use App\Enums\StatusEnum;
 use App\Models\Warehouse;
 use App\Models\CreditNote;
 use App\Models\PosSession;
+use App\Models\PaymentMode;
 use App\Enums\PartyTypeEnum;
 use App\Models\PosHeldOrder;
 use Illuminate\Http\Request;
@@ -387,7 +388,7 @@ class PosController extends Controller
                 // Build payment entries: split payments override single payment_method
                 $payments = $request->payments ?? null;
                 if (! $payments && strtolower($request->payment_method) !== 'credit') {
-                    $payments = [['method' => $request->payment_method, 'amount' => $grandTotal]];
+                    $payments = [['method' => $request->payment_method, 'payment_mode_id' => $request->payment_mode_id, 'amount' => $grandTotal]];
                 }
 
                 $firstReceipt = null;
@@ -395,7 +396,8 @@ class PosController extends Controller
                     $remaining = round($grandTotal, 2);
                     foreach ($payments as $payment) {
                         $method = strtolower($payment['method']);
-                        $payAccountId = $this->resolveAccountId($method, $accountSetting);
+                        $mode = PaymentMode::with('bankAccount')->find($payment['payment_mode_id'] ?? null);
+                        $payAccountId = $this->resolveAccountIdFromMode($mode, $accountSetting, $method);
                         if (! $payAccountId) {
                             continue;
                         }
@@ -971,17 +973,28 @@ class PosController extends Controller
         return min(max(0.0, $value), $sumLineNet);
     }
 
-    private function resolveAccountId(string $paymentMethod, ?AccountSetting $setting): ?int
+    private function resolveAccountIdFromMode(?PaymentMode $mode, ?AccountSetting $setting, string $paymentMethod): ?int
     {
+        if (strtolower($paymentMethod) === 'credit') {
+            return null;
+        }
+
         if (! $setting) {
             return null;
         }
 
-        return match (strtolower($paymentMethod)) {
-            'cash' => $setting->cash_sales_account_id,
-            'credit' => null, // No receipt — invoice left as open receivable
-            default => $setting->bank_sales_account_id,
-        };
+        // Payment mode has an explicit bank account → use that bank's GL account.
+        if ($mode?->bankAccount?->account_id) {
+            return $mode->bankAccount->account_id;
+        }
+
+        // Cash with no bank account linked → use the dedicated cash GL account.
+        if (strtolower($paymentMethod) === 'cash') {
+            return $setting->cash_sales_account_id;
+        }
+
+        // Global fallback for any unlinked digital/bank payment mode.
+        return $setting->bank_sales_account_id;
     }
 
     private function getOpenSession(): ?PosSession

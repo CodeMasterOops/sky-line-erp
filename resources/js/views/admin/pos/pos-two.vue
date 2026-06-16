@@ -354,11 +354,11 @@
                     <a
                       href="javascript:void(0);"
                       class="d-flex flex-column align-items-center justify-content-center border rounded py-2 px-1 text-decoration-none"
-                      :class="selectedPaymentMethod === mode.name
+                      :class="selectedPaymentModeId === mode.id
                         ? 'bg-primary border-primary text-white'
                         : 'bg-white text-body'"
                       style="cursor:pointer; transition:all .15s; min-height:58px;"
-                      @click="selectedPaymentMethod = mode.name"
+                      @click="selectPaymentMode(mode)"
                     >
                       <i :class="paymentModeIcon(mode.name)" class="fs-20 mb-1"></i>
                       <span class="small lh-sm text-center">{{ mode.name }}</span>
@@ -480,6 +480,7 @@
     :cart="posStore.cart"
     :selected-customer="posStore.selectedCustomer"
     :payment-method="selectedPaymentMethod"
+    :payment-mode-id="selectedPaymentModeId"
     :last-sale="posStore.lastSale"
     :held-orders="posStore.heldOrders"
     :today-summary="posStore.todaySummary"
@@ -542,6 +543,7 @@ export default {
     return {
       selectedCustomerOption: null,
       selectedPaymentMethod: 'cash',
+      selectedPaymentModeId: null,
       pendingVariant: null,
       selectedCategoryId: null,
       showGrid: true,
@@ -748,6 +750,11 @@ export default {
       this.posStore.setCustomer(this.resolveCustomerFromSelect(selected));
     },
 
+    selectPaymentMode(mode) {
+      this.selectedPaymentMethod = mode.name;
+      this.selectedPaymentModeId = mode.id;
+    },
+
     paymentModeIcon(name) {
       const n = (name || '').toLowerCase();
       if (n.includes('cash')) {
@@ -799,12 +806,16 @@ export default {
       }
     },
 
-    async processCheckout(paymentMethod, splitPayments = null) {
+    async processCheckout(paymentMethod, splitPayments = null, paymentModeId = null) {
       if (!this.posStore.cart.length) {
         return;
       }
       try {
-        await this.posStore.checkout(paymentMethod ?? this.selectedPaymentMethod, splitPayments);
+        await this.posStore.checkout(
+          paymentMethod ?? this.selectedPaymentMethod,
+          splitPayments,
+          paymentModeId ?? this.selectedPaymentModeId,
+        );
         useToast().success('Sale completed successfully!');
         const el = document.getElementById('payment-completed');
         if (el) {

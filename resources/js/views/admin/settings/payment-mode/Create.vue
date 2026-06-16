@@ -16,6 +16,17 @@
                     />
                 </div>
                 <div class="col-md-12">
+                    <VSelect
+                        id="bank_account_id"
+                        v-model="form.bank_account_id"
+                        :options="bankAccountOptions"
+                        label="Bank Account"
+                        placeholder="Bank Account"
+                        name-prop="display_name"
+                    />
+                    <small class="text-muted">Link this payment mode to a bank or wallet account. Leave blank for cash.</small>
+                </div>
+                <div class="col-md-12">
                     <label class="form-label d-block">Status</label>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" v-model="form.is_active"/>
@@ -34,24 +45,37 @@
 </template>
 
 <script setup>
-import {reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
+import {storeToRefs} from 'pinia';
+import VSelect from '@/components/base/VSelect.vue';
 import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
 
 const paymentModeStore = usePaymentModeStore();
+const { bankAccounts } = storeToRefs(paymentModeStore);
 
 const createModalOpened = defineModel('createModalOpened');
 
 const initialState = {
     name: '',
+    bank_account_id: '',
     is_active: true
 };
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+
+const bankAccountOptions = computed(() =>
+    bankAccounts.value.data.map(b => ({
+        ...b,
+        display_name: `${b.bank_name} – ${b.account_number}`,
+    }))
+);
+
+onMounted(() => paymentModeStore.getBankAccounts());
 
 const validations = object({
     name: string().required('Name is required.'),
@@ -64,7 +88,10 @@ const storePaymentMode = async () => {
     if (validated) {
         isSubmitting.value = true;
         try {
-            let res = await paymentModeStore.storePaymentMode(form);
+            let res = await paymentModeStore.storePaymentMode({
+                ...form,
+                bank_account_id: form.bank_account_id || null,
+            });
             toast(res.status, res.data.message);
             closeCreateModal();
         } catch (e) {

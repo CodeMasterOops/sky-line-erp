@@ -477,12 +477,13 @@ export const usePosStore = defineStore('pos', {
             }));
         },
 
-        async checkout(paymentMethod, splitPayments = null) {
+        async checkout(paymentMethod, splitPayments = null, paymentModeId = null) {
             this.checkoutLoading = true;
             try {
                 const body = {
                     party_id: this.selectedCustomer?.id ?? null,
                     payment_method: paymentMethod,
+                    payment_mode_id: paymentModeId ?? null,
                     order_discount_type: this.order_discount_type || 'fixed',
                     order_discount_value: parseFloat(this.order_discount_value) || 0,
                     items: this.buildCheckoutItems(),

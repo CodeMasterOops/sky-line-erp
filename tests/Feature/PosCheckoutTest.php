@@ -19,8 +19,11 @@ use App\Models\PosHeldOrder;
 use Laravel\Sanctum\Sanctum;
 use App\Enums\ChangeTypeEnum;
 use App\Enums\ProductTypeEnum;
+use App\Models\BankAccount;
 use App\Models\AccountSetting;
+use App\Models\PaymentMode;
 use App\Models\ProductVariant;
+use App\Models\Receipt;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -1067,4 +1070,210 @@ it('split payment receipt data shows individual payments on reprint', function (
     expect($payments)->toHaveCount(2);
     expect((float) $payments->firstWhere('method', 'cash')['amount'])->toBe(70.0);
     expect((float) $payments->firstWhere('method', 'card')['amount'])->toBe(30.0);
+});
+
+// ─── Bank account GL routing ──────────────────────────────────────────────────
+
+it('routes payment to the bank account GL when payment mode has a linked bank account', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $cashGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash GL',
+        'code' => 'CASH-GL-BA',
+    ]);
+    $bankFallbackGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Bank Fallback GL',
+        'code' => 'BNK-FALLBACK',
+    ]);
+    $esewaGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'eSewa GL',
+        'code' => 'ESEWA-GL-BA',
+    ]);
+
+    $bankAccount = BankAccount::create([
+        'company_id' => $this->company->id,
+        'account_id' => $esewaGl->id,
+        'bank_name' => 'eSewa',
+        'account_number' => '9800000001',
+    ]);
+
+    $mode = PaymentMode::create([
+        'company_id' => $this->company->id,
+        'name' => 'eSewa',
+        'is_active' => true,
+        'bank_account_id' => $bankAccount->id,
+    ]);
+
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashGl->id,
+        'bank_sales_account_id' => $bankFallbackGl->id,
+        'customer_account_id' => $cashGl->id,
+        'sales_account_id' => $cashGl->id,
+    ]);
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'esewa',
+        'payment_mode_id' => $mode->id,
+    ]));
+
+    $response->assertCreated();
+    $receipt = Receipt::first();
+    expect($receipt)->not->toBeNull();
+    expect($receipt->account_id)->toBe($esewaGl->id);
+});
+
+it('falls back to bank_sales_account_id when payment mode has no linked bank account', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $cashGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash GL',
+        'code' => 'CASH-GL-FB',
+    ]);
+    $bankFallbackGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Bank Fallback GL',
+        'code' => 'BNK-FB',
+    ]);
+
+    $mode = PaymentMode::create([
+        'company_id' => $this->company->id,
+        'name' => 'Card',
+        'is_active' => true,
+    ]);
+
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashGl->id,
+        'bank_sales_account_id' => $bankFallbackGl->id,
+        'customer_account_id' => $cashGl->id,
+        'sales_account_id' => $cashGl->id,
+    ]);
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'card',
+        'payment_mode_id' => $mode->id,
+    ]));
+
+    $response->assertCreated();
+    $receipt = Receipt::first();
+    expect($receipt)->not->toBeNull();
+    expect($receipt->account_id)->toBe($bankFallbackGl->id);
+});
+
+it('routes cash payment to cash_sales_account regardless of payment_mode_id', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $cashGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash GL',
+        'code' => 'CASH-GL-CASH',
+    ]);
+    $bankFallbackGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Bank Fallback GL',
+        'code' => 'BNK-CASH',
+    ]);
+
+    $cashMode = PaymentMode::create([
+        'company_id' => $this->company->id,
+        'name' => 'Cash',
+        'is_active' => true,
+    ]);
+
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashGl->id,
+        'bank_sales_account_id' => $bankFallbackGl->id,
+        'customer_account_id' => $cashGl->id,
+        'sales_account_id' => $cashGl->id,
+    ]);
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'cash',
+        'payment_mode_id' => $cashMode->id,
+    ]));
+
+    $response->assertCreated();
+    $receipt = Receipt::first();
+    expect($receipt)->not->toBeNull();
+    expect($receipt->account_id)->toBe($cashGl->id);
+});
+
+it('routes each split payment line to its own bank account GL', function () {
+    seedVariantStock($this, $this->warehouse->id, 5);
+
+    $cashGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash GL',
+        'code' => 'CASH-GL-SP',
+    ]);
+    $esewaGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'eSewa GL',
+        'code' => 'ESEWA-GL-SP',
+    ]);
+    $bankFallbackGl = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Bank Fallback GL',
+        'code' => 'BNK-SP',
+    ]);
+
+    $esewaBank = BankAccount::create([
+        'company_id' => $this->company->id,
+        'account_id' => $esewaGl->id,
+        'bank_name' => 'eSewa',
+        'account_number' => '9800000002',
+    ]);
+    $cashMode = PaymentMode::create([
+        'company_id' => $this->company->id,
+        'name' => 'Cash',
+        'is_active' => true,
+    ]);
+    $esewaMode = PaymentMode::create([
+        'company_id' => $this->company->id,
+        'name' => 'eSewa',
+        'is_active' => true,
+        'bank_account_id' => $esewaBank->id,
+    ]);
+
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashGl->id,
+        'bank_sales_account_id' => $bankFallbackGl->id,
+        'customer_account_id' => $cashGl->id,
+        'sales_account_id' => $cashGl->id,
+    ]);
+
+    $response = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'payment_method' => 'split',
+        'payments' => [
+            ['method' => 'cash',  'payment_mode_id' => $cashMode->id,  'amount' => 60],
+            ['method' => 'esewa', 'payment_mode_id' => $esewaMode->id, 'amount' => 40],
+        ],
+    ]));
+
+    $response->assertCreated();
+    $receipts = Receipt::all();
+    expect($receipts)->toHaveCount(2);
+
+    $cashReceipt  = $receipts->firstWhere('payment_method', 'cash');
+    $esewaReceipt = $receipts->firstWhere('payment_method', 'esewa');
+
+    expect($cashReceipt->account_id)->toBe($cashGl->id);
+    expect($esewaReceipt->account_id)->toBe($esewaGl->id);
 });

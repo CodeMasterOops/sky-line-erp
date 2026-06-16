@@ -198,13 +198,16 @@
           </div>
 
           <div v-for="(pay, idx) in splitPayments" :key="idx" class="d-flex align-items-center gap-2 mb-2">
-            <select class="form-select form-select-sm" v-model="pay.method" style="width:120px; flex-shrink:0;">
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="esewa">eSewa</option>
-              <option value="khalti">Khalti</option>
-              <option value="fonepay">FonePay</option>
-              <option value="bank">Bank Transfer</option>
+            <select
+              class="form-select form-select-sm"
+              :value="pay.payment_mode_id"
+              style="width:150px; flex-shrink:0;"
+              @change="onSplitModeChange(pay, $event)"
+            >
+              <option value="">-- Select --</option>
+              <option v-for="mode in paymentModes" :key="mode.id" :value="mode.id">
+                {{ mode.name }}
+              </option>
             </select>
             <input
               type="number"
@@ -222,7 +225,7 @@
             ><i class="ti ti-trash"></i></button>
           </div>
 
-          <button type="button" class="btn btn-sm btn-outline-secondary mt-1" @click="splitPayments.push({ method: 'cash', amount: '' })">
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-1" @click="splitPayments.push({ payment_mode_id: null, method: '', amount: '' })">
             <i class="ti ti-plus me-1"></i>Add Payment
           </button>
 
@@ -1548,6 +1551,7 @@ export default {
     cart:            { type: Array, default: () => [] },
     selectedCustomer:{ type: Object, default: null },
     paymentMethod:   { type: String, default: 'cash' },
+    paymentModeId:   { type: Number, default: null },
     lastSale:        { type: Object, default: null },
     heldOrders:      { type: Array, default: () => [] },
     todaySummary:    { type: Object, default: () => ({ sale_count: 0, sale_total: 0, profit: 0, cogs: 0 }) },
@@ -1609,7 +1613,7 @@ export default {
       tillSummaryData: null,
       tillSummaryLoading: false,
       // Split payment
-      splitPayments: [{ method: 'cash', amount: '' }, { method: 'card', amount: '' }],
+      splitPayments: [{ payment_mode_id: null, method: '', amount: '' }, { payment_mode_id: null, method: '', amount: '' }],
       splitTotal: 0,
       // Return flow
       returnLoading: null,
@@ -1704,7 +1708,7 @@ export default {
       if (this.loading) { return; }
       this.loading = true;
       try {
-        this.$emit('checkout', overrideMethod ?? this.paymentMethod, splitPayments);
+        this.$emit('checkout', overrideMethod ?? this.paymentMethod, splitPayments, this.paymentModeId);
         ['payment-cash', 'payment-card', 'scan-payment', 'payment-generic', 'credit-sale', 'split-payment'].forEach(id => {
           this.closeModal(id);
         });
@@ -1716,9 +1720,20 @@ export default {
 
     doSplitCheckout() {
       const payments = this.splitPayments
-        .filter(p => parseFloat(p.amount) > 0)
-        .map(p => ({ method: p.method, amount: parseFloat(p.amount) }));
-      this.doCheckout('cash', payments);
+        .filter(p => parseFloat(p.amount) > 0 && p.method)
+        .map(p => ({
+          method: p.method,
+          payment_mode_id: p.payment_mode_id || null,
+          amount: parseFloat(p.amount),
+        }));
+      this.doCheckout('split', payments);
+    },
+
+    onSplitModeChange(pay, event) {
+      const modeId = parseInt(event.target.value) || null;
+      pay.payment_mode_id = modeId;
+      const mode = this.paymentModes.find(m => m.id === modeId);
+      pay.method = mode ? mode.name.toLowerCase() : '';
     },
 
     doHold() {

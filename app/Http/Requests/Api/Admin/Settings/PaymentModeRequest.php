@@ -16,6 +16,7 @@ class PaymentModeRequest extends FormRequest
     {
         $validations = [
             'is_active' => ['nullable', 'boolean'],
+            'bank_account_id' => ['nullable', 'exists:bank_accounts,id'],
         ];
 
         return match ($this->method()) {

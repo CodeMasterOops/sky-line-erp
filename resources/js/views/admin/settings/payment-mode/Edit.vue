@@ -17,6 +17,17 @@
                     />
                 </div>
                 <div class="col-md-12">
+                    <VSelect
+                        id="bank_account_id"
+                        v-model="form.bank_account_id"
+                        :options="bankAccountOptions"
+                        label="Bank Account"
+                        placeholder="Bank Account"
+                        name-prop="display_name"
+                    />
+                    <small class="text-muted">Link this payment mode to a bank or wallet account. Leave blank for cash.</small>
+                </div>
+                <div class="col-md-12">
                     <label class="form-label d-block">Status</label>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" v-model="form.is_active"/>
@@ -35,27 +46,38 @@
 </template>
 
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
+import VSelect from '@/components/base/VSelect.vue';
 import {usePaymentModeStore} from '@/stores/admin/settings/payment-mode.js';
 
 const paymentModeStore = usePaymentModeStore();
 
 const edit_payment_mode_id = defineModel('payment_mode_id');
 
-const {paymentMode} = storeToRefs(paymentModeStore);
+const {paymentMode, bankAccounts} = storeToRefs(paymentModeStore);
 
 const initialState = {
     name: '',
+    bank_account_id: '',
     is_active: true
 };
 
 const form = reactive({...initialState});
 const isSubmitting = ref(false);
+
+const bankAccountOptions = computed(() =>
+    bankAccounts.value.data.map(b => ({
+        ...b,
+        display_name: `${b.bank_name} – ${b.account_number}`,
+    }))
+);
+
+onMounted(() => paymentModeStore.getBankAccounts());
 
 watch(() => edit_payment_mode_id.value, async (id) => {
     if (id) {
@@ -63,6 +85,7 @@ watch(() => edit_payment_mode_id.value, async (id) => {
         Object.keys(form).forEach(key => {
             form[key] = paymentMode.value.data[key] ?? initialState[key];
         });
+        form.bank_account_id = paymentMode.value.data.bank_account_id ?? '';
     }
 });
 
@@ -77,7 +100,10 @@ const updatePaymentMode = async (id) => {
     if (validated) {
         isSubmitting.value = true;
         try {
-            let res = await paymentModeStore.updatePaymentMode(id, form);
+            let res = await paymentModeStore.updatePaymentMode(id, {
+                ...form,
+                bank_account_id: form.bank_account_id || null,
+            });
             toast(res.status, res.data.message);
             closeEditModal();
         } catch (e) {

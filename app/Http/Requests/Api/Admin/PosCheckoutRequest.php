@@ -19,10 +19,12 @@ class PosCheckoutRequest extends FormRequest
         return [
             'warehouse_id' => ['nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'payment_method' => ['required', 'string', 'max:255'],
-            // Split payment: optional array of {method, amount} entries that together cover the total.
+            // Split payment: optional array of {method, payment_mode_id, amount} entries.
             'payments' => ['nullable', 'array', 'min:1'],
             'payments.*.method' => ['required_with:payments', 'string', 'max:255'],
+            'payments.*.payment_mode_id' => ['nullable', 'integer', TRule::exists('payment_modes', 'id')->withoutTrashed()],
             'payments.*.amount' => ['required_with:payments', 'numeric', 'min:0.01'],
+            'payment_mode_id' => ['nullable', 'integer', TRule::exists('payment_modes', 'id')->withoutTrashed()],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => [
                 'required',

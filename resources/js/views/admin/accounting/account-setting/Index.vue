@@ -29,8 +29,9 @@
                                         id="bank_sales_account_id"
                                         v-model="form.bank_sales_account_id"
                                         :options="accounts.data"
-                                        label="Bank Sales Account"
+                                        label="Default Bank Sales Account (Fallback)"
                                     />
+                                    <small class="text-muted">Used when a payment mode has no bank account linked. Configure per-mode accounts under Settings → Payment Modes.</small>
                                 </div>
                                 <div class="col-md-4">
                                     <VSelect
@@ -45,7 +46,7 @@
                                         id="bank_purchase_account_id"
                                         v-model="form.bank_purchase_account_id"
                                         :options="accounts.data"
-                                        label="Bank Purchase Account"
+                                        label="Default Bank Purchase Account (Fallback)"
                                     />
                                 </div>
                                 <div class="col-md-4">

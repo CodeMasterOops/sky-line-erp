@@ -13,6 +13,13 @@ class PaymentModeResource extends JsonResource
             'id' => $this->id ?? '',
             'name' => $this->name ?? '',
             'is_active' => (bool) ($this->is_active ?? false),
+            'bank_account_id' => $this->bank_account_id,
+            'bank_account' => $this->whenLoaded('bankAccount', fn () => [
+                'id' => $this->bankAccount->id,
+                'bank_name' => $this->bankAccount->bank_name,
+                'account_number' => $this->bankAccount->account_number,
+                'account_id' => $this->bankAccount->account_id,
+            ]),
         ];
     }
 }
