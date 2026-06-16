@@ -63,6 +63,9 @@
                                     {{ record.status }}
                                 </span>
                                 <span v-if="record.voided_at" class="badge bg-dark">voided</span>
+                                <span v-if="record.payment_status === 'paid'" class="badge bg-success">Paid</span>
+                                <span v-else-if="record.payment_status === 'partial'" class="badge bg-warning text-dark">Partial</span>
+                                <span v-else-if="record.payment_status === 'unpaid'" class="badge bg-danger">Unpaid</span>
                             </div>
                         </template>
                         <template v-else-if="column.key === 'action'">
