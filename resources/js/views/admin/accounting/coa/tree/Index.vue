@@ -1,34 +1,28 @@
 <template>
-    <PageHeader title="COA Tree" subtitle="Account groups and accounts tree" @refresh="refreshTree" />
-
-    <section class="section">
-        <div class="card">
-            <div class="card-body">
-                <VLoader v-if="coaTree.loading" />
-                <a-tree
-                    v-else
-                    class="coa-tree"
-                    :tree-data="treeData"
-                    default-expand-all
-                />
-            </div>
-        </div>
-    </section>
+    <div class="card-body">
+        <VLoader v-if="coaTree.loading" />
+        <a-tree
+            v-else
+            class="coa-tree"
+            :tree-data="treeData"
+            default-expand-all
+        />
+    </div>
 </template>
 
 <script setup>
-import {computed, onMounted} from 'vue';
-import {storeToRefs} from 'pinia';
-import {useAccountStore} from '@/stores/admin/accounting/account.js';
+import { computed, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useAccountStore } from '@/stores/admin/accounting/account.js';
 
 const accountStore = useAccountStore();
-const {coaTree} = storeToRefs(accountStore);
+const { coaTree } = storeToRefs(accountStore);
 
 onMounted(() => {
-    refreshTree();
+    refresh();
 });
 
-const refreshTree = () => {
+const refresh = () => {
     accountStore.getCoaTree();
 };
 
@@ -64,4 +58,6 @@ const treeData = computed(() => {
     }
     return coaTree.value.data.map((group) => buildNode(group));
 });
+
+defineExpose({ refresh });
 </script>

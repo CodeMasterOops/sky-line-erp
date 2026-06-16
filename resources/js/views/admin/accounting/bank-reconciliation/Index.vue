@@ -362,7 +362,7 @@ const loadBankAccounts = async () => {
 
 const loadGlAccounts = async () => {
     try {
-        const res = await apiAdmin('account', 'get', { per_page: 500 });
+        const res = await apiAdmin('account', 'get', { limit: 500 });
         glAccountOptions.value = (res.data.data || []).map((a) => ({
             label: `${a.name} (${a.code})`,
             value: a.id,

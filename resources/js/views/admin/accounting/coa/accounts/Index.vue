@@ -1,18 +1,31 @@
 <template>
-    <PageHeader title="Accounts" subtitle="Manage Accounts" @refresh="fetch">
-        <template #actions>
-            <button
-                v-can="'create_account'"
-                type="button"
-                @click.prevent="createModalOpened=true"
-                class="btn btn-primary d-flex align-items-center">
-                <i class="ti ti-circle-plus me-2"></i> Add New
-            </button>
-        </template>
-    </PageHeader>
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+        <div class="search-set">
+            <div class="search-input">
+                <a href="javascript:void(0);" class="btn-searchset">
+                    <i class="ti ti-search fs-14 feather-search"></i>
+                </a>
+                <input
+                    type="search"
+                    v-model="filter.search"
+                    class="form-control form-control-sm"
+                    placeholder="Search accounts"
+                    @input="debouncedFetch"
+                />
+            </div>
+        </div>
+        <button
+            v-can="'create_account'"
+            type="button"
+            @click.prevent="createModalOpened = true"
+            class="btn btn-primary d-flex align-items-center"
+        >
+            <i class="ti ti-circle-plus me-2"></i> Add New
+        </button>
+    </div>
 
-    <section class="section">
-        <div class="table-responsive">
+    <div class="card-body">
+        <div class="custom-datatable-filter table-responsive">
             <a-table
                 class="table datanew table-hover table-center mb-0"
                 :columns="columns"
@@ -28,28 +41,38 @@
                         {{ record.account_group?.name || '-' }}
                     </template>
                     <template v-if="column.key === 'action'">
-                        <div class="action-icon d-inline-flex">
-                            <a class="me-2" href="javascript:void(0);"
-                               @click="edit_account_id=record.id">
-                                <i class="ti ti-edit"></i>
-                            </a>
-                            <a href="javascript:void(0);"
-                               @click="deleteAccount(record.id)">
-                                <i class="ti ti-trash"></i>
-                            </a>
+                        <div class="action-table-data">
+                            <div class="edit-delete-action">
+                                <a
+                                    class="me-2 p-2"
+                                    href="javascript:void(0);"
+                                    @click="edit_account_id = record.id"
+                                >
+                                    <i class="ti ti-edit"></i>
+                                </a>
+                                <a
+                                    class="p-2"
+                                    href="javascript:void(0);"
+                                    @click="deleteAccount(record.id)"
+                                >
+                                    <i class="ti ti-trash"></i>
+                                </a>
+                            </div>
                         </div>
                     </template>
                 </template>
             </a-table>
             <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="accounts.meta" />
         </div>
-    </section>
-    <CreateAccount v-model:create-modal-opened="createModalOpened"/>
-    <EditAccount v-model:account_id="edit_account_id"/>
+    </div>
+
+    <CreateAccount v-model:create-modal-opened="createModalOpened" />
+    <EditAccount v-model:account_id="edit_account_id" />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import debounce from 'lodash/debounce';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -67,10 +90,12 @@ const edit_account_id = ref('');
 const createModalOpened = ref(false);
 const { accounts } = storeToRefs(accountStore);
 
-const { filter, fetch } = usePaginatedList({
+const { filter, fetch, resetPageAndFetch } = usePaginatedList({
     fetchFn: ({ filter }) => accountStore.getAccounts({ filter }),
     defaults: { page: 1, limit: 10 },
 });
+
+const debouncedFetch = debounce(resetPageAndFetch, 300);
 
 onMounted(() => {
     accountGroupStore.getAccountGroups();
@@ -87,16 +112,16 @@ const columns = [
 
 const deleteAccount = async (id) => {
     Swal.fire({
-        title: 'Are You Sure to Delete ? ',
+        title: 'Are You Sure to Delete?',
         text: 'If you delete this, it will be gone forever.',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'red',
-        confirmButtonText: 'Yes'
+        confirmButtonText: 'Yes',
     }).then(async (result) => {
         if (result.value) {
             try {
-                let res = await accountStore.deleteAccount(id);
+                const res = await accountStore.deleteAccount(id);
                 toast(res.status, res.data.message);
                 fetch();
             } catch (e) {
@@ -105,4 +130,6 @@ const deleteAccount = async (id) => {
         }
     });
 };
+
+defineExpose({ refresh: fetch });
 </script>
