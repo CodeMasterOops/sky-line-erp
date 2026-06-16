@@ -24,8 +24,8 @@ class LeadRequest extends FormRequest
             'registration_number' => ['nullable', 'string', 'max:100'],
             'business_type' => ['required', Rule::enum(BusinessTypeEnum::class)],
             'full_name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email:rfc,dns', 'max:255'],
-            'phone' => ['required', 'string', 'regex:/^[0-9+\-\s]{7,20}$/'],
+            'email' => ['required', 'email:rfc,dns', 'max:255', Rule::unique('leads', 'email')],
+            'phone' => ['required', 'string', 'regex:/^[0-9+\-\s]{7,20}$/', Rule::unique('leads', 'phone')],
             'plan_interest' => ['nullable', 'string', 'max:100'],
             'branch_count' => ['required', 'integer', 'min:1', 'max:500'],
             'note' => ['nullable', 'string', 'max:2000'],
@@ -37,6 +37,8 @@ class LeadRequest extends FormRequest
         return [
             'website.max' => 'Invalid submission.',
             'phone.regex' => 'Please enter a valid phone number.',
+            'email.unique' => 'This email address has already been submitted.',
+            'phone.unique' => 'This phone number has already been submitted.',
         ];
     }
 }

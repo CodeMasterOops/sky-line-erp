@@ -5,4 +5,4 @@ use App\Http\Controllers\Api\Public\AppSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('settings', [AppSettingsController::class, 'index'])->name('settings');
-Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
+Route::post('leads', [LeadController::class, 'store'])->middleware('throttle:public.leads')->name('leads.store');

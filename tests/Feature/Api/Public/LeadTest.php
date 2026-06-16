@@ -82,3 +82,42 @@ it('stores the submitter ip address on the lead', function () {
 
     expect(Lead::first()->ip_address)->not->toBeNull();
 });
+
+it('rejects a duplicate email address', function () {
+    Lead::factory()->create(['email' => 'john@acme.com']);
+
+    $response = $this->postJson('/api/public/leads', validLeadPayload(['email' => 'john@acme.com']));
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['email'])
+        ->assertJsonPath('errors.email.0', 'This email address has already been submitted.');
+});
+
+it('rejects a duplicate phone number', function () {
+    Lead::factory()->create(['phone' => '9841234567']);
+
+    $response = $this->postJson('/api/public/leads', validLeadPayload(['phone' => '9841234567']));
+
+    $response->assertUnprocessable()
+        ->assertJsonValidationErrors(['phone'])
+        ->assertJsonPath('errors.phone.0', 'This phone number has already been submitted.');
+});
+
+it('rate limits the leads endpoint after 5 requests in 10 minutes', function () {
+    // Clear any rate limiter state carried over from other tests in this suite
+    \Illuminate\Support\Facades\Cache::flush();
+
+    for ($i = 0; $i < 5; $i++) {
+        $this->postJson('/api/public/leads', validLeadPayload([
+            'email' => "user{$i}@acme.com",
+            'phone' => "984123456{$i}",
+        ]))->assertCreated();
+    }
+
+    $response = $this->postJson('/api/public/leads', validLeadPayload([
+        'email' => 'extra@acme.com',
+        'phone' => '9841234999',
+    ]));
+
+    $response->assertStatus(429);
+});
