@@ -16,7 +16,7 @@ class LeaveTypeController extends Controller
      */
     public function index(Request $request)
     {
-        $leaveTypes = LeaveType::paginate($request->limit ?? 25);
+        $leaveTypes = LeaveType::latest()->paginate($request->limit ?? 25);
 
         return LeaveTypeResource::collection($leaveTypes);
     }

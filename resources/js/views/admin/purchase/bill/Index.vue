@@ -38,6 +38,10 @@
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
                                 @click="setFilter('status', 'approved')">Approved</a>
                         </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="setFilter('status', 'voided')">Voided</a>
+                        </li>
                     </ul>
                 </div>
             </template>
@@ -59,6 +63,9 @@
                                     {{ record.status }}
                                 </span>
                                 <span v-if="record.voided_at" class="badge bg-dark">voided</span>
+                                <span v-if="record.payment_status === 'paid'" class="badge bg-success">Paid</span>
+                                <span v-else-if="record.payment_status === 'partial'" class="badge bg-warning text-dark">Partial</span>
+                                <span v-else-if="record.payment_status === 'unpaid'" class="badge bg-danger">Unpaid</span>
                             </div>
                         </template>
                         <template v-else-if="column.key === 'action'">
@@ -120,7 +127,7 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
 const selectedStatus = computed(() => {
     const s = filter.status;
     if (!s) return '';
-    const labels = { draft: 'Draft', approved: 'Approved' };
+    const labels = { draft: 'Draft', approved: 'Approved', voided: 'Voided' };
     return labels[s] ?? s;
 });
 

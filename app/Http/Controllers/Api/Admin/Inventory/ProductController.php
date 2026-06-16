@@ -122,6 +122,7 @@ class ProductController extends Controller
             'variants' => fn ($q) => $q->with($variantRelations),
         ])
             ->filter($request->all())
+            ->latest()
             ->paginate($request->limit ?? 25);
 
         return ProductResource::collection($products);

@@ -21,6 +21,7 @@ class DepartmentController extends Controller
     public function index(Request $request)
     {
         $departments = Department::filter($request->all())
+            ->latest()
             ->paginate($request->limit ?? 25);
 
         return DepartmentResource::collection($departments);

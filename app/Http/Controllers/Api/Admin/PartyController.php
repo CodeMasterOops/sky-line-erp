@@ -26,6 +26,7 @@ class PartyController extends Controller
     {
         $parties = Party::filter($request->all())
             ->with('discount')
+            ->latest()
             ->paginate($request->limit ?? 25);
 
         return PartyResource::collection($parties);

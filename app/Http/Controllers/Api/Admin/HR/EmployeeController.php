@@ -22,6 +22,7 @@ class EmployeeController extends Controller
     {
         $employees = Employee::with(['department', 'designation'])
             ->filter($request->all())
+            ->latest()
             ->paginate($request->limit ?? 25);
 
         return EmployeeResource::collection($employees);

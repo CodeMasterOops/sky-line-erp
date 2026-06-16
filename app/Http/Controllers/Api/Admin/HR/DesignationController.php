@@ -17,6 +17,7 @@ class DesignationController extends Controller
     public function index(Request $request)
     {
         $designations = Designation::filter($request->all())
+            ->latest()
             ->paginate($request->limit ?? 25);
 
         return DesignationResource::collection($designations);

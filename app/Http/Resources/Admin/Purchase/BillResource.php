@@ -49,6 +49,7 @@ class BillResource extends JsonResource
             'grand_total' => $totals['grand_total'],
             'paid_total' => $payment['paid_total'],
             'due_amount' => $payment['due_amount'],
+            'payment_status' => $this->resolvePaymentStatus($payment['paid_total'], $payment['due_amount']),
             'items' => BillItemResource::collection($this->whenLoaded('billItems')),
             'landed_costs' => LandedCostResource::collection($this->whenLoaded('landedCosts')),
             'grn_landed_costs' => $this->when(
@@ -56,6 +57,27 @@ class BillResource extends JsonResource
                 fn () => $this->resolveGrnLandedCosts(),
             ),
         ];
+    }
+
+    private function resolvePaymentStatus(?float $paidTotal, ?float $dueAmount): ?string
+    {
+        if ($this->status !== StatusEnum::APPROVED || $this->voided_at !== null) {
+            return null;
+        }
+
+        if ($paidTotal === null) {
+            return null;
+        }
+
+        if ($dueAmount <= 0) {
+            return 'paid';
+        }
+
+        if ($paidTotal > 0) {
+            return 'partial';
+        }
+
+        return 'unpaid';
     }
 
     /**
