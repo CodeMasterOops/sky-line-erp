@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Admin\Nepal\TdsReceivableController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
 use App\Http\Controllers\Api\Admin\BillingController;
 use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
+use App\Http\Controllers\Api\Admin\SupportController;
 
 // Phase 3 — Inventory Enhancements
 // Phase 5 — Finance & Banking
@@ -46,6 +47,9 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
 
         // dashboard
         Route::get('dashboard', DashboardController::class)->name('dashboard');
+
+        // support info (read-only, set by super admin)
+        Route::get('support', [SupportController::class, 'index'])->name('support.index');
 
         // billing (read-only subscription info)
         Route::get('billing/subscription', [BillingController::class, 'subscription'])->name('billing.subscription');

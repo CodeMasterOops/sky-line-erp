@@ -81,5 +81,19 @@
                 "hasSubRoute": false
             }
         ]
+    },
+    {
+        "title": "Support",
+        "menu": [
+            {
+                "menuValue": "Support",
+                "icon": "ti ti-headset",
+                "active_link": "/super-admin/support",
+                "route": {
+                    "name": "super-admin.support"
+                },
+                "hasSubRoute": false
+            }
+        ]
     }
 ]

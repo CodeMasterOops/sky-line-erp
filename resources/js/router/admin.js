@@ -137,6 +137,13 @@ const routes = [
             
             //hr module
             ...hrRoutes,
+
+            {
+                path: "support",
+                name: "admin.support",
+                meta: {pageTitle: "Support"},
+                component: () => import("@/views/admin/support/Index.vue"),
+            },
         ],
     },
     {

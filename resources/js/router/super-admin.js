@@ -114,6 +114,12 @@ const routes = [
                 meta: {pageTitle: 'Lead Detail'},
                 component: () => import('@/views/super-admin/leads/Show.vue'),
             },
+            {
+                path: 'support',
+                name: 'super-admin.support',
+                meta: {pageTitle: 'Support'},
+                component: () => import('@/views/super-admin/support/Index.vue'),
+            },
         ]
     },
 ];

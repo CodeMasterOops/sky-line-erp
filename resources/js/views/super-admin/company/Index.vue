@@ -132,6 +132,13 @@
     </section>
     <RestPassword v-model:reset_password="reset_company_password"/>
     <UpgradePlan v-model:company="upgrade_company" @upgraded="fetchCompanies"/>
+
+    <Teleport to="body">
+        <router-link :to="{ name: 'super-admin.support' }" class="support-fab" title="Support">
+            <i class="ti ti-headset"></i>
+            <span class="support-fab-label">Support</span>
+        </router-link>
+    </Teleport>
 </template>
 
 <script setup>
@@ -277,3 +284,39 @@ const loginToCompany = async (id) => {
     });
 };
 </script>
+
+<style>
+.support-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 80px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #0d6efd;
+    color: #fff;
+    border-radius: 50px;
+    padding: 10px 16px;
+    text-decoration: none;
+    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.35);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.support-fab:hover {
+    transform: scale(1.07);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(13, 110, 253, 0.5);
+}
+
+.support-fab i {
+    font-size: 22px;
+}
+
+.support-fab-label {
+    font-size: 11px;
+    margin-top: 2px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+</style>

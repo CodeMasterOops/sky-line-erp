@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\SuperAdmin\WardController;
 use App\Http\Controllers\Api\SuperAdmin\LeadController;
 use App\Http\Controllers\Api\SuperAdmin\PlanController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionController;
+use App\Http\Controllers\Api\SuperAdmin\SupportController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->middleware('throttle:auth')->name('login');
@@ -66,4 +67,8 @@ Route::middleware('auth:super_admin')->group(function () {
 
     // leads (public inquiry submissions)
     Route::apiResource('lead', LeadController::class)->only('index', 'show', 'update', 'destroy');
+
+    // support settings
+    Route::get('support', [SupportController::class, 'index'])->name('support.index');
+    Route::post('support', [SupportController::class, 'store'])->name('support.store');
 });
