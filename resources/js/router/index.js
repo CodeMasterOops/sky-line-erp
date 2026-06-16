@@ -7,6 +7,7 @@ import { useBranchStore } from '@/stores/admin/settings/branch.js';
 import { useSuperAdminAuthStore } from '@/stores/super-admin/auth.js';
 import { satisfiesAdminRoutePermission } from '@/helpers/checkPermission';
 import { getAdminRoutePermission } from '@/router/adminRoutePermissions';
+import { cleanupModalArtifacts } from '@/helpers/cleanupModalArtifacts';
 
 function piniaStore(useStore) {
     const pinia = getActivePinia();
@@ -114,6 +115,10 @@ router.beforeEach(async (to, from, next) => {
     } else {
         next();
     }
+});
+
+router.afterEach(() => {
+    cleanupModalArtifacts();
 });
 
 export default router;

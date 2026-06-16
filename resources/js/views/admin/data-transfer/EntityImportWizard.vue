@@ -1,12 +1,6 @@
 <template>
-    <div class="modal fade" :id="modalId" tabindex="-1" aria-hidden="true" ref="modalEl">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">{{ title }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" />
-                </div>
-                <div class="modal-body">
+    <VModal :show-modal="open" size="lg" :title="title" @close-click="close">
+        <template #modal-body>
                     <ul class="nav nav-tabs mb-3">
                         <li class="nav-item" v-for="(label, idx) in stepLabels" :key="idx">
                             <span class="nav-link" :class="{ active: step === idx, disabled: idx > maxReachableStep }">
@@ -128,9 +122,9 @@
                             Download error report
                         </button>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+
+                    <div class="modal-footer border-0 px-0 pb-0">
+                    <button type="button" class="btn btn-secondary" @click="close">Close</button>
                     <button v-if="step > 0 && step < 3" type="button" class="btn btn-outline-primary" @click="step--">Back</button>
                     <button
                         v-if="step === 0"
@@ -158,15 +152,13 @@
                     >
                         Start import
                     </button>
-                </div>
-            </div>
-        </div>
-    </div>
+                    </div>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { Modal } from 'bootstrap';
+import { computed, ref } from 'vue';
 import { useDataTransferStore } from '@/stores/admin/data-transfer.js';
 import { useDataTransferJob } from '@/composables/useDataTransferJob.js';
 import { useToast } from 'vue-toastification';
@@ -206,8 +198,7 @@ const emit = defineEmits(['imported']);
 
 const store = useDataTransferStore();
 const toast = useToast();
-const modalEl = ref(null);
-let modalInstance = null;
+const open = ref(false);
 
 const step = ref(0);
 const maxReachableStep = ref(0);
@@ -218,8 +209,6 @@ const saving = ref(false);
 const job = ref(null);
 const mapping = ref({});
 const duplicateMode = ref('update');
-
-const resolvedEntityLabel = computed(() => props.entityLabel || props.entityType);
 
 const detectedHeaders = computed(() => job.value?.stats?.detected_headers ?? Object.keys(mapping.value));
 
@@ -233,19 +222,17 @@ const progressPercent = computed(() => {
     return Math.min(100, Math.round((done / total) * 100));
 });
 
-onMounted(() => {
-    if (modalEl.value) {
-        modalInstance = new Modal(modalEl.value);
-    }
-});
-
 const show = () => {
     step.value = 0;
     maxReachableStep.value = 0;
     job.value = null;
     mapping.value = {};
     selectedFile.value = null;
-    modalInstance?.show();
+    open.value = true;
+};
+
+const close = () => {
+    open.value = false;
 };
 
 defineExpose({ show });

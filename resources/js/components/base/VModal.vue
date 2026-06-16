@@ -34,7 +34,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, onUnmounted, watch } from 'vue'
 
 const props = defineProps({
     showModal: {
@@ -86,4 +86,9 @@ watch(() => props.showModal, (isOpen) => {
         document.body.style.overflow = ''
     }
 }, { immediate: true })
+
+// Release the scroll lock if the modal unmounts (e.g. route change) while open
+onUnmounted(() => {
+    document.body.style.overflow = ''
+})
 </script>

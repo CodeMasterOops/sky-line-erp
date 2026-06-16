@@ -505,7 +505,8 @@
 
 <script>
 import { Modal } from 'bootstrap';
-import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import { cleanupModalArtifacts } from '@/helpers/cleanupModalArtifacts.js';
+import {formatMoney} from '@/helpers/formatMoney.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import PosHeader from '@/layouts/pos-header.vue';
@@ -578,6 +579,7 @@ export default {
 
   beforeUnmount() {
     document.removeEventListener('keydown', this.onGlobalKeydown);
+    cleanupModalArtifacts();
   },
 
   methods: {

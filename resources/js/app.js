@@ -13,9 +13,12 @@ import "ant-design-vue/dist/reset.css";
 //select component (handles both single and multi-select).
 import "@vueform/multiselect/themes/default.css";
 
-//bootstrap
+//bootstrap — import the ESM build (the same 'bootstrap' module the components
+//import from). Importing the separate UMD bundle here registered Bootstrap's
+//data-api on `document` a second time, so every dropdown toggle fired twice
+//(open then immediately close). One shared module = one data-api registration.
 import "bootstrap/dist/css/bootstrap.min.css";
-import * as bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import * as bootstrap from 'bootstrap';
 window.bootstrap = bootstrap;
 
 import "@/assets/scss/app.scss";

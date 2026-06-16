@@ -1380,6 +1380,7 @@
 
 <script>
 import { Modal } from 'bootstrap';
+import { cleanupModalArtifacts } from '@/helpers/cleanupModalArtifacts.js';
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -1671,6 +1672,16 @@ export default {
       cashRegisterEl.addEventListener('show.bs.modal', () => this.loadTillSummary());
     }
     this.loadCompanyInfo();
+  },
+
+  beforeUnmount() {
+    // Dispose this component's native Bootstrap modals so their backdrops are
+    // not orphaned on the body when POS unmounts on a route change. The
+    // warehouse picker owns its own lifecycle, so it is excluded here.
+    document.querySelectorAll('.modal:not(#pos-warehouse-picker)').forEach((el) => {
+      Modal.getInstance(el)?.dispose();
+    });
+    cleanupModalArtifacts();
   },
 
   methods: {
