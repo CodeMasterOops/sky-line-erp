@@ -77,9 +77,12 @@
                                             </button>
                                         </div>
 
-                                        <div class="signinform">
+                                        <div class="signinform" v-if="authStore.appSettings.registrationEnabled">
                                             <h4>New on our platform?<router-link :to="{name: 'admin.register'}"
                                                     class="hover-a"> Create an account</router-link></h4>
+                                        </div>
+                                        <div class="signinform" v-else-if="authStore.appSettings.supportEmail">
+                                            <h4>Need an account? <a :href="`mailto:${authStore.appSettings.supportEmail}`" class="hover-a">Contact support</a></h4>
                                         </div>
                                         <div class="form-setlogin or-text">
                                             <h4>OR</h4>
@@ -183,6 +186,8 @@ import { useBranchStore } from "@/stores/admin/settings/branch.js";
 const authStore = useAdminAuthStore();
 const branchStore = useBranchStore();
 const router = useRouter()
+
+authStore.fetchAppSettings();
 
 const form = reactive({
     email: '',

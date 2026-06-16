@@ -42,6 +42,15 @@
                     "name": "super-admin.subscription"
                 },
                 "hasSubRoute": false
+            },
+            {
+                "menuValue": "Leads",
+                "icon": "ti ti-users",
+                "active_link": "/super-admin/leads",
+                "route": {
+                    "name": "super-admin.leads"
+                },
+                "hasSubRoute": false
             }
         ]
     },

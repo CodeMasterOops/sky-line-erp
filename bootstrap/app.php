@@ -22,6 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->prefix('api/admin')
                 ->as('api.admin.')
                 ->group(base_path('routes/api_admin.php'));
+
+            Route::middleware(['api', 'throttle:5,60'])
+                ->prefix('api/public')
+                ->as('api.public.')
+                ->group(base_path('routes/api_public.php'));
         }
     )
     ->withMiddleware(function (Middleware $middleware): void {

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\SuperAdmin\ProvinceController;
 use App\Http\Controllers\Api\SuperAdmin\DistrictController;
 use App\Http\Controllers\Api\SuperAdmin\PalikaController;
 use App\Http\Controllers\Api\SuperAdmin\WardController;
+use App\Http\Controllers\Api\SuperAdmin\LeadController;
 use App\Http\Controllers\Api\SuperAdmin\PlanController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionController;
 
@@ -62,4 +63,7 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::put('subscription/{subscription}/cancel', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
     Route::put('subscription/{subscription}/renew', [SubscriptionController::class, 'renew'])->name('subscription.renew');
     Route::apiResource('subscription', SubscriptionController::class);
+
+    // leads (public inquiry submissions)
+    Route::apiResource('lead', LeadController::class)->only('index', 'show', 'update', 'destroy');
 });

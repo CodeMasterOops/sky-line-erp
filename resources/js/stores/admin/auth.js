@@ -11,10 +11,27 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                 user_type: localStorage.getItem('user_type'),
                 permissions: storedPermissions(),
                 needsOnboarding: localStorage.getItem('needs_onboarding') === 'true',
-            }
+            },
+            appSettings: {
+                registrationEnabled: true,
+                supportEmail: '',
+                loaded: false,
+            },
         }
     },
     actions: {
+        fetchAppSettings() {
+            if (this.appSettings.loaded) {
+                return Promise.resolve();
+            }
+            return apiFront('public/settings', 'get')
+                .then((res) => {
+                    this.appSettings.registrationEnabled = res.data.registration_enabled;
+                    this.appSettings.supportEmail = res.data.support_email;
+                    this.appSettings.loaded = true;
+                })
+                .catch(() => {});
+        },
         login(form) {
             return apiFront('admin/login', 'post', form)
                 .then((res) => {

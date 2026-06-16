@@ -11,7 +11,31 @@
                                     <img :src="appLogoWhite" alt="Img" />
                                 </router-link>
                             </div>
-                            <form @submit.prevent="submitForm">
+                            <div v-if="!authStore.appSettings.registrationEnabled" class="card">
+                                <div class="card-body p-5 text-center">
+                                    <div class="login-userheading mb-4">
+                                        <h3>Registration Disabled</h3>
+                                        <h4>New registrations are not available at this time.</h4>
+                                    </div>
+                                    <p class="text-muted mb-4">
+                                        To request an account, please contact our support team.
+                                    </p>
+                                    <a
+                                        v-if="authStore.appSettings.supportEmail"
+                                        :href="`mailto:${authStore.appSettings.supportEmail}`"
+                                        class="btn btn-login mb-4"
+                                    >
+                                        Contact Support
+                                    </a>
+                                    <div class="signinform">
+                                        <h4>
+                                            Already have an account?
+                                            <router-link :to="{ name: 'admin.login' }" class="hover-a">Sign In</router-link>
+                                        </h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <form v-else @submit.prevent="submitForm">
                                 <div class="card">
                                     <div class="card-body p-5">
                                         <div class="login-userheading">
@@ -169,6 +193,8 @@ import appLogoWhite from "@/assets/images/logo-white.svg";
 
 const router = useRouter();
 const authStore = useAdminAuthStore();
+
+authStore.fetchAppSettings();
 
 const isAccountPage = ref(true);
 const form = reactive({

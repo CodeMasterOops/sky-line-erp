@@ -102,6 +102,18 @@ const routes = [
                 path: 'address',
                 redirect: '/super-admin/settings/address',
             },
+            {
+                path: 'leads',
+                name: 'super-admin.leads',
+                meta: {pageTitle: 'Leads'},
+                component: () => import('@/views/super-admin/leads/Index.vue'),
+            },
+            {
+                path: 'leads/:id',
+                name: 'super-admin.leads-show',
+                meta: {pageTitle: 'Lead Detail'},
+                component: () => import('@/views/super-admin/leads/Show.vue'),
+            },
         ]
     },
 ];

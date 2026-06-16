@@ -75,6 +75,12 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request)
     {
+        if (! config('app.registration_enabled')) {
+            return response()->json([
+                'message' => 'Registration is currently disabled. Please contact support.',
+            ], 503);
+        }
+
         [$company, $user] = DB::transaction(function () use ($request) {
             $company = Company::create([
                 'company_name' => $request->validated('company_name'),
