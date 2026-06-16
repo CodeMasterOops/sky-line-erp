@@ -286,28 +286,24 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useBarcodeStore } from '@/stores/admin/inventory/barcode.js';
+import { useProfileStore } from '@/stores/admin/profile.js';
 import BarcodeLabel from '@/components/barcode/BarcodeLabel.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 // print-js / jsbarcode / qrcode are loaded on-demand inside the print and
 // label-building handlers, keeping these heavy libs out of the initial bundle.
 
 const store = useBarcodeStore();
+const profileStore = useProfileStore();
 
 const defaultFormat = ref('code128');
 const defaultSource = ref('barcode');
 const printingBrowser = ref(false);
 
-// Company name — read from localStorage profile if available, otherwise empty.
-const companyName = computed(() => {
-    try {
-        const profile = JSON.parse(localStorage.getItem('admin_user') || '{}');
-        return profile?.company?.name || '';
-    } catch {
-        return '';
-    }
-});
+const companyName = computed(() => profileStore.profile.data?.company?.name || '');
+
+onMounted(() => profileStore.getProfile());
 
 const onVariantSelected = (variant) => {
     store.addVariant(variant, {

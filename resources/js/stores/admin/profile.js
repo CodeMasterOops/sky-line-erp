@@ -15,7 +15,7 @@ export const useProfileStore = defineStore('admin-profile', {
     },
     actions: {
         getProfile() {
-            if (!Object.keys(this.profile.data).length) {
+            if (!Object.keys(this.profile.data).length || !this.profile.data.company?.name) {
                 this.profile.loading = true;
                 return apiAdmin(`profile`)
                     .then((res) => {

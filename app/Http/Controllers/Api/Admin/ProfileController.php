@@ -13,7 +13,7 @@ class ProfileController extends Controller
 {
     public function profile()
     {
-        $authUser = auth('admin')->user();
+        $authUser = auth('admin')->user()->load('company');
 
         return response()->json([
             'data' => ProfileResource::make($authUser),

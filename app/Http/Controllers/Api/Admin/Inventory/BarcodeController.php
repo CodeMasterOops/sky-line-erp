@@ -59,7 +59,7 @@ class BarcodeController extends Controller
         ];
 
         $paper = $validated['paper'] ?? 'a4';
-        $company = auth()->user()->company?->name ?? '';
+        $company = auth()->user()->company?->company_name ?? '';
 
         $labels = $this->barcodeService->buildLabelData($validated['items'], $config, $company);
         $pdf = $this->barcodeService->generatePdf($labels, $paper);
