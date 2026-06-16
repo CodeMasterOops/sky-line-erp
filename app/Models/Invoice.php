@@ -85,6 +85,14 @@ class Invoice extends Model
             $query->where('status', $param['status']);
         }
 
+        if (! empty($param['date_from'])) {
+            $query->whereDate('invoice_date', '>=', $param['date_from']);
+        }
+
+        if (! empty($param['date_to'])) {
+            $query->whereDate('invoice_date', '<=', $param['date_to']);
+        }
+
         return $query;
     }
 

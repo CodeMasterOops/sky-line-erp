@@ -29,14 +29,21 @@ export const useAdminDashboardStore = defineStore('adminDashboard', {
                     purchases: [],
                     expenses:  [],
                 },
+                fiscal_year: {
+                    start_date: null,
+                    end_date:   null,
+                },
             },
             loading: false,
         },
     }),
     actions: {
-        getDashboardData() {
+        getDashboardData({date_from, date_to} = {}) {
             this.dashboard.loading = true;
-            return apiAdmin('dashboard')
+            const params = {};
+            if (date_from) { params.date_from = date_from; }
+            if (date_to)   { params.date_to   = date_to; }
+            return apiAdmin('dashboard', 'get', params)
                 .then((res) => {
                     this.dashboard.data = res.data;
                 })
@@ -50,6 +57,7 @@ export const useAdminDashboardStore = defineStore('adminDashboard', {
     },
     getters: {
         isLoading: (state) => state.dashboard.loading,
+        fiscalYear: (state) => state.dashboard.data.fiscal_year,
         summaryCards: (state) => {
             const d = state.dashboard.data;
             return [

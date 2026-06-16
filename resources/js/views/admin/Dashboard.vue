@@ -16,6 +16,7 @@
           class="form-control date-range bookingrange"
           ref="dateRangeInput"
           placeholder="Select Date Range"
+          readonly
         />
       </div>
     </header>
@@ -385,22 +386,29 @@
 <script setup>
 import {formatMoney} from '@/helpers/formatMoney.js';
 import {ref, computed, onMounted, watch, nextTick} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
 import {useAdminDashboardStore} from '@/stores/admin/dashboard';
 
 const dashboardStore = useAdminDashboardStore();
+const route  = useRoute();
+const router = useRouter();
 const dateRangeInput = ref(null);
-const chartsReady = ref(false);
+const chartsReady    = ref(false);
+let   pickerInstance = null;
 
-const dash = computed(() => dashboardStore.dashboard.data);
+const dash         = computed(() => dashboardStore.dashboard.data);
 const summaryCards = computed(() => dashboardStore.summaryCards);
+const fiscalYear   = computed(() => dashboardStore.fiscalYear);
 
 const profit = computed(() => {
     const d = dashboardStore.dashboard.data;
     return Math.max(0, (d.total_sales - d.total_sales_return) - (d.total_purchase - d.total_purchase_return));
 });
+
+const todayStr = moment().format('YYYY-MM-DD');
 
 const businessMetrics = computed(() => {
     const d = dashboardStore.dashboard.data;
@@ -436,7 +444,7 @@ const businessMetrics = computed(() => {
             icon: 'ti-file-invoice',
             iconBg: 'bg-soft-primary',
             iconColor: 'text-primary',
-            route: {name: 'admin.invoice-list'},
+            route: {name: 'admin.invoice-list', query: {date_from: todayStr, date_to: todayStr}},
         },
     ];
 });
@@ -470,7 +478,7 @@ const salesChartOptions = computed(() => ({
 }));
 
 const salesChartSeries = computed(() => [
-    {name: 'Sales', data: chartData.value.sales || []},
+    {name: 'Sales',    data: chartData.value.sales     || []},
     {name: 'Purchase', data: chartData.value.purchases || []},
 ]);
 
@@ -487,12 +495,12 @@ const expensesChartOptions = computed(() => ({
 }));
 
 const expensesChartSeries = computed(() => [
-    {name: 'Revenue', data: chartData.value.sales || []},
+    {name: 'Revenue',  data: chartData.value.sales    || []},
     {name: 'Expenses', data: chartData.value.expenses || []},
 ]);
 
-const hasSalesChartData = computed(() => salesChartSeries.value.some((series) => series.data.length > 0));
-const hasExpensesChartData = computed(() => expensesChartSeries.value.some((series) => series.data.length > 0));
+const hasSalesChartData    = computed(() => salesChartSeries.value.some((s) => s.data.length > 0));
+const hasExpensesChartData = computed(() => expensesChartSeries.value.some((s) => s.data.length > 0));
 
 watch(
     () => dashboardStore.isLoading,
@@ -507,36 +515,84 @@ watch(
     {immediate: true},
 );
 
+function initPicker(fyStart, fyEnd) {
+    if (!dateRangeInput.value) { return; }
+
+    const minDate = moment(fyStart);
+    const maxDate = moment.min(moment(), moment(fyEnd));
+
+    const currentFrom = route.query.date_from ? moment(route.query.date_from) : minDate.clone();
+    const currentTo   = route.query.date_to   ? moment(route.query.date_to)   : moment();
+
+    if (pickerInstance) {
+        pickerInstance.remove();
+        pickerInstance = null;
+    }
+
+    pickerInstance = new DateRangePicker(
+        dateRangeInput.value,
+        {
+            startDate: currentFrom,
+            endDate:   currentTo,
+            minDate,
+            maxDate,
+            ranges: {
+                Today:             [moment(), moment()],
+                Yesterday:         [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                'Last 7 Days':     [moment().subtract(6, 'days'), moment()],
+                'Last 30 Days':    [moment().subtract(29, 'days'), moment()],
+                'This Month':      [moment().startOf('month'), moment().endOf('month')],
+                'Last Month':      [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
+                'This Fiscal Year': [minDate.clone(), moment()],
+            },
+        },
+        (start, end) => {
+            const from = start.format('YYYY-MM-DD');
+            const to   = end.format('YYYY-MM-DD');
+            router.push({query: {date_from: from, date_to: to}});
+            dashboardStore.getDashboardData({date_from: from, date_to: to});
+        },
+    );
+
+    dateRangeInput.value.value = `${currentFrom.format('MM/DD/YYYY')} - ${currentTo.format('MM/DD/YYYY')}`;
+}
+
+watch(fiscalYear, (fy) => {
+    if (fy?.start_date && fy?.end_date) {
+        initPicker(fy.start_date, fy.end_date);
+    }
+});
+
+watch(
+    () => route.query,
+    (query) => {
+        if (query.date_from && query.date_to && pickerInstance) {
+            pickerInstance.setStartDate(moment(query.date_from));
+            pickerInstance.setEndDate(moment(query.date_to));
+            dateRangeInput.value.value = `${moment(query.date_from).format('MM/DD/YYYY')} - ${moment(query.date_to).format('MM/DD/YYYY')}`;
+        }
+    },
+);
+
 onMounted(async () => {
-    dashboardStore.getDashboardData();
+    const {date_from, date_to} = route.query;
+
+    await dashboardStore.getDashboardData(
+        date_from && date_to ? {date_from, date_to} : {},
+    );
 
     await nextTick();
 
-    if (dateRangeInput.value) {
-        const start = moment().subtract(6, 'days');
-        const end = moment();
-        new DateRangePicker(
-            dateRangeInput.value,
-            {
-                startDate: start,
-                endDate: end,
-                ranges: {
-                    Today:         [moment(), moment()],
-                    Yesterday:     [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-                    'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-                    'Last 30 Days':[moment().subtract(29, 'days'), moment()],
-                    'This Month':  [moment().startOf('month'), moment().endOf('month')],
-                    'Last Month':  [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
-                },
-            },
-            (s, e) => {
-                if (dateRangeInput.value) {
-                    dateRangeInput.value.value = `${s.format('M/D/YYYY')} - ${e.format('M/D/YYYY')}`;
-                }
-            },
-        );
+    const fy = dashboardStore.fiscalYear;
 
-        dateRangeInput.value.value = `${start.format('M/D/YYYY')} - ${end.format('M/D/YYYY')}`;
+    if (fy?.start_date && fy?.end_date) {
+        if (!date_from || !date_to) {
+            const from = fy.start_date;
+            const to   = todayStr;
+            router.replace({query: {date_from: from, date_to: to}});
+        }
+
+        initPicker(fy.start_date, fy.end_date);
     }
 });
 </script>
