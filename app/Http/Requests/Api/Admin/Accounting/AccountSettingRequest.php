@@ -34,6 +34,11 @@ class AccountSettingRequest extends FormRequest
             'cogs_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
             'retained_earnings_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
             'opening_stock_equity_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'tds_payable_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'tds_receivable_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'customer_advance_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'bad_debt_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
+            'stock_adjustment_account_id' => ['nullable', 'integer', TRule::exists('accounts', 'id')->withoutTrashed()],
         ];
     }
 }

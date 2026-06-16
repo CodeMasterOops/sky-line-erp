@@ -350,7 +350,8 @@
               <p class="fw-semibold mb-2 small text-uppercase text-muted ls-1">Payment Method</p>
               <div class="row g-2">
                 <template v-if="posStore.paymentModes.length">
-                  <div v-for="mode in posStore.paymentModes" :key="mode.id" class="col-6">
+                  <!-- Non-bank modes: render individual tiles as before -->
+                  <div v-for="mode in nonBankModes" :key="mode.id" class="col-6">
                     <a
                       href="javascript:void(0);"
                       class="d-flex flex-column align-items-center justify-content-center border rounded py-2 px-1 text-decoration-none"
@@ -362,6 +363,34 @@
                     >
                       <i :class="paymentModeIcon(mode.name)" class="fs-20 mb-1"></i>
                       <span class="small lh-sm text-center">{{ mode.name }}</span>
+                    </a>
+                  </div>
+
+                  <!-- Bank-linked modes: single grouped "Bank Transfer" tile -->
+                  <div v-if="bankLinkedModes.length" class="col-6">
+                    <a
+                      href="javascript:void(0);"
+                      class="d-flex flex-column align-items-center justify-content-center border rounded py-2 px-1 text-decoration-none position-relative"
+                      :class="isBankLinkedModeSelected
+                        ? 'bg-primary border-primary text-white'
+                        : 'bg-white text-body'"
+                      style="cursor:pointer; transition:all .15s; min-height:58px;"
+                      @click="openBankPicker()"
+                    >
+                      <i class="ti ti-building-bank fs-20 mb-1"></i>
+                      <span class="small lh-sm text-center fw-semibold">
+                        {{ isBankLinkedModeSelected && selectedBankAccount ? selectedBankAccount.bank_name : 'Bank Transfer' }}
+                      </span>
+                      <span
+                        v-if="isBankLinkedModeSelected && selectedBankAccount"
+                        class="text-center lh-1 opacity-75"
+                        style="font-size:10px;"
+                      >{{ selectedBankAccount.account_number }}</span>
+                      <span
+                        v-if="isBankLinkedModeSelected"
+                        class="position-absolute top-0 end-0 p-1 opacity-50"
+                        style="font-size:9px;"
+                      ><i class="ti ti-edit"></i></span>
                     </a>
                   </div>
                 </template>
@@ -504,6 +533,59 @@
     confirm-label="Add to Order"
     @confirm="onWarehousePicked"
   />
+
+  <!-- Bank Account Picker -->
+  <VModal
+    :show-modal="showBankPicker"
+    size="md"
+    title="Select Bank Account"
+    @close-click="showBankPicker = false"
+  >
+    <template #modal-body>
+      <div class="row g-3 p-2">
+        <div
+          v-for="mode in bankLinkedModes"
+          :key="mode.id"
+          class="col-6"
+        >
+          <a
+            href="javascript:void(0);"
+            class="bank-picker-card d-flex flex-column align-items-center text-center text-decoration-none rounded-3 p-3 position-relative"
+            :class="selectedPaymentModeId === mode.id ? 'bank-picker-card--selected' : ''"
+            @click="onBankAccountSelected(mode)"
+          >
+            <!-- Selected checkmark badge -->
+            <span
+              v-if="selectedPaymentModeId === mode.id"
+              class="position-absolute top-0 end-0 m-2 d-flex align-items-center justify-content-center bg-primary rounded-circle text-white"
+              style="width:20px; height:20px; font-size:11px;"
+            ><i class="ti ti-check"></i></span>
+
+            <!-- Bank icon -->
+            <div
+              class="bank-picker-card__icon d-flex align-items-center justify-content-center rounded-circle mb-2"
+              :class="selectedPaymentModeId === mode.id ? 'bg-primary' : 'bg-primary bg-opacity-10'"
+              style="width:52px; height:52px;"
+            >
+              <i
+                class="ti ti-building-bank fs-22"
+                :class="selectedPaymentModeId === mode.id ? 'text-white' : 'text-primary'"
+              ></i>
+            </div>
+
+            <!-- Bank name -->
+            <div class="fw-semibold lh-sm mb-1" style="font-size:13px;">{{ mode.bank_account.bank_name }}</div>
+
+            <!-- Account number -->
+            <div class="text-muted" style="font-size:11px; letter-spacing:.5px;">{{ mode.bank_account.account_number }}</div>
+
+            <!-- Mode label -->
+            <span class="badge bg-light text-secondary border mt-2" style="font-size:10px;">{{ mode.name }}</span>
+          </a>
+        </div>
+      </div>
+    </template>
+  </VModal>
 </template>
 
 <script>
@@ -512,6 +594,7 @@ import { cleanupModalArtifacts } from '@/helpers/cleanupModalArtifacts.js';
 import {formatMoney} from '@/helpers/formatMoney.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
+import VModal from '@/components/base/VModal.vue';
 import PosHeader from '@/layouts/pos-header.vue';
 import PosTwoModal from '@/components/modal/pos-two-modal.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
@@ -531,6 +614,7 @@ export default {
     WarehousePickerModal,
     ProductVariantSearchInput,
     VDiscountAmountTypeGroup,
+    VModal,
   },
 
   setup() {
@@ -544,6 +628,8 @@ export default {
       selectedCustomerOption: null,
       selectedPaymentMethod: 'cash',
       selectedPaymentModeId: null,
+      selectedBankAccount: null,
+      showBankPicker: false,
       pendingVariant: null,
       selectedCategoryId: null,
       showGrid: true,
@@ -563,6 +649,18 @@ export default {
         value: c.id,
         customer: c,
       }));
+    },
+
+    bankLinkedModes() {
+      return this.posStore.paymentModes.filter((m) => m.bank_account !== null);
+    },
+
+    nonBankModes() {
+      return this.posStore.paymentModes.filter((m) => m.bank_account === null);
+    },
+
+    isBankLinkedModeSelected() {
+      return this.bankLinkedModes.some((m) => m.id === this.selectedPaymentModeId);
     },
   },
 
@@ -753,6 +851,23 @@ export default {
     selectPaymentMode(mode) {
       this.selectedPaymentMethod = mode.name;
       this.selectedPaymentModeId = mode.id;
+      this.selectedBankAccount = null;
+    },
+
+    openBankPicker() {
+      if (this.bankLinkedModes.length === 1) {
+        this.onBankAccountSelected(this.bankLinkedModes[0]);
+        return;
+      }
+      this.showBankPicker = true;
+    },
+
+    onBankAccountSelected(mode) {
+      this.selectedPaymentMethod = mode.name;
+      this.selectedPaymentModeId = mode.id;
+      this.selectedBankAccount = mode.bank_account;
+      this.showBankPicker = false;
+      this.openPaymentModal();
     },
 
     paymentModeIcon(name) {
@@ -1389,5 +1504,26 @@ export default {
   font-family: monospace;
   font-size: 0.65rem;
   padding: 0.1rem 0.3rem;
+}
+
+/* Bank Account Picker cards */
+.bank-picker-card {
+  border: 2px solid var(--bs-border-color);
+  background: var(--bs-body-bg);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  min-height: 140px;
+}
+
+.bank-picker-card:hover {
+  border-color: var(--bs-primary);
+  box-shadow: 0 4px 16px rgba(var(--bs-primary-rgb), 0.12);
+  transform: translateY(-2px);
+}
+
+.bank-picker-card--selected {
+  border-color: var(--bs-primary) !important;
+  box-shadow: 0 4px 20px rgba(var(--bs-primary-rgb), 0.18);
+  background: rgba(var(--bs-primary-rgb), 0.03);
 }
 </style>

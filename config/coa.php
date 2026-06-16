@@ -61,6 +61,12 @@ return [
                                 'description' => null,
                                 'category' => null,
                             ],
+                            [
+                                'name' => 'TDS Receivable',
+                                'code' => 'TDSR',
+                                'description' => null,
+                                'category' => null,
+                            ],
                         ],
                     ],
                     [
@@ -276,6 +282,32 @@ return [
                             ],
                         ],
                     ],
+                    [
+                        'name' => 'GRNI Clearing',
+                        'code' => 'GRNIC',
+                        'description' => null,
+                        'accounts' => [
+                            [
+                                'name' => 'Goods Received Not Invoiced',
+                                'code' => 'GRNI',
+                                'description' => null,
+                                'category' => null,
+                            ],
+                        ],
+                    ],
+                    [
+                        'name' => 'Customer Advances',
+                        'code' => 'CADVG',
+                        'description' => null,
+                        'accounts' => [
+                            [
+                                'name' => 'Customer Advance',
+                                'code' => 'CUSTADV',
+                                'description' => null,
+                                'category' => null,
+                            ],
+                        ],
+                    ],
                 ],
             ],
             [
@@ -409,6 +441,18 @@ return [
                     [
                         'name' => 'Cost of Goods Sold',
                         'code' => 'COGS',
+                        'description' => null,
+                        'category' => null,
+                    ],
+                    [
+                        'name' => 'Bad Debt Expense',
+                        'code' => 'BDE',
+                        'description' => null,
+                        'category' => null,
+                    ],
+                    [
+                        'name' => 'Stock Adjustment',
+                        'code' => 'SADJ',
                         'description' => null,
                         'category' => null,
                     ],

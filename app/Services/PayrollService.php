@@ -16,6 +16,7 @@ use App\Models\JournalItem;
 use App\Models\PayslipItem;
 use App\Models\TdsDeduction;
 use App\Enums\JournalTypeEnum;
+use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AttendanceStatusEnum;
 use App\Enums\SalaryComponentTypeEnum;
@@ -245,23 +246,20 @@ class PayrollService
 
             // CR TDS payable account if there is TDS
             if ($totalTds > 0) {
-                $tdsPayableAccount = Account::where('company_id', $companyId)
-                    ->where(function ($q) {
-                        $q->where('name', 'like', '%TDS%Payable%')
-                            ->orWhere('name', 'like', '%Tax%Withheld%');
-                    })
+                $accountSetting = AccountSetting::withoutGlobalScopes()
+                    ->where('company_id', $companyId)
                     ->first();
 
-                if (! $tdsPayableAccount) {
+                if (! $accountSetting?->tds_payable_account_id) {
                     throw ValidationException::withMessages([
-                        'account_setting' => 'Cannot post payroll journal: no TDS Payable account found. '
-                            .'Please configure an account with "TDS Payable" or "Tax Withheld" in its name.',
+                        'account_setting' => 'Cannot post payroll journal: TDS Payable account not configured. '
+                            .'Set it under Accounting → Account Settings.',
                     ]);
                 }
 
                 JournalItem::create([
                     'journal_id' => $journal->id,
-                    'account_id' => $tdsPayableAccount->id,
+                    'account_id' => $accountSetting->tds_payable_account_id,
                     'dr_amount' => 0,
                     'cr_amount' => round($totalTds, 2),
                     'remarks' => "TDS withheld on salary – {$monthLabel}",

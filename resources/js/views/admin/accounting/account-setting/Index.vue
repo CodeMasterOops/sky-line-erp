@@ -153,6 +153,62 @@
                                         label="Opening Stock Equity (perpetual GL)"
                                     />
                                 </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="grni_account_id"
+                                        v-model="form.grni_account_id"
+                                        :options="accounts.data"
+                                        label="GRNI Account (Goods Received Not Invoiced)"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="stock_adjustment_account_id"
+                                        v-model="form.stock_adjustment_account_id"
+                                        :options="accounts.data"
+                                        label="Stock Adjustment Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="tds_payable_account_id"
+                                        v-model="form.tds_payable_account_id"
+                                        :options="accounts.data"
+                                        label="TDS Payable Account (Payroll)"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="tds_receivable_account_id"
+                                        v-model="form.tds_receivable_account_id"
+                                        :options="accounts.data"
+                                        label="TDS Receivable Account (Receipts)"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="customer_advance_account_id"
+                                        v-model="form.customer_advance_account_id"
+                                        :options="accounts.data"
+                                        label="Customer Advance Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="bad_debt_account_id"
+                                        v-model="form.bad_debt_account_id"
+                                        :options="accounts.data"
+                                        label="Bad Debt Account"
+                                    />
+                                </div>
+                                <div class="col-md-4">
+                                    <VSelect
+                                        id="retained_earnings_account_id"
+                                        v-model="form.retained_earnings_account_id"
+                                        :options="accounts.data"
+                                        label="Retained Earnings Account (Year-End Closing)"
+                                    />
+                                </div>
                                 <div class="col-12 text-end">
                                     <VButton :loading="isSubmitting" />
                                 </div>
@@ -197,6 +253,13 @@ const initialState = {
     inventory_account_id: "",
     cogs_account_id: "",
     opening_stock_equity_account_id: "",
+    grni_account_id: "",
+    stock_adjustment_account_id: "",
+    tds_payable_account_id: "",
+    tds_receivable_account_id: "",
+    customer_advance_account_id: "",
+    bad_debt_account_id: "",
+    retained_earnings_account_id: "",
 };
 
 const form = reactive({ ...initialState });
