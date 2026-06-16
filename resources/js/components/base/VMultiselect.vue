@@ -117,10 +117,14 @@ const formatMultipleLabel = (value) => {
 const flattenOptions = (options, level = 0) => {
     return options.flatMap(opt => {
         const label = `${'— '.repeat(level)}${opt[props.nameProp]}`;
-        const flat = [{
+        const entry = {
             [props.valueProp]: opt[props.valueProp],
-            [props.nameProp]: label
-        }];
+            [props.nameProp]: label,
+        };
+        if (opt.disabled) {
+            entry.disabled = true;
+        }
+        const flat = [entry];
         if (opt.children && opt.children.length) {
             flat.push(...flattenOptions(opt.children, level + 1));
         }

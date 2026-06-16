@@ -49,10 +49,13 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label">Warehouse</label>
-                        <select class="form-select" v-model="filters.warehouse_id">
-                            <option value="">All Warehouses</option>
-                            <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="warehouse_id"
+                            v-model="filters.warehouse_id"
+                            :options="warehouseStore.optionsTree"
+                            :loading="warehouseStore.warehouses.loading"
+                            placeholder="All Warehouses"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success flex-grow-1" @click="loadReport" :disabled="loading">
@@ -109,11 +112,14 @@ import {formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {ref, computed, onMounted} from 'vue';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
+import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
+import VMultiselect from '@/components/base/VMultiselect.vue';
+
+const warehouseStore = useWarehouseStore();
 
 const rows = ref([]);
 const summary = ref(null);
 const loading = ref(false);
-const warehouseOptions = ref([]);
 
 const filters = ref({warehouse_id: ''});
 
@@ -141,7 +147,6 @@ const loadReport = async () => {
         const data = res.data.data;
         rows.value = data.rows || [];
         summary.value = data.summary;
-        warehouseOptions.value = data.warehouse_options || warehouseOptions.value;
     } catch (e) {
         showErrors(e);
     } finally {
@@ -150,6 +155,7 @@ const loadReport = async () => {
 };
 
 onMounted(async () => {
+    warehouseStore.getWarehouses();
     await loadReport();
 });
 </script>

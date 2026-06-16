@@ -75,10 +75,13 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Category</label>
-                        <select class="form-select" v-model="filters.category_id">
-                            <option value="">All</option>
-                            <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="category_id"
+                            v-model="filters.category_id"
+                            :options="categoryStore.optionsTree"
+                            :loading="categoryStore.productCategories.loading"
+                            placeholder="All"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success w-100" @click="loadReport" :disabled="loading">
@@ -150,12 +153,15 @@ import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
+import {useProductCategoryStore} from '@/stores/admin/inventory/product-category.js';
+import VMultiselect from '@/components/base/VMultiselect.vue';
+
+const categoryStore = useProductCategoryStore();
 
 const rows = ref([]);
 const summary = ref(null);
 const loading = ref(false);
 const partyOptions = ref([]);
-const categoryOptions = ref([]);
 
 const adminSettingStore = useAdminSettingStore();
 const {currentFiscalYear} = storeToRefs(adminSettingStore);
@@ -174,7 +180,6 @@ const loadReport = async () => {
         rows.value = data.rows || [];
         summary.value = data.summary;
         partyOptions.value = data.party_options || partyOptions.value;
-        categoryOptions.value = data.category_options || categoryOptions.value;
     } catch (e) {
         showErrors(e);
     } finally {
@@ -194,6 +199,7 @@ const exportCsv = () => {
 };
 
 onMounted(async () => {
+    categoryStore.getProductCategories();
     await adminSettingStore.getCurrentFiscalYear();
     const fy = currentFiscalYear.value?.data;
     if (fy?.start_date && fy?.end_date) {

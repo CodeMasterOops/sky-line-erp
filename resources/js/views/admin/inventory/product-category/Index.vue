@@ -24,10 +24,11 @@
                     >
                         <template #bodyCell="{ column, record, index }">
                             <template v-if="column.key === 'sn'">
-                                {{ (productCategories.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                                {{ index + 1 }}
                             </template>
                             <template v-else-if="column.key === 'name'">
                                 <span :style="{ paddingLeft: `${record.depth * 1.25}rem` }">
+                                    <span class="text-muted me-1 font-monospace small">{{ record.outline }}</span>
                                     {{ record.name }}
                                 </span>
                             </template>
@@ -48,7 +49,6 @@
                             </template>
                         </template>
                     </a-table>
-                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="productCategories.meta" />
                 </div>
             </div>
         </div>
@@ -58,13 +58,11 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
-import VPagination from '@/components/base/VPagination.vue';
-import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateProductCategory from './Create.vue';
 import EditProductCategory from './Edit.vue';
 import { useProductCategoryStore } from '@/stores/admin/inventory/product-category.js';
@@ -75,10 +73,9 @@ const edit_product_category_id = ref('');
 const createModalOpened = ref(false);
 const { productCategories } = storeToRefs(categoryStore);
 
-const { filter, fetch } = usePaginatedList({
-    fetchFn: ({ filter }) => categoryStore.getProductCategories({ filter }),
-    defaults: { page: 1, limit: 10 },
-});
+const fetch = () => categoryStore.getProductCategories();
+
+onMounted(fetch);
 
 const categoryRows = computed(() => flattenCategoriesWithOutline(productCategories.value.data));
 

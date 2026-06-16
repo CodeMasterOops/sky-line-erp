@@ -98,11 +98,11 @@ export function flattenCategoriesWithOutline(categories) {
 }
 
 /**
- * @param {{ name: string, full_path?: string }} category
+ * @param {{ name: string }} category
  * @returns {string}
  */
 export function formatCategoryDisplayName(category) {
-    return category.full_path || category.name;
+    return category.name;
 }
 
 /**
@@ -118,6 +118,7 @@ export function buildCategoryOptionsTree(categories, excludeIds = new Set()) {
             name: formatCategoryDisplayName(c),
         };
         if (node.children.length) {
+            option.disabled = true;
             option.children = node.children.map(mapNode);
         }
         return option;
@@ -133,20 +134,18 @@ export function buildCategoryOptionsTree(categories, excludeIds = new Set()) {
  * @returns {Array<{ id: number|string, name: string }>}
  */
 export function buildLeafCategoryOptions(categories) {
-    return (categories || [])
-        .filter((c) => c.is_leaf === true || c.is_leaf === undefined)
-        .filter((c) => {
-            const id = Number(c.id);
-            const hasChildren = (categories || []).some(
-                (child) => child.parent_id != null && Number(child.parent_id) === id,
-            );
-            return !hasChildren;
-        })
+    const parentIds = new Set(
+        (categories || [])
+            .filter((c) => c.parent_id != null && c.parent_id !== '')
+            .map((c) => Number(c.parent_id)),
+    );
+
+    return flattenCategoriesWithOutline(categories)
+        .filter((c) => !parentIds.has(Number(c.id)))
         .map((c) => ({
             id: c.id,
-            name: formatCategoryDisplayName(c),
-        }))
-        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+            name: `${c.outline} ${c.name}`,
+        }));
 }
 
 /**

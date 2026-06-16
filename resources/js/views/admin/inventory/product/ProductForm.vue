@@ -507,7 +507,7 @@ const settingStore = useSettingStore();
 const taxStore = useTaxStore();
 
 const { units } = storeToRefs(unitStore);
-const { leafOptionsTree: leafCategoryOptions } = storeToRefs(categoryStore);
+const { optionsTree: leafCategoryOptions } = storeToRefs(categoryStore);
 const { brands } = storeToRefs(brandStore);
 const { attributes } = storeToRefs(attributeStore);
 const { product } = storeToRefs(productStore);

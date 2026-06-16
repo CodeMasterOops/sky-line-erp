@@ -62,10 +62,13 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Warehouse</label>
-                        <select class="form-select" v-model="filters.warehouse_id">
-                            <option value="">All Warehouses</option>
-                            <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="warehouse_id"
+                            v-model="filters.warehouse_id"
+                            :options="warehouseStore.optionsTree"
+                            :loading="warehouseStore.warehouses.loading"
+                            placeholder="All Warehouses"
+                        />
                     </div>
                     <div class="col-md-1">
                         <label class="form-label">Direction</label>
@@ -148,13 +151,16 @@ import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
+import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
+import VMultiselect from '@/components/base/VMultiselect.vue';
+
+const warehouseStore = useWarehouseStore();
 
 const rows = ref([]);
 const summary = ref(null);
 const pagination = ref(null);
 const loading = ref(false);
 const productOptions = ref([]);
-const warehouseOptions = ref([]);
 
 const adminSettingStore = useAdminSettingStore();
 const {currentFiscalYear} = storeToRefs(adminSettingStore);
@@ -182,7 +188,6 @@ const loadReport = async (page = 1) => {
         pagination.value = data.pagination;
         if (data.filter_options) {
             productOptions.value = data.filter_options.product_variant_options || [];
-            warehouseOptions.value = data.filter_options.warehouse_options || [];
         }
     } catch (e) {
         showErrors(e);
@@ -206,6 +211,7 @@ const exportCsv = () => {
 };
 
 onMounted(async () => {
+    warehouseStore.getWarehouses();
     await adminSettingStore.getCurrentFiscalYear();
     const fy = currentFiscalYear.value?.data;
     if (fy?.start_date && fy?.end_date) {

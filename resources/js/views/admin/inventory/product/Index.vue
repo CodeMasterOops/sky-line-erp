@@ -31,68 +31,36 @@
             @search="onSearchInput" @reset="resetFilters">
             <template #filters>
                 <!-- Type filter -->
-                <div class="dropdown me-2">
-                    <a href="javascript:void(0);"
-                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                        data-bs-toggle="dropdown">
-                        {{ selectedTypeName || 'Type' }}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('product_type', '', 'All types')">All types</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('product_type', 'product', 'Products')">Products</a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('product_type', 'service', 'Services')">Services</a>
-                        </li>
-                    </ul>
+                <div class="me-2" style="min-width: 150px;">
+                    <VMultiselect
+                        id="product_type"
+                        v-model="selectedProductType"
+                        :options="typeOptions"
+                        placeholder="Type"
+                    />
                 </div>
-                <!-- Category Dropdown -->
-                <div class="dropdown me-2">
-                    <a href="javascript:void(0);"
-                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                        data-bs-toggle="dropdown">
-                        {{ selectedCategoryName || 'Category' }}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('product_category_id', '')">All Categories</a>
-                        </li>
-                        <li v-for="category in categoryFilterOptions" :key="category.id">
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                :style="{ paddingLeft: `${0.75 + category.depth * 1}rem` }"
-                                @click="setFilter('product_category_id', category.id, category.label)">
-                                {{ category.label }}
-                            </a>
-                        </li>
-                    </ul>
+                <!-- Category filter -->
+                <div class="me-2" style="min-width: 200px;">
+                    <VMultiselect
+                        id="product_category_id"
+                        v-model="selectedCategoryId"
+                        :options="categoryStore.optionsTree"
+                        :loading="categoryStore.productCategories.loading"
+                        placeholder="Category"
+                    />
                 </div>
-                <!-- Brand Dropdown -->
-                <div class="dropdown me-2">
-                    <a href="javascript:void(0);"
-                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
-                        data-bs-toggle="dropdown">
-                        {{ selectedBrandName || 'Brand' }}
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end p-3">
-                        <li>
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('brand_id', '')">All Brands</a>
-                        </li>
-                        <li v-for="brand in brands" :key="brand.id">
-                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                @click="setFilter('brand_id', brand.id, brand.name)">{{ brand.name }}</a>
-                        </li>
-                    </ul>
+                <!-- Brand filter -->
+                <div class="me-2" style="min-width: 160px;">
+                    <VMultiselect
+                        id="brand_id"
+                        v-model="selectedBrandId"
+                        :options="brands"
+                        :loading="brandStore.brands.loading"
+                        placeholder="Brand"
+                    />
                 </div>
                 <!-- Warehouse filter -->
-                <div class="me-2" style="min-width: 220px;">
+                <div class="me-2" style="min-width: 200px;">
                     <VMultiselect
                         id="warehouse_ids"
                         v-model="selectedWarehouseId"
@@ -204,7 +172,6 @@ import {
     formatHsnLabel,
     formatPriceWithUnit,
 } from './tableConfig.js';
-import { flattenCategoriesWithOutline, formatCategoryDisplayName } from '@/helpers/categoryTree.js';
 
 const router = useRouter();
 const productStore = useProductStore();
@@ -214,21 +181,15 @@ const brandStore = useBrandStore();
 const warehouseStore = useWarehouseStore();
 
 const { products } = storeToRefs(productStore);
-const { productCategories: categories } = storeToRefs(categoryStore);
 const { brands: brandList } = storeToRefs(brandStore);
 
 const brands = computed(() => brandList.value.data || []);
-const categoryFilterOptions = computed(() =>
-    flattenCategoriesWithOutline(categories.value.data || []).map((category) => ({
-        id: category.id,
-        depth: category.depth,
-        label: formatCategoryDisplayName(category),
-    })),
-);
 
-const selectedCategoryName = ref('');
-const selectedBrandName = ref('');
-const selectedTypeName = ref('');
+const typeOptions = [
+    { id: 'product', name: 'Products' },
+    { id: 'service', name: 'Services' },
+];
+
 const stockDetailProduct = ref(null);
 
 const columns = computed(() => getProductColumns({
@@ -251,11 +212,24 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
     onFilter: fetchProducts,
 });
 
+const selectedProductType = computed({
+    get: () => filter.product_type || '',
+    set: (val) => { filter.product_type = val ?? ''; },
+});
+
+const selectedCategoryId = computed({
+    get: () => (filter.product_category_id ? Number(filter.product_category_id) : ''),
+    set: (id) => { filter.product_category_id = id ? String(id) : ''; },
+});
+
+const selectedBrandId = computed({
+    get: () => (filter.brand_id ? Number(filter.brand_id) : ''),
+    set: (id) => { filter.brand_id = id ? String(id) : ''; },
+});
+
 const selectedWarehouseId = computed({
     get: () => (filter.warehouse_ids ? Number(filter.warehouse_ids) : ''),
-    set: (id) => {
-        filter.warehouse_ids = id ? String(id) : '';
-    },
+    set: (id) => { filter.warehouse_ids = id ? String(id) : ''; },
 });
 
 const { handleTableChange } = useTablePagination({
@@ -275,12 +249,6 @@ onMounted(async () => {
 
 const rowKey = (row) => row.id;
 
-const setFilter = (key, value, name = '') => {
-    filter[key] = value;
-    if (key === 'product_category_id') selectedCategoryName.value = name;
-    if (key === 'brand_id') selectedBrandName.value = name;
-    if (key === 'product_type') selectedTypeName.value = name;
-};
 
 const openStockDetail = (record) => { stockDetailProduct.value = record; };
 
@@ -293,6 +261,7 @@ const getProductExportFilters = () => ({
     product_type: filter.product_type,
     warehouse_ids: filter.warehouse_ids,
 });
+
 
 const editProduct = (id) => {
     router.push({ name: 'admin.product-edit', params: { id: String(id) } });

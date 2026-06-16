@@ -70,16 +70,13 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Warehouse <span class="text-danger">*</span></label>
-                            <select v-model="createForm.warehouse_id" class="form-select">
-                                <option value="" disabled>Select warehouse</option>
-                                <option
-                                    v-for="w in warehouseSelectRows"
-                                    :key="w.id"
-                                    :value="w.id"
-                                >
-                                    {{ formatWarehouseOptionLabel(w, w.depth) }}
-                                </option>
-                            </select>
+                            <VMultiselect
+                                id="production_warehouse_id"
+                                v-model="createForm.warehouse_id"
+                                :options="warehouseStore.optionsTree"
+                                :loading="warehouseStore.warehouses.loading"
+                                placeholder="Select warehouse"
+                            />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Planned Qty <span class="text-danger">*</span></label>
@@ -147,21 +144,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive, watch } from 'vue';
+import { ref, onMounted, reactive, watch } from 'vue';
 import VPagination from '@/components/base/VPagination.vue';
+import VMultiselect from '@/components/base/VMultiselect.vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {
-    flattenWarehousesWithOutline,
-    formatWarehouseOptionLabel,
-} from '@/helpers/warehouseTree.js';
+import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
+
+const warehouseStore = useWarehouseStore();
 
 const loading = ref(false);
 const saving = ref(false);
 const orders = ref([]);
-const warehouses = ref([]);
-const warehouseSelectRows = computed(() => flattenWarehousesWithOutline(warehouses.value));
 const showCreate = ref(false);
 const completeModal = ref(false);
 const selectedOrder = ref(null);
@@ -189,7 +184,7 @@ const columns = [
     { title: 'Action', key: 'action' },
 ];
 
-onMounted(() => { fetchOrders(); fetchWarehouses(); });
+onMounted(() => { fetchOrders(); warehouseStore.getWarehouses(); });
 
 async function fetchOrders(resetPage = false) {
     if (resetPage) {
@@ -219,10 +214,6 @@ watch(() => [filter.page, filter.limit], () => {
     fetchOrders();
 });
 
-async function fetchWarehouses() {
-    const { data } = await apiAdmin('warehouse');
-    warehouses.value = data.data;
-}
 
 function setStatus(s) { filter.status = s; fetchOrders(true); }
 

@@ -69,10 +69,13 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Warehouse</label>
-                        <select class="form-select" v-model="filters.warehouse_id">
-                            <option value="">All Warehouses</option>
-                            <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="warehouse_id"
+                            v-model="filters.warehouse_id"
+                            :options="warehouseStore.optionsTree"
+                            :loading="warehouseStore.warehouses.loading"
+                            placeholder="All Warehouses"
+                        />
                     </div>
                     <div class="col-md-2">
                         <VDatepicker id="from_date" label="From Date" v-model="filters.from_date" />
@@ -142,12 +145,15 @@ import {storeToRefs} from 'pinia';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
+import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
+import VMultiselect from '@/components/base/VMultiselect.vue';
+
+const warehouseStore = useWarehouseStore();
 
 const rows = ref([]);
 const reportData = ref(null);
 const loading = ref(false);
 const productOptions = ref([]);
-const warehouseOptions = ref([]);
 
 const adminSettingStore = useAdminSettingStore();
 const {currentFiscalYear} = storeToRefs(adminSettingStore);
@@ -201,10 +207,10 @@ onMounted(async () => {
         filters.value.to_date = now.toISOString().slice(0, 10);
     }
     try {
+        warehouseStore.getWarehouses();
         const res = await apiAdmin('inventory-report/stock-ledger', 'get', {with_options: 1});
         const opts = res.data.data.filter_options || {};
         productOptions.value = opts.product_variant_options || [];
-        warehouseOptions.value = opts.warehouse_options || [];
     } catch { /* ignore */ }
 });
 </script>

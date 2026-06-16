@@ -85,16 +85,13 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Warehouse <span class="text-danger">*</span></label>
-                            <select v-model="form.warehouse_id" class="form-select">
-                                <option value="" disabled>Select warehouse</option>
-                                <option
-                                    v-for="w in warehouseSelectRows"
-                                    :key="w.id"
-                                    :value="w.id"
-                                >
-                                    {{ formatWarehouseOptionLabel(w, w.depth) }}
-                                </option>
-                            </select>
+                            <VMultiselect
+                                id="batch_warehouse_id"
+                                v-model="form.warehouse_id"
+                                :options="warehouseStore.optionsTree"
+                                :loading="warehouseStore.warehouses.loading"
+                                placeholder="Select warehouse"
+                            />
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Batch No <span class="text-danger">*</span></label>
@@ -164,22 +161,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive, watch } from 'vue';
+import { ref, onMounted, reactive, watch } from 'vue';
 import VPagination from '@/components/base/VPagination.vue';
 import VDatepicker from '@/components/base/VDatepicker.vue';
+import VMultiselect from '@/components/base/VMultiselect.vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import {
-    flattenWarehousesWithOutline,
-    formatWarehouseOptionLabel,
-} from '@/helpers/warehouseTree.js';
+import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
+
+const warehouseStore = useWarehouseStore();
 
 const loading = ref(false);
 const saving = ref(false);
 const batches = ref([]);
-const warehouses = ref([]);
-const warehouseSelectRows = computed(() => flattenWarehousesWithOutline(warehouses.value));
 const showForm = ref(false);
 const alertModal = ref(false);
 const alerts = ref([]);
@@ -207,7 +202,7 @@ const columns = [
 
 onMounted(() => {
     fetchBatches();
-    fetchWarehouses();
+    warehouseStore.getWarehouses();
 });
 
 async function fetchBatches(reset = false) {
@@ -241,10 +236,6 @@ watch(() => [filter.page, filter.per_page], () => {
     fetchBatches();
 });
 
-async function fetchWarehouses() {
-    const { data } = await apiAdmin('warehouse');
-    warehouses.value = data.data;
-}
 
 async function showExpiryAlerts() {
     const { data } = await apiAdmin(`batch/expiry-alerts?days=${alertDays.value}`);
