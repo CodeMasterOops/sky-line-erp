@@ -122,6 +122,11 @@ class NepaliDateService
         2088 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
         2089 => [30, 32, 31, 32, 31, 30, 30, 30, 29, 30, 29, 31],
         2090 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2091 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
+        2092 => [31, 32, 31, 32, 31, 30, 30, 30, 29, 29, 30, 31],
+        2093 => [31, 31, 31, 32, 31, 31, 29, 30, 30, 29, 29, 31],
+        2094 => [31, 31, 32, 31, 31, 31, 30, 29, 30, 29, 30, 30],
+        2095 => [31, 31, 32, 32, 31, 30, 30, 29, 30, 29, 30, 30],
     ];
 
     // Reference: 1 Baisakh 2000 BS = 13 April 1943 AD
@@ -149,7 +154,7 @@ class NepaliDateService
 
         while ($daysDiff > 0) {
             if (! isset(self::BS_DATA[$bsYear])) {
-                throw new InvalidArgumentException("BS year {$bsYear} is beyond the supported range (up to 2090 BS).");
+                throw new InvalidArgumentException("BS year {$bsYear} is beyond the supported range (up to 2095 BS).");
             }
 
             $daysInMonth = self::BS_DATA[$bsYear][$bsMonth - 1];
@@ -177,7 +182,7 @@ class NepaliDateService
     public function bsToAd(int $bsYear, int $bsMonth, int $bsDay): Carbon
     {
         if (! isset(self::BS_DATA[$bsYear])) {
-            throw new InvalidArgumentException("BS year {$bsYear} is not in the supported range (2000–2090).");
+            throw new InvalidArgumentException("BS year {$bsYear} is not in the supported range (2000–2095).");
         }
 
         if ($bsMonth < 1 || $bsMonth > 12) {

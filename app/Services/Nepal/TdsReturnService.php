@@ -24,8 +24,9 @@ class TdsReturnService
             ->leftJoin('parties', 'parties.id', '=', 'tds_deductions.party_id')
             ->leftJoin('journals', 'journals.id', '=', 'tds_deductions.journal_id')
             ->where('tds_deductions.company_id', $companyId)
+            ->whereNull('tds_deductions.deleted_at')
             ->whereBetween(
-                DB::raw('COALESCE(journals.date, DATE(tds_deductions.created_at))'),
+                DB::raw('COALESCE(tds_deductions.deducted_at, journals.date, DATE(tds_deductions.created_at))'),
                 [$startDate, $endDate]
             )
             ->select([

@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use App\Enums\TdsCategoryEnum;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TdsDeduction extends Model
 {
+    use Auditable;
     use MultiTenant;
+    use SoftDeletes;
 
     protected $fillable = [
         'company_id',
@@ -24,6 +28,7 @@ class TdsDeduction extends Model
         'tds_amount',
         'period_month',
         'journal_id',
+        'deducted_at',
     ];
 
     protected $casts = [
@@ -31,6 +36,7 @@ class TdsDeduction extends Model
         'tds_rate' => 'float',
         'tds_amount' => 'float',
         'tds_category' => TdsCategoryEnum::class,
+        'deducted_at' => 'datetime',
     ];
 
     public function deductible(): MorphTo

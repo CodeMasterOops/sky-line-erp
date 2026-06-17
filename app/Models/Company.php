@@ -50,12 +50,8 @@ class Company extends Model
             'ird_ebs_enabled' => 'boolean',
             'inventory_costing_method' => InventoryCostingMethodEnum::class,
             'onboarding_completed_at' => 'datetime',
+            'ird_password' => 'encrypted',
         ];
-    }
-
-    public function setIrdPasswordAttribute(?string $value): void
-    {
-        $this->attributes['ird_password'] = $value ? encrypt($value) : null;
     }
 
     public function getLogoUrlAttribute(): string

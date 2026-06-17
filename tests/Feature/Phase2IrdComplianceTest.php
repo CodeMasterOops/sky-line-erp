@@ -157,7 +157,8 @@ it('includes zero-rated purchase amount as a separate column in the D3 CSV expor
     ]);
 
     $today = now()->toDateString();
-    $response = $this->get("/api/admin/nepal/vat-d3/export-csv?type=purchase&start_date={$today}&end_date={$today}");
+    // Purchase data now lives in the D4 (purchase register) endpoint.
+    $response = $this->get("/api/admin/nepal/vat-d4/export-csv?start_date={$today}&end_date={$today}");
 
     $response->assertOk();
     $csv = $response->streamedContent();

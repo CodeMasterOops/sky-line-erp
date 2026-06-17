@@ -47,6 +47,12 @@ class Tax extends Model
             if ($tax->type === TaxTypeEnum::TDS && $tax->tds_category instanceof TdsCategoryEnum) {
                 $tax->rate = $tax->tds_category->rate();
             }
+
+            // Nepal VAT Act: VAT standard rate is fixed at 13%. Enforce it here
+            // so a misconfiguration can never cause incorrect tax calculations.
+            if ($tax->type === TaxTypeEnum::VAT_STANDARD) {
+                $tax->rate = 13.0;
+            }
         });
     }
 

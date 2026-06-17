@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PartyTaxExemption extends Model
 {
+    use Auditable;
     use MultiTenant;
+    use SoftDeletes;
 
     protected $fillable = [
         'company_id',

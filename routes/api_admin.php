@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\Nepal\VatD3Controller;
+use App\Http\Controllers\Api\Admin\Nepal\VatD4Controller;
 use App\Http\Controllers\Api\Admin\AddressReferenceController;
 use App\Http\Controllers\Api\Admin\Nepal\InvoicePdfController;
 use App\Http\Controllers\Api\Admin\Nepal\IrdSettingController;
@@ -113,9 +114,14 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
                 Route::post('resync-all', 'resyncAll')->name('resync-all');
             });
 
-            // VAT D3 Return
+            // VAT D3 Sales Register (Bikri Kitab)
             Route::prefix('vat-d3')->as('vat-d3.')->controller(VatD3Controller::class)->group(function () {
                 Route::get('summary', 'summary')->name('summary');
+                Route::get('export-csv', 'exportCsv')->name('export-csv');
+            });
+
+            // VAT D4 Purchase Register (Kharid Kitab)
+            Route::prefix('vat-d4')->as('vat-d4.')->controller(VatD4Controller::class)->group(function () {
                 Route::get('export-csv', 'exportCsv')->name('export-csv');
             });
 

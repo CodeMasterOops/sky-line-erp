@@ -131,7 +131,14 @@ readonly class InvoiceService
         $reference = $this->resolveReferencePayload($formData, $invoice);
         $invoiceNo = $formData['invoice_no'] ?? $invoice->invoice_no;
 
-        DB::transaction(function () use ($invoice, $formData, $invoiceNo, $reference) {
+        $invoiceDateBs = null;
+        try {
+            $bs = $this->nepaliDate->adToBs($formData['invoice_date']);
+            $invoiceDateBs = $this->nepaliDate->formatBs($bs['year'], $bs['month'], $bs['day']);
+        } catch (\Throwable) {
+        }
+
+        DB::transaction(function () use ($invoice, $formData, $invoiceNo, $reference, $invoiceDateBs) {
             $invoice->update([
                 'party_id' => $formData['party_id'] ?? null,
                 'reference_type' => $reference['reference_type'],
@@ -139,6 +146,7 @@ readonly class InvoiceService
                 'invoice_no' => $invoiceNo,
                 'bijak_no' => $formData['bijak_no'] ?? $invoice->bijak_no,
                 'invoice_date' => $formData['invoice_date'],
+                'invoice_date_bs' => $invoiceDateBs,
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
             ]);

@@ -216,8 +216,11 @@ it('item 24: engine computes compound taxes in sequence', function () {
     $vat = p4CreateTax($this->company->id, 'VAT 13%', 13, [
         'is_inclusive' => false, 'is_compound' => false, 'sequence' => 1,
     ]);
+    // VAT_STANDARD is enforced at 13%; use VAT_ZERO_RATED for the cess
+    // so the calculation engine compound logic can be tested at 1%.
     $cess = p4CreateTax($this->company->id, 'Health Cess 1%', 1, [
         'is_inclusive' => false, 'is_compound' => true, 'sequence' => 2,
+        'type' => TaxTypeEnum::VAT_ZERO_RATED,
     ]);
 
     $engine = app(TaxCalculationEngine::class);

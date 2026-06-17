@@ -335,7 +335,7 @@ it('VAT D3 export includes credit notes as negative Sales rows', function () {
         ->and($content)->toContain('Credit Note');
 });
 
-it('VAT D3 export includes debit notes as negative Purchase rows', function () {
+it('VAT D4 export includes debit notes as negative Purchase rows', function () {
     $supplier = Party::create([
         'company_id' => $this->company->id,
         'name' => 'Supplier', 'code' => 'SUP-P1',
@@ -354,7 +354,8 @@ it('VAT D3 export includes debit notes as negative Purchase rows', function () {
         'approved_at' => now(),
     ]);
 
-    $response = $this->getJson('/api/admin/nepal/vat-d3/export-csv?type=purchase&start_date=2026-06-01&end_date=2026-06-30');
+    // Debit notes (purchase returns) now appear in the D4 purchase register, not D3.
+    $response = $this->getJson('/api/admin/nepal/vat-d4/export-csv?start_date=2026-06-01&end_date=2026-06-30');
 
     $response->assertOk();
     $content = $response->streamedContent();
