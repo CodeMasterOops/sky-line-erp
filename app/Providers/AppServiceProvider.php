@@ -3,13 +3,22 @@
 namespace App\Providers;
 
 use App\Models\Bill;
+use App\Models\User;
+use App\Models\Party;
 use App\Models\Stock;
 use App\Models\Branch;
 use App\Models\Expense;
+use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\BranchUser;
+use App\Policies\BillPolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Http\Request;
 use App\Models\StockMovement;
+use App\Policies\PartyPolicy;
 use App\Policies\BranchPolicy;
+use App\Policies\InvoicePolicy;
+use App\Policies\PaymentPolicy;
 use App\Observers\StockObserver;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Gate;
@@ -20,6 +29,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use App\Observers\StockMovementObserver;
 use Illuminate\Cache\RateLimiting\Limit;
+use App\Observers\BelongsToCompanyObserver;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -52,6 +62,13 @@ class AppServiceProvider extends ServiceProvider
         StockMovement::observe(StockMovementObserver::class);
         BranchUser::observe(BranchUserObserver::class);
         Stock::observe(StockObserver::class);
+
+        if ($this->app->environment('local', 'staging')) {
+            Invoice::observe(BelongsToCompanyObserver::class);
+            Bill::observe(BelongsToCompanyObserver::class);
+            Party::observe(BelongsToCompanyObserver::class);
+            Payment::observe(BelongsToCompanyObserver::class);
+        }
 
         $this->registerBranchGates();
 
@@ -89,6 +106,11 @@ class AppServiceProvider extends ServiceProvider
     protected function registerBranchGates(): void
     {
         Gate::policy(Branch::class, BranchPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Invoice::class, InvoicePolicy::class);
+        Gate::policy(Bill::class, BillPolicy::class);
+        Gate::policy(Party::class, PartyPolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
 
         Gate::define('access-branch', function ($user, Branch $branch): bool {
             return app(BranchAccessService::class)->canUserAccessBranch($user, $branch->id);

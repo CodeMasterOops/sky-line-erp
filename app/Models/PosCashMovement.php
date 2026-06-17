@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PosCashMovement extends Model
 {
+    use MultiTenant;
+
     protected $fillable = [
         'pos_session_id',
         'company_id',

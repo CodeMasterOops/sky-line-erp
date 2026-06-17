@@ -120,7 +120,7 @@ export const useBranchStore = defineStore('branch', {
             this.selectedBranchId = branchId;
             Cookies.set("selected_branch_id", branchId, {
                 expires: 1,
-                secure: false,
+                secure: window.location.protocol === 'https:',
                 sameSite: "Strict",
                 path: '/',
             });
@@ -133,7 +133,7 @@ export const useBranchStore = defineStore('branch', {
             this.selectedBranchId = null;
             this.selectedBranch = null;
             Cookies.remove("selected_branch_id", {
-                secure: false,
+                secure: window.location.protocol === 'https:',
                 sameSite: "Strict",
                 path: '/',
             });

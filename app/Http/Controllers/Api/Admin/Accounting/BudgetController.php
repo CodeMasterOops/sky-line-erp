@@ -51,13 +51,13 @@ class BudgetController extends Controller
             'lines.*.remarks' => 'nullable|string',
         ]);
 
-        $data['fiscal_year_id'] = auth()->user()->company->fiscal_year_id;
+        $data['fiscal_year_id'] = auth('admin')->user()->company->fiscal_year_id;
 
         return DB::transaction(function () use ($data) {
             $lines = $data['lines'];
             unset($data['lines']);
 
-            $budget = Budget::create([...$data, 'created_by' => auth()->id()]);
+            $budget = Budget::create([...$data, 'created_by' => auth('admin')->id()]);
 
             foreach ($lines as $line) {
                 $budget->lines()->create($line);
@@ -133,7 +133,7 @@ class BudgetController extends Controller
     {
         $budget->load(['lines.account', 'fiscalYear']);
 
-        $company = auth()->user()->company;
+        $company = auth('admin')->user()->company;
         $fiscalYear = $budget->fiscalYear;
 
         $fromDate = $request->from_date ?? $fiscalYear->start_date;

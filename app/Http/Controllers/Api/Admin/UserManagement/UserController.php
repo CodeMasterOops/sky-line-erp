@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Gate;
 use App\Http\Resources\Admin\UserManagement\UserResource;
 use App\Http\Requests\Api\Admin\UserManagement\User\StoreUserRequest;
 use App\Http\Requests\Api\Admin\UserManagement\User\UpdateUserRequest;
@@ -56,7 +57,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
+        Gate::authorize('view', $user);
         $user->load('roles');
 
         return UserResource::make($user);
@@ -67,7 +68,7 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
-        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
+        Gate::authorize('update', $user);
 
         DB::transaction(function () use ($request, $user) {
             $user->update($request->validated());
@@ -87,7 +88,7 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
+        Gate::authorize('delete', $user);
 
         if ($user->user_type !== UserTypeEnum::ADMIN) {
             $user->roles()->detach();
@@ -108,7 +109,7 @@ class UserController extends Controller
      */
     public function updateStatus(User $user)
     {
-        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
+        Gate::authorize('updateStatus', $user);
 
         $user->update([
             'status' => ! $user->status,

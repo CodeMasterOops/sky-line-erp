@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\MultiTenant;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\DataTransfer\DataTransferStatusEnum;
@@ -12,6 +13,8 @@ use App\Enums\DataTransfer\DataTransferEntityTypeEnum;
 
 class DataTransferJob extends Model
 {
+    use MultiTenant;
+
     protected $fillable = [
         'uuid',
         'company_id',

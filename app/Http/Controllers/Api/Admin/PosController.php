@@ -787,6 +787,21 @@ class PosController extends Controller
     {
         $request->validate([
             'invoice_id' => ['required', 'integer', 'exists:invoices,id'],
+        ]);
+
+        $user = auth('admin')->user();
+        $invoice = Invoice::findOrFail($request->invoice_id);
+
+        abort_unless($invoice->company_id === $user->company_id, 403);
+
+        $openSession = $this->getOpenSession();
+        if ($openSession !== null) {
+            abort_unless($invoice->branch_id === $openSession->branch_id, 403, 'Invoice does not belong to the current branch session.');
+        }
+
+        abort_unless($invoice->status === StatusEnum::APPROVED, 422, 'Can only return items from approved invoices.');
+
+        $request->validate([
             'items' => ['required', 'array', 'min:1'],
             'items.*.invoice_item_id' => ['nullable', 'integer'],
             'items.*.product_variant_id' => ['required', 'integer', 'exists:product_variants,id'],
@@ -797,12 +812,6 @@ class PosController extends Controller
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
-
-        $user = auth('admin')->user();
-        $invoice = Invoice::findOrFail($request->invoice_id);
-
-        abort_unless($invoice->company_id === $user->company_id, 403);
-        abort_unless($invoice->status === StatusEnum::APPROVED, 422, 'Can only return items from approved invoices.');
 
         $company = $user->company;
         $fiscalYearId = $company->fiscal_year_id;
