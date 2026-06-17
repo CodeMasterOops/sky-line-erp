@@ -55,14 +55,6 @@ class Journal extends Model
             });
         }
 
-        if (! empty($param['product_category_id'])) {
-            $query->where('product_category_id', $param['product_category_id']);
-        }
-
-        if (! empty($param['brand_id'])) {
-            $query->where('brand_id', $param['brand_id']);
-        }
-
         return $query;
     }
 

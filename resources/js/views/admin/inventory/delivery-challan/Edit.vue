@@ -195,7 +195,7 @@
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, reactive, ref, watch} from 'vue';
 import {storeToRefs} from 'pinia';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import {array, object, string} from 'yup';
 import {toast} from '@/helpers/toast.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -270,7 +270,7 @@ async function hydrateForm(data) {
     form.party_id = data.party_id ? String(data.party_id) : '';
     form.warehouse_id = data.warehouse_id ? String(data.warehouse_id) : '';
     form.warehouse_name = data.warehouse?.name ?? '';
-    form.challan_date = data.challan_date ? moment(data.challan_date).format('YYYY-MM-DD') : '';
+    form.challan_date = data.challan_date ? dayjs(data.challan_date).format('YYYY-MM-DD') : '';
     form.receiver_name = data.receiver_name || '';
     form.delivery_address = data.delivery_address || '';
     form.remarks = data.remarks || '';

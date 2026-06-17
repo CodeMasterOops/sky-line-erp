@@ -13,42 +13,34 @@ class CoaInsertService
 
     public function saveCoaData(): void
     {
-        $companyId = $this->company->id;
-        if (AccountGroup::where('company_id', $this->company->id)->count() == 0) {
-            $groups = collect(config('coa'));
-            foreach ($groups as $group) {
-                $accountGroup = AccountGroup::create(Arr::except($group, 'children') + [
-                    'company_id' => $companyId,
-                ]);
+        if (AccountGroup::where('company_id', $this->company->id)->count() > 0) {
+            return;
+        }
 
-                foreach ($group['children'] ?? [] as $accSubGroup) {
-                    $accountGroup1 = AccountGroup::create(Arr::except($accSubGroup, ['children', 'accounts']) + [
-                        'parent_id' => $accountGroup->id,
-                        'company_id' => $companyId,
-                    ]);
+        foreach (config('coa') as $group) {
+            $this->insertGroup($group, null, $this->company->id);
+        }
+    }
 
-                    foreach ($accSubGroup['children'] ?? [] as $acGroup) {
-                        $accountGroup2 = AccountGroup::create(Arr::except($acGroup, ['children', 'accounts']) + [
-                            'parent_id' => $accountGroup1->id,
-                            'company_id' => $companyId,
-                        ]);
+    /**
+     * @param  array<string, mixed>  $group
+     */
+    private function insertGroup(array $group, ?int $parentId, int $companyId): void
+    {
+        $accountGroup = AccountGroup::create(Arr::except($group, ['children', 'accounts']) + [
+            'parent_id' => $parentId,
+            'company_id' => $companyId,
+        ]);
 
-                        foreach ($acGroup['accounts'] ?? [] as $account) {
-                            Account::create($account + [
-                                'account_group_id' => $accountGroup2->id,
-                                'company_id' => $companyId,
-                            ]);
-                        }
-                    }
+        foreach ($group['accounts'] ?? [] as $account) {
+            Account::create($account + [
+                'account_group_id' => $accountGroup->id,
+                'company_id' => $companyId,
+            ]);
+        }
 
-                    foreach ($accSubGroup['accounts'] ?? [] as $account) {
-                        Account::create($account + [
-                            'account_group_id' => $accountGroup1->id,
-                            'company_id' => $companyId,
-                        ]);
-                    }
-                }
-            }
+        foreach ($group['children'] ?? [] as $child) {
+            $this->insertGroup($child, $accountGroup->id, $companyId);
         }
     }
 }

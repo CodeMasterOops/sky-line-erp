@@ -106,7 +106,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         Event::listen(MigrationsEnded::class, function () {
-            Cache::forget('allTables');
+            Cache::forget(allTablesCacheKey());
             Cache::forget(\App\Http\Controllers\Api\Admin\UserManagement\PermissionController::PERMISSION_MAP_CACHE_KEY);
         });
     }

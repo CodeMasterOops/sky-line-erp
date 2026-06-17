@@ -40,8 +40,8 @@ function p3WarmCache(): void
         $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
         $tables[$table] = Schema::getColumnListing($plainName);
     }
-    Cache::forget('allTables');
-    Cache::forever('allTables', $tables);
+    Cache::forget(allTablesCacheKey());
+    Cache::forever(allTablesCacheKey(), $tables);
 }
 
 function p3SeedStock(object $test, int $qty): void

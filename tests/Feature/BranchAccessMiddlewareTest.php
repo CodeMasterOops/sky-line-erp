@@ -16,7 +16,7 @@ use Illuminate\Foundation\Http\Events\RequestHandled;
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
 beforeEach(function () {
-    Cache::forget('allTables');
+    Cache::forget(allTablesCacheKey());
 
     $fiscalYear = FiscalYear::create([
         'year_name' => '2026MW',

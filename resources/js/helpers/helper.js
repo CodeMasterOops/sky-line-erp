@@ -1,4 +1,4 @@
-import moment from 'moment';
+import dayjs from 'dayjs';
 import {useDateHelper} from "@/composables/dateHelper.js";
 
 /**
@@ -9,7 +9,7 @@ import {useDateHelper} from "@/composables/dateHelper.js";
  */
 export const formatDate = (value, format = 'DD MMM YYYY') => {
     if (!value) return '–';
-    return moment(value).format(format);
+    return dayjs(value).format(format);
 };
 
 /**
@@ -17,7 +17,7 @@ export const formatDate = (value, format = 'DD MMM YYYY') => {
  */
 export const formatDateTime = (value, format = 'DD MMM YYYY, h:mm A') => {
     if (!value) return '–';
-    return moment(value).format(format);
+    return dayjs(value).format(format);
 };
 
 export const storedPermissions = () => {

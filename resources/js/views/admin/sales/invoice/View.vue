@@ -202,7 +202,7 @@ import {computed, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import Swal from 'sweetalert2';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {apiAdmin, downloadAdminFile} from '@/helpers/api.js';
@@ -338,7 +338,7 @@ const formatDate = (value) => {
     if (!value) {
         return '—';
     }
-    return moment(value).format('MMM D, YYYY');
+    return dayjs(value).format('MMM D, YYYY');
 };
 
 const lineDescription = (item) => item.product_variant?.name || 'Item';

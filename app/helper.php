@@ -7,10 +7,19 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
+if (! function_exists('allTablesCacheKey')) {
+    function allTablesCacheKey(): string
+    {
+        $hash = config('app.version', env('DEPLOY_HASH', 'default'));
+
+        return 'allTables:'.$hash;
+    }
+}
+
 if (! function_exists('allTables')) {
     function allTables()
     {
-        $cached = Cache::get('allTables');
+        $cached = Cache::get(allTablesCacheKey());
 
         // Don't trust a cached empty result — the database may not have been
         // ready when the cache was first written (e.g. during service-provider
@@ -30,7 +39,7 @@ if (! function_exists('allTables')) {
             }
 
             if (! empty($list)) {
-                Cache::forever('allTables', $list);
+                Cache::forever(allTablesCacheKey(), $list);
             }
 
             return $list;
@@ -45,7 +54,7 @@ if (! function_exists('allTables')) {
         }
 
         if (! empty($list)) {
-            Cache::forever('allTables', $list);
+            Cache::forever(allTablesCacheKey(), $list);
         }
 
         return $list;

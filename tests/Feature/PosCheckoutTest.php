@@ -8,22 +8,22 @@ use App\Models\Account;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Product;
+use App\Models\Receipt;
 use App\Models\BillItem;
 use App\Enums\StatusEnum;
 use App\Models\Warehouse;
 use App\Models\CreditNote;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
+use App\Models\BankAccount;
+use App\Models\PaymentMode;
 use App\Enums\PartyTypeEnum;
 use App\Models\PosHeldOrder;
 use Laravel\Sanctum\Sanctum;
 use App\Enums\ChangeTypeEnum;
 use App\Enums\ProductTypeEnum;
-use App\Models\BankAccount;
 use App\Models\AccountSetting;
-use App\Models\PaymentMode;
 use App\Models\ProductVariant;
-use App\Models\Receipt;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -41,8 +41,8 @@ function warmAllTablesCache(): void
         $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
         $tables[$table] = Schema::getColumnListing($plainName);
     }
-    Cache::forget('allTables');
-    Cache::forever('allTables', $tables);
+    Cache::forget(allTablesCacheKey());
+    Cache::forever(allTablesCacheKey(), $tables);
 }
 
 beforeEach(function () {
@@ -1271,7 +1271,7 @@ it('routes each split payment line to its own bank account GL', function () {
     $receipts = Receipt::all();
     expect($receipts)->toHaveCount(2);
 
-    $cashReceipt  = $receipts->firstWhere('payment_method', 'cash');
+    $cashReceipt = $receipts->firstWhere('payment_method', 'cash');
     $esewaReceipt = $receipts->firstWhere('payment_method', 'esewa');
 
     expect($cashReceipt->account_id)->toBe($cashGl->id);

@@ -14,7 +14,7 @@ use App\Enums\SubscriptionStatusEnum;
 use Illuminate\Support\Facades\Cache;
 
 beforeEach(function () {
-    Cache::forget('allTables');
+    Cache::forget(allTablesCacheKey());
 
     $fiscalYear = FiscalYear::create([
         'year_name' => '2026BL',

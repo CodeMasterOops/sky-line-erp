@@ -304,7 +304,7 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import {computed, reactive, ref, watch} from 'vue';
 import {storeToRefs} from 'pinia';
 import debounce from 'lodash/debounce';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import {apiAdmin} from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import {toast} from '@/helpers/toast.js';
@@ -400,7 +400,7 @@ const hydrateForm = (data) => {
     form.party_id = data.party_id ? String(data.party_id) : '';
     form.warehouse_id = data.warehouse_id ? String(data.warehouse_id) : '';
     form.purchase_order_id = data.purchase_order_id ? String(data.purchase_order_id) : '';
-    form.received_date = data.received_date ? moment(data.received_date).format('YYYY-MM-DD') : '';
+    form.received_date = data.received_date ? dayjs(data.received_date).format('YYYY-MM-DD') : '';
     form.supplier_invoice_no = data.supplier_invoice_no || '';
     form.remarks = data.remarks || '';
     form.items = (data.grn_items || []).map((item) => ({

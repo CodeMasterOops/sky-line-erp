@@ -6,7 +6,7 @@ import VueApexCharts from "vue3-apexcharts";
 import { createPinia } from "pinia";
 
 import router from "@/router";
-import Antd from "ant-design-vue";
+import { Table as ATable, Tree as ATree } from "ant-design-vue";
 import "ant-design-vue/dist/reset.css";
 
 //multiselect css — @vueform/multiselect is the single project-wide
@@ -94,5 +94,6 @@ createApp(App)
     .component("SettingsSidebar", SettingsSidebar)
     .component("SuperAdminSettingsSidebar", SuperAdminSettingsSidebar)
     .use(VueApexCharts)
-    .use(Antd)
+    .component('a-table', ATable)
+    .component('a-tree', ATree)
     .mount("#app");

@@ -19,8 +19,8 @@ const routes = [
     ...superAdminRoutes,
     ...adminRoutes,
     {
-        path: '/:pathMatch(.*)*'
-        //component: () => import("@/views/404.vue"),
+        path: '/:pathMatch(.*)*',
+        component: () => import('@/views/404.vue'),
     }
 ];
 

@@ -1,4 +1,4 @@
-import moment from "moment";
+import dayjs from "dayjs";
 import {convertToNepali} from "@/helpers/helper.js";
 
 // eslint-disable-next-line no-undef
@@ -14,41 +14,41 @@ export const useDateHelper = () => {
         }
     }
 
-    const currentAdDate = moment().format('YYYY-MM-DD');
+    const currentAdDate = dayjs().format('YYYY-MM-DD');
 
     const subAdYears = (year) => {
-        const subtractedYearDate = moment().subtract(year, 'years')
+        const subtractedYearDate = dayjs().subtract(year, 'year')
 
         return formatDateToYMD(subtractedYearDate);
     }
 
     const subBsYears = (year) => {
-        const adjustedDate = moment().subtract(year, 'years')
+        const adjustedDate = dayjs().subtract(year, 'year')
 
         return adToBs(formatDateToYMD(adjustedDate));
     }
 
     const subBsDays = (days) => {
-        const adjustedDate = moment().subtract(days, 'days')
+        const adjustedDate = dayjs().subtract(days, 'day')
 
         return adToBs(formatDateToYMD(adjustedDate));
     }
 
     const addBsDays = (days) => {
-        const adjustedDate = moment().add(days, 'days')
+        const adjustedDate = dayjs().add(days, 'day')
 
         return adToBs(formatDateToYMD(adjustedDate));
     }
 
     const subAdDays = (days) => {
-        const adjustedDate = moment().subtract(days, 'days')
+        const adjustedDate = dayjs().subtract(days, 'day')
 
         return formatDateToYMD(adjustedDate);
     }
 
     const addAdDays = ({date = '', days}) => {
-        const parsedDate = date ? moment(date) : moment();
-        const adjustedDate = parsedDate.add(days, 'days')
+        const parsedDate = date ? dayjs(date) : dayjs();
+        const adjustedDate = parsedDate.add(days, 'day')
 
         return formatDateToYMD(adjustedDate);
     }
@@ -106,21 +106,21 @@ export const useDateHelper = () => {
     }
 
     const formatDateToYMD = (date) => {
-        return moment(date).format('YYYY-MM-DD');
+        return dayjs(date).format('YYYY-MM-DD');
     }
 
     const currentTime = () => {
-        return moment().format('HH:mm A')
+        return dayjs().format('HH:mm A')
     }
 
     const generateDateRange = (startDate, endDate) => {
-        const start = moment(startDate);
-        const end = moment(endDate);
+        let start = dayjs(startDate);
+        const end = dayjs(endDate);
         const dates = [];
 
-        while (start <= end) {
+        while (!start.isAfter(end)) {
             dates.push(start.format("YYYY-MM-DD"));
-            start.add(1, "days");
+            start = start.add(1, "day");
         }
 
         return dates;

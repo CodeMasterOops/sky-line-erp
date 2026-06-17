@@ -22,7 +22,7 @@ function branchAccessWarmAllTablesCache(): void
     // Schema::getColumnListing('main.<table>') in SQLite returns empty arrays
     // for tables that have never been touched, which would prevent MultiTenant
     // from registering its creating callback on models that boot after this runs.
-    Cache::forget('allTables');
+    Cache::forget(allTablesCacheKey());
 }
 
 beforeEach(function () {

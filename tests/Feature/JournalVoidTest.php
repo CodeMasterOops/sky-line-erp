@@ -32,8 +32,8 @@ function journalVoidWarmAllTablesCache(): void
         $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
         $tables[$table] = Schema::getColumnListing($plainName);
     }
-    Cache::forget('allTables');
-    Cache::forever('allTables', $tables);
+    Cache::forget(allTablesCacheKey());
+    Cache::forever(allTablesCacheKey(), $tables);
 }
 
 function makePostedInvoiceJournal(object $test, string $no): array

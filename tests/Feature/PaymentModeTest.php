@@ -1,17 +1,17 @@
 <?php
 
+use App\Models\User;
 use App\Models\Account;
-use App\Models\BankAccount;
 use App\Models\Company;
 use App\Models\FiscalYear;
-use App\Models\PaymentMode;
-use App\Models\User;
 use App\Enums\UserTypeEnum;
-use App\Enums\InventoryCostingMethodEnum;
+use App\Models\BankAccount;
+use App\Models\PaymentMode;
+use Laravel\Sanctum\Sanctum;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
-use Laravel\Sanctum\Sanctum;
+use App\Enums\InventoryCostingMethodEnum;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -21,8 +21,8 @@ beforeEach(function () {
         $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
         $tables[$table] = Schema::getColumnListing($plainName);
     }
-    Cache::forget('allTables');
-    Cache::forever('allTables', $tables);
+    Cache::forget(allTablesCacheKey());
+    Cache::forever(allTablesCacheKey(), $tables);
 
     TenantService::setCompanyId(null);
     TenantService::setBranchId(null);

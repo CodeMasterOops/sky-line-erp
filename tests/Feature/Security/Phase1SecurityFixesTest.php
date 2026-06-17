@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Bom;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Party;
 use App\Models\Stock;
@@ -17,7 +18,6 @@ use Laravel\Sanctum\Sanctum;
 use App\Jobs\CheckLowStockJob;
 use App\Models\ProductVariant;
 use App\Models\CustomerAdvance;
-use App\Models\Role;
 use App\Models\ProductionOrder;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
@@ -34,8 +34,8 @@ function p1secWarmCache(): void
         $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
         $tables[$table] = Schema::getColumnListing($plainName);
     }
-    Cache::forget('allTables');
-    Cache::forever('allTables', $tables);
+    Cache::forget(allTablesCacheKey());
+    Cache::forever(allTablesCacheKey(), $tables);
 }
 
 function p1secMakeCompany(string $suffix): array
