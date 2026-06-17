@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
 use App\Models\AccountSetting;
 use App\Models\ProductVariant;
+use App\Annotation\Permissions;
 use App\Models\PosCashMovement;
 use App\Models\ProductCategory;
 use App\Jobs\SyncInvoiceToIrdJob;
@@ -51,6 +52,8 @@ class PosController extends Controller
     ) {}
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Category tree for POS filtering.
      */
     public function categories()
@@ -68,6 +71,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Products list optimised for POS – all variants with stock per warehouse.
      */
     public function products(Request $request)
@@ -126,6 +131,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Warehouses with available stock for a product variant (POS add-to-cart).
      */
     public function variantWarehouses(ProductVariant $productVariant)
@@ -157,6 +164,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Customers (party type = customer) for POS customer selector.
      */
     public function customers(Request $request)
@@ -188,6 +197,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Warehouses for POS store selector.
      */
     public function warehouses()
@@ -198,6 +209,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Today's sales summary.
      */
     public function todaySummary()
@@ -246,6 +259,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("pos_checkout", group="pos", desc="POS Checkout")
+     *
      * Complete a POS sale: create approved invoice + approved receipt in one transaction.
      *
      * Request body:
@@ -497,6 +512,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("pos_checkout", group="pos", desc="POS Checkout")
+     *
      * Save a held order.
      */
     public function holdOrder(Request $request)
@@ -524,6 +541,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * List held orders.
      */
     public function heldOrders()
@@ -536,6 +555,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("pos_checkout", group="pos", desc="POS Checkout")
+     *
      * Delete a held order.
      */
     public function deleteHeldOrder(PosHeldOrder $posHeldOrder)
@@ -548,6 +569,8 @@ class PosController extends Controller
     // ─── Till / Cash Register ──────────────────────────────────────────────
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Return the currently open session for this user, or null.
      */
     public function currentSession(): JsonResponse
@@ -560,6 +583,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("pos_open_till", group="pos", desc="POS Open/Close Till")
+     *
      * Open a new till session.
      */
     public function openTill(Request $request): JsonResponse
@@ -603,6 +628,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("pos_open_till", group="pos", desc="POS Open/Close Till")
+     *
      * Close the current till session with a Z-Report snapshot.
      */
     public function closeTill(Request $request): JsonResponse
@@ -637,6 +664,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("pos_cash_movement", group="pos", desc="POS Cash Movement")
+     *
      * Record a cash-in or cash-out movement against the open session.
      */
     public function cashMovement(Request $request): JsonResponse
@@ -670,6 +699,8 @@ class PosController extends Controller
     }
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Return live Z-Report data for the current open session.
      */
     public function tillSummary(): JsonResponse
@@ -690,6 +721,8 @@ class PosController extends Controller
     // ─── Recent Transactions ──────────────────────────────────────────────────
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Paginated invoice list for the POS "recent transactions" panel.
      * Adds payment_method (from first receipt) and has_returns flag.
      */
@@ -781,6 +814,8 @@ class PosController extends Controller
     // ─── Return / Refund ──────────────────────────────────────────────────────
 
     /**
+     * @Permissions("pos_return", group="pos", desc="POS Process Return")
+     *
      * Process a POS return: creates an auto-approved credit note, restores inventory, posts GL.
      */
     public function processReturn(Request $request): JsonResponse
@@ -927,6 +962,8 @@ class PosController extends Controller
     // ─── Receipt Data (reprint) ────────────────────────────────────────────
 
     /**
+     * @Permissions("list_pos", group="pos", desc="Access POS")
+     *
      * Return full receipt data for an existing invoice (used for reprinting).
      */
     public function receiptData(Invoice $invoice): JsonResponse

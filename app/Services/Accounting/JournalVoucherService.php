@@ -14,6 +14,7 @@ class JournalVoucherService
     public function __construct(
         private readonly DocumentNumberGenerator $documentNumberGenerator,
         private readonly PeriodLockGuard $periodGuard,
+        private readonly JournalBalanceGuard $balanceGuard,
     ) {}
 
     public function create(array $validated, User $user): Journal
@@ -51,11 +52,23 @@ class JournalVoucherService
 
     public function update(Journal $journal, array $validated): Journal
     {
-        return DB::transaction(function () use ($journal, $validated) {
+        $newStatus = $validated['status'] ?? $journal->status?->value ?? $journal->status;
+        $isApproved = $newStatus === StatusEnum::APPROVED->value || $newStatus === StatusEnum::APPROVED;
+        $date = $validated['date'] ?? $journal->date;
+
+        if ($isApproved) {
+            $this->periodGuard->assertPostable($journal->company_id, $journal->fiscal_year_id, $date);
+        }
+
+        return DB::transaction(function () use ($journal, $validated, $isApproved) {
             $journal->update($validated);
 
             $journal->journalItems()->delete();
             $journal->journalItems()->createMany($validated['items']);
+
+            if ($isApproved) {
+                $this->balanceGuard->assertBalanced($journal);
+            }
 
             return $journal;
         });

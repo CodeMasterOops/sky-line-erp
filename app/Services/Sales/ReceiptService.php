@@ -111,9 +111,10 @@ readonly class ReceiptService
     public function approveReceipt(Receipt $receipt): void
     {
         $user = auth('admin')->user();
-        $invoiceIds = $receipt->allocations()->pluck('invoice_id')->all();
 
         DB::transaction(function () use ($receipt, $user) {
+            $invoiceIds = $receipt->allocations()->pluck('invoice_id')->all();
+
             $receipt->update([
                 'approve_user_id' => $user->id,
                 'approved_at' => now(),
@@ -121,9 +122,8 @@ readonly class ReceiptService
             ]);
 
             $this->createJournal($receipt);
+            $this->refreshInvoicePaidAmounts($invoiceIds);
         });
-
-        $this->refreshInvoicePaidAmounts($invoiceIds);
     }
 
     public function voidReceipt(Receipt $receipt): void
@@ -136,13 +136,12 @@ readonly class ReceiptService
 
         $invoiceIds = $receipt->allocations()->pluck('invoice_id')->all();
 
-        DB::transaction(function () use ($receipt) {
+        DB::transaction(function () use ($receipt, $invoiceIds) {
             $this->journalVoid->reverseForReference($receipt);
             $receipt->allocations()->delete();
             $receipt->delete();
+            $this->refreshInvoicePaidAmounts($invoiceIds);
         });
-
-        $this->refreshInvoicePaidAmounts($invoiceIds);
     }
 
     public function createJournal(Receipt $receipt): void

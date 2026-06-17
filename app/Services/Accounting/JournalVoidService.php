@@ -23,6 +23,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class JournalVoidService
 {
+    public function __construct(private readonly PeriodLockGuard $periodGuard) {}
+
     public function reverseForReference(Model $document): void
     {
         $companyId = $document->company_id
@@ -41,9 +43,13 @@ class JournalVoidService
             return;
         }
 
-        DB::transaction(function () use ($journals, $document, $companyId) {
+        $voidDate = now()->toDateString();
+        $fiscalYearId = $journals->first()->fiscal_year_id;
+        $this->periodGuard->assertPostable($companyId, $fiscalYearId, $voidDate);
+
+        DB::transaction(function () use ($journals, $document, $companyId, $voidDate) {
             foreach ($journals as $journal) {
-                $this->createContraJournal($journal, $document, $companyId);
+                $this->createContraJournal($journal, $document, $companyId, $voidDate);
 
                 JournalItem::withoutGlobalScopes()
                     ->where('journal_id', $journal->id)
@@ -55,7 +61,7 @@ class JournalVoidService
         });
     }
 
-    private function createContraJournal(Journal $original, Model $document, int $companyId): void
+    private function createContraJournal(Journal $original, Model $document, int $companyId, string $voidDate): void
     {
         if ($original->journalItems->isEmpty()) {
             return;
@@ -71,7 +77,7 @@ class JournalVoidService
             'reference_id' => $document->getKey(),
             'voucher_no' => $voucherNo,
             'reference_no' => $original->reference_no,
-            'date' => $original->date,
+            'date' => $voidDate,
             'remarks' => 'Void of '.$original->voucher_no.($original->remarks ? ': '.$original->remarks : ''),
             'create_user_id' => $original->create_user_id,
             'approve_user_id' => $original->approve_user_id,

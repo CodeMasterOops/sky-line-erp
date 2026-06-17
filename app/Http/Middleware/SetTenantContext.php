@@ -53,12 +53,22 @@ class SetTenantContext
             }
         }
 
-        return $next($request);
+        // Reset on exception so static state never leaks when terminate() is
+        // skipped (e.g. a fatal that kills an Octane worker mid-request).
+        // On the happy path, terminate() resets after RequestHandled fires,
+        // which lets event listeners still observe the active tenant context.
+        try {
+            return $next($request);
+        } catch (\Throwable $e) {
+            TenantService::reset();
+            throw $e;
+        }
     }
 
     /**
      * Reset tenant context after each request so static state does not leak
      * between requests on long-lived processes (Octane, Swoole, RoadRunner).
+     * terminate() is also called by Octane; double-reset is harmless.
      */
     public function terminate(Request $request, Response $response): void
     {

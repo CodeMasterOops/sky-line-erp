@@ -137,6 +137,7 @@ readonly class CustomerAdvanceService
             ]);
         }
 
+        // Early check for fast user feedback (non-authoritative under concurrency).
         if ($amount > round($advance->remainingAmount(), 4)) {
             throw ValidationException::withMessages([
                 'amount' => 'Application amount exceeds remaining advance balance.',
@@ -154,6 +155,14 @@ readonly class CustomerAdvanceService
         $date = $appliedAt ?? now()->toDateString();
 
         return DB::transaction(function () use ($advance, $invoice, $amount, $date, $user, $settings) {
+            // Re-read with a write-lock to prevent concurrent over-application.
+            $advance = CustomerAdvance::withoutGlobalScopes()->lockForUpdate()->find($advance->id);
+            if ($amount > round($advance->remainingAmount(), 4)) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Application amount exceeds remaining advance balance.',
+                ]);
+            }
+
             $application = AdvanceApplication::create([
                 'company_id' => $advance->company_id,
                 'customer_advance_id' => $advance->id,

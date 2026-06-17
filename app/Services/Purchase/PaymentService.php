@@ -159,6 +159,7 @@ readonly class PaymentService
             ->first();
 
         $journal = $payment->journal()->create([
+            'company_id' => $payment->company_id,
             'fiscal_year_id' => $payment->fiscal_year_id,
             'type' => JournalTypeEnum::PAYMENT->value,
             'voucher_no' => $payment->payment_no,

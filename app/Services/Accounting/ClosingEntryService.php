@@ -213,6 +213,7 @@ class ClosingEntryService
             ->whereIn('journal_items.account_id', $accountIds)
             ->where('journals.company_id', $companyId)
             ->where('journals.status', StatusEnum::APPROVED->value)
+            ->where('journals.type', '!=', JournalTypeEnum::CLOSING_ENTRY->value)
             ->whereNull('journals.deleted_at')
             ->whereNull('journal_items.deleted_at')
             ->whereBetween('journals.date', [$startDate, $endDate])

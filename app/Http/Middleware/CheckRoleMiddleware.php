@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
@@ -37,6 +38,11 @@ class CheckRoleMiddleware
         try {
             $permissionAnnotations = $this->findPermissionAnnotations($request);
         } catch (\ReflectionException $e) {
+            Log::error('CheckRoleMiddleware: reflection failed — denying request', [
+                'path' => $request->path(),
+                'error' => $e->getMessage(),
+            ]);
+            abort(ResponseAlias::HTTP_FORBIDDEN, 'Permission check unavailable.');
         }
 
         foreach ($permissionAnnotations as $permissionAnnotation) {

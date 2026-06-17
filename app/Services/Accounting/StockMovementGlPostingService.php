@@ -21,6 +21,11 @@ use Illuminate\Support\Facades\DB;
  */
 class StockMovementGlPostingService
 {
+    public function __construct(
+        private readonly PeriodLockGuard $periodGuard,
+        private readonly JournalBalanceGuard $balanceGuard,
+    ) {}
+
     public function postFromMovement(StockMovement $movement): void
     {
         if ($movement->gl_journal_id) {
@@ -77,7 +82,10 @@ class StockMovementGlPostingService
             return;
         }
 
-        DB::transaction(function () use ($movement, $amount, $debitAccountId, $creditAccountId, $userId, $company) {
+        $movementDate = $movement->created_at?->toDateString() ?? now()->toDateString();
+        $this->periodGuard->assertPostable($movement->company_id, $company->fiscal_year_id, $movementDate);
+
+        DB::transaction(function () use ($movement, $amount, $debitAccountId, $creditAccountId, $userId, $company, $movementDate) {
             $fiscalYearId = $company->fiscal_year_id;
             $yearCode = $company->fiscalYear?->year_code ?? '';
 
@@ -91,7 +99,7 @@ class StockMovementGlPostingService
                 'reference_id' => $movement->id,
                 'voucher_no' => $voucherNo,
                 'reference_no' => 'SM-'.$movement->id,
-                'date' => $movement->created_at?->toDateString() ?? now()->toDateString(),
+                'date' => $movementDate,
                 'remarks' => __('Inventory movement: :type :direction', [
                     'type' => $movement->type->value,
                     'direction' => $movement->direction->value,
@@ -117,6 +125,8 @@ class StockMovementGlPostingService
                 'cr_amount' => $amount,
                 'remarks' => null,
             ]);
+
+            $this->balanceGuard->assertBalanced($journal);
 
             $movement->forceFill(['gl_journal_id' => $journal->id])->saveQuietly();
         });

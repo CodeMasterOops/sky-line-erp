@@ -141,12 +141,12 @@ class GlAccountConfigGuard
     {
         $companyId = TenantService::companyId();
 
-        if ($companyId) {
-            return AccountSetting::withoutGlobalScopes()
-                ->where('company_id', $companyId)
-                ->first();
+        if (! $companyId) {
+            return null;
         }
 
-        return AccountSetting::withoutGlobalScopes()->first();
+        return AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->first();
     }
 }

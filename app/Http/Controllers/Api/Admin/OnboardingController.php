@@ -10,6 +10,8 @@ class OnboardingController extends Controller
 {
     public function updateCompany(Request $request): JsonResponse
     {
+        abort_unless(auth('admin')->user()?->isAdmin(), 403, 'Only company administrators can update company details.');
+
         $validated = $request->validate([
             'legal_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30'],
@@ -30,6 +32,8 @@ class OnboardingController extends Controller
 
     public function complete(): JsonResponse
     {
+        abort_unless(auth('admin')->user()?->isAdmin(), 403, 'Only company administrators can complete onboarding.');
+
         $company = auth('admin')->user()->company;
 
         $company->update([
