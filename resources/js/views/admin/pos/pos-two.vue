@@ -279,7 +279,9 @@
                     :options="customerOptions"
                     v-model="selectedCustomerOption"
                     placeholder="Walk-in Customer"
-                    @search="onCustomerSearch"
+                    :searchable="true"
+                    :filter-results="false"
+                    @search-change="onCustomerSearch"
                     @update:modelValue="onCustomerSelect"
                   />
                 </div>

@@ -11,7 +11,11 @@
                 <div v-if="addressDisplay" class="fw-medium">{{ addressDisplay }}</div>
                 <div v-else class="fst-italic text-muted">{{ emptyAddressText }}</div>
             </div>
-            <div class="col-sm-4 col-md-5 text-sm-end">
+            <div v-if="creditLimitDisplay" class="col-sm-4 col-md-3">
+                <div class="text-muted small text-uppercase ls-1">Credit Limit</div>
+                <div class="fw-medium">{{ creditLimitDisplay }}</div>
+            </div>
+            <div class="col-sm-4 col-md-2 text-sm-end ms-auto">
                 <router-link
                     v-if="detailRoute"
                     :to="detailRoute"
@@ -51,6 +55,14 @@ const panDisplay = computed(() => {
         return '';
     }
     return String(p).trim();
+});
+
+const creditLimitDisplay = computed(() => {
+    const cl = props.party?.credit_limit;
+    if (cl == null || cl === '' || Number(cl) <= 0) {
+        return '';
+    }
+    return Number(cl).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 });
 
 const addressDisplay = computed(() => {

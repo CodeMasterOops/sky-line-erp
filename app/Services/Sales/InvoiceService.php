@@ -2,6 +2,7 @@
 
 namespace App\Services\Sales;
 
+use App\Models\Party;
 use App\Models\Invoice;
 use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
@@ -14,6 +15,7 @@ use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Tax\TaxCalculationEngine;
+use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalVoidService;
 use App\Services\Accounting\GlAccountConfigGuard;
 use App\Services\Accounting\InvoiceGlPostingService;
@@ -106,6 +108,7 @@ readonly class InvoiceService
             $invoice->refresh()->refreshTotals();
 
             if ($status === StatusEnum::APPROVED->value) {
+                $this->assertCreditLimitNotExceeded($invoice->party_id, (float) $invoice->total_amount, $invoice->id);
                 $this->createJournal($invoice);
                 $this->applyInventoryIssuesForApprovedInvoice($invoice, $user->company, $user);
             }
@@ -180,6 +183,7 @@ readonly class InvoiceService
 
     public function approveInvoice(Invoice $invoice): void
     {
+        $this->assertCreditLimitNotExceeded($invoice->party_id, (float) $invoice->total_amount, $invoice->id);
         $this->assertGlAccountsConfigured($invoice);
 
         $user = auth('admin')->user();
@@ -252,6 +256,42 @@ readonly class InvoiceService
      *
      * @throws \Illuminate\Validation\ValidationException
      */
+    /**
+     * @throws ValidationException
+     */
+    private function assertCreditLimitNotExceeded(?int $partyId, float $newInvoiceTotal, ?int $excludeInvoiceId = null): void
+    {
+        if (! $partyId) {
+            return;
+        }
+
+        $party = Party::find($partyId);
+        $creditLimit = (float) ($party?->credit_limit ?? 0);
+
+        if ($creditLimit <= 0) {
+            return;
+        }
+
+        $outstanding = (float) DB::table('invoices')
+            ->where('party_id', $partyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->whereNull('deleted_at')
+            ->when($excludeInvoiceId, fn ($q) => $q->where('id', '!=', $excludeInvoiceId))
+            ->selectRaw('COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0) as outstanding')
+            ->value('outstanding');
+
+        if (($outstanding + $newInvoiceTotal) > $creditLimit) {
+            throw ValidationException::withMessages([
+                'credit_limit' => sprintf(
+                    'This invoice would exceed the customer\'s credit limit of %s. Current outstanding: %s.',
+                    number_format($creditLimit, 2),
+                    number_format($outstanding, 2),
+                ),
+            ]);
+        }
+    }
+
     private function assertGlAccountsConfigured(Invoice $invoice): void
     {
         $hasTax = (float) $invoice->invoiceItems()->sum('tax_amount') > 0;

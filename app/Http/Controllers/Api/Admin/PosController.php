@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Cache;
 use App\Services\Sales\ReceiptService;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
+use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\BooksHealthService;
 use App\Services\Accounting\GlAccountConfigGuard;
 use App\Http\Requests\Api\Admin\PosCheckoutRequest;
@@ -185,6 +186,7 @@ class PosController extends Controller
                 'phone' => $party->phone,
                 'email' => $party->email,
                 'pan' => $party->pan ?? '',
+                'credit_limit' => (float) ($party->credit_limit ?? 0),
                 'discount_type' => $party->discount?->type ?? '',
                 'discount_value' => $party->discount?->value ?? '',
             ]),
@@ -358,6 +360,12 @@ class PosController extends Controller
                 $payments = $request->payments ?? null;
                 if (! $payments && strtolower($request->payment_method) !== 'credit') {
                     $payments = [['method' => $request->payment_method, 'payment_mode_id' => $request->payment_mode_id, 'amount' => $grandTotal]];
+                }
+
+                $totalPaidNow = $payments ? collect($payments)->sum(fn ($p) => (float) ($p['amount'] ?? 0)) : 0.0;
+                $amountOnCredit = max(round($grandTotal - $totalPaidNow, 2), 0.0);
+                if ($amountOnCredit > 0 && $request->party_id) {
+                    $this->assertPosCreditLimit($request->party_id, $amountOnCredit);
                 }
 
                 $firstReceipt = null;
@@ -1036,6 +1044,37 @@ class PosController extends Controller
     }
 
     // -----------------------------------------------------------------------
+
+    /**
+     * @throws ValidationException
+     */
+    private function assertPosCreditLimit(int $partyId, float $amountOnCredit): void
+    {
+        $party = Party::find($partyId);
+        $creditLimit = (float) ($party?->credit_limit ?? 0);
+
+        if ($creditLimit <= 0) {
+            return;
+        }
+
+        $outstanding = (float) DB::table('invoices')
+            ->where('party_id', $partyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('voided_at')
+            ->whereNull('deleted_at')
+            ->selectRaw('COALESCE(SUM(total_amount - COALESCE(paid_amount, 0)), 0) as outstanding')
+            ->value('outstanding');
+
+        if (($outstanding + $amountOnCredit) > $creditLimit) {
+            throw ValidationException::withMessages([
+                'credit_limit' => sprintf(
+                    'This sale would exceed the customer\'s credit limit of %s. Current outstanding: %s.',
+                    number_format($creditLimit, 2),
+                    number_format($outstanding, 2),
+                ),
+            ]);
+        }
+    }
 
     private function computeTodaySummary(int $companyId, string $today): array
     {
