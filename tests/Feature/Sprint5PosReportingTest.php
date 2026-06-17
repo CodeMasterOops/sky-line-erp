@@ -35,6 +35,7 @@ function pr5WarmCache(): void
 }
 
 beforeEach(function () {
+    Cache::flush();
     pr5WarmCache();
     TenantService::setCompanyId(null);
     TenantService::setBranchId(null);

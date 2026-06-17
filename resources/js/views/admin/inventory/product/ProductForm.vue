@@ -88,18 +88,42 @@
                                 </div>
                             </div>
                             <div class="col">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label mb-0" for="product_category_id">
+                                        Category <VRequiredMark />
+                                    </label>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-primary lh-1"
+                                        @click="addCategoryModalOpen = true" title="Add new category">
+                                        <i class="ti ti-plus"></i> Add
+                                    </button>
+                                </div>
                                 <VMultiselect id="product_category_id" v-model="form.product_category_id"
-                                    :options="leafCategoryOptions" label="Category" required
+                                    :options="leafCategoryOptions" required
                                     @validate="validateField('product_category_id')"
                                     :error="errors.product_category_id" />
                             </div>
                             <div class="col">
-                                <VMultiselect id="unit_id" v-model="form.unit_id" :options="units.data" label="Unit"
-                                    required
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label mb-0" for="unit_id">
+                                        Unit <VRequiredMark />
+                                    </label>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-primary lh-1"
+                                        @click="addUnitModalOpen = true" title="Add new unit">
+                                        <i class="ti ti-plus"></i> Add
+                                    </button>
+                                </div>
+                                <VMultiselect id="unit_id" v-model="form.unit_id" :options="units.data" required
                                     @validate="validateField('unit_id')" :error="errors.unit_id" />
                             </div>
                             <div v-if="isPhysicalProduct" class="col">
-                                <VMultiselect id="brand_id" v-model="form.brand_id" :options="brands.data" label="Brand"
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <label class="form-label mb-0" for="brand_id">Brand</label>
+                                    <button type="button" class="btn btn-link btn-sm p-0 text-primary lh-1"
+                                        @click="addBrandModalOpen = true" title="Add new brand">
+                                        <i class="ti ti-plus"></i> Add
+                                    </button>
+                                </div>
+                                <VMultiselect id="brand_id" v-model="form.brand_id" :options="brands.data"
                                     @validate="validateField('brand_id')" :error="errors.brand_id" />
                             </div>
                             <div class="col">
@@ -462,6 +486,13 @@
                 </div>
             </div>
         </div>
+
+        <CreateUnit v-model:create-modal-opened="addUnitModalOpen"
+            @created="(unit) => { form.unit_id = unit.id }" />
+        <CreateBrand v-model:create-modal-opened="addBrandModalOpen"
+            @created="(brand) => { form.brand_id = brand.id }" />
+        <CreateCategory v-model:create-modal-opened="addCategoryModalOpen"
+            @created="(category) => { form.product_category_id = category.id }" />
     </form>
 </template>
 
@@ -481,6 +512,9 @@ import { useAttributeStore } from '@/stores/admin/inventory/attribute.js';
 import { useSettingStore } from '@/stores/admin/settings/setting.js';
 import { useTaxStore } from '@/stores/admin/settings/tax.js';
 import { useNextCode } from '@/helpers/useNextCode.js';
+import CreateUnit from '@/views/admin/inventory/unit/Create.vue';
+import CreateBrand from '@/views/admin/inventory/brand/Create.vue';
+import CreateCategory from '@/views/admin/inventory/product-category/Create.vue';
 
 const props = defineProps({
     mode: {
@@ -495,6 +529,10 @@ const props = defineProps({
 });
 
 const isEdit = computed(() => props.mode === 'edit');
+
+const addUnitModalOpen = ref(false);
+const addBrandModalOpen = ref(false);
+const addCategoryModalOpen = ref(false);
 
 const router = useRouter();
 const productStore = useProductStore();

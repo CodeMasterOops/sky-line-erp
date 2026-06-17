@@ -29,6 +29,7 @@ use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Cache;
 use App\Services\Sales\ReceiptService;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
@@ -60,16 +61,20 @@ class PosController extends Controller
     #[Permissions('list_pos', group: 'pos', desc: 'Access POS')]
     public function categories()
     {
-        $categories = ProductCategory::query()
-            ->with('parent:id,name')
-            ->withCount('children')
-            ->orderByRaw('parent_id is null desc')
-            ->orderBy('name')
-            ->get();
+        $companyId = auth('admin')->user()->company_id;
 
-        return response()->json([
-            'data' => ProductCategoryResource::collection($categories),
-        ]);
+        $data = Cache::remember("pos_categories_{$companyId}", 300, function () {
+            return ProductCategoryResource::collection(
+                ProductCategory::query()
+                    ->with('parent:id,name')
+                    ->withCount('children')
+                    ->orderByRaw('parent_id is null desc')
+                    ->orderBy('name')
+                    ->get()
+            )->resolve();
+        });
+
+        return response()->json(['data' => $data]);
     }
 
     #[Permissions('list_pos', group: 'pos', desc: 'Access POS')]
@@ -189,7 +194,11 @@ class PosController extends Controller
     #[Permissions('list_pos', group: 'pos', desc: 'Access POS')]
     public function warehouses()
     {
-        $warehouses = Warehouse::select('id', 'name', 'code')->get();
+        $companyId = auth('admin')->user()->company_id;
+
+        $warehouses = Cache::remember("pos_warehouses_{$companyId}", 300, function () {
+            return Warehouse::select('id', 'name', 'code')->get()->toArray();
+        });
 
         return response()->json(['data' => $warehouses]);
     }
@@ -197,50 +206,12 @@ class PosController extends Controller
     #[Permissions('list_pos', group: 'pos', desc: 'Access POS')]
     public function todaySummary()
     {
+        $user = auth('admin')->user();
         $today = now()->toDateString();
 
-        $invoiceIds = Invoice::where('status', StatusEnum::APPROVED)
-            ->whereDate('invoice_date', $today)
-            ->pluck('id');
+        $data = Cache::remember("pos_today_summary_{$user->company_id}_{$today}", 60, fn () => $this->computeTodaySummary($user->company_id, $today));
 
-        $totals = DB::table('invoice_items')
-            ->whereIn('invoice_id', $invoiceIds)
-            ->whereNull('deleted_at')
-            ->selectRaw('
-                COUNT(DISTINCT invoice_id) as sale_count,
-                SUM(quantity * rate) as subtotal,
-                SUM(discount_amount) as discount_total,
-                SUM(tax_amount) as tax_total
-            ')
-            ->first();
-
-        $subtotal = (float) ($totals->subtotal ?? 0);
-        $discountTotal = (float) ($totals->discount_total ?? 0);
-        $taxTotal = (float) ($totals->tax_total ?? 0);
-        $saleTotal = $subtotal - $discountTotal + $taxTotal;
-
-        // Profit = revenue - COGS using actual inventory layer cost at time of issue
-        $invoiceMorphType = (new Invoice)->getMorphClass();
-        $cogsSub = DB::table('stock_movements as sm')
-            ->join('stock_movement_layers as sml', 'sml.stock_movement_id', '=', 'sm.id')
-            ->whereIn('sm.reference_id', $invoiceIds->isEmpty() ? [0] : $invoiceIds)
-            ->where('sm.reference_type', $invoiceMorphType)
-            ->whereNull('sm.deleted_at')
-            ->whereNull('sml.deleted_at')
-            ->selectRaw('COALESCE(SUM(sml.quantity * sml.unit_cost), 0) as cogs')
-            ->first();
-
-        $cogs = (float) ($cogsSub->cogs ?? 0);
-        $profit = $saleTotal - $cogs;
-
-        return response()->json([
-            'data' => [
-                'sale_count' => (int) ($totals->sale_count ?? 0),
-                'sale_total' => round($saleTotal, 2),
-                'cogs' => round($cogs, 2),
-                'profit' => round($profit, 2),
-            ],
-        ]);
+        return response()->json(['data' => $data]);
     }
 
     /**
@@ -391,10 +362,13 @@ class PosController extends Controller
 
                 $firstReceipt = null;
                 if ($payments && $grandTotal > 0) {
+                    $paymentModeIds = collect($payments)->pluck('payment_mode_id')->filter()->unique()->values()->all();
+                    $paymentModeMap = PaymentMode::with('bankAccount')->findMany($paymentModeIds)->keyBy('id');
+
                     $remaining = round($grandTotal, 2);
                     foreach ($payments as $payment) {
                         $method = strtolower($payment['method']);
-                        $mode = PaymentMode::with('bankAccount')->find($payment['payment_mode_id'] ?? null);
+                        $mode = $paymentModeMap->get($payment['payment_mode_id'] ?? null);
                         $payAccountId = $this->resolveAccountIdFromMode($mode, $accountSetting, $method);
                         if (! $payAccountId) {
                             continue;
@@ -456,6 +430,8 @@ class PosController extends Controller
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 500);
         }
+
+        Cache::forget("pos_today_summary_{$company->id}_{$today}");
 
         try {
             SyncInvoiceToIrdJob::dispatch($invoice)->onQueue('ird');
@@ -657,23 +633,22 @@ class PosController extends Controller
         $closingCash = (float) $request->closing_cash;
         $cashDifference = round($closingCash - $expectedCash, 2);
 
-        $session->update([
-            'closing_cash' => $closingCash,
-            'expected_cash' => $expectedCash,
-            'cash_difference' => $cashDifference,
-            'notes' => $request->notes,
-            'status' => 'closed',
-            'closed_at' => now(),
-        ]);
-
-        // Post close-till GL journals if accounts are configured.
         $user = auth('admin')->user();
         $accountSetting = AccountSetting::withoutGlobalScopes()
             ->where('company_id', $session->company_id)
             ->first();
 
-        if ($accountSetting?->pos_cash_account_id && $accountSetting?->pos_float_account_id) {
-            DB::transaction(function () use ($session, $cashDifference, $user, $accountSetting) {
+        DB::transaction(function () use ($session, $closingCash, $expectedCash, $cashDifference, $request, $user, $accountSetting) {
+            $session->update([
+                'closing_cash' => $closingCash,
+                'expected_cash' => $expectedCash,
+                'cash_difference' => $cashDifference,
+                'notes' => $request->notes,
+                'status' => 'closed',
+                'closed_at' => now(),
+            ]);
+
+            if ($accountSetting?->pos_cash_account_id && $accountSetting?->pos_float_account_id) {
                 $company = $user->company;
 
                 // Reverse the opening float journal (DR Float, CR POS Cash).
@@ -730,8 +705,8 @@ class PosController extends Controller
                 }
 
                 $this->booksHealth->invalidateCache($session->company_id);
-            });
-        }
+            }
+        });
 
         return response()->json([
             'data' => array_merge($this->formatSession($session->fresh()), ['summary' => $summary]),
@@ -1061,6 +1036,49 @@ class PosController extends Controller
     }
 
     // -----------------------------------------------------------------------
+
+    private function computeTodaySummary(int $companyId, string $today): array
+    {
+        $statusValue = StatusEnum::APPROVED->value;
+
+        $totals = DB::table('invoice_items as ii')
+            ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')
+            ->where('inv.company_id', $companyId)
+            ->where('inv.status', $statusValue)
+            ->whereDate('inv.invoice_date', $today)
+            ->whereNull('inv.deleted_at')
+            ->whereNull('ii.deleted_at')
+            ->selectRaw('COUNT(DISTINCT ii.invoice_id) as sale_count, SUM(ii.quantity * ii.rate) as subtotal, SUM(ii.discount_amount) as discount_total, SUM(ii.tax_amount) as tax_total')
+            ->first();
+
+        $subtotal = (float) ($totals->subtotal ?? 0);
+        $discountTotal = (float) ($totals->discount_total ?? 0);
+        $taxTotal = (float) ($totals->tax_total ?? 0);
+        $saleTotal = $subtotal - $discountTotal + $taxTotal;
+
+        $invoiceMorphType = (new Invoice)->getMorphClass();
+        $cogsSub = DB::table('stock_movements as sm')
+            ->join('stock_movement_layers as sml', 'sml.stock_movement_id', '=', 'sm.id')
+            ->join('invoices as inv', 'inv.id', '=', 'sm.reference_id')
+            ->where('sm.reference_type', $invoiceMorphType)
+            ->where('inv.company_id', $companyId)
+            ->where('inv.status', $statusValue)
+            ->whereDate('inv.invoice_date', $today)
+            ->whereNull('inv.deleted_at')
+            ->whereNull('sm.deleted_at')
+            ->whereNull('sml.deleted_at')
+            ->selectRaw('COALESCE(SUM(sml.quantity * sml.unit_cost), 0) as cogs')
+            ->first();
+
+        $cogs = (float) ($cogsSub->cogs ?? 0);
+
+        return [
+            'sale_count' => (int) ($totals->sale_count ?? 0),
+            'sale_total' => round($saleTotal, 2),
+            'cogs' => round($cogs, 2),
+            'profit' => round($saleTotal - $cogs, 2),
+        ];
+    }
 
     private function resolveOrderDiscountAmount(float $sumLineNet, string $type, float $value): float
     {

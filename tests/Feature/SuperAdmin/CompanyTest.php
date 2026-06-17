@@ -66,6 +66,45 @@ it('creates a company with required address fields', function () {
     ]);
 });
 
+it('allows super admin to login as a company admin', function () {
+    actingAsSuperAdmin();
+    createDefaultPlan();
+    $ward = companyLocation();
+
+    $create = $this->postJson('/api/super-admin/company', validCompanyPayload($ward, [
+        'code' => 'LC-01',
+        'email' => 'loginco@example.com',
+        'user_email' => 'admin@loginco.example.com',
+    ]));
+    $create->assertCreated();
+    $companyId = $create->json('data.id');
+
+    $response = $this->postJson("/api/super-admin/company/{$companyId}/login");
+
+    $response->assertOk()
+        ->assertJsonStructure(['access_token', 'expires_at', 'user', 'permissions', 'message']);
+});
+
+it('rejects company login when company is inactive', function () {
+    actingAsSuperAdmin();
+    createDefaultPlan();
+    $ward = companyLocation();
+
+    $create = $this->postJson('/api/super-admin/company', validCompanyPayload($ward, [
+        'code' => 'IC-01',
+        'email' => 'inactiveco@example.com',
+        'user_email' => 'admin@inactiveco.example.com',
+    ]));
+    $create->assertCreated();
+    $companyId = $create->json('data.id');
+
+    $this->putJson("/api/super-admin/company/{$companyId}/update-status");
+
+    $response = $this->postJson("/api/super-admin/company/{$companyId}/login");
+
+    $response->assertStatus(400);
+});
+
 it('requires address fields when updating a company', function () {
     actingAsSuperAdmin();
     createDefaultPlan();

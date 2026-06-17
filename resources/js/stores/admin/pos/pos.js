@@ -146,8 +146,8 @@ export const usePosStore = defineStore('pos', {
                 return;
             }
 
-            await this.fetchWarehouses();
             await Promise.all([
+                this.fetchWarehouses(),
                 this.fetchCustomers(),
                 this.fetchTaxes(),
                 this.fetchPaymentModes(),
@@ -238,7 +238,8 @@ export const usePosStore = defineStore('pos', {
                 if (search) {
                     params.set('search', search);
                 }
-                const res = await apiAdmin(`pos/customers?${params.toString()}`);
+                const query = params.toString();
+                const res = await apiAdmin(`pos/customers${query ? `?${query}` : ''}`);
                 this.customers = res.data.data ?? [];
             } catch (err) {
                 showErrors(err);

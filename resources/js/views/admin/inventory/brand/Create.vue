@@ -64,6 +64,7 @@ import {useBrandStore} from '@/stores/admin/inventory/brand.js';
 const brandStore = useBrandStore();
 
 const createModalOpened = defineModel('createModalOpened');
+const emit = defineEmits(['created']);
 
 watch(createModalOpened, async (open) => {
     if (open) {
@@ -94,6 +95,7 @@ const storeBrand = async () => {
         try {
             let res = await brandStore.storeBrand(form);
             toast(res.status, res.data.message);
+            emit('created', res.data.data);
             closeCreateModal();
         } catch (e) {
             showErrors(e);

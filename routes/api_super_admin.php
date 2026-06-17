@@ -53,6 +53,7 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::apiResource('ward', WardController::class);
 
     // company
+    Route::post('company/{company}/login', [CompanyController::class, 'companyLogin'])->name('company.login');
     Route::put('company/{company}/update-status', [CompanyController::class, 'updateStatus'])->name('company.update-status');
     Route::put('company/{company}/reset-password', [CompanyController::class, 'resetPassword'])->name('company.reset-password');
     Route::apiResource('company', CompanyController::class);

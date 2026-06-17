@@ -58,6 +58,7 @@ const categoryStore = useProductCategoryStore();
 const {optionsTree: parentOptionsTree} = storeToRefs(categoryStore);
 
 const createModalOpened = defineModel('createModalOpened');
+const emit = defineEmits(['created']);
 
 watch(createModalOpened, (open) => {
     if (open) {
@@ -89,6 +90,7 @@ const storeProductCategory = async () => {
         try {
             let res = await categoryStore.storeProductCategory(form);
             toast(res.status, res.data.message);
+            emit('created', res.data.data);
             closeCreateModal();
         } catch (e) {
             showErrors(e);

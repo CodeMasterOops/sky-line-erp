@@ -6,12 +6,17 @@ use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
 use Illuminate\Http\Request;
+use App\Services\TenantService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\BranchAccessService;
 use App\Services\SubscriptionService;
+use App\Http\Resources\Admin\ProfileResource;
 use App\Services\SetCompanyDefaultDataService;
 use App\Http\Resources\SuperAdmin\CompanyResource;
 use App\Http\Requests\Api\SuperAdmin\CompanyRequest;
+use App\Http\Resources\Admin\Settings\BranchResource;
 
 class CompanyController extends Controller
 {
@@ -93,6 +98,40 @@ class CompanyController extends Controller
         return response([
             'is_active' => $company->is_active,
             'message' => 'Status updated successfully',
+        ]);
+    }
+
+    public function companyLogin(Company $company): JsonResponse
+    {
+        $user = $company->admin()->with('company')->first();
+
+        if (! $user || ! $user->status) {
+            return response()->json(['message' => 'Company admin account is not active.'], 400);
+        }
+
+        if (! $company->is_active) {
+            return response()->json(['message' => 'Company account is not active.'], 400);
+        }
+
+        $abilities = $user->isAdmin() ? ['*'] : (userPermissions($user) ?: ['user:read']);
+        $tokenData = $user->createToken('auth-token', $abilities, now()->addWeek());
+
+        TenantService::setCompanyId($user->company_id);
+
+        $accessService = app(BranchAccessService::class);
+        $accessibleBranches = $accessService->getAccessibleBranches($user);
+        $defaultBranchId = $accessibleBranches->firstWhere('is_head_office', true)?->id
+            ?? $accessibleBranches->first()?->id;
+
+        return response()->json([
+            'access_token' => $tokenData->plainTextToken,
+            'expires_at' => $tokenData->accessToken->expires_at,
+            'user' => ProfileResource::make($user),
+            'permissions' => base64_encode(json_encode(userPermissions($user))),
+            'needs_onboarding' => $user->company->onboarding_completed_at === null,
+            'accessible_branches' => BranchResource::collection($accessibleBranches),
+            'default_branch_id' => $defaultBranchId,
+            'message' => 'Logged in to company successfully.',
         ]);
     }
 

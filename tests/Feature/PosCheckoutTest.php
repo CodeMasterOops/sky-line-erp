@@ -46,6 +46,7 @@ function warmAllTablesCache(): void
 }
 
 beforeEach(function () {
+    Cache::flush();
     warmAllTablesCache();
     TenantService::setCompanyId(null);
     TenantService::setBranchId(null);

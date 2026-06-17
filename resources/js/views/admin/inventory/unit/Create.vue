@@ -64,6 +64,7 @@ import {useUnitStore} from '@/stores/admin/inventory/unit.js';
 const unitStore = useUnitStore();
 
 const createModalOpened = defineModel('createModalOpened');
+const emit = defineEmits(['created']);
 
 watch(createModalOpened, async (open) => {
     if (open) {
@@ -94,6 +95,7 @@ const storeUnit = async () => {
         try {
             let res = await unitStore.storeUnit(form);
             toast(res.status, res.data.message);
+            emit('created', res.data.data);
             closeCreateModal();
         } catch (e) {
             showErrors(e);
