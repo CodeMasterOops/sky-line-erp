@@ -56,6 +56,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
+        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
         $user->load('roles');
 
         return UserResource::make($user);
@@ -66,6 +67,8 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
+        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
+
         DB::transaction(function () use ($request, $user) {
             $user->update($request->validated());
             $user->roles()->sync($request->validated('roles'));
@@ -84,6 +87,8 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
+        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
+
         if ($user->user_type !== UserTypeEnum::ADMIN) {
             $user->roles()->detach();
             $user->delete();
@@ -103,6 +108,8 @@ class UserController extends Controller
      */
     public function updateStatus(User $user)
     {
+        abort_if($user->company_id !== auth('admin')->user()->company_id, 403);
+
         $user->update([
             'status' => ! $user->status,
         ]);

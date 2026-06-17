@@ -25,7 +25,9 @@ class InvoiceExportGenerator implements ExportGeneratorInterface
         $writer->open($absolutePath, $format);
         $writer->addRow($this->headers());
 
-        $query = Invoice::query()->with(['party:id,code,name', 'invoiceItems.productVariant.product:id,name']);
+        $query = Invoice::query()
+            ->where('company_id', $job->company_id)
+            ->with(['party:id,code,name', 'invoiceItems.productVariant.product:id,name']);
 
         if (! empty($filters['start_date'])) {
             $query->whereDate('invoice_date', '>=', $filters['start_date']);

@@ -23,6 +23,7 @@ class StockExportGenerator implements ExportGeneratorInterface
         $writer->addRow($this->headers());
 
         $query = Stock::query()
+            ->where('company_id', $job->company_id)
             ->with([
                 'productVariant.product:id,name,code',
                 'warehouse:id,name,code',

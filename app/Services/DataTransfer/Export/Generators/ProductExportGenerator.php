@@ -23,6 +23,7 @@ class ProductExportGenerator implements ExportGeneratorInterface
         $writer->addRow($this->headers());
 
         Product::query()
+            ->where('company_id', $job->company_id)
             ->with([
                 'productCategory.parent:id,name',
                 'unit:id,name,code',

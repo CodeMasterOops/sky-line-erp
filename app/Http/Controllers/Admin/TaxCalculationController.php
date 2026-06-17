@@ -31,6 +31,7 @@ class TaxCalculationController extends Controller
         ]);
 
         $group = TaxGroup::withoutGlobalScopes()
+            ->where('company_id', auth('admin')->user()->company_id)
             ->where('is_active', true)
             ->findOrFail($validated['tax_group_id']);
 

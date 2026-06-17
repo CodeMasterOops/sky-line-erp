@@ -25,7 +25,9 @@ class PurchaseOrderExportGenerator implements ExportGeneratorInterface
         $writer->open($absolutePath, $format);
         $writer->addRow($this->headers());
 
-        $query = PurchaseOrder::query()->with(['party:id,code,name', 'purchaseOrderItems.productVariant.product:id,name']);
+        $query = PurchaseOrder::query()
+            ->where('company_id', $job->company_id)
+            ->with(['party:id,code,name', 'purchaseOrderItems.productVariant.product:id,name']);
 
         if (! empty($filters['start_date'])) {
             $query->whereDate('order_date', '>=', $filters['start_date']);

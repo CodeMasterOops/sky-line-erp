@@ -25,7 +25,9 @@ class BillExportGenerator implements ExportGeneratorInterface
         $writer->open($absolutePath, $format);
         $writer->addRow($this->headers());
 
-        $query = Bill::query()->with(['party:id,code,name', 'billItems.productVariant.product:id,name']);
+        $query = Bill::query()
+            ->where('company_id', $job->company_id)
+            ->with(['party:id,code,name', 'billItems.productVariant.product:id,name']);
 
         if (! empty($filters['start_date'])) {
             $query->whereDate('bill_date', '>=', $filters['start_date']);

@@ -4,6 +4,7 @@ namespace App\Jobs\DataTransfer;
 
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use App\Services\TenantService;
 use App\Models\DataTransferSchedule;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -38,17 +39,23 @@ class RunScheduledExportJob implements ShouldQueue
             return;
         }
 
-        $entityType = DataTransferEntityTypeEnum::from($schedule->entity_type);
+        TenantService::setCompanyId($user->company_id);
 
-        $job = $uploadService->createExportJob(
-            $user,
-            $entityType,
-            $schedule->format,
-            $schedule->filters ?? [],
-        );
+        try {
+            $entityType = DataTransferEntityTypeEnum::from($schedule->entity_type);
 
-        $schedule->update(['last_run_at' => now()]);
+            $job = $uploadService->createExportJob(
+                $user,
+                $entityType,
+                $schedule->format,
+                $schedule->filters ?? [],
+            );
 
-        GenerateExportJob::dispatch($job);
+            $schedule->update(['last_run_at' => now()]);
+
+            GenerateExportJob::dispatch($job);
+        } finally {
+            TenantService::reset();
+        }
     }
 }

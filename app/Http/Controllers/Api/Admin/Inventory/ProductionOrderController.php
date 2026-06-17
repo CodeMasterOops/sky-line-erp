@@ -129,6 +129,12 @@ class ProductionOrderController extends Controller
             'consumptions.*.batch_id' => 'nullable|exists:batches,id',
         ]);
 
+        if (! empty($data['consumptions'])) {
+            $validIds = $productionOrder->consumptions()->pluck('id');
+            $submittedIds = collect($data['consumptions'])->pluck('id');
+            abort_unless($submittedIds->diff($validIds)->isEmpty(), 403);
+        }
+
         return DB::transaction(function () use ($data, $productionOrder) {
             $bom = $productionOrder->bom()->with('productVariant')->first();
             $company = auth()->user()->company;

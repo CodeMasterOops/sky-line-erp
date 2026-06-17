@@ -25,7 +25,9 @@ class SalesOrderExportGenerator implements ExportGeneratorInterface
         $writer->open($absolutePath, $format);
         $writer->addRow($this->headers());
 
-        $query = SalesOrder::query()->with(['party:id,code,name', 'salesOrderItems.productVariant.product:id,name']);
+        $query = SalesOrder::query()
+            ->where('company_id', $job->company_id)
+            ->with(['party:id,code,name', 'salesOrderItems.productVariant.product:id,name']);
 
         if (! empty($filters['start_date'])) {
             $query->whereDate('order_date', '>=', $filters['start_date']);

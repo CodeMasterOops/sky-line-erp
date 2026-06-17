@@ -22,7 +22,9 @@ class PartyExportGenerator implements ExportGeneratorInterface
         $writer->open($absolutePath, $format);
         $writer->addRow($this->headers());
 
-        $query = Party::query()->orderBy('id');
+        $query = Party::query()
+            ->where('company_id', $job->company_id)
+            ->orderBy('id');
 
         if (! empty($filters['type'])) {
             $query->where('type', $filters['type']);

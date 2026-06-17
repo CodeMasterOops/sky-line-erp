@@ -72,7 +72,8 @@ class CustomerAdvanceController extends Controller
             'applied_at' => ['nullable', 'date'],
         ]);
 
-        $invoice = Invoice::withoutGlobalScopes()->findOrFail($data['invoice_id']);
+        $invoice = Invoice::findOrFail($data['invoice_id']);
+        abort_unless($invoice->company_id === auth('admin')->user()->company_id, 403);
 
         $application = $this->service->apply(
             $customerAdvance,
