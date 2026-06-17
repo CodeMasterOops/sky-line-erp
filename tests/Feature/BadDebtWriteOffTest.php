@@ -116,9 +116,10 @@ it('writes off the full outstanding balance with a balanced GL journal', functio
     expect($invoice->write_off_remarks)->toBe('Customer insolvent');
 
     $journal = \App\Models\Journal::withoutGlobalScopes()
-        ->where('voucher_no', 'BDWO-'.$invoice->id)
+        ->where('reference_id', $invoice->id)
         ->first();
     expect($journal)->not->toBeNull();
+    expect($journal->voucher_no)->toStartWith('BDWO-');
 
     $items = $journal->journalItems()->get();
     expect($items)->toHaveCount(2);

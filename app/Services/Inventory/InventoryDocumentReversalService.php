@@ -235,6 +235,10 @@ class InventoryDocumentReversalService
             }
         }
 
+        // Collect this GRN's item IDs so we only reverse layers that originated
+        // from this specific GRN, not other GRNs for the same product+warehouse.
+        $grnItemIds = $grn->grnItems->pluck('id')->all();
+
         $movements = StockMovement::withoutGlobalScopes()
             ->where('company_id', $grn->company_id)
             ->where('reference_type', $grn->getMorphClass())
@@ -247,7 +251,7 @@ class InventoryDocumentReversalService
         foreach ($movements as $movement) {
             $layers = StockLayer::withoutGlobalScopes()
                 ->where('company_id', $grn->company_id)
-                ->whereNotNull('source_grn_item_id')
+                ->whereIn('source_grn_item_id', $grnItemIds)
                 ->where('product_variant_id', $movement->product_variant_id)
                 ->where('warehouse_id', $movement->warehouse_id)
                 ->where('qty_remaining', '>', 0)

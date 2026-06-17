@@ -114,11 +114,14 @@ class OpeningStockEntryService
             return;
         }
 
-        $existingQty = (int) Stock::withoutGlobalScopes()
+        $existingStock = Stock::withoutGlobalScopes()
             ->where('company_id', $company->id)
             ->where('product_variant_id', $item->product_variant_id)
             ->where('warehouse_id', $entry->warehouse_id)
-            ->value('quantity');
+            ->lockForUpdate()
+            ->first(['quantity']);
+
+        $existingQty = (int) ($existingStock?->quantity ?? 0);
 
         if ($existingQty > 0) {
             throw ValidationException::withMessages([

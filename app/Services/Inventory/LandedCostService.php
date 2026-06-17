@@ -487,7 +487,7 @@ class LandedCostService
             'create_user_id' => $userId,
             'approve_user_id' => $userId,
             'approved_at' => now(),
-            'status' => StatusEnum::APPROVED,
+            'status' => StatusEnum::APPROVED->value,
         ]);
     }
 

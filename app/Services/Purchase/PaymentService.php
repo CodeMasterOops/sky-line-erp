@@ -330,12 +330,20 @@ readonly class PaymentService
             ->where('payment_allocations.payable_type', 'bill')
             ->groupBy('payment_allocations.payable_id');
 
+        $orderDiscountSub = DB::table('discounts')
+            ->selectRaw('discountable_id, SUM(amount) as order_discount_total')
+            ->where('discountable_type', 'bill')
+            ->groupBy('discountable_id');
+
         $rows = DB::table('bills')
             ->leftJoinSub($itemsSub, 'item_totals', function ($join) {
                 $join->on('bills.id', '=', 'item_totals.bill_id');
             })
             ->leftJoinSub($paidSub, 'paid_totals', function ($join) {
                 $join->on('bills.id', '=', 'paid_totals.payable_id');
+            })
+            ->leftJoinSub($orderDiscountSub, 'order_discounts', function ($join) {
+                $join->on('bills.id', '=', 'order_discounts.discountable_id');
             })
             ->whereIn('bills.id', $billIds)
             ->where('bills.company_id', $companyId)
@@ -348,12 +356,13 @@ readonly class PaymentService
                 DB::raw('COALESCE(item_totals.discount_total, 0) as discount_total'),
                 DB::raw('COALESCE(item_totals.tax_total, 0) as tax_total'),
                 DB::raw('COALESCE(paid_totals.paid_total, 0) as paid_total'),
+                DB::raw('COALESCE(order_discounts.order_discount_total, 0) as order_discount_total'),
             ])
             ->get();
 
         $map = [];
         foreach ($rows as $row) {
-            $grandTotal = (float) $row->subtotal - (float) $row->discount_total + (float) $row->tax_total;
+            $grandTotal = (float) $row->subtotal - (float) $row->discount_total - (float) $row->order_discount_total + (float) $row->tax_total;
             $paidTotal = (float) $row->paid_total;
             $due = max($grandTotal - $paidTotal, 0);
             $map[$row->id] = [

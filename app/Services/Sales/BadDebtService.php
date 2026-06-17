@@ -7,12 +7,16 @@ use App\Enums\StatusEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalBalanceGuard;
 
 readonly class BadDebtService
 {
-    public function __construct(private JournalBalanceGuard $balanceGuard) {}
+    public function __construct(
+        private JournalBalanceGuard $balanceGuard,
+        private DocumentNumberGenerator $docGen,
+    ) {}
 
     /**
      * Write off the uncollectable portion of an approved invoice.
@@ -63,15 +67,23 @@ readonly class BadDebtService
         $user = auth('admin')->user();
         $settings = $this->resolveSettings($invoice->company_id);
         $date = $writtenOffAt ?? now()->toDateString();
+        $yearCode = $invoice->fiscalYear?->year_code;
 
-        DB::transaction(function () use ($invoice, $amount, $date, $remarks, $user, $settings) {
+        DB::transaction(function () use ($invoice, $amount, $date, $remarks, $user, $settings, $yearCode) {
+            $voucherNo = $this->docGen->journalVoucher(
+                JournalTypeEnum::JOURNAL_VOUCHER,
+                'BDWO-',
+                $invoice->fiscal_year_id,
+                $yearCode,
+            );
+
             $journal = \App\Models\Journal::withoutGlobalScopes()->create([
                 'company_id' => $invoice->company_id,
                 'fiscal_year_id' => $invoice->fiscal_year_id,
                 'type' => JournalTypeEnum::JOURNAL_VOUCHER->value,
                 'reference_type' => Invoice::class,
                 'reference_id' => $invoice->id,
-                'voucher_no' => 'BDWO-'.$invoice->id,
+                'voucher_no' => $voucherNo,
                 'date' => $date,
                 'remarks' => $remarks ?? 'Bad debt write-off — '.$invoice->invoice_no,
                 'create_user_id' => $user->id,
