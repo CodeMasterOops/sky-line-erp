@@ -18,9 +18,7 @@ class DeliveryChallanController extends Controller
         private DeliveryChallanService $deliveryChallanService,
     ) {}
 
-    /**
-     * @Permissions("list_delivery_challan", group="delivery_challan", desc="List Delivery Challans")
-     */
+    #[Permissions('list_delivery_challan', group: 'delivery_challan', desc: 'List Delivery Challans')]
     public function index(Request $request)
     {
         $challans = DeliveryChallan::with(['party', 'warehouse', 'createUser'])
@@ -32,9 +30,7 @@ class DeliveryChallanController extends Controller
         return DeliveryChallanResource::collection($challans);
     }
 
-    /**
-     * @Permissions("show_delivery_challan", group="delivery_challan", desc="Show Delivery Challan")
-     */
+    #[Permissions('show_delivery_challan', group: 'delivery_challan', desc: 'Show Delivery Challan')]
     public function show(DeliveryChallan $deliveryChallan)
     {
         $deliveryChallan->load([
@@ -45,9 +41,7 @@ class DeliveryChallanController extends Controller
         return DeliveryChallanResource::make($deliveryChallan);
     }
 
-    /**
-     * @Permissions("create_delivery_challan", group="delivery_challan", desc="Create Delivery Challan")
-     */
+    #[Permissions('create_delivery_challan', group: 'delivery_challan', desc: 'Create Delivery Challan')]
     public function store(DeliveryChallanRequest $request)
     {
         try {
@@ -67,9 +61,7 @@ class DeliveryChallanController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("edit_delivery_challan", group="delivery_challan", desc="Update Delivery Challan")
-     */
+    #[Permissions('edit_delivery_challan', group: 'delivery_challan', desc: 'Update Delivery Challan')]
     public function update(DeliveryChallanRequest $request, DeliveryChallan $deliveryChallan)
     {
         if ($deliveryChallan->status === StatusEnum::APPROVED) {
@@ -93,9 +85,7 @@ class DeliveryChallanController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_delivery_challan", group="delivery_challan", desc="Approve Delivery Challan")
-     */
+    #[Permissions('approve_delivery_challan', group: 'delivery_challan', desc: 'Approve Delivery Challan')]
     public function approve(DeliveryChallan $deliveryChallan)
     {
         try {
@@ -118,9 +108,7 @@ class DeliveryChallanController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_delivery_challan", group="delivery_challan", desc="Delete Delivery Challan")
-     */
+    #[Permissions('delete_delivery_challan', group: 'delivery_challan', desc: 'Delete Delivery Challan')]
     public function destroy(DeliveryChallan $deliveryChallan)
     {
         if ($deliveryChallan->status === StatusEnum::APPROVED) {

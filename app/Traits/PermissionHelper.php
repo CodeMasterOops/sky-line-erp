@@ -5,13 +5,12 @@ namespace App\Traits;
 use Illuminate\Support\Str;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\Cache;
-use Doctrine\Common\Annotations\AnnotationReader;
 
 trait PermissionHelper
 {
     /**
      * Cache key for the full annotation-derived permission map. The map is
-     * defined entirely in code (controller annotations), so it is identical
+     * defined entirely in code (controller attributes), so it is identical
      * for every tenant and only changes on deploy. It is invalidated on
      * migrate (see AppServiceProvider) and by a standard deploy cache:clear.
      */
@@ -47,7 +46,6 @@ trait PermissionHelper
     protected function listFiles($group, $path, $classPath): array
     {
         $permissions = [];
-        $reader = new AnnotationReader;
 
         $controllerDir = $path;
         $groupPermissions = ($group and $group->permissions) ? $group->permissions : [];
@@ -66,9 +64,10 @@ trait PermissionHelper
                     $reflectedClass = new \ReflectionClass($class);
 
                     foreach ($reflectedClass->getMethods() as $reflectionMethod) {
-                        $annotations = $reader->getMethodAnnotations($reflectionMethod);
-                        foreach ($annotations as $annotation) {
-                            if ($annotation instanceof Permissions and ($annotation->getGroup())) {
+                        $attributes = $reflectionMethod->getAttributes(Permissions::class, \ReflectionAttribute::IS_INSTANCEOF);
+                        foreach ($attributes as $attribute) {
+                            $annotation = $attribute->newInstance();
+                            if ($annotation->getGroup()) {
                                 $permission = $annotation->value;
                                 $group = Str::headline($annotation->getGroup());
                                 $description = $annotation->getDesc()

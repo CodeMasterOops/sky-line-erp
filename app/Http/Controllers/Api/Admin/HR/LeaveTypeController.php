@@ -11,9 +11,7 @@ use App\Http\Requests\Api\Admin\HR\LeaveTypeRequest;
 
 class LeaveTypeController extends Controller
 {
-    /**
-     * @Permissions("list_leave_type", group="leave_type", desc="List Leave Type")
-     */
+    #[Permissions('list_leave_type', group: 'leave_type', desc: 'List Leave Type')]
     public function index(Request $request)
     {
         $leaveTypes = LeaveType::latest()->paginate($request->limit ?? 25);
@@ -21,9 +19,7 @@ class LeaveTypeController extends Controller
         return LeaveTypeResource::collection($leaveTypes);
     }
 
-    /**
-     * @Permissions("create_leave_type", group="leave_type", desc="Create Leave Type")
-     */
+    #[Permissions('create_leave_type', group: 'leave_type', desc: 'Create Leave Type')]
     public function store(LeaveTypeRequest $request)
     {
         $leaveType = LeaveType::create($request->validated());
@@ -34,17 +30,13 @@ class LeaveTypeController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_leave_type", group="leave_type", desc="Show Leave Type")
-     */
+    #[Permissions('show_leave_type', group: 'leave_type', desc: 'Show Leave Type')]
     public function show(LeaveType $leaveType)
     {
         return LeaveTypeResource::make($leaveType);
     }
 
-    /**
-     * @Permissions("edit_leave_type", group="leave_type", desc="Edit Leave Type")
-     */
+    #[Permissions('edit_leave_type', group: 'leave_type', desc: 'Edit Leave Type')]
     public function update(LeaveTypeRequest $request, LeaveType $leaveType)
     {
         $leaveType->update($request->validated());
@@ -55,9 +47,7 @@ class LeaveTypeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_leave_type", group="leave_type", desc="Delete Leave Type")
-     */
+    #[Permissions('delete_leave_type', group: 'leave_type', desc: 'Delete Leave Type')]
     public function destroy(LeaveType $leaveType)
     {
         $leaveType->delete();

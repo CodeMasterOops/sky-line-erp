@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\Admin\HR;
 
 use App\Models\Employee;
-use App\Models\Attendance;
 use App\Models\FiscalYear;
 use App\Models\PayrollRun;
 use Illuminate\Http\Request;
@@ -14,9 +13,7 @@ use App\Http\Controllers\Controller;
 
 class HrReportController extends Controller
 {
-    /**
-     * @Permissions("list_payroll", group="hr_report", desc="Payroll Summary Report")
-     */
+    #[Permissions('list_payroll', group: 'hr_report', desc: 'Payroll Summary Report')]
     public function payrollSummary(Request $request)
     {
         $request->validate([
@@ -48,9 +45,7 @@ class HrReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_attendance", group="hr_report", desc="Attendance Summary Report")
-     */
+    #[Permissions('list_attendance', group: 'hr_report', desc: 'Attendance Summary Report')]
     public function attendanceSummary(Request $request)
     {
         $request->validate([
@@ -79,9 +74,7 @@ class HrReportController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    /**
-     * @Permissions("list_leave_application", group="hr_report", desc="Leave Balance Report")
-     */
+    #[Permissions('list_leave_application', group: 'hr_report', desc: 'Leave Balance Report')]
     public function leaveBalance(Request $request)
     {
         $request->validate([
@@ -113,9 +106,7 @@ class HrReportController extends Controller
         return response()->json(['data' => $data]);
     }
 
-    /**
-     * @Permissions("list_payroll", group="hr_report", desc="TDS Salary Report")
-     */
+    #[Permissions('list_payroll', group: 'hr_report', desc: 'TDS Salary Report')]
     public function tdsSalary(Request $request)
     {
         $request->validate([

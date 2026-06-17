@@ -1,6 +1,5 @@
 import {defineStore} from 'pinia'
 import {apiAdmin, apiFront} from "@/helpers/api";
-import {storedPermissions} from "@/helpers/helper";
 import Cookies from "js-cookie";
 
 export const useAdminAuthStore = defineStore('admin-auth', {
@@ -8,8 +7,9 @@ export const useAdminAuthStore = defineStore('admin-auth', {
         return {
             authUser: {
                 access_token: Cookies.get("access_token"),
-                user_type: localStorage.getItem('user_type'),
-                permissions: storedPermissions(),
+                user_type: '',
+                permissions: [],
+                permissionsLoaded: false,
                 needsOnboarding: localStorage.getItem('needs_onboarding') === 'true',
             },
             appSettings: {
@@ -82,16 +82,18 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                 path: '/',
             });
         },
-        setPermissions(user_type, permissions = []) {
-            if (user_type === 'admin') {
-                localStorage.setItem('user_type', 'admin');
-                localStorage.removeItem('permissions');
+        setPermissions(user_type, permissions = '') {
+            this.authUser.user_type = user_type ?? '';
+            if (user_type !== 'admin') {
+                try {
+                    this.authUser.permissions = permissions ? JSON.parse(atob(permissions)) : [];
+                } catch {
+                    this.authUser.permissions = [];
+                }
             } else {
-                localStorage.removeItem('user_type');
-                localStorage.setItem('permissions', permissions.toString());
-                this.authUser.permissions = storedPermissions();
+                this.authUser.permissions = [];
             }
-            this.authUser.user_type = user_type;
+            this.authUser.permissionsLoaded = true;
         },
         setNeedsOnboarding(value) {
             this.authUser.needsOnboarding = value;
@@ -100,16 +102,15 @@ export const useAdminAuthStore = defineStore('admin-auth', {
         refreshPermissions() {
             return apiAdmin('profile/permissions')
                 .then((res) => {
-                    this.setPermissions(this.authUser.user_type, res.data.permissions);
+                    this.setPermissions(res.data.user_type, res.data.permissions);
                 }).catch(() => {});
         },
         removeAuthToken() {
             this.authUser.access_token = '';
             this.authUser.user_type = '';
             this.authUser.permissions = [];
+            this.authUser.permissionsLoaded = false;
             this.authUser.needsOnboarding = false;
-            localStorage.removeItem('user_type');
-            localStorage.removeItem('permissions');
             localStorage.removeItem('needs_onboarding');
             Cookies.remove('access_token', {
                 secure: window.location.protocol === 'https:',

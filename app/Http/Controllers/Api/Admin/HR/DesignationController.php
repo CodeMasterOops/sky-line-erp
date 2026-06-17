@@ -11,9 +11,7 @@ use App\Http\Requests\Api\Admin\HR\DesignationRequest;
 
 class DesignationController extends Controller
 {
-    /**
-     * @Permissions("list_designation", group="designation", desc="List Designation")
-     */
+    #[Permissions('list_designation', group: 'designation', desc: 'List Designation')]
     public function index(Request $request)
     {
         $designations = Designation::filter($request->all())
@@ -23,9 +21,7 @@ class DesignationController extends Controller
         return DesignationResource::collection($designations);
     }
 
-    /**
-     * @Permissions("create_designation", group="designation", desc="Create Designation")
-     */
+    #[Permissions('create_designation', group: 'designation', desc: 'Create Designation')]
     public function store(DesignationRequest $request)
     {
         $designation = Designation::create($request->validated());
@@ -36,17 +32,13 @@ class DesignationController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_designation", group="designation", desc="Show Designation")
-     */
+    #[Permissions('show_designation', group: 'designation', desc: 'Show Designation')]
     public function show(Designation $designation)
     {
         return DesignationResource::make($designation);
     }
 
-    /**
-     * @Permissions("edit_designation", group="designation", desc="Edit Designation")
-     */
+    #[Permissions('edit_designation', group: 'designation', desc: 'Edit Designation')]
     public function update(DesignationRequest $request, Designation $designation)
     {
         $designation->update($request->validated());
@@ -57,9 +49,7 @@ class DesignationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_designation", group="designation", desc="Delete Designation")
-     */
+    #[Permissions('delete_designation', group: 'designation', desc: 'Delete Designation')]
     public function destroy(Designation $designation)
     {
         $designation->delete();

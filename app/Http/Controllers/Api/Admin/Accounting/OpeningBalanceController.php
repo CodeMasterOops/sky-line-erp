@@ -19,9 +19,7 @@ class OpeningBalanceController extends Controller
         private readonly DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
-    /**
-     * @Permissions("list_journal_voucher", group="journal_voucher", desc="List Opening Balance Entries")
-     */
+    #[Permissions('list_journal_voucher', group: 'journal_voucher', desc: 'List Opening Balance Entries')]
     public function index(Request $request): \Illuminate\Http\JsonResponse
     {
         $company = auth('admin')->user()->company;
@@ -35,9 +33,7 @@ class OpeningBalanceController extends Controller
         return response()->json($journals);
     }
 
-    /**
-     * @Permissions("create_journal_voucher", group="journal_voucher", desc="Post Opening Balance")
-     */
+    #[Permissions('create_journal_voucher', group: 'journal_voucher', desc: 'Post Opening Balance')]
     public function store(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([

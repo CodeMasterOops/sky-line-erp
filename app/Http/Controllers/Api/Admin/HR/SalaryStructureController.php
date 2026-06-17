@@ -12,9 +12,7 @@ use App\Http\Requests\Api\Admin\HR\SalaryStructureRequest;
 
 class SalaryStructureController extends Controller
 {
-    /**
-     * @Permissions("list_salary_structure", group="salary_structure", desc="List Salary Structures")
-     */
+    #[Permissions('list_salary_structure', group: 'salary_structure', desc: 'List Salary Structures')]
     public function index(Request $request)
     {
         $structures = SalaryStructure::with(['employee', 'items.salaryComponent'])
@@ -25,9 +23,7 @@ class SalaryStructureController extends Controller
         return SalaryStructureResource::collection($structures);
     }
 
-    /**
-     * @Permissions("create_salary_structure", group="salary_structure", desc="Create Salary Structure")
-     */
+    #[Permissions('create_salary_structure', group: 'salary_structure', desc: 'Create Salary Structure')]
     public function store(SalaryStructureRequest $request)
     {
         SalaryStructure::where('employee_id', $request->employee_id)
@@ -45,17 +41,13 @@ class SalaryStructureController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_salary_structure", group="salary_structure", desc="Show Salary Structure")
-     */
+    #[Permissions('show_salary_structure', group: 'salary_structure', desc: 'Show Salary Structure')]
     public function show(SalaryStructure $salaryStructure)
     {
         return SalaryStructureResource::make($salaryStructure->load(['employee', 'items.salaryComponent']));
     }
 
-    /**
-     * @Permissions("edit_salary_structure", group="salary_structure", desc="Edit Salary Structure")
-     */
+    #[Permissions('edit_salary_structure', group: 'salary_structure', desc: 'Edit Salary Structure')]
     public function update(SalaryStructureRequest $request, SalaryStructure $salaryStructure)
     {
         $salaryStructure->update($request->safe()->except('items'));
@@ -71,9 +63,7 @@ class SalaryStructureController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_salary_structure", group="salary_structure", desc="Delete Salary Structure")
-     */
+    #[Permissions('delete_salary_structure', group: 'salary_structure', desc: 'Delete Salary Structure')]
     public function destroy(SalaryStructure $salaryStructure)
     {
         $salaryStructure->items()->delete();

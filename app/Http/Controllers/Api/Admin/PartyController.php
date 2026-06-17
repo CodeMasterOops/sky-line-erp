@@ -19,9 +19,7 @@ class PartyController extends Controller
         private PartyCodeGenerator $partyCodeGenerator,
     ) {}
 
-    /**
-     * @Permissions("list_party", group="party", desc="List Party")
-     */
+    #[Permissions('list_party', group: 'party', desc: 'List Party')]
     public function index(Request $request)
     {
         $parties = Party::filter($request->all())
@@ -32,9 +30,7 @@ class PartyController extends Controller
         return PartyResource::collection($parties);
     }
 
-    /**
-     * @Permissions("create_party", group="party", desc="Create Party")
-     */
+    #[Permissions('create_party', group: 'party', desc: 'Create Party')]
     public function nextCode(Request $request)
     {
         $validated = $request->validate([
@@ -51,9 +47,7 @@ class PartyController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("create_party", group="party", desc="Create Party")
-     */
+    #[Permissions('create_party', group: 'party', desc: 'Create Party')]
     public function store(PartyRequest $request)
     {
         $data = $request->validated();
@@ -75,9 +69,7 @@ class PartyController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_party", group="party", desc="Show Party")
-     */
+    #[Permissions('show_party', group: 'party', desc: 'Show Party')]
     public function show(Party $party)
     {
         $party->load('discount');
@@ -85,9 +77,7 @@ class PartyController extends Controller
         return PartyResource::make($party);
     }
 
-    /**
-     * @Permissions("edit_party", group="party", desc="Edit Party")
-     */
+    #[Permissions('edit_party', group: 'party', desc: 'Edit Party')]
     public function update(PartyRequest $request, Party $party)
     {
         $party->update($request->validated());
@@ -101,9 +91,7 @@ class PartyController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_party", group="party", desc="Delete Party")
-     */
+    #[Permissions('delete_party', group: 'party', desc: 'Delete Party')]
     public function destroy(Party $party)
     {
         $party->delete();

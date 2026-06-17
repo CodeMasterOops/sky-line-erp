@@ -15,9 +15,7 @@ class DepartmentController extends Controller
 {
     use GeneratesEntityCode;
 
-    /**
-     * @Permissions("list_department", group="department", desc="List Department")
-     */
+    #[Permissions('list_department', group: 'department', desc: 'List Department')]
     public function index(Request $request)
     {
         $departments = Department::filter($request->all())
@@ -27,17 +25,13 @@ class DepartmentController extends Controller
         return DepartmentResource::collection($departments);
     }
 
-    /**
-     * @Permissions("create_department", group="department", desc="Create Department")
-     */
+    #[Permissions('create_department', group: 'department', desc: 'Create Department')]
     public function nextCode()
     {
         return $this->nextCodeResponse(EntityCodeType::Department);
     }
 
-    /**
-     * @Permissions("create_department", group="department", desc="Create Department")
-     */
+    #[Permissions('create_department', group: 'department', desc: 'Create Department')]
     public function store(DepartmentRequest $request)
     {
         $data = $request->validated();
@@ -50,17 +44,13 @@ class DepartmentController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_department", group="department", desc="Show Department")
-     */
+    #[Permissions('show_department', group: 'department', desc: 'Show Department')]
     public function show(Department $department)
     {
         return DepartmentResource::make($department);
     }
 
-    /**
-     * @Permissions("edit_department", group="department", desc="Edit Department")
-     */
+    #[Permissions('edit_department', group: 'department', desc: 'Edit Department')]
     public function update(DepartmentRequest $request, Department $department)
     {
         $department->update($request->validated());
@@ -71,9 +61,7 @@ class DepartmentController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_department", group="department", desc="Delete Department")
-     */
+    #[Permissions('delete_department', group: 'department', desc: 'Delete Department')]
     public function destroy(Department $department)
     {
         $department->delete();

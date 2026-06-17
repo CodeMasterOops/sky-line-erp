@@ -14,9 +14,7 @@ use App\Http\Resources\Admin\Accounting\AccountGroupTreeResource;
 
 class AccountController extends Controller
 {
-    /**
-     * @Permissions("list_account", group="account", desc="List Account")
-     */
+    #[Permissions('list_account', group: 'account', desc: 'List Account')]
     public function index(Request $request)
     {
         $accounts = Account::with('accountGroup')
@@ -26,9 +24,7 @@ class AccountController extends Controller
         return AccountResource::collection($accounts);
     }
 
-    /**
-     * @Permissions("list_account", group="account", desc="Account COA Tree")
-     */
+    #[Permissions('list_account', group: 'account', desc: 'Account COA Tree')]
     public function coa()
     {
         // Load all groups and their accounts in 2 flat queries, then build the
@@ -48,9 +44,7 @@ class AccountController extends Controller
         return AccountGroupTreeResource::collection($roots);
     }
 
-    /**
-     * @Permissions("create_account", group="account", desc="Create Account")
-     */
+    #[Permissions('create_account', group: 'account', desc: 'Create Account')]
     public function store(AccountRequest $request)
     {
         $account = Account::create($request->validated());
@@ -61,17 +55,13 @@ class AccountController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_account", group="account", desc="Show Account")
-     */
+    #[Permissions('show_account', group: 'account', desc: 'Show Account')]
     public function show(Account $account)
     {
         return AccountResource::make($account->load('accountGroup'));
     }
 
-    /**
-     * @Permissions("edit_account", group="account", desc="Edit Account")
-     */
+    #[Permissions('edit_account', group: 'account', desc: 'Edit Account')]
     public function update(AccountRequest $request, Account $account)
     {
         $account->update($request->validated());
@@ -82,9 +72,7 @@ class AccountController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_account", group="account", desc="Delete Account")
-     */
+    #[Permissions('delete_account', group: 'account', desc: 'Delete Account')]
     public function destroy(Account $account)
     {
         $journalCount = JournalItem::withoutGlobalScopes()

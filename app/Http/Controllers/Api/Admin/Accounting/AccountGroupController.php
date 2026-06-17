@@ -11,9 +11,7 @@ use App\Http\Requests\Api\Admin\Accounting\AccountGroupRequest;
 
 class AccountGroupController extends Controller
 {
-    /**
-     * @Permissions("list_account_group", group="account_group", desc="List Account Group")
-     */
+    #[Permissions('list_account_group', group: 'account_group', desc: 'List Account Group')]
     public function index(Request $request)
     {
         $accountGroups = AccountGroup::query()
@@ -23,9 +21,7 @@ class AccountGroupController extends Controller
         return AccountGroupResource::collection($accountGroups);
     }
 
-    /**
-     * @Permissions("create_account_group", group="account_group", desc="Create Account Group")
-     */
+    #[Permissions('create_account_group', group: 'account_group', desc: 'Create Account Group')]
     public function store(AccountGroupRequest $request)
     {
         $accountGroup = AccountGroup::create($request->validated());
@@ -36,17 +32,13 @@ class AccountGroupController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_account_group", group="account_group", desc="Show Account Group")
-     */
+    #[Permissions('show_account_group', group: 'account_group', desc: 'Show Account Group')]
     public function show(AccountGroup $accountGroup)
     {
         return AccountGroupResource::make($accountGroup);
     }
 
-    /**
-     * @Permissions("edit_account_group", group="account_group", desc="Edit Account Group")
-     */
+    #[Permissions('edit_account_group', group: 'account_group', desc: 'Edit Account Group')]
     public function update(AccountGroupRequest $request, AccountGroup $accountGroup)
     {
         $accountGroup->update($request->validated());
@@ -57,9 +49,7 @@ class AccountGroupController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_account_group", group="account_group", desc="Delete Account Group")
-     */
+    #[Permissions('delete_account_group', group: 'account_group', desc: 'Delete Account Group')]
     public function destroy(AccountGroup $accountGroup)
     {
         $accountGroup->delete();

@@ -15,9 +15,7 @@ class EmployeeController extends Controller
 {
     use GeneratesEntityCode;
 
-    /**
-     * @Permissions("list_employee", group="employee", desc="List Employee")
-     */
+    #[Permissions('list_employee', group: 'employee', desc: 'List Employee')]
     public function index(Request $request)
     {
         $employees = Employee::with(['department', 'designation'])
@@ -28,17 +26,13 @@ class EmployeeController extends Controller
         return EmployeeResource::collection($employees);
     }
 
-    /**
-     * @Permissions("create_employee", group="employee", desc="Create Employee")
-     */
+    #[Permissions('create_employee', group: 'employee', desc: 'Create Employee')]
     public function nextCode()
     {
         return $this->nextCodeResponse(EntityCodeType::Employee);
     }
 
-    /**
-     * @Permissions("create_employee", group="employee", desc="Create Employee")
-     */
+    #[Permissions('create_employee', group: 'employee', desc: 'Create Employee')]
     public function store(EmployeeRequest $request)
     {
         $data = $request->validated();
@@ -51,17 +45,13 @@ class EmployeeController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_employee", group="employee", desc="Show Employee")
-     */
+    #[Permissions('show_employee', group: 'employee', desc: 'Show Employee')]
     public function show(Employee $employee)
     {
         return EmployeeResource::make($employee->load(['department', 'designation']));
     }
 
-    /**
-     * @Permissions("edit_employee", group="employee", desc="Edit Employee")
-     */
+    #[Permissions('edit_employee', group: 'employee', desc: 'Edit Employee')]
     public function update(EmployeeRequest $request, Employee $employee)
     {
         $employee->update($request->validated());
@@ -72,9 +62,7 @@ class EmployeeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_employee", group="employee", desc="Delete Employee")
-     */
+    #[Permissions('delete_employee', group: 'employee', desc: 'Delete Employee')]
     public function destroy(Employee $employee)
     {
         $employee->delete();

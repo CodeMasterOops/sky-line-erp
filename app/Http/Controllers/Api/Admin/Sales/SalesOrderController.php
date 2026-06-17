@@ -19,9 +19,7 @@ class SalesOrderController extends Controller
         private readonly DeliveryChallanService $deliveryChallanService,
     ) {}
 
-    /**
-     * @Permissions("list_sales_order", group="sales_order", desc="List Sales Order")
-     */
+    #[Permissions('list_sales_order', group: 'sales_order', desc: 'List Sales Order')]
     public function index(Request $request)
     {
         $orders = SalesOrder::filter($request->all())
@@ -33,9 +31,7 @@ class SalesOrderController extends Controller
         return SalesOrderResource::collection($orders);
     }
 
-    /**
-     * @Permissions("create_sales_order", group="sales_order", desc="Create Sales Order")
-     */
+    #[Permissions('create_sales_order', group: 'sales_order', desc: 'Create Sales Order')]
     public function store(SalesOrderRequest $request)
     {
         $order = $this->salesOrderService->createSalesOrder($request->validated());
@@ -55,9 +51,7 @@ class SalesOrderController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_sales_order", group="sales_order", desc="Show Sales Order")
-     */
+    #[Permissions('show_sales_order', group: 'sales_order', desc: 'Show Sales Order')]
     public function deliverableItems(SalesOrder $salesOrder)
     {
         if ($salesOrder->status !== StatusEnum::APPROVED) {
@@ -77,9 +71,7 @@ class SalesOrderController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("show_sales_order", group="sales_order", desc="Show Sales Order")
-     */
+    #[Permissions('show_sales_order', group: 'sales_order', desc: 'Show Sales Order')]
     public function show(SalesOrder $salesOrder)
     {
         $salesOrder->load([
@@ -94,9 +86,7 @@ class SalesOrderController extends Controller
         return SalesOrderResource::make($salesOrder);
     }
 
-    /**
-     * @Permissions("edit_sales_order", group="sales_order", desc="Edit Sales Order")
-     */
+    #[Permissions('edit_sales_order', group: 'sales_order', desc: 'Edit Sales Order')]
     public function update(SalesOrderRequest $request, SalesOrder $salesOrder)
     {
         if ($salesOrder->status === StatusEnum::APPROVED) {
@@ -122,9 +112,7 @@ class SalesOrderController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_sales_order", group="sales_order", desc="Delete Sales Order")
-     */
+    #[Permissions('delete_sales_order', group: 'sales_order', desc: 'Delete Sales Order')]
     public function destroy(SalesOrder $salesOrder)
     {
         if ($salesOrder->status === StatusEnum::APPROVED) {
@@ -141,9 +129,7 @@ class SalesOrderController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_sales_order", group="sales_order", desc="Approve Sales Order")
-     */
+    #[Permissions('approve_sales_order', group: 'sales_order', desc: 'Approve Sales Order')]
     public function approve(SalesOrder $salesOrder)
     {
         if ($salesOrder->status === StatusEnum::APPROVED) {

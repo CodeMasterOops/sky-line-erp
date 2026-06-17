@@ -31,9 +31,7 @@ class DebitNoteController extends Controller
         private PurchaseOrderTotalsCalculator $totalsCalculator,
     ) {}
 
-    /**
-     * @Permissions("list_debit_note", group="debit_note", desc="List Debit Note")
-     */
+    #[Permissions('list_debit_note', group: 'debit_note', desc: 'List Debit Note')]
     public function index(Request $request)
     {
         $debitNotes = DebitNote::filter($request->all())
@@ -44,9 +42,7 @@ class DebitNoteController extends Controller
         return DebitNoteResource::collection($debitNotes);
     }
 
-    /**
-     * @Permissions("create_debit_note", group="debit_note", desc="Create Debit Note")
-     */
+    #[Permissions('create_debit_note', group: 'debit_note', desc: 'Create Debit Note')]
     public function store(DebitNoteRequest $request)
     {
         $formData = $this->applyResolvedDiscounts($request->validated());
@@ -138,9 +134,7 @@ class DebitNoteController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_debit_note", group="debit_note", desc="Show Debit Note")
-     */
+    #[Permissions('show_debit_note', group: 'debit_note', desc: 'Show Debit Note')]
     public function show(DebitNote $debitNote)
     {
         $debitNote->load([
@@ -155,9 +149,7 @@ class DebitNoteController extends Controller
         return DebitNoteResource::make($debitNote);
     }
 
-    /**
-     * @Permissions("edit_debit_note", group="debit_note", desc="Edit Debit Note")
-     */
+    #[Permissions('edit_debit_note', group: 'debit_note', desc: 'Edit Debit Note')]
     public function update(DebitNoteRequest $request, DebitNote $debitNote)
     {
         if ($debitNote->voided_at) {
@@ -229,9 +221,7 @@ class DebitNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_debit_note", group="debit_note", desc="Delete Debit Note")
-     */
+    #[Permissions('delete_debit_note', group: 'debit_note', desc: 'Delete Debit Note')]
     public function destroy(DebitNote $debitNote)
     {
         if ($debitNote->status === StatusEnum::APPROVED && ! $debitNote->voided_at) {
@@ -248,9 +238,7 @@ class DebitNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("void_debit_note", group="debit_note", desc="Void Debit Note")
-     */
+    #[Permissions('void_debit_note', group: 'debit_note', desc: 'Void Debit Note')]
     public function void(DebitNote $debitNote)
     {
         if ($debitNote->voided_at) {
@@ -300,9 +288,7 @@ class DebitNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_debit_note", group="debit_note", desc="Approve Debit Note")
-     */
+    #[Permissions('approve_debit_note', group: 'debit_note', desc: 'Approve Debit Note')]
     public function approve(DebitNote $debitNote)
     {
         if ($debitNote->voided_at) {

@@ -15,9 +15,7 @@ class BrandController extends Controller
 {
     use GeneratesEntityCode;
 
-    /**
-     * @Permissions("list_brand", group="brand", desc="List Brand")
-     */
+    #[Permissions('list_brand', group: 'brand', desc: 'List Brand')]
     public function index(Request $request)
     {
         $brands = Brand::query()
@@ -27,17 +25,13 @@ class BrandController extends Controller
         return BrandResource::collection($brands);
     }
 
-    /**
-     * @Permissions("create_brand", group="brand", desc="Create Brand")
-     */
+    #[Permissions('create_brand', group: 'brand', desc: 'Create Brand')]
     public function nextCode()
     {
         return $this->nextCodeResponse(EntityCodeType::Brand);
     }
 
-    /**
-     * @Permissions("create_brand", group="brand", desc="Create Brand")
-     */
+    #[Permissions('create_brand', group: 'brand', desc: 'Create Brand')]
     public function store(BrandRequest $request)
     {
         $data = $request->validated();
@@ -50,17 +44,13 @@ class BrandController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_brand", group="brand", desc="Show Brand")
-     */
+    #[Permissions('show_brand', group: 'brand', desc: 'Show Brand')]
     public function show(Brand $brand)
     {
         return BrandResource::make($brand);
     }
 
-    /**
-     * @Permissions("edit_brand", group="brand", desc="Edit Brand")
-     */
+    #[Permissions('edit_brand', group: 'brand', desc: 'Edit Brand')]
     public function update(BrandRequest $request, Brand $brand)
     {
         $brand->update($request->validated());
@@ -71,9 +61,7 @@ class BrandController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_brand", group="brand", desc="Delete Brand")
-     */
+    #[Permissions('delete_brand', group: 'brand', desc: 'Delete Brand')]
     public function destroy(Brand $brand)
     {
         $brand->delete();

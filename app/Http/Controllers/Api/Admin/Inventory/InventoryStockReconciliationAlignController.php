@@ -18,9 +18,7 @@ class InventoryStockReconciliationAlignController extends Controller
         private InventoryStockReconciliationAlignService $alignService,
     ) {}
 
-    /**
-     * @Permissions("create_stock_adjustment", group="stock_adjustment", desc="Align stock reconciliation")
-     */
+    #[Permissions('create_stock_adjustment', group: 'stock_adjustment', desc: 'Align stock reconciliation')]
     public function __invoke(InventoryStockReconciliationAlignRequest $request)
     {
         $user = auth('admin')->user();

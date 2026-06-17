@@ -17,9 +17,7 @@ class QuotationController extends Controller
         private readonly QuotationService $quotationService
     ) {}
 
-    /**
-     * @Permissions("list_quotation", group="quotation", desc="List Quotation")
-     */
+    #[Permissions('list_quotation', group: 'quotation', desc: 'List Quotation')]
     public function index(Request $request)
     {
         $quotations = Quotation::filter($request->all())
@@ -31,9 +29,7 @@ class QuotationController extends Controller
         return QuotationResource::collection($quotations);
     }
 
-    /**
-     * @Permissions("create_quotation", group="quotation", desc="Create Quotation")
-     */
+    #[Permissions('create_quotation', group: 'quotation', desc: 'Create Quotation')]
     public function store(QuotationRequest $request)
     {
         $quotation = $this->quotationService->createQuotation($request->validated());
@@ -51,9 +47,7 @@ class QuotationController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_quotation", group="quotation", desc="Show Quotation")
-     */
+    #[Permissions('show_quotation', group: 'quotation', desc: 'Show Quotation')]
     public function show(Quotation $quotation)
     {
         $quotation->load([
@@ -66,9 +60,7 @@ class QuotationController extends Controller
         return QuotationResource::make($quotation);
     }
 
-    /**
-     * @Permissions("edit_quotation", group="quotation", desc="Edit Quotation")
-     */
+    #[Permissions('edit_quotation', group: 'quotation', desc: 'Edit Quotation')]
     public function update(QuotationRequest $request, Quotation $quotation)
     {
         if ($quotation->status === StatusEnum::APPROVED) {
@@ -92,9 +84,7 @@ class QuotationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_quotation", group="quotation", desc="Delete Quotation")
-     */
+    #[Permissions('delete_quotation', group: 'quotation', desc: 'Delete Quotation')]
     public function destroy(Quotation $quotation)
     {
         if ($quotation->status === StatusEnum::APPROVED) {
@@ -111,9 +101,7 @@ class QuotationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_quotation", group="quotation", desc="Approve Quotation")
-     */
+    #[Permissions('approve_quotation', group: 'quotation', desc: 'Approve Quotation')]
     public function approve(Quotation $quotation)
     {
         if ($quotation->status === StatusEnum::APPROVED) {

@@ -10,11 +10,9 @@ use App\Http\Controllers\Controller;
 class CurrencyController extends Controller
 {
     /**
-     * @Permissions("list_currency", group="currency", desc="List Currencies")
-     *
      * Read-only list for selecting currencies on transactions.
-     * Currency management is handled by the SaaS owner (super-admin).
      */
+    #[Permissions('list_currency', group: 'currency', desc: 'List Currencies')]
     public function index(Request $request)
     {
         $currencies = Currency::query()

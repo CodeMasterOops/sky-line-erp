@@ -122,6 +122,8 @@ it('BelongsToCompanyObserver does not throw in non-local environments', function
     [$companyA] = p4secMakeCompany('P4XA');
     [$companyB] = p4secMakeCompany('P4XB');
 
+    BelongsToCompanyObserver::resetLeaks();
+
     $observer = new BelongsToCompanyObserver;
 
     $model = new User(['company_id' => $companyB->id]);
@@ -133,6 +135,27 @@ it('BelongsToCompanyObserver does not throw in non-local environments', function
     expect(fn () => $observer->retrieved($model))->not->toThrow(\RuntimeException::class);
 
     TenantService::reset();
+    BelongsToCompanyObserver::resetLeaks();
+});
+
+it('BelongsToCompanyObserver::assertNoLeaks fails when a cross-company retrieval was captured', function () {
+    [$companyA] = p4secMakeCompany('P4NA');
+    [$companyB] = p4secMakeCompany('P4NB');
+
+    BelongsToCompanyObserver::resetLeaks();
+
+    $observer = new BelongsToCompanyObserver;
+    $model = new User(['company_id' => $companyB->id]);
+    $model->id = 7777;
+
+    TenantService::setCompanyId($companyA->id);
+    $observer->retrieved($model);
+    TenantService::reset();
+
+    expect(fn () => BelongsToCompanyObserver::assertNoLeaks())
+        ->toThrow(\PHPUnit\Framework\AssertionFailedError::class);
+
+    BelongsToCompanyObserver::resetLeaks();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

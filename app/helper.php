@@ -130,8 +130,21 @@ if (! function_exists('userPermissions')) {
 }
 
 if (! function_exists('setting')) {
+    /**
+     * Global-only system settings (no company_id column on the settings table).
+     * Must only be called from SuperAdmin context. Calling from a tenant/admin
+     * context is a contract violation — logged as a warning so it can be caught
+     * and fixed.
+     */
     function setting($column = null)
     {
+        if (\App\Services\TenantService::companyId() !== null) {
+            \Illuminate\Support\Facades\Log::warning('[SETTING] setting() called from tenant context — global-only contract violated', [
+                'company_id' => \App\Services\TenantService::companyId(),
+                'path' => request()->path(),
+            ]);
+        }
+
         $setting = Cache::rememberForever('setting', function () {
             $settingData = \App\Models\Setting::all();
             $data = new stdClass;

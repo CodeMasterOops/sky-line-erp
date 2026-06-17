@@ -17,9 +17,7 @@ class PurchaseOrderController extends Controller
         private readonly PurchaseOrderService $purchaseOrderService
     ) {}
 
-    /**
-     * @Permissions("list_purchase_order", group="purchase_order", desc="List Purchase Order")
-     */
+    #[Permissions('list_purchase_order', group: 'purchase_order', desc: 'List Purchase Order')]
     public function index(Request $request)
     {
         $orders = PurchaseOrder::filter($request->all())
@@ -31,9 +29,7 @@ class PurchaseOrderController extends Controller
         return PurchaseOrderResource::collection($orders);
     }
 
-    /**
-     * @Permissions("create_purchase_order", group="purchase_order", desc="Create Purchase Order")
-     */
+    #[Permissions('create_purchase_order', group: 'purchase_order', desc: 'Create Purchase Order')]
     public function store(PurchaseOrderRequest $request)
     {
         $order = $this->purchaseOrderService->createPurchaseOrder($request->validated());
@@ -53,9 +49,7 @@ class PurchaseOrderController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_purchase_order", group="purchase_order", desc="Show Purchase Order")
-     */
+    #[Permissions('show_purchase_order', group: 'purchase_order', desc: 'Show Purchase Order')]
     public function show(PurchaseOrder $purchaseOrder)
     {
         $purchaseOrder->load([
@@ -70,9 +64,7 @@ class PurchaseOrderController extends Controller
         return PurchaseOrderResource::make($purchaseOrder);
     }
 
-    /**
-     * @Permissions("edit_purchase_order", group="purchase_order", desc="Edit Purchase Order")
-     */
+    #[Permissions('edit_purchase_order', group: 'purchase_order', desc: 'Edit Purchase Order')]
     public function update(PurchaseOrderRequest $request, PurchaseOrder $purchaseOrder)
     {
         if ($purchaseOrder->status === StatusEnum::APPROVED) {
@@ -98,9 +90,7 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_purchase_order", group="purchase_order", desc="Delete Purchase Order")
-     */
+    #[Permissions('delete_purchase_order', group: 'purchase_order', desc: 'Delete Purchase Order')]
     public function destroy(PurchaseOrder $purchaseOrder)
     {
         if ($purchaseOrder->status === StatusEnum::APPROVED) {
@@ -117,9 +107,7 @@ class PurchaseOrderController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_purchase_order", group="purchase_order", desc="Approve Purchase Order")
-     */
+    #[Permissions('approve_purchase_order', group: 'purchase_order', desc: 'Approve Purchase Order')]
     public function approve(PurchaseOrder $purchaseOrder)
     {
         if ($purchaseOrder->status === StatusEnum::APPROVED) {

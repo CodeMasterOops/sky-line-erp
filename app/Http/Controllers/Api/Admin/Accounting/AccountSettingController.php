@@ -10,9 +10,7 @@ use App\Http\Requests\Api\Admin\Accounting\AccountSettingRequest;
 
 class AccountSettingController extends Controller
 {
-    /**
-     * @Permissions("list_account_setting", group="account_setting", desc="List Account Setting")
-     */
+    #[Permissions('list_account_setting', group: 'account_setting', desc: 'List Account Setting')]
     public function index()
     {
         $accountSetting = AccountSetting::first();
@@ -20,9 +18,7 @@ class AccountSettingController extends Controller
         return AccountSettingResource::make($accountSetting);
     }
 
-    /**
-     * @Permissions("update_account_setting", group="account_setting", desc="Update Account Setting")
-     */
+    #[Permissions('update_account_setting', group: 'account_setting', desc: 'Update Account Setting')]
     public function store(AccountSettingRequest $request)
     {
         $companyId = auth('admin')->user()->company_id;

@@ -34,9 +34,7 @@ class DataTransferController extends Controller
         private ImportHandlerFactory $importHandlerFactory,
     ) {}
 
-    /**
-     * @Permissions("list_data_transfer", group="data_transfer", desc="List Data Transfer Jobs")
-     */
+    #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
     public function index(Request $request): JsonResponse
     {
         $search = trim((string) $request->get('search', ''));
@@ -60,9 +58,7 @@ class DataTransferController extends Controller
         return DataTransferJobResource::collection($jobs)->response();
     }
 
-    /**
-     * @Permissions("list_data_transfer", group="data_transfer", desc="List Data Transfer Jobs")
-     */
+    #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
     public function show(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -72,9 +68,7 @@ class DataTransferController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_data_transfer", group="data_transfer", desc="List Data Transfer Jobs")
-     */
+    #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
     public function previewRows(string $uuid, Request $request): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -92,11 +86,7 @@ class DataTransferController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("import_product", group="data_transfer", desc="Import Products")
-     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
-     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
-     */
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function storeImport(Request $request): JsonResponse
     {
         $request->validate([
@@ -147,11 +137,7 @@ class DataTransferController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("import_product", group="data_transfer", desc="Import Products")
-     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
-     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
-     */
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function updateMapping(string $uuid, Request $request): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -184,11 +170,7 @@ class DataTransferController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("import_product", group="data_transfer", desc="Import Products")
-     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
-     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
-     */
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function validateJob(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -209,11 +191,7 @@ class DataTransferController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("import_product", group="data_transfer", desc="Import Products")
-     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
-     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
-     */
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function commit(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -235,11 +213,7 @@ class DataTransferController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("import_product", group="data_transfer", desc="Import Products")
-     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
-     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
-     */
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function cancel(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -259,11 +233,7 @@ class DataTransferController extends Controller
         return response()->json(['message' => 'Job cancelled.']);
     }
 
-    /**
-     * @Permissions("import_product", group="data_transfer", desc="Import Products")
-     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
-     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
-     */
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function rollback(string $uuid): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -278,9 +248,7 @@ class DataTransferController extends Controller
         return response()->json(['message' => 'Rollback started.']);
     }
 
-    /**
-     * @Permissions("export_data", group="data_transfer", desc="Export Business Data")
-     */
+    #[Permissions('export_data', group: 'data_transfer', desc: 'Export Business Data')]
     public function storeExport(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -305,9 +273,7 @@ class DataTransferController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("list_data_transfer", group="data_transfer", desc="List Data Transfer Jobs")
-     */
+    #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
     public function download(string $uuid)
     {
         $job = $this->findCompanyJob($uuid);
@@ -322,9 +288,7 @@ class DataTransferController extends Controller
         return Storage::disk($job->result_disk)->download($job->result_path, $filename);
     }
 
-    /**
-     * @Permissions("list_data_transfer", group="data_transfer", desc="List Data Transfer Jobs")
-     */
+    #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
     public function downloadErrors(string $uuid)
     {
         $job = $this->findCompanyJob($uuid);
@@ -339,9 +303,7 @@ class DataTransferController extends Controller
         );
     }
 
-    /**
-     * @Permissions("import_product", group="data_transfer", desc="Import Products")
-     */
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function productTemplate(Request $request)
     {
         $format = $request->get('format', 'csv');
@@ -349,9 +311,7 @@ class DataTransferController extends Controller
         return $this->templateService->downloadProductTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
     }
 
-    /**
-     * @Permissions("import_warehouse", group="data_transfer", desc="Import Warehouses")
-     */
+    #[Permissions('import_warehouse', group: 'data_transfer', desc: 'Import Warehouses')]
     public function warehouseTemplate(Request $request)
     {
         $format = $request->get('format', 'csv');
@@ -359,9 +319,7 @@ class DataTransferController extends Controller
         return $this->templateService->downloadWarehouseTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
     }
 
-    /**
-     * @Permissions("import_party", group="data_transfer", desc="Import Suppliers")
-     */
+    #[Permissions('import_party', group: 'data_transfer', desc: 'Import Suppliers')]
     public function partyTemplate(Request $request)
     {
         $format = $request->get('format', 'csv');
@@ -369,9 +327,7 @@ class DataTransferController extends Controller
         return $this->templateService->downloadSupplierTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
     }
 
-    /**
-     * @Permissions("export_data", group="data_transfer", desc="Export Business Data")
-     */
+    #[Permissions('export_data', group: 'data_transfer', desc: 'Export Business Data')]
     public function schedules(Request $request): JsonResponse
     {
         $schedules = DataTransferSchedule::query()
@@ -382,9 +338,7 @@ class DataTransferController extends Controller
         return response()->json(['data' => $schedules]);
     }
 
-    /**
-     * @Permissions("export_data", group="data_transfer", desc="Export Business Data")
-     */
+    #[Permissions('export_data', group: 'data_transfer', desc: 'Export Business Data')]
     public function storeSchedule(Request $request): JsonResponse
     {
         $validated = $request->validate([

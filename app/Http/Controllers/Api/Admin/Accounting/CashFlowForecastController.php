@@ -11,9 +11,7 @@ class CashFlowForecastController extends Controller
 {
     public function __construct(private CashFlowForecastService $service) {}
 
-    /**
-     * @Permissions("view_cash_flow_forecast", group="cash_flow_forecast", desc="Cash Flow Forecast")
-     */
+    #[Permissions('view_cash_flow_forecast', group: 'cash_flow_forecast', desc: 'Cash Flow Forecast')]
     public function __invoke(Request $request)
     {
         $request->validate([

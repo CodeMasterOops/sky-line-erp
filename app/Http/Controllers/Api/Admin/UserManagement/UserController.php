@@ -15,9 +15,7 @@ use App\Http\Requests\Api\Admin\UserManagement\User\UpdateUserRequest;
 
 class UserController extends Controller
 {
-    /**
-     * @Permissions("list_user", group="user", desc="List User")
-     */
+    #[Permissions('list_user', group: 'user', desc: 'List User')]
     public function index(Request $request)
     {
         $users = User::with('roles:id,name')
@@ -29,9 +27,7 @@ class UserController extends Controller
         return UserResource::collection($users);
     }
 
-    /**
-     * @Permissions("create_user", group="user", desc="Create User")
-     */
+    #[Permissions('create_user', group: 'user', desc: 'Create User')]
     public function store(StoreUserRequest $request)
     {
         $formData = $request->validated();
@@ -52,9 +48,7 @@ class UserController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_user", group="user", desc="Show User")
-     */
+    #[Permissions('show_user', group: 'user', desc: 'Show User')]
     public function show(User $user)
     {
         Gate::authorize('view', $user);
@@ -63,9 +57,7 @@ class UserController extends Controller
         return UserResource::make($user);
     }
 
-    /**
-     * @Permissions("edit_user", group="user", desc="Edit User")
-     */
+    #[Permissions('edit_user', group: 'user', desc: 'Edit User')]
     public function update(UpdateUserRequest $request, User $user)
     {
         Gate::authorize('update', $user);
@@ -83,9 +75,7 @@ class UserController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_user", group="user", desc="Delete User")
-     */
+    #[Permissions('delete_user', group: 'user', desc: 'Delete User')]
     public function destroy(User $user)
     {
         Gate::authorize('delete', $user);
@@ -104,9 +94,7 @@ class UserController extends Controller
         }
     }
 
-    /**
-     * @Permissions("update_user_status", group="user", desc="Update Status")
-     */
+    #[Permissions('update_user_status', group: 'user', desc: 'Update Status')]
     public function updateStatus(User $user)
     {
         Gate::authorize('updateStatus', $user);

@@ -17,9 +17,7 @@ class PaymentController extends Controller
         private readonly PaymentService $paymentService,
     ) {}
 
-    /**
-     * @Permissions("list_payment", group="payment", desc="List Payment")
-     */
+    #[Permissions('list_payment', group: 'payment', desc: 'List Payment')]
     public function index(Request $request)
     {
         $payments = Payment::filter($request->all())
@@ -30,9 +28,7 @@ class PaymentController extends Controller
         return PaymentResource::collection($payments);
     }
 
-    /**
-     * @Permissions("create_payment", group="payment", desc="Create Payment")
-     */
+    #[Permissions('create_payment', group: 'payment', desc: 'Create Payment')]
     public function store(PaymentRequest $request)
     {
         $payment = $this->paymentService->createPayment($request->validated());
@@ -45,9 +41,7 @@ class PaymentController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_payment", group="payment", desc="Show Payment")
-     */
+    #[Permissions('show_payment', group: 'payment', desc: 'Show Payment')]
     public function show(Payment $payment)
     {
         $payment->load(['party', 'account', 'tdsAccount', 'paymentMode', 'allocations.payable']);
@@ -55,9 +49,7 @@ class PaymentController extends Controller
         return PaymentResource::make($payment);
     }
 
-    /**
-     * @Permissions("edit_payment", group="payment", desc="Edit Payment")
-     */
+    #[Permissions('edit_payment', group: 'payment', desc: 'Edit Payment')]
     public function update(PaymentRequest $request, Payment $payment)
     {
         if ($payment->status === StatusEnum::APPROVED) {
@@ -76,9 +68,7 @@ class PaymentController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("void_payment", group="payment", desc="Void Payment")
-     */
+    #[Permissions('void_payment', group: 'payment', desc: 'Void Payment')]
     public function void(Payment $payment)
     {
         if ($payment->voided_at) {
@@ -104,9 +94,7 @@ class PaymentController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_payment", group="payment", desc="Delete Payment")
-     */
+    #[Permissions('delete_payment', group: 'payment', desc: 'Delete Payment')]
     public function destroy(Payment $payment)
     {
         if ($payment->status === StatusEnum::APPROVED && ! $payment->voided_at) {
@@ -123,9 +111,7 @@ class PaymentController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_payment", group="payment", desc="Approve Payment")
-     */
+    #[Permissions('approve_payment', group: 'payment', desc: 'Approve Payment')]
     public function approve(Payment $payment)
     {
         if ($payment->status === StatusEnum::APPROVED) {

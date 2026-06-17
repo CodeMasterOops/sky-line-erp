@@ -12,9 +12,7 @@ use App\Http\Requests\Api\Admin\HR\LeaveApplicationRequest;
 
 class LeaveApplicationController extends Controller
 {
-    /**
-     * @Permissions("list_leave_application", group="leave_application", desc="List Leave Applications")
-     */
+    #[Permissions('list_leave_application', group: 'leave_application', desc: 'List Leave Applications')]
     public function index(Request $request)
     {
         $applications = LeaveApplication::with(['employee', 'leaveType'])
@@ -25,9 +23,7 @@ class LeaveApplicationController extends Controller
         return LeaveApplicationResource::collection($applications);
     }
 
-    /**
-     * @Permissions("create_leave_application", group="leave_application", desc="Create Leave Application")
-     */
+    #[Permissions('create_leave_application', group: 'leave_application', desc: 'Create Leave Application')]
     public function store(LeaveApplicationRequest $request)
     {
         $application = LeaveApplication::create($request->validated());
@@ -38,17 +34,13 @@ class LeaveApplicationController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_leave_application", group="leave_application", desc="Show Leave Application")
-     */
+    #[Permissions('show_leave_application', group: 'leave_application', desc: 'Show Leave Application')]
     public function show(LeaveApplication $leaveApplication)
     {
         return LeaveApplicationResource::make($leaveApplication->load(['employee', 'leaveType']));
     }
 
-    /**
-     * @Permissions("edit_leave_application", group="leave_application", desc="Edit Leave Application")
-     */
+    #[Permissions('edit_leave_application', group: 'leave_application', desc: 'Edit Leave Application')]
     public function update(LeaveApplicationRequest $request, LeaveApplication $leaveApplication)
     {
         abort_if($leaveApplication->status !== LeaveStatusEnum::PENDING, 403, 'Only pending applications can be edited.');
@@ -61,9 +53,7 @@ class LeaveApplicationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_leave_application", group="leave_application", desc="Delete Leave Application")
-     */
+    #[Permissions('delete_leave_application', group: 'leave_application', desc: 'Delete Leave Application')]
     public function destroy(LeaveApplication $leaveApplication)
     {
         $leaveApplication->delete();
@@ -73,9 +63,7 @@ class LeaveApplicationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_leave_application", group="leave_application", desc="Approve Leave Application")
-     */
+    #[Permissions('edit_leave_application', group: 'leave_application', desc: 'Approve Leave Application')]
     public function approve(Request $request, LeaveApplication $leaveApplication)
     {
         abort_if($leaveApplication->status !== LeaveStatusEnum::PENDING, 403, 'Only pending applications can be approved.');
@@ -92,9 +80,7 @@ class LeaveApplicationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_leave_application", group="leave_application", desc="Reject Leave Application")
-     */
+    #[Permissions('edit_leave_application', group: 'leave_application', desc: 'Reject Leave Application')]
     public function reject(Request $request, LeaveApplication $leaveApplication)
     {
         abort_if($leaveApplication->status !== LeaveStatusEnum::PENDING, 403, 'Only pending applications can be rejected.');

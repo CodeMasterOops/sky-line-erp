@@ -612,18 +612,26 @@ it('P2-07: deleting an invoice item also deletes its line discount', function ()
 // ─── P3-05: Void permission annotation is separate from approve ───────────────
 
 it('P3-05: void_invoice and approve_invoice are registered as distinct permissions', function () {
-    $invoiceVoid = (new \ReflectionClass(\App\Http\Controllers\Api\Admin\Sales\InvoiceController::class))
-        ->getMethod('void')
-        ->getDocComment();
+    $getPermissionValues = function (string $class, string $method): array {
+        $attrs = (new \ReflectionClass($class))->getMethod($method)
+            ->getAttributes(\App\Annotation\Permissions::class);
 
-    $creditNoteVoid = (new \ReflectionClass(\App\Http\Controllers\Api\Admin\Sales\CreditNoteController::class))
-        ->getMethod('void')
-        ->getDocComment();
+        return array_map(fn ($a) => $a->newInstance()->value, $attrs);
+    };
 
-    expect($invoiceVoid)->toContain('void_invoice');
-    expect($invoiceVoid)->not->toContain('"approve_invoice"');
-    expect($creditNoteVoid)->toContain('void_credit_note');
-    expect($creditNoteVoid)->not->toContain('"approve_credit_note"');
+    $invoiceVoidPerms = $getPermissionValues(
+        \App\Http\Controllers\Api\Admin\Sales\InvoiceController::class,
+        'void',
+    );
+    $creditNoteVoidPerms = $getPermissionValues(
+        \App\Http\Controllers\Api\Admin\Sales\CreditNoteController::class,
+        'void',
+    );
+
+    expect($invoiceVoidPerms)->toContain('void_invoice');
+    expect($invoiceVoidPerms)->not->toContain('approve_invoice');
+    expect($creditNoteVoidPerms)->toContain('void_credit_note');
+    expect($creditNoteVoidPerms)->not->toContain('approve_credit_note');
 });
 
 // ─── IRD-06: Credit note date must be within the active fiscal year ───────────

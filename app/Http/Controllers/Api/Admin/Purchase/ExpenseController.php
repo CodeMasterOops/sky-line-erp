@@ -19,9 +19,7 @@ class ExpenseController extends Controller
         private readonly ExpenseService $expenseService,
     ) {}
 
-    /**
-     * @Permissions("list_expense", group="expense", desc="List Expense")
-     */
+    #[Permissions('list_expense', group: 'expense', desc: 'List Expense')]
     public function index(Request $request)
     {
         $expenses = Expense::filter($request->all())
@@ -32,9 +30,7 @@ class ExpenseController extends Controller
         return ExpenseResource::collection($expenses);
     }
 
-    /**
-     * @Permissions("create_expense", group="expense", desc="Create Expense")
-     */
+    #[Permissions('create_expense', group: 'expense', desc: 'Create Expense')]
     public function store(ExpenseRequest $request)
     {
         $expense = $this->expenseService->createExpense($request->validated());
@@ -51,9 +47,7 @@ class ExpenseController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_expense", group="expense", desc="Show Expense")
-     */
+    #[Permissions('show_expense', group: 'expense', desc: 'Show Expense')]
     public function show(Expense $expense)
     {
         $expense->load([
@@ -65,9 +59,7 @@ class ExpenseController extends Controller
         return ExpenseResource::make($expense);
     }
 
-    /**
-     * @Permissions("edit_expense", group="expense", desc="Edit Expense")
-     */
+    #[Permissions('edit_expense', group: 'expense', desc: 'Edit Expense')]
     public function update(ExpenseRequest $request, Expense $expense)
     {
         if ($expense->status === StatusEnum::APPROVED) {
@@ -90,9 +82,7 @@ class ExpenseController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_expense", group="expense", desc="Delete Expense")
-     */
+    #[Permissions('delete_expense', group: 'expense', desc: 'Delete Expense')]
     public function destroy(Expense $expense)
     {
         $expense->expenseItems()->delete();
@@ -103,9 +93,7 @@ class ExpenseController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_expense", group="expense", desc="Approve Expense")
-     */
+    #[Permissions('approve_expense', group: 'expense', desc: 'Approve Expense')]
     public function approve(Expense $expense)
     {
         if ($expense->status === StatusEnum::APPROVED) {
@@ -129,9 +117,7 @@ class ExpenseController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_expense", group="expense", desc="Void Expense")
-     */
+    #[Permissions('approve_expense', group: 'expense', desc: 'Void Expense')]
     public function void(Expense $expense)
     {
         if ($expense->status !== StatusEnum::APPROVED) {
@@ -154,9 +140,7 @@ class ExpenseController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_due_expenses", group="expense", desc="List Due Expenses By Party")
-     */
+    #[Permissions('list_due_expenses', group: 'expense', desc: 'List Due Expenses By Party')]
     public function dueExpenses(Request $request)
     {
         $partyId = (int) $request->get('party_id');

@@ -19,9 +19,7 @@ class OpeningStockEntryController extends Controller
         private OpeningStockEntryService $openingStockEntryService,
     ) {}
 
-    /**
-     * @Permissions("list_opening_stock_entry", group="opening_stock_entry", desc="List Opening Stock Entry")
-     */
+    #[Permissions('list_opening_stock_entry', group: 'opening_stock_entry', desc: 'List Opening Stock Entry')]
     public function index(Request $request)
     {
         $query = OpeningStockEntry::with([
@@ -49,9 +47,7 @@ class OpeningStockEntryController extends Controller
         return OpeningStockEntryResource::collection($entries);
     }
 
-    /**
-     * @Permissions("create_opening_stock_entry", group="opening_stock_entry", desc="Create Opening Stock Entry")
-     */
+    #[Permissions('create_opening_stock_entry', group: 'opening_stock_entry', desc: 'Create Opening Stock Entry')]
     public function store(OpeningStockEntryRequest $request)
     {
         $formData = $request->validated();
@@ -99,9 +95,7 @@ class OpeningStockEntryController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_opening_stock_entry", group="opening_stock_entry", desc="Show Opening Stock Entry")
-     */
+    #[Permissions('show_opening_stock_entry', group: 'opening_stock_entry', desc: 'Show Opening Stock Entry')]
     public function show(OpeningStockEntry $openingStockEntry)
     {
         $openingStockEntry->load([
@@ -113,9 +107,7 @@ class OpeningStockEntryController extends Controller
         return OpeningStockEntryResource::make($openingStockEntry);
     }
 
-    /**
-     * @Permissions("edit_opening_stock_entry", group="opening_stock_entry", desc="Edit Opening Stock Entry")
-     */
+    #[Permissions('edit_opening_stock_entry', group: 'opening_stock_entry', desc: 'Edit Opening Stock Entry')]
     public function update(OpeningStockEntryRequest $request, OpeningStockEntry $openingStockEntry)
     {
         if ($openingStockEntry->status === StatusEnum::APPROVED) {
@@ -156,9 +148,7 @@ class OpeningStockEntryController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_opening_stock_entry", group="opening_stock_entry", desc="Delete Opening Stock Entry")
-     */
+    #[Permissions('delete_opening_stock_entry', group: 'opening_stock_entry', desc: 'Delete Opening Stock Entry')]
     public function destroy(OpeningStockEntry $openingStockEntry)
     {
         if ($openingStockEntry->status === StatusEnum::APPROVED) {
@@ -177,9 +167,7 @@ class OpeningStockEntryController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_opening_stock_entry", group="opening_stock_entry", desc="Approve Opening Stock Entry")
-     */
+    #[Permissions('approve_opening_stock_entry', group: 'opening_stock_entry', desc: 'Approve Opening Stock Entry')]
     public function approve(OpeningStockEntry $openingStockEntry)
     {
         if ($openingStockEntry->status === StatusEnum::APPROVED) {

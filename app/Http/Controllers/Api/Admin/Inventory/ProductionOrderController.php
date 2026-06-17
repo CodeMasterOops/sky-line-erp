@@ -19,9 +19,7 @@ class ProductionOrderController extends Controller
         private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
-    /**
-     * @Permissions("list_production_order", group="production_order", desc="List Production Orders")
-     */
+    #[Permissions('list_production_order', group: 'production_order', desc: 'List Production Orders')]
     public function index(Request $request)
     {
         $orders = ProductionOrder::query()
@@ -33,9 +31,7 @@ class ProductionOrderController extends Controller
         return response()->json($orders);
     }
 
-    /**
-     * @Permissions("create_production_order", group="production_order", desc="Create Production Order")
-     */
+    #[Permissions('create_production_order', group: 'production_order', desc: 'Create Production Order')]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -81,9 +77,7 @@ class ProductionOrderController extends Controller
         });
     }
 
-    /**
-     * @Permissions("show_production_order", group="production_order", desc="Show Production Order")
-     */
+    #[Permissions('show_production_order', group: 'production_order', desc: 'Show Production Order')]
     public function show(ProductionOrder $productionOrder)
     {
         return response()->json([
@@ -99,9 +93,7 @@ class ProductionOrderController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_production_order", group="production_order", desc="Start Production Order")
-     */
+    #[Permissions('edit_production_order', group: 'production_order', desc: 'Start Production Order')]
     public function start(ProductionOrder $productionOrder)
     {
         abort_if($productionOrder->status !== 'draft', 422, 'Only draft orders can be started.');
@@ -114,9 +106,7 @@ class ProductionOrderController extends Controller
         return response()->json(['message' => 'Production order started.', 'data' => $productionOrder]);
     }
 
-    /**
-     * @Permissions("edit_production_order", group="production_order", desc="Complete Production Order")
-     */
+    #[Permissions('edit_production_order', group: 'production_order', desc: 'Complete Production Order')]
     public function complete(Request $request, ProductionOrder $productionOrder)
     {
         abort_if($productionOrder->status !== 'in_progress', 422, 'Only in-progress orders can be completed.');
@@ -187,9 +177,7 @@ class ProductionOrderController extends Controller
         });
     }
 
-    /**
-     * @Permissions("delete_production_order", group="production_order", desc="Cancel Production Order")
-     */
+    #[Permissions('delete_production_order', group: 'production_order', desc: 'Cancel Production Order')]
     public function cancel(ProductionOrder $productionOrder)
     {
         abort_if(in_array($productionOrder->status, ['completed', 'cancelled']), 422, 'Cannot cancel this order.');

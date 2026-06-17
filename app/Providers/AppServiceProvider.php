@@ -90,13 +90,18 @@ class AppServiceProvider extends ServiceProvider
         BranchUser::observe(BranchUserObserver::class);
         Stock::observe(StockObserver::class);
 
-        // Register in all environments: the observer logs (never throws) in production.
-        // RuntimeException is only thrown in local to surface leaks during development.
-        if (! $this->app->environment('testing')) {
-            Invoice::observe(BelongsToCompanyObserver::class);
-            Bill::observe(BelongsToCompanyObserver::class);
-            Party::observe(BelongsToCompanyObserver::class);
-            Payment::observe(BelongsToCompanyObserver::class);
+        // Registered in all environments including tests. In production: logs only.
+        // In local: also throws RuntimeException. In tests: captures to
+        // BelongsToCompanyObserver::$capturedLeaks for assertNoLeaks() assertions.
+        //
+        // Use event string (not Model::observe()) to avoid the model-boot race:
+        // Model::observe() calls `new static`, which triggers bootMultiTenant() at
+        // AppServiceProvider::boot() time — before test migrations run — so
+        // columnExists() returns false and the MultiTenant creating hook is never
+        // registered. String-based listeners are resolved lazily (no model boot).
+        $models = [Invoice::class, Bill::class, Party::class, Payment::class];
+        foreach ($models as $model) {
+            Event::listen("eloquent.retrieved: {$model}", [BelongsToCompanyObserver::class, 'retrieved']);
         }
 
         $this->registerTelescopeTenantTag();

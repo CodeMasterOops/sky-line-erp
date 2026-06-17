@@ -24,9 +24,8 @@ class TdsChallanController extends Controller
     /**
      * IRD e-TDS return annexure: recorded TDS deductions for the period
      * aggregated by category, revenue code, and deductee for filing.
-     *
-     * @Permissions("list_invoice", group="invoice", desc="TDS Return Annexure")
      */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'TDS Return Annexure')]
     public function returnAnnexure(Request $request)
     {
         $validated = $request->validate([
@@ -45,11 +44,7 @@ class TdsChallanController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_invoice", group="invoice", desc="TDS Challan Summary")
-     *
-     * Returns monthly TDS summary for challan generation.
-     */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'TDS Challan Summary')]
     public function summary(Request $request)
     {
         $request->validate([
@@ -96,9 +91,7 @@ class TdsChallanController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_invoice", group="invoice", desc="Download TDS Deposit Challan PDF")
-     */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'Download TDS Deposit Challan PDF')]
     public function downloadChallan(Request $request)
     {
         $request->validate([
@@ -158,9 +151,7 @@ class TdsChallanController extends Controller
         return $pdf->download("TDS-Challan-{$startDate}-to-{$endDate}.pdf");
     }
 
-    /**
-     * @Permissions("list_invoice", group="invoice", desc="Download TDS Withholding Certificate PDF")
-     */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'Download TDS Withholding Certificate PDF')]
     public function downloadCertificate(Request $request)
     {
         $request->validate([

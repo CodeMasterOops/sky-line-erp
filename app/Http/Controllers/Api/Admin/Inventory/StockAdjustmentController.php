@@ -25,9 +25,7 @@ class StockAdjustmentController extends Controller
         private InventoryLayerIssueService $inventoryIssue,
     ) {}
 
-    /**
-     * @Permissions("list_stock_adjustment", group="stock_adjustment", desc="List Stock Adjustment")
-     */
+    #[Permissions('list_stock_adjustment', group: 'stock_adjustment', desc: 'List Stock Adjustment')]
     public function index(Request $request)
     {
         $query = StockAdjustment::with(['warehouse'])
@@ -43,9 +41,7 @@ class StockAdjustmentController extends Controller
         return StockAdjustmentResource::collection($adjustments);
     }
 
-    /**
-     * @Permissions("create_stock_adjustment", group="stock_adjustment", desc="Create Stock Adjustment")
-     */
+    #[Permissions('create_stock_adjustment', group: 'stock_adjustment', desc: 'Create Stock Adjustment')]
     public function store(StockAdjustmentRequest $request)
     {
         $formData = $request->validated();
@@ -88,9 +84,7 @@ class StockAdjustmentController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_stock_adjustment", group="stock_adjustment", desc="Show Stock Adjustment")
-     */
+    #[Permissions('show_stock_adjustment', group: 'stock_adjustment', desc: 'Show Stock Adjustment')]
     public function show(StockAdjustment $stockAdjustment)
     {
         $stockAdjustment->load([
@@ -103,9 +97,7 @@ class StockAdjustmentController extends Controller
         return StockAdjustmentResource::make($stockAdjustment);
     }
 
-    /**
-     * @Permissions("edit_stock_adjustment", group="stock_adjustment", desc="Edit Stock Adjustment")
-     */
+    #[Permissions('edit_stock_adjustment', group: 'stock_adjustment', desc: 'Edit Stock Adjustment')]
     public function update(StockAdjustmentRequest $request, StockAdjustment $stockAdjustment)
     {
         if ($stockAdjustment->status === StatusEnum::APPROVED) {
@@ -150,9 +142,7 @@ class StockAdjustmentController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_stock_adjustment", group="stock_adjustment", desc="Delete Stock Adjustment")
-     */
+    #[Permissions('delete_stock_adjustment', group: 'stock_adjustment', desc: 'Delete Stock Adjustment')]
     public function destroy(StockAdjustment $stockAdjustment)
     {
         if ($stockAdjustment->status === StatusEnum::APPROVED) {
@@ -171,9 +161,7 @@ class StockAdjustmentController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_stock_adjustment", group="stock_adjustment", desc="Approve Stock Adjustment")
-     */
+    #[Permissions('approve_stock_adjustment', group: 'stock_adjustment', desc: 'Approve Stock Adjustment')]
     public function approve(StockAdjustment $stockAdjustment)
     {
         if ($stockAdjustment->status === StatusEnum::APPROVED) {

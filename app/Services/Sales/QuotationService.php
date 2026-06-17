@@ -5,6 +5,7 @@ namespace App\Services\Sales;
 use App\Enums\StatusEnum;
 use App\Models\Quotation;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 
 readonly class QuotationService
@@ -50,8 +51,10 @@ readonly class QuotationService
                 );
             }
 
-            foreach ($formData['items'] ?? [] as $item) {
-                $quotationItem = $quotation->quotationItems()->create([
+            DocumentLineItemSyncer::sync(
+                $quotation->quotationItems(),
+                $formData['items'] ?? [],
+                fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -59,16 +62,8 @@ readonly class QuotationService
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $quotationItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
+                ],
+            );
 
             return $quotation;
         });
@@ -97,8 +92,10 @@ readonly class QuotationService
                 );
             }
 
-            foreach ($formData['items'] ?? [] as $item) {
-                $quotationItem = $quotation->quotationItems()->create([
+            DocumentLineItemSyncer::sync(
+                $quotation->quotationItems(),
+                $formData['items'] ?? [],
+                fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -106,16 +103,8 @@ readonly class QuotationService
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $quotationItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
+                ],
+            );
         });
     }
 

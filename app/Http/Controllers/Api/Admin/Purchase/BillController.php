@@ -37,9 +37,7 @@ class BillController extends Controller
         ];
     }
 
-    /**
-     * @Permissions("list_bill", group="bill", desc="List Bill")
-     */
+    #[Permissions('list_bill', group: 'bill', desc: 'List Bill')]
     public function index(Request $request)
     {
         $bills = Bill::filter($request->all())
@@ -50,9 +48,7 @@ class BillController extends Controller
         return BillResource::collection($bills);
     }
 
-    /**
-     * @Permissions("create_bill", group="bill", desc="Create Bill")
-     */
+    #[Permissions('create_bill', group: 'bill', desc: 'Create Bill')]
     public function store(BillRequest $request)
     {
         $bill = $this->purchaseBillService->createBill($request->validated());
@@ -65,9 +61,7 @@ class BillController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_bill", group="bill", desc="Show Bill")
-     */
+    #[Permissions('show_bill', group: 'bill', desc: 'Show Bill')]
     public function show(Bill $bill)
     {
         $bill->load($this->billRelations());
@@ -75,9 +69,7 @@ class BillController extends Controller
         return BillResource::make($bill);
     }
 
-    /**
-     * @Permissions("edit_bill", group="bill", desc="Edit Bill")
-     */
+    #[Permissions('edit_bill', group: 'bill', desc: 'Edit Bill')]
     public function update(BillRequest $request, Bill $bill)
     {
         if ($bill->voided_at) {
@@ -102,9 +94,7 @@ class BillController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_bill", group="bill", desc="Delete Bill")
-     */
+    #[Permissions('delete_bill', group: 'bill', desc: 'Delete Bill')]
     public function destroy(Bill $bill)
     {
         if ($bill->status === StatusEnum::APPROVED && ! $bill->voided_at) {
@@ -123,9 +113,7 @@ class BillController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("void_bill", group="bill", desc="Void Bill")
-     */
+    #[Permissions('void_bill', group: 'bill', desc: 'Void Bill')]
     public function void(Bill $bill)
     {
         if ($bill->voided_at) {
@@ -151,9 +139,7 @@ class BillController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_bill", group="bill", desc="Approve Bill")
-     */
+    #[Permissions('approve_bill', group: 'bill', desc: 'Approve Bill')]
     public function approve(Bill $bill)
     {
         if ($bill->voided_at) {
@@ -179,9 +165,7 @@ class BillController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_due_bills", group="bill", desc="List Due Bills By Party")
-     */
+    #[Permissions('list_due_bills', group: 'bill', desc: 'List Due Bills By Party')]
     public function dueBills(Request $request)
     {
         $partyId = (int) $request->get('party_id');

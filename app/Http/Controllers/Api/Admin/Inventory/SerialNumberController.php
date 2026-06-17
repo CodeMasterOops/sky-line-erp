@@ -9,9 +9,7 @@ use App\Http\Controllers\Controller;
 
 class SerialNumberController extends Controller
 {
-    /**
-     * @Permissions("list_serial_number", group="serial_number", desc="List Serial Numbers")
-     */
+    #[Permissions('list_serial_number', group: 'serial_number', desc: 'List Serial Numbers')]
     public function index(Request $request)
     {
         $company = auth('admin')->user()->company;
@@ -56,9 +54,7 @@ class SerialNumberController extends Controller
         return response()->json($serials);
     }
 
-    /**
-     * @Permissions("view_serial_number", group="serial_number", desc="View Serial Number")
-     */
+    #[Permissions('view_serial_number', group: 'serial_number', desc: 'View Serial Number')]
     public function show(SerialNumber $serialNumber)
     {
         $serialNumber->load(['productVariant.product', 'warehouse', 'receiptMovement', 'issueMovement']);

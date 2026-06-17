@@ -15,9 +15,7 @@ class UnitController extends Controller
 {
     use GeneratesEntityCode;
 
-    /**
-     * @Permissions("list_unit", group="unit", desc="List Unit")
-     */
+    #[Permissions('list_unit', group: 'unit', desc: 'List Unit')]
     public function index(Request $request)
     {
         $units = Unit::query()
@@ -27,17 +25,13 @@ class UnitController extends Controller
         return UnitResource::collection($units);
     }
 
-    /**
-     * @Permissions("create_unit", group="unit", desc="Create Unit")
-     */
+    #[Permissions('create_unit', group: 'unit', desc: 'Create Unit')]
     public function nextCode()
     {
         return $this->nextCodeResponse(EntityCodeType::Unit);
     }
 
-    /**
-     * @Permissions("create_unit", group="unit", desc="Create Unit")
-     */
+    #[Permissions('create_unit', group: 'unit', desc: 'Create Unit')]
     public function store(UnitRequest $request)
     {
         $data = $request->validated();
@@ -50,17 +44,13 @@ class UnitController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_unit", group="unit", desc="Show Unit")
-     */
+    #[Permissions('show_unit', group: 'unit', desc: 'Show Unit')]
     public function show(Unit $unit)
     {
         return UnitResource::make($unit);
     }
 
-    /**
-     * @Permissions("edit_unit", group="unit", desc="Edit Unit")
-     */
+    #[Permissions('edit_unit', group: 'unit', desc: 'Edit Unit')]
     public function update(UnitRequest $request, Unit $unit)
     {
         $unit->update($request->validated());
@@ -71,9 +61,7 @@ class UnitController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_unit", group="unit", desc="Delete Unit")
-     */
+    #[Permissions('delete_unit', group: 'unit', desc: 'Delete Unit')]
     public function destroy(Unit $unit)
     {
         $unit->delete();

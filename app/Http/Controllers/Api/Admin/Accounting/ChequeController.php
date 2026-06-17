@@ -17,9 +17,7 @@ class ChequeController extends Controller
 {
     public function __construct(private JournalVoidService $journalVoid) {}
 
-    /**
-     * @Permissions("list_cheque", group="cheque", desc="List Cheques / PDC")
-     */
+    #[Permissions('list_cheque', group: 'cheque', desc: 'List Cheques / PDC')]
     public function index(Request $request)
     {
         $cheques = Cheque::query()
@@ -34,9 +32,7 @@ class ChequeController extends Controller
         return ChequeResource::collection($cheques);
     }
 
-    /**
-     * @Permissions("create_cheque", group="cheque", desc="Record PDC Cheque")
-     */
+    #[Permissions('create_cheque', group: 'cheque', desc: 'Record PDC Cheque')]
     public function store(ChequeRequest $request)
     {
         $data = $request->validated();
@@ -67,9 +63,7 @@ class ChequeController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_cheque", group="cheque", desc="Show Cheque")
-     */
+    #[Permissions('show_cheque', group: 'cheque', desc: 'Show Cheque')]
     public function show(Cheque $cheque)
     {
         $cheque->load(['party:id,name', 'bankAccount:id,bank_name,account_number', 'createUser:id,name']);
@@ -77,9 +71,7 @@ class ChequeController extends Controller
         return response()->json(['data' => ChequeResource::make($cheque)]);
     }
 
-    /**
-     * @Permissions("edit_cheque", group="cheque", desc="Present Cheque for Deposit")
-     */
+    #[Permissions('edit_cheque', group: 'cheque', desc: 'Present Cheque for Deposit')]
     public function present(ChequePresentRequest $request, Cheque $cheque)
     {
         abort_if($cheque->status !== 'pending', 422, 'Only pending cheques can be presented.');
@@ -96,9 +88,7 @@ class ChequeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_cheque", group="cheque", desc="Clear Cheque")
-     */
+    #[Permissions('edit_cheque', group: 'cheque', desc: 'Clear Cheque')]
     public function clear(ChequeClearRequest $request, Cheque $cheque)
     {
         abort_if(! in_array($cheque->status, ['pending', 'presented']), 422, 'Cheque cannot be cleared in current status.');
@@ -115,9 +105,7 @@ class ChequeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_cheque", group="cheque", desc="Mark Cheque Bounced")
-     */
+    #[Permissions('edit_cheque', group: 'cheque', desc: 'Mark Cheque Bounced')]
     public function bounce(ChequeBounceRequest $request, Cheque $cheque)
     {
         abort_if(! in_array($cheque->status, ['presented']), 422, 'Only presented cheques can be bounced.');
@@ -143,9 +131,7 @@ class ChequeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_cheque", group="cheque", desc="Cancel Cheque")
-     */
+    #[Permissions('edit_cheque', group: 'cheque', desc: 'Cancel Cheque')]
     public function cancel(Cheque $cheque)
     {
         abort_if($cheque->status === 'cleared', 422, 'Cleared cheques cannot be cancelled.');
@@ -160,9 +146,7 @@ class ChequeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_cheque", group="cheque", desc="PDC Summary")
-     */
+    #[Permissions('list_cheque', group: 'cheque', desc: 'PDC Summary')]
     public function summary()
     {
         $company = auth('admin')->user()->company;

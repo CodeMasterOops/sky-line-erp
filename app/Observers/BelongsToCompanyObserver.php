@@ -11,12 +11,40 @@ use Illuminate\Database\Eloquent\Model;
  *
  *  1. Cross-company leak: model retrieved with a *different* company in context
  *     → CRITICAL log in all environments; RuntimeException thrown in local.
+ *     → In test environments: captured to static $capturedLeaks for assertNoLeaks().
  *
  *  2. Unscoped retrieval: authenticated admin request but company context is null
  *     → WARNING log in all environments (suggests withoutGlobalScopes() bypass).
  */
 class BelongsToCompanyObserver
 {
+    /** @var list<string> Leaks captured during the current test run. */
+    private static array $capturedLeaks = [];
+
+    /**
+     * Reset the captured leak log. Call this in a test's beforeEach if you want
+     * a clean slate, then call assertNoLeaks() to verify no cross-company
+     * retrievals occurred during the test.
+     */
+    public static function resetLeaks(): void
+    {
+        static::$capturedLeaks = [];
+    }
+
+    /**
+     * Assert that no cross-company tenant leaks were detected since the last
+     * resetLeaks() call. Suitable for use in tests registered with this observer.
+     */
+    public static function assertNoLeaks(): void
+    {
+        if (! empty(static::$capturedLeaks)) {
+            $summary = implode("\n", static::$capturedLeaks);
+            throw new \PHPUnit\Framework\AssertionFailedError(
+                "BelongsToCompanyObserver detected cross-company leaks:\n".$summary
+            );
+        }
+    }
+
     public function retrieved(Model $model): void
     {
         $contextId = TenantService::companyId();
@@ -44,6 +72,10 @@ class BelongsToCompanyObserver
 
         if (app()->environment('local')) {
             throw new \RuntimeException($message);
+        }
+
+        if (app()->runningUnitTests()) {
+            static::$capturedLeaks[] = $message;
         }
     }
 

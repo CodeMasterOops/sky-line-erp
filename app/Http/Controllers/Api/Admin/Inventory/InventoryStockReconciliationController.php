@@ -13,9 +13,8 @@ class InventoryStockReconciliationController extends Controller
 {
     /**
      * Compare on-hand stock quantities to summed valued layer quantities per variant and warehouse.
-     *
-     * @Permissions("list_stock_adjustment", group="stock_adjustment", desc="Stock layer reconciliation")
      */
+    #[Permissions('list_stock_adjustment', group: 'stock_adjustment', desc: 'Stock layer reconciliation')]
     public function __invoke(Request $request)
     {
         $companyId = (int) auth('admin')->user()->company_id;

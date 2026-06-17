@@ -5,6 +5,7 @@ namespace App\Services\Sales;
 use App\Enums\StatusEnum;
 use App\Models\SalesOrder;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 
 readonly class SalesOrderService
@@ -50,8 +51,10 @@ readonly class SalesOrderService
                 );
             }
 
-            foreach ($formData['items'] ?? [] as $item) {
-                $orderItem = $order->salesOrderItems()->create([
+            DocumentLineItemSyncer::sync(
+                $order->salesOrderItems(),
+                $formData['items'] ?? [],
+                fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
@@ -59,16 +62,8 @@ readonly class SalesOrderService
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $orderItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
+                ],
+            );
 
             return $order;
         });

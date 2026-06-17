@@ -21,9 +21,7 @@ class InvoiceController extends Controller
         private readonly BadDebtService $badDebtService,
     ) {}
 
-    /**
-     * @Permissions("list_invoice", group="invoice", desc="List Invoice")
-     */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'List Invoice')]
     public function index(Request $request)
     {
         $invoices = Invoice::filter($request->all())
@@ -34,9 +32,7 @@ class InvoiceController extends Controller
         return InvoiceResource::collection($invoices);
     }
 
-    /**
-     * @Permissions("create_invoice", group="invoice", desc="Create Invoice")
-     */
+    #[Permissions('create_invoice', group: 'invoice', desc: 'Create Invoice')]
     public function store(InvoiceRequest $request)
     {
         $invoice = $this->invoiceService->createInvoice($request->validated());
@@ -57,9 +53,7 @@ class InvoiceController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_invoice", group="invoice", desc="Show Invoice")
-     */
+    #[Permissions('show_invoice', group: 'invoice', desc: 'Show Invoice')]
     public function show(Invoice $invoice)
     {
         $invoice->load([
@@ -76,9 +70,7 @@ class InvoiceController extends Controller
         return InvoiceResource::make($invoice);
     }
 
-    /**
-     * @Permissions("edit_invoice", group="invoice", desc="Edit Invoice")
-     */
+    #[Permissions('edit_invoice', group: 'invoice', desc: 'Edit Invoice')]
     public function update(InvoiceRequest $request, Invoice $invoice)
     {
         if ($invoice->voided_at) {
@@ -111,9 +103,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_invoice", group="invoice", desc="Delete Invoice")
-     */
+    #[Permissions('delete_invoice', group: 'invoice', desc: 'Delete Invoice')]
     public function destroy(Invoice $invoice)
     {
         if ($invoice->status === StatusEnum::APPROVED && ! $invoice->voided_at) {
@@ -130,9 +120,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("void_invoice", group="invoice", desc="Void Invoice")
-     */
+    #[Permissions('void_invoice', group: 'invoice', desc: 'Void Invoice')]
     public function void(Invoice $invoice)
     {
         if ($invoice->voided_at) {
@@ -166,9 +154,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("write_off_invoice", group="invoice", desc="Write Off Invoice Bad Debt")
-     */
+    #[Permissions('write_off_invoice', group: 'invoice', desc: 'Write Off Invoice Bad Debt')]
     public function writeOff(Request $request, Invoice $invoice)
     {
         $data = $request->validate([
@@ -194,9 +180,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_invoice", group="invoice", desc="Approve Invoice")
-     */
+    #[Permissions('approve_invoice', group: 'invoice', desc: 'Approve Invoice')]
     public function approve(Invoice $invoice)
     {
         if ($invoice->voided_at) {
@@ -230,9 +214,7 @@ class InvoiceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_due_invoices", group="invoice", desc="List Due Invoices By Party")
-     */
+    #[Permissions('list_due_invoices', group: 'invoice', desc: 'List Due Invoices By Party')]
     public function dueInvoices(Request $request)
     {
         $partyId = (int) $request->get('party_id');

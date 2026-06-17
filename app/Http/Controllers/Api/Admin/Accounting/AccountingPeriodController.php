@@ -20,9 +20,7 @@ class AccountingPeriodController extends Controller
         private readonly ClosingEntryService $closingEntryService,
     ) {}
 
-    /**
-     * @Permissions("list_accounting_period", group="accounting_period", desc="List Accounting Periods")
-     */
+    #[Permissions('list_accounting_period', group: 'accounting_period', desc: 'List Accounting Periods')]
     public function index(Request $request)
     {
         $fiscalYearId = $request->input('fiscal_year_id');
@@ -40,9 +38,7 @@ class AccountingPeriodController extends Controller
         return response()->json(['data' => $periods]);
     }
 
-    /**
-     * @Permissions("create_accounting_period", group="accounting_period", desc="Generate Accounting Periods")
-     */
+    #[Permissions('create_accounting_period', group: 'accounting_period', desc: 'Generate Accounting Periods')]
     public function generate(Request $request)
     {
         $validated = $request->validate([
@@ -73,9 +69,8 @@ class AccountingPeriodController extends Controller
      * Readiness report for a year-end close: the integrity checks that must pass
      * (balanced journals, no unposted documents, reconciled control accounts)
      * plus the year's net profit.
-     *
-     * @Permissions("close_fiscal_year", group="accounting_period", desc="Year-End Close")
      */
+    #[Permissions('close_fiscal_year', group: 'accounting_period', desc: 'Year-End Close')]
     public function closeYearReadiness(Request $request)
     {
         $validated = $request->validate([
@@ -92,9 +87,8 @@ class AccountingPeriodController extends Controller
     /**
      * Close a fiscal year: gated on the readiness checks, then bulk-transitions
      * every open accounting period in the year to CLOSED.
-     *
-     * @Permissions("close_fiscal_year", group="accounting_period", desc="Year-End Close")
      */
+    #[Permissions('close_fiscal_year', group: 'accounting_period', desc: 'Year-End Close')]
     public function closeYear(Request $request)
     {
         $validated = $request->validate([
@@ -119,9 +113,8 @@ class AccountingPeriodController extends Controller
      * Post the year-end closing entry: zero the income/expense accounts and
      * transfer the net result to the configured retained-earnings account.
      * Idempotent — a fiscal year already closed-out is a no-op.
-     *
-     * @Permissions("close_fiscal_year", group="accounting_period", desc="Year-End Close")
      */
+    #[Permissions('close_fiscal_year', group: 'accounting_period', desc: 'Year-End Close')]
     public function postClosingEntry(Request $request)
     {
         $validated = $request->validate([
@@ -167,9 +160,7 @@ class AccountingPeriodController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_accounting_period", group="accounting_period", desc="Close Accounting Period")
-     */
+    #[Permissions('edit_accounting_period', group: 'accounting_period', desc: 'Close Accounting Period')]
     public function close(AccountingPeriod $accountingPeriod)
     {
         if ($accountingPeriod->status !== AccountingPeriodStatusEnum::OPEN) {
@@ -188,9 +179,7 @@ class AccountingPeriodController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_accounting_period", group="accounting_period", desc="Reopen Accounting Period")
-     */
+    #[Permissions('edit_accounting_period', group: 'accounting_period', desc: 'Reopen Accounting Period')]
     public function reopen(AccountingPeriod $accountingPeriod)
     {
         if ($accountingPeriod->status === AccountingPeriodStatusEnum::LOCKED) {
@@ -209,9 +198,7 @@ class AccountingPeriodController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_accounting_period", group="accounting_period", desc="Lock Accounting Period")
-     */
+    #[Permissions('edit_accounting_period', group: 'accounting_period', desc: 'Lock Accounting Period')]
     public function lock(AccountingPeriod $accountingPeriod)
     {
         $accountingPeriod->update(['status' => AccountingPeriodStatusEnum::LOCKED->value]);

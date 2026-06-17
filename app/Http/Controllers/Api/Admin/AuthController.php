@@ -41,7 +41,7 @@ class AuthController extends Controller
 
             Auth::guard('admin')->setUser($user);
 
-            $tokenData = auth('admin')->user()->createToken('auth-token', ['*'], now()->addWeek());
+            $tokenData = auth('admin')->user()->createToken('auth-token', $this->buildTokenAbilities($user), now()->addWeek());
 
             $authUser = auth('admin')->user();
             TenantService::setCompanyId($authUser->company_id);
@@ -106,7 +106,7 @@ class AuthController extends Controller
 
         Auth::guard('admin')->setUser($user);
 
-        $tokenData = $user->createToken('auth-token', ['*'], now()->addWeek());
+        $tokenData = $user->createToken('auth-token', $this->buildTokenAbilities($user), now()->addWeek());
 
         return response()->json([
             'access_token' => $tokenData->plainTextToken,
@@ -116,6 +116,17 @@ class AuthController extends Controller
             'needs_onboarding' => true,
             'message' => 'Account created successfully.',
         ], 201);
+    }
+
+    private function buildTokenAbilities(User $user): array
+    {
+        if ($user->isAdmin()) {
+            return ['*'];
+        }
+
+        $permissions = userPermissions($user);
+
+        return $permissions ?: ['user:read'];
     }
 
     private function generateCompanyCode(string $companyName): string

@@ -22,9 +22,7 @@ class VatD3Controller extends Controller
         private NepaliDateService $nepaliDate,
     ) {}
 
-    /**
-     * @Permissions("list_invoice", group="invoice", desc="VAT D3 Return Summary")
-     */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'VAT D3 Return Summary')]
     public function summary(Request $request)
     {
         $data = $this->reportService->vatReturn($request);
@@ -33,13 +31,11 @@ class VatD3Controller extends Controller
     }
 
     /**
-     * @Permissions("list_invoice", group="invoice", desc="Export VAT D3 Sales CSV")
-     *
      * Exports the VAT D3 sales register (Bikri Kitab) in IRD's prescribed CSV format.
      * Columns: invoice_no, date_bs, buyer PAN, buyer_name,
      *          taxable_amount, vat_amount, zero_rated_amount, exempt_amount, total_amount
-     * Credit notes appear as negative rows per IRD requirement.
      */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'Export VAT D3 Sales CSV')]
     public function exportCsv(Request $request)
     {
         $request->validate([

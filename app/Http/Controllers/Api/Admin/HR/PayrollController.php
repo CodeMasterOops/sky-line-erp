@@ -17,9 +17,7 @@ class PayrollController extends Controller
 {
     public function __construct(protected PayrollService $payrollService) {}
 
-    /**
-     * @Permissions("list_payroll", group="payroll", desc="List Payroll Runs")
-     */
+    #[Permissions('list_payroll', group: 'payroll', desc: 'List Payroll Runs')]
     public function index(Request $request)
     {
         $runs = PayrollRun::with('fiscalYear')
@@ -30,9 +28,7 @@ class PayrollController extends Controller
         return PayrollRunResource::collection($runs);
     }
 
-    /**
-     * @Permissions("create_payroll", group="payroll", desc="Create Payroll Run")
-     */
+    #[Permissions('create_payroll', group: 'payroll', desc: 'Create Payroll Run')]
     public function store(PayrollRunRequest $request)
     {
         $fiscalYear = FiscalYear::findOrFail($request->fiscal_year_id);
@@ -67,17 +63,13 @@ class PayrollController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_payroll", group="payroll", desc="Show Payroll Run")
-     */
+    #[Permissions('show_payroll', group: 'payroll', desc: 'Show Payroll Run')]
     public function show(PayrollRun $payrollRun)
     {
         return PayrollRunResource::make($payrollRun->load(['fiscalYear', 'payslips.employee', 'payslips.items']));
     }
 
-    /**
-     * @Permissions("edit_payroll", group="payroll", desc="Process Payroll Run")
-     */
+    #[Permissions('edit_payroll', group: 'payroll', desc: 'Process Payroll Run')]
     public function process(PayrollRun $payrollRun)
     {
         abort_if($payrollRun->status === PayrollStatusEnum::PAID, 403, 'Paid payroll cannot be reprocessed.');
@@ -90,9 +82,7 @@ class PayrollController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_payroll", group="payroll", desc="Approve Payroll Run")
-     */
+    #[Permissions('edit_payroll', group: 'payroll', desc: 'Approve Payroll Run')]
     public function approve(PayrollRun $payrollRun)
     {
         $payrollRun = $this->payrollService->approve($payrollRun);
@@ -103,9 +93,7 @@ class PayrollController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_payroll", group="payroll", desc="Confirm Payroll Run as Paid")
-     */
+    #[Permissions('edit_payroll', group: 'payroll', desc: 'Confirm Payroll Run as Paid')]
     public function confirm(Request $request, PayrollRun $payrollRun)
     {
         abort_if($payrollRun->status !== PayrollStatusEnum::PROCESSED, 403, 'Only processed payroll can be confirmed.');
@@ -122,9 +110,7 @@ class PayrollController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_payroll", group="payroll", desc="Delete Payroll Run")
-     */
+    #[Permissions('delete_payroll', group: 'payroll', desc: 'Delete Payroll Run')]
     public function destroy(PayrollRun $payrollRun)
     {
         abort_if($payrollRun->status === PayrollStatusEnum::PAID, 403, 'Paid payroll cannot be deleted.');

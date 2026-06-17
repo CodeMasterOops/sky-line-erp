@@ -13,9 +13,7 @@ use App\Http\Requests\Api\Admin\Inventory\AttributeRequest;
 
 class AttributeController extends Controller
 {
-    /**
-     * @Permissions("list_attribute", group="attribute", desc="List Attribute")
-     */
+    #[Permissions('list_attribute', group: 'attribute', desc: 'List Attribute')]
     public function index(Request $request)
     {
         $attributes = Attribute::with('values')
@@ -25,9 +23,7 @@ class AttributeController extends Controller
         return AttributeResource::collection($attributes);
     }
 
-    /**
-     * @Permissions("create_attribute", group="attribute", desc="Create Attribute")
-     */
+    #[Permissions('create_attribute', group: 'attribute', desc: 'Create Attribute')]
     public function store(AttributeRequest $request)
     {
         $attribute = DB::transaction(function () use ($request) {
@@ -48,9 +44,7 @@ class AttributeController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_attribute", group="attribute", desc="Show Attribute")
-     */
+    #[Permissions('show_attribute', group: 'attribute', desc: 'Show Attribute')]
     public function show(Attribute $attribute)
     {
         $attribute->load([
@@ -60,9 +54,7 @@ class AttributeController extends Controller
         return AttributeResource::make($attribute);
     }
 
-    /**
-     * @Permissions("edit_attribute", group="attribute", desc="Edit Attribute")
-     */
+    #[Permissions('edit_attribute', group: 'attribute', desc: 'Edit Attribute')]
     public function update(AttributeRequest $request, Attribute $attribute)
     {
         DB::transaction(function () use ($request, $attribute) {
@@ -91,9 +83,7 @@ class AttributeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_attribute", group="attribute", desc="Delete Attribute")
-     */
+    #[Permissions('delete_attribute', group: 'attribute', desc: 'Delete Attribute')]
     public function destroy(Attribute $attribute)
     {
         $attribute->values()->delete();

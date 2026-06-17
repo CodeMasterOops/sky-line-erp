@@ -18,9 +18,7 @@ class VatD4Controller extends Controller
 {
     public function __construct(private NepaliDateService $nepaliDate) {}
 
-    /**
-     * @Permissions("list_bill", group="bill", desc="Export VAT D4 Purchase CSV")
-     */
+    #[Permissions('list_bill', group: 'bill', desc: 'Export VAT D4 Purchase CSV')]
     public function exportCsv(Request $request)
     {
         $request->validate([

@@ -20,9 +20,7 @@ class ProductController extends Controller
 {
     use GeneratesEntityCode;
 
-    /**
-     * @Permissions("list_product_variant", group="product", desc="List Product Variant")
-     */
+    #[Permissions('list_product_variant', group: 'product', desc: 'List Product Variant')]
     public function productVariants(Request $request)
     {
         $limit = min((int) $request->get('limit', 500), 1000);
@@ -46,9 +44,8 @@ class ProductController extends Controller
 
     /**
      * Paginated product variant search by SKU, product name, or product code (for sales order / POS pickers).
-     *
-     * @Permissions("list_product_variant", group="product", desc="List Product Variant")
      */
+    #[Permissions('list_product_variant', group: 'product', desc: 'List Product Variant')]
     public function searchProductVariants(Request $request)
     {
         $perPage = min(max((int) $request->get('limit', 20), 1), 50);
@@ -92,9 +89,7 @@ class ProductController extends Controller
         return ProductVariantResource::collection($variants);
     }
 
-    /**
-     * @Permissions("list_product", group="product", desc="List Product")
-     */
+    #[Permissions('list_product', group: 'product', desc: 'List Product')]
     public function index(Request $request)
     {
         $isServiceOnly = $request->input('product_type') === ProductTypeEnum::SERVICE->value;
@@ -128,17 +123,13 @@ class ProductController extends Controller
         return ProductResource::collection($products);
     }
 
-    /**
-     * @Permissions("create_product", group="product", desc="Create Product")
-     */
+    #[Permissions('create_product', group: 'product', desc: 'Create Product')]
     public function nextCode()
     {
         return $this->nextCodeResponse(EntityCodeType::Product);
     }
 
-    /**
-     * @Permissions("create_product", group="product", desc="Create Product")
-     */
+    #[Permissions('create_product', group: 'product', desc: 'Create Product')]
     public function store(ProductRequest $request)
     {
         $validated = $request->validated();
@@ -176,9 +167,7 @@ class ProductController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_product", group="product", desc="Show Product")
-     */
+    #[Permissions('show_product', group: 'product', desc: 'Show Product')]
     public function show(Product $product)
     {
         $product->load([
@@ -191,9 +180,7 @@ class ProductController extends Controller
         return ProductResource::make($product);
     }
 
-    /**
-     * @Permissions("edit_product", group="product", desc="Edit Product")
-     */
+    #[Permissions('edit_product', group: 'product', desc: 'Edit Product')]
     public function update(ProductRequest $request, Product $product)
     {
         $validated = $this->sanitizeProductData($request->validated());
@@ -252,9 +239,7 @@ class ProductController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_product", group="product", desc="Delete Product")
-     */
+    #[Permissions('delete_product', group: 'product', desc: 'Delete Product')]
     public function destroy(Product $product)
     {
         $hasStock = $product->variants()

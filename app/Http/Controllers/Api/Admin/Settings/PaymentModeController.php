@@ -11,9 +11,7 @@ use App\Http\Requests\Api\Admin\Settings\PaymentModeRequest;
 
 class PaymentModeController extends Controller
 {
-    /**
-     * @Permissions("list_payment_mode", group="payment_mode", desc="List Payment Mode")
-     */
+    #[Permissions('list_payment_mode', group: 'payment_mode', desc: 'List Payment Mode')]
     public function index(Request $request)
     {
         $paymentModes = PaymentMode::query()
@@ -24,9 +22,7 @@ class PaymentModeController extends Controller
         return PaymentModeResource::collection($paymentModes);
     }
 
-    /**
-     * @Permissions("create_payment_mode", group="payment_mode", desc="Create Payment Mode")
-     */
+    #[Permissions('create_payment_mode', group: 'payment_mode', desc: 'Create Payment Mode')]
     public function store(PaymentModeRequest $request)
     {
         $paymentMode = PaymentMode::create($request->validated());
@@ -37,17 +33,13 @@ class PaymentModeController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_payment_mode", group="payment_mode", desc="Show Payment Mode")
-     */
+    #[Permissions('show_payment_mode', group: 'payment_mode', desc: 'Show Payment Mode')]
     public function show(PaymentMode $paymentMode)
     {
         return PaymentModeResource::make($paymentMode->load('bankAccount'));
     }
 
-    /**
-     * @Permissions("edit_payment_mode", group="payment_mode", desc="Edit Payment Mode")
-     */
+    #[Permissions('edit_payment_mode', group: 'payment_mode', desc: 'Edit Payment Mode')]
     public function update(PaymentModeRequest $request, PaymentMode $paymentMode)
     {
         $paymentMode->update($request->validated());
@@ -58,9 +50,7 @@ class PaymentModeController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_payment_mode", group="payment_mode", desc="Delete Payment Mode")
-     */
+    #[Permissions('delete_payment_mode', group: 'payment_mode', desc: 'Delete Payment Mode')]
     public function destroy(PaymentMode $paymentMode)
     {
         $paymentMode->delete();

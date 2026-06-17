@@ -22,9 +22,7 @@ class StockTransferController extends Controller
         private InventoryLayerTransferService $inventoryTransfer,
     ) {}
 
-    /**
-     * @Permissions("list_stock_transfer", group="stock_transfer", desc="List Stock Transfer")
-     */
+    #[Permissions('list_stock_transfer', group: 'stock_transfer', desc: 'List Stock Transfer')]
     public function index(Request $request)
     {
         $query = StockTransfer::with(['fromWarehouse', 'toWarehouse'])
@@ -40,9 +38,7 @@ class StockTransferController extends Controller
         return StockTransferResource::collection($transfers);
     }
 
-    /**
-     * @Permissions("create_stock_transfer", group="stock_transfer", desc="Create Stock Transfer")
-     */
+    #[Permissions('create_stock_transfer', group: 'stock_transfer', desc: 'Create Stock Transfer')]
     public function store(StockTransferRequest $request)
     {
         $formData = $request->validated();
@@ -94,9 +90,7 @@ class StockTransferController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_stock_transfer", group="stock_transfer", desc="Show Stock Transfer")
-     */
+    #[Permissions('show_stock_transfer', group: 'stock_transfer', desc: 'Show Stock Transfer')]
     public function show(StockTransfer $stockTransfer)
     {
         $stockTransfer->load([
@@ -110,9 +104,7 @@ class StockTransferController extends Controller
         return StockTransferResource::make($stockTransfer);
     }
 
-    /**
-     * @Permissions("edit_stock_transfer", group="stock_transfer", desc="Edit Stock Transfer")
-     */
+    #[Permissions('edit_stock_transfer', group: 'stock_transfer', desc: 'Edit Stock Transfer')]
     public function update(StockTransferRequest $request, StockTransfer $stockTransfer)
     {
         if ($stockTransfer->status === StatusEnum::APPROVED) {
@@ -155,9 +147,7 @@ class StockTransferController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_stock_transfer", group="stock_transfer", desc="Delete Stock Transfer")
-     */
+    #[Permissions('delete_stock_transfer', group: 'stock_transfer', desc: 'Delete Stock Transfer')]
     public function destroy(StockTransfer $stockTransfer)
     {
         if ($stockTransfer->status === StatusEnum::APPROVED) {
@@ -176,9 +166,7 @@ class StockTransferController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_stock_transfer", group="stock_transfer", desc="Approve Stock Transfer")
-     */
+    #[Permissions('approve_stock_transfer', group: 'stock_transfer', desc: 'Approve Stock Transfer')]
     public function approve(StockTransfer $stockTransfer)
     {
         if ($stockTransfer->status === StatusEnum::APPROVED) {

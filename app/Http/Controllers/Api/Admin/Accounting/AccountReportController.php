@@ -33,9 +33,7 @@ class AccountReportController extends Controller
         private readonly BooksHealthService $booksHealthService,
     ) {}
 
-    /**
-     * @Permissions("trial_balance", group="account_report", desc="Trial Balance Report")
-     */
+    #[Permissions('trial_balance', group: 'account_report', desc: 'Trial Balance Report')]
     public function trialBalance(Request $request)
     {
         return response()->json([
@@ -43,9 +41,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("balance_sheet", group="account_report", desc="Balance Sheet Report")
-     */
+    #[Permissions('balance_sheet', group: 'account_report', desc: 'Balance Sheet Report')]
     public function balanceSheet(Request $request)
     {
         return response()->json([
@@ -53,9 +49,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("profit_loss", group="account_report", desc="Profit Loss Report")
-     */
+    #[Permissions('profit_loss', group: 'account_report', desc: 'Profit Loss Report')]
     public function profitLoss(Request $request)
     {
         return response()->json([
@@ -63,9 +57,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("journal_report", group="account_report", desc="Journal Report")
-     */
+    #[Permissions('journal_report', group: 'account_report', desc: 'Journal Report')]
     public function journalReport(Request $request)
     {
         return response()->json([
@@ -73,9 +65,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("general_ledger", group="account_report", desc="General Ledger Report")
-     */
+    #[Permissions('general_ledger', group: 'account_report', desc: 'General Ledger Report')]
     public function generalLedger(Request $request)
     {
         return response()->json([
@@ -83,9 +73,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("vat_report", group="account_report", desc="VAT Sales Register (Bikri Khata)")
-     */
+    #[Permissions('vat_report', group: 'account_report', desc: 'VAT Sales Register (Bikri Khata)')]
     public function vatSalesRegister(Request $request)
     {
         return response()->json([
@@ -93,9 +81,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("vat_report", group="account_report", desc="VAT Purchase Register (Kharid Khata)")
-     */
+    #[Permissions('vat_report', group: 'account_report', desc: 'VAT Purchase Register (Kharid Khata)')]
     public function vatPurchaseRegister(Request $request)
     {
         return response()->json([
@@ -103,9 +89,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("vat_report", group="account_report", desc="D3 VAT Return")
-     */
+    #[Permissions('vat_report', group: 'account_report', desc: 'D3 VAT Return')]
     public function vatReturn(Request $request)
     {
         return response()->json([
@@ -113,9 +97,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("vat_report", group="account_report", desc="VAT Return ↔ GL Reconciliation")
-     */
+    #[Permissions('vat_report', group: 'account_report', desc: 'VAT Return ↔ GL Reconciliation')]
     public function vatReturnReconciliation(Request $request)
     {
         return response()->json([
@@ -123,9 +105,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("books_health", group="account_report", desc="Books Health (GL Integrity Snapshot)")
-     */
+    #[Permissions('books_health', group: 'account_report', desc: 'Books Health (GL Integrity Snapshot)')]
     public function booksHealth(Request $request)
     {
         return response()->json([
@@ -133,9 +113,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("cash_flow", group="account_report", desc="Cash Flow Statement")
-     */
+    #[Permissions('cash_flow', group: 'account_report', desc: 'Cash Flow Statement')]
     public function cashFlow(Request $request)
     {
         return response()->json([
@@ -143,9 +121,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("ar_aging", group="account_report", desc="Accounts Receivable Aging")
-     */
+    #[Permissions('ar_aging', group: 'account_report', desc: 'Accounts Receivable Aging')]
     public function arAging(Request $request)
     {
         return response()->json([
@@ -153,9 +129,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("ap_aging", group="account_report", desc="Accounts Payable Aging")
-     */
+    #[Permissions('ap_aging', group: 'account_report', desc: 'Accounts Payable Aging')]
     public function apAging(Request $request)
     {
         return response()->json([
@@ -163,9 +137,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("inventory_valuation", group="account_report", desc="Inventory Valuation Report")
-     */
+    #[Permissions('inventory_valuation', group: 'account_report', desc: 'Inventory Valuation Report')]
     public function inventoryValuation(Request $request)
     {
         return response()->json([
@@ -173,9 +145,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("stock_aging", group="account_report", desc="Stock Aging Report")
-     */
+    #[Permissions('stock_aging', group: 'account_report', desc: 'Stock Aging Report')]
     public function stockAging(Request $request)
     {
         return response()->json([
@@ -183,9 +153,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("reorder_alerts", group="account_report", desc="Reorder Alerts")
-     */
+    #[Permissions('reorder_alerts', group: 'account_report', desc: 'Reorder Alerts')]
     public function reorderAlerts(Request $request)
     {
         return response()->json([
@@ -193,9 +161,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("tds_report", group="account_report", desc="TDS Report")
-     */
+    #[Permissions('tds_report', group: 'account_report', desc: 'TDS Report')]
     public function tdsReport(Request $request)
     {
         return response()->json([
@@ -203,9 +169,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("unposted_documents", group="account_report", desc="Unposted Documents (GL Integrity)")
-     */
+    #[Permissions('unposted_documents', group: 'account_report', desc: 'Unposted Documents (GL Integrity)')]
     public function unpostedDocuments(Request $request)
     {
         return response()->json([
@@ -213,9 +177,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("unbalanced_journals", group="account_report", desc="Unbalanced Journals (GL Integrity)")
-     */
+    #[Permissions('unbalanced_journals', group: 'account_report', desc: 'Unbalanced Journals (GL Integrity)')]
     public function unbalancedJournals(Request $request)
     {
         return response()->json([
@@ -223,9 +185,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("ar_ap_reconciliation", group="account_report", desc="AR/AP Control Account Reconciliation")
-     */
+    #[Permissions('ar_ap_reconciliation', group: 'account_report', desc: 'AR/AP Control Account Reconciliation')]
     public function arApReconciliation(Request $request)
     {
         return response()->json([
@@ -233,9 +193,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("inventory_gl_reconciliation", group="account_report", desc="Inventory ↔ GL Reconciliation")
-     */
+    #[Permissions('inventory_gl_reconciliation', group: 'account_report', desc: 'Inventory ↔ GL Reconciliation')]
     public function inventoryGlReconciliation(Request $request)
     {
         return response()->json([
@@ -243,9 +201,7 @@ class AccountReportController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("expense_statement_report", group="account_report", desc="Expense Statement Report")
-     */
+    #[Permissions('expense_statement_report', group: 'account_report', desc: 'Expense Statement Report')]
     public function expenseStatement(Request $request)
     {
         return response()->json([
@@ -257,9 +213,8 @@ class AccountReportController extends Controller
      * Idempotently post a sales journal for an approved invoice that is missing
      * one (e.g. approved before GL accounts were configured). Safe to retry:
      * the posting service no-ops if a journal already exists.
-     *
-     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
      */
+    #[Permissions('repost_document', group: 'account_report', desc: 'Re-post Unposted Documents')]
     public function repostInvoice(Invoice $invoice)
     {
         if ($invoice->status !== StatusEnum::APPROVED || $invoice->voided_at) {
@@ -293,9 +248,8 @@ class AccountReportController extends Controller
     /**
      * Idempotently post a purchase journal for an approved bill that is missing
      * one. Safe to retry: no-ops if a journal already exists.
-     *
-     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
      */
+    #[Permissions('repost_document', group: 'account_report', desc: 'Re-post Unposted Documents')]
     public function repostBill(Bill $bill)
     {
         if ($bill->status !== StatusEnum::APPROVED || $bill->voided_at) {
@@ -326,9 +280,8 @@ class AccountReportController extends Controller
     /**
      * Idempotently post an expense journal for an approved expense that is
      * missing one. Safe to retry: no-ops if a journal already exists.
-     *
-     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
      */
+    #[Permissions('repost_document', group: 'account_report', desc: 'Re-post Unposted Documents')]
     public function repostExpense(Expense $expense)
     {
         if ($expense->status !== StatusEnum::APPROVED || $expense->voided_at) {
@@ -359,9 +312,8 @@ class AccountReportController extends Controller
     /**
      * Idempotently post a sales-return journal for an approved credit note that
      * is missing one. Safe to retry.
-     *
-     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
      */
+    #[Permissions('repost_document', group: 'account_report', desc: 'Re-post Unposted Documents')]
     public function repostCreditNote(CreditNote $creditNote)
     {
         if ($creditNote->status !== StatusEnum::APPROVED || $creditNote->voided_at) {
@@ -392,9 +344,8 @@ class AccountReportController extends Controller
     /**
      * Idempotently post a purchase-return journal for an approved debit note
      * that is missing one. Safe to retry.
-     *
-     * @Permissions("repost_document", group="account_report", desc="Re-post Unposted Documents")
      */
+    #[Permissions('repost_document', group: 'account_report', desc: 'Re-post Unposted Documents')]
     public function repostDebitNote(DebitNote $debitNote)
     {
         if ($debitNote->status !== StatusEnum::APPROVED || $debitNote->voided_at) {

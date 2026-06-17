@@ -10,9 +10,7 @@ use App\Http\Resources\Admin\HR\PayslipResource;
 
 class PayslipController extends Controller
 {
-    /**
-     * @Permissions("list_payroll", group="payslip", desc="List Payslips")
-     */
+    #[Permissions('list_payroll', group: 'payslip', desc: 'List Payslips')]
     public function index(Request $request)
     {
         $payslips = Payslip::with(['employee', 'payrollRun'])
@@ -24,9 +22,7 @@ class PayslipController extends Controller
         return PayslipResource::collection($payslips);
     }
 
-    /**
-     * @Permissions("show_payroll", group="payslip", desc="Show Payslip")
-     */
+    #[Permissions('show_payroll', group: 'payslip', desc: 'Show Payslip')]
     public function show(Payslip $payslip)
     {
         return PayslipResource::make($payslip->load(['employee.department', 'employee.designation', 'payrollRun', 'items']));

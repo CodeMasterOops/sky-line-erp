@@ -17,9 +17,7 @@ class IrdSettingController extends Controller
         private readonly IrdReconciliationService $irdReconciliation,
     ) {}
 
-    /**
-     * @Permissions("edit_setting", group="setting", desc="Get IRD EBS Settings")
-     */
+    #[Permissions('edit_setting', group: 'setting', desc: 'Get IRD EBS Settings')]
     public function show(Request $request)
     {
         $company = auth('admin')->user()->company;
@@ -36,9 +34,7 @@ class IrdSettingController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_setting", group="setting", desc="Save IRD EBS Settings")
-     */
+    #[Permissions('edit_setting', group: 'setting', desc: 'Save IRD EBS Settings')]
     public function update(Request $request)
     {
         $validated = $request->validate([
@@ -70,9 +66,7 @@ class IrdSettingController extends Controller
         return response()->json(['message' => 'IRD settings updated successfully.']);
     }
 
-    /**
-     * @Permissions("edit_setting", group="setting", desc="Manually trigger IRD sync for an invoice")
-     */
+    #[Permissions('edit_setting', group: 'setting', desc: 'Manually trigger IRD sync for an invoice')]
     public function retrySync(Invoice $invoice)
     {
         if ($invoice->company_id !== auth('admin')->user()->company_id) {
@@ -85,9 +79,7 @@ class IrdSettingController extends Controller
         return response()->json(['message' => 'IRD sync queued. Status will update shortly.']);
     }
 
-    /**
-     * @Permissions("list_invoice", group="invoice", desc="IRD sync status summary")
-     */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'IRD sync status summary')]
     public function syncSummary(Request $request)
     {
         $companyId = auth('admin')->user()->company_id;
@@ -117,9 +109,8 @@ class IrdSettingController extends Controller
      * Full IRD reconciliation: sync-status counts plus the approved invoices that
      * are out of compliance (pending/failed), each annotated with the mandatory
      * fields it is missing so data issues can be fixed before re-syncing.
-     *
-     * @Permissions("list_invoice", group="invoice", desc="IRD reconciliation report")
      */
+    #[Permissions('list_invoice', group: 'invoice', desc: 'IRD reconciliation report')]
     public function reconciliation(Request $request)
     {
         $validated = $request->validate([
@@ -143,9 +134,8 @@ class IrdSettingController extends Controller
      * invoice that is pending or failed AND has all mandatory fields. Invoices
      * with missing fields are skipped (they would just fail again) and reported
      * so the user can fix the data first.
-     *
-     * @Permissions("edit_setting", group="setting", desc="Bulk re-sync invoices to IRD")
      */
+    #[Permissions('edit_setting', group: 'setting', desc: 'Bulk re-sync invoices to IRD')]
     public function resyncAll(Request $request)
     {
         $companyId = auth('admin')->user()->company_id;

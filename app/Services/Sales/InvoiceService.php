@@ -10,6 +10,7 @@ use App\Models\SalesOrder;
 use App\Enums\ChangeTypeEnum;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Tax\TaxCalculationEngine;
@@ -83,10 +84,10 @@ readonly class InvoiceService
                 );
             }
 
-            foreach ($formData['items'] ?? [] as $item) {
-                $item = $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null);
-
-                $invoiceItem = $invoice->invoiceItems()->create([
+            DocumentLineItemSyncer::sync(
+                $invoice->invoiceItems(),
+                $formData['items'] ?? [],
+                fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
@@ -98,16 +99,9 @@ readonly class InvoiceService
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $invoiceItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
+                ],
+                fn ($item) => $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null),
+            );
 
             $invoice->refresh()->refreshTotals();
 
@@ -161,10 +155,10 @@ readonly class InvoiceService
 
             $invoice->invoiceItems()->delete();
 
-            foreach ($formData['items'] ?? [] as $item) {
-                $item = $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null);
-
-                $invoiceItem = $invoice->invoiceItems()->create([
+            DocumentLineItemSyncer::sync(
+                $invoice->invoiceItems(),
+                $formData['items'] ?? [],
+                fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'delivery_challan_item_id' => $item['delivery_challan_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
@@ -176,16 +170,9 @@ readonly class InvoiceService
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $invoiceItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
+                ],
+                fn ($item) => $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null),
+            );
 
             $invoice->refreshTotals();
         });

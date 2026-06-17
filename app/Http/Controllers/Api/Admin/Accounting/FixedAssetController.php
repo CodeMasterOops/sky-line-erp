@@ -14,9 +14,7 @@ class FixedAssetController extends Controller
 {
     use GeneratesEntityCode;
 
-    /**
-     * @Permissions("list_fixed_asset", group="fixed_asset", desc="List Fixed Assets")
-     */
+    #[Permissions('list_fixed_asset', group: 'fixed_asset', desc: 'List Fixed Assets')]
     public function index(Request $request)
     {
         $company = auth('admin')->user()->company;
@@ -30,9 +28,7 @@ class FixedAssetController extends Controller
         return response()->json($assets);
     }
 
-    /**
-     * @Permissions("show_fixed_asset", group="fixed_asset", desc="Show Fixed Asset")
-     */
+    #[Permissions('show_fixed_asset', group: 'fixed_asset', desc: 'Show Fixed Asset')]
     public function show(FixedAsset $fixedAsset)
     {
         return response()->json([
@@ -40,9 +36,7 @@ class FixedAssetController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("create_fixed_asset", group="fixed_asset", desc="Create Fixed Asset")
-     */
+    #[Permissions('create_fixed_asset', group: 'fixed_asset', desc: 'Create Fixed Asset')]
     public function store(Request $request)
     {
         $validated = $this->validateAsset($request);
@@ -59,9 +53,7 @@ class FixedAssetController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("edit_fixed_asset", group="fixed_asset", desc="Update Fixed Asset")
-     */
+    #[Permissions('edit_fixed_asset', group: 'fixed_asset', desc: 'Update Fixed Asset')]
     public function update(Request $request, FixedAsset $fixedAsset)
     {
         $validated = $this->validateAsset($request);
@@ -73,9 +65,7 @@ class FixedAssetController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_fixed_asset", group="fixed_asset", desc="Delete Fixed Asset")
-     */
+    #[Permissions('delete_fixed_asset', group: 'fixed_asset', desc: 'Delete Fixed Asset')]
     public function destroy(FixedAsset $fixedAsset)
     {
         $fixedAsset->delete();
@@ -83,9 +73,7 @@ class FixedAssetController extends Controller
         return response()->json(['message' => 'Fixed asset deleted successfully.']);
     }
 
-    /**
-     * @Permissions("list_fixed_asset_category", group="fixed_asset", desc="List Fixed Asset Categories")
-     */
+    #[Permissions('list_fixed_asset_category', group: 'fixed_asset', desc: 'List Fixed Asset Categories')]
     public function categories(Request $request)
     {
         $company = auth('admin')->user()->company;
@@ -94,9 +82,7 @@ class FixedAssetController extends Controller
         return response()->json(['data' => $categories]);
     }
 
-    /**
-     * @Permissions("create_fixed_asset_category", group="fixed_asset", desc="Create Asset Category")
-     */
+    #[Permissions('create_fixed_asset_category', group: 'fixed_asset', desc: 'Create Asset Category')]
     public function storeCategory(Request $request)
     {
         $validated = $request->validate([
@@ -118,9 +104,7 @@ class FixedAssetController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("list_fixed_asset", group="fixed_asset", desc="Fixed Asset Schedule Report")
-     */
+    #[Permissions('list_fixed_asset', group: 'fixed_asset', desc: 'Fixed Asset Schedule Report')]
     public function schedule(Request $request)
     {
         $company = auth('admin')->user()->company;

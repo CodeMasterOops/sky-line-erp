@@ -15,9 +15,7 @@ class CustomerAdvanceController extends Controller
 {
     public function __construct(private CustomerAdvanceService $service) {}
 
-    /**
-     * @Permissions("list_customer_advance", group="customer_advance", desc="List Customer Advances")
-     */
+    #[Permissions('list_customer_advance', group: 'customer_advance', desc: 'List Customer Advances')]
     public function index(Request $request): JsonResponse
     {
         $rows = CustomerAdvance::query()
@@ -31,9 +29,7 @@ class CustomerAdvanceController extends Controller
         return response()->json(['data' => $rows]);
     }
 
-    /**
-     * @Permissions("create_customer_advance", group="customer_advance", desc="Record Customer Advance")
-     */
+    #[Permissions('create_customer_advance', group: 'customer_advance', desc: 'Record Customer Advance')]
     public function store(CustomerAdvanceRequest $request): JsonResponse
     {
         $advance = $this->service->create($request->validated());
@@ -41,9 +37,7 @@ class CustomerAdvanceController extends Controller
         return response()->json(['data' => $advance->load('party:id,name', 'account:id,name')], 201);
     }
 
-    /**
-     * @Permissions("view_customer_advance", group="customer_advance", desc="View Customer Advance")
-     */
+    #[Permissions('view_customer_advance', group: 'customer_advance', desc: 'View Customer Advance')]
     public function show(CustomerAdvance $customerAdvance): JsonResponse
     {
         return response()->json([
@@ -51,9 +45,7 @@ class CustomerAdvanceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_customer_advance", group="customer_advance", desc="Approve Customer Advance")
-     */
+    #[Permissions('approve_customer_advance', group: 'customer_advance', desc: 'Approve Customer Advance')]
     public function approve(CustomerAdvance $customerAdvance): JsonResponse
     {
         $this->service->approve($customerAdvance);
@@ -61,9 +53,7 @@ class CustomerAdvanceController extends Controller
         return response()->json(['data' => $customerAdvance->refresh()]);
     }
 
-    /**
-     * @Permissions("apply_customer_advance", group="customer_advance", desc="Apply Advance to Invoice")
-     */
+    #[Permissions('apply_customer_advance', group: 'customer_advance', desc: 'Apply Advance to Invoice')]
     public function apply(Request $request, CustomerAdvance $customerAdvance): JsonResponse
     {
         $data = $request->validate([
@@ -85,9 +75,7 @@ class CustomerAdvanceController extends Controller
         return response()->json(['data' => $application->load('invoice:id,invoice_no')], 201);
     }
 
-    /**
-     * @Permissions("void_customer_advance", group="customer_advance", desc="Void Customer Advance")
-     */
+    #[Permissions('void_customer_advance', group: 'customer_advance', desc: 'Void Customer Advance')]
     public function void(CustomerAdvance $customerAdvance): JsonResponse
     {
         $this->service->void($customerAdvance);

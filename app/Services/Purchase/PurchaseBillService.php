@@ -10,6 +10,7 @@ use App\Enums\ChangeTypeEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Accounting\PeriodLockGuard;
 use App\Services\Inventory\LandedCostService;
@@ -118,8 +119,10 @@ readonly class PurchaseBillService
                 $formData['order_discount_amount'],
             );
 
-            foreach ($items as $item) {
-                $billItem = $bill->billItems()->create([
+            DocumentLineItemSyncer::sync(
+                $bill->billItems(),
+                $items,
+                fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'grn_item_id' => $item['grn_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
@@ -130,14 +133,8 @@ readonly class PurchaseBillService
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
-                ]);
-
-                $billItem->saveDiscount(
-                    $item['line_discount_type'],
-                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                    $item['discount_amount'],
-                );
-            }
+                ],
+            );
 
             $this->syncBillLandedCosts($bill, $formData);
 
@@ -177,8 +174,10 @@ readonly class PurchaseBillService
 
             $bill->billItems()->delete();
 
-            foreach ($items as $item) {
-                $billItem = $bill->billItems()->create([
+            DocumentLineItemSyncer::sync(
+                $bill->billItems(),
+                $items,
+                fn ($item) => [
                     'product_variant_id' => $item['product_variant_id'],
                     'grn_item_id' => $item['grn_item_id'] ?? null,
                     'warehouse_id' => $item['warehouse_id'] ?? null,
@@ -189,14 +188,8 @@ readonly class PurchaseBillService
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
-                ]);
-
-                $billItem->saveDiscount(
-                    $item['line_discount_type'],
-                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                    $item['discount_amount'],
-                );
-            }
+                ],
+            );
 
             $this->syncBillLandedCosts($bill, $formData);
         });

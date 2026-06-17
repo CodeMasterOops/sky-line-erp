@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
-use Doctrine\Common\Annotations\AnnotationReader;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class CheckRoleMiddleware
@@ -36,7 +35,7 @@ class CheckRoleMiddleware
         $permissionAnnotations = [];
 
         try {
-            $permissionAnnotations = $this->findPermissionAnnotations($request);
+            $permissionAnnotations = $this->findPermissionAttributes($request);
         } catch (\ReflectionException $e) {
             Log::error('CheckRoleMiddleware: reflection failed — denying request', [
                 'path' => $request->path(),
@@ -57,22 +56,20 @@ class CheckRoleMiddleware
     }
 
     /**
+     * @return list<Permissions>
+     *
      * @throws \ReflectionException
      */
-    private function findPermissionAnnotations(Request $request): array
+    private function findPermissionAttributes(Request $request): array
     {
-        $reader = new AnnotationReader;
         $object = $request->route()->getAction();
         $controllerArr = explode('@', $object['controller']);
         if (isset($controllerArr[1])) {
             [$controller, $method] = $controllerArr;
-            $reflectionClass = new \ReflectionClass($controller);
-            $reflectionMethod = $reflectionClass->getMethod($method);
-            $allAnnotations = $reader->getMethodAnnotations($reflectionMethod);
+            $reflectionMethod = new \ReflectionMethod($controller, $method);
+            $attributes = $reflectionMethod->getAttributes(Permissions::class, \ReflectionAttribute::IS_INSTANCEOF);
 
-            return array_filter($allAnnotations, function ($annotation) {
-                return $annotation instanceof Permissions;
-            });
+            return array_map(fn ($attr) => $attr->newInstance(), $attributes);
         }
 
         return [];

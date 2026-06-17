@@ -12,9 +12,7 @@ use App\Http\Requests\Api\Admin\HR\AttendanceRequest;
 
 class AttendanceController extends Controller
 {
-    /**
-     * @Permissions("list_attendance", group="attendance", desc="List Attendance")
-     */
+    #[Permissions('list_attendance', group: 'attendance', desc: 'List Attendance')]
     public function index(Request $request)
     {
         $attendances = Attendance::with('employee')
@@ -25,9 +23,7 @@ class AttendanceController extends Controller
         return AttendanceResource::collection($attendances);
     }
 
-    /**
-     * @Permissions("create_attendance", group="attendance", desc="Create Attendance")
-     */
+    #[Permissions('create_attendance', group: 'attendance', desc: 'Create Attendance')]
     public function store(AttendanceRequest $request)
     {
         $attendance = Attendance::updateOrCreate(
@@ -41,17 +37,13 @@ class AttendanceController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_attendance", group="attendance", desc="Show Attendance")
-     */
+    #[Permissions('show_attendance', group: 'attendance', desc: 'Show Attendance')]
     public function show(Attendance $attendance)
     {
         return AttendanceResource::make($attendance->load('employee'));
     }
 
-    /**
-     * @Permissions("edit_attendance", group="attendance", desc="Edit Attendance")
-     */
+    #[Permissions('edit_attendance', group: 'attendance', desc: 'Edit Attendance')]
     public function update(AttendanceRequest $request, Attendance $attendance)
     {
         $attendance->update($request->validated());
@@ -62,9 +54,7 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_attendance", group="attendance", desc="Delete Attendance")
-     */
+    #[Permissions('delete_attendance', group: 'attendance', desc: 'Delete Attendance')]
     public function destroy(Attendance $attendance)
     {
         $attendance->delete();
@@ -74,9 +64,7 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_attendance", group="attendance", desc="Monthly Attendance Sheet")
-     */
+    #[Permissions('list_attendance', group: 'attendance', desc: 'Monthly Attendance Sheet')]
     public function monthly(Request $request)
     {
         $month = $request->month ?? now()->month;
@@ -100,9 +88,7 @@ class AttendanceController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("create_attendance", group="attendance", desc="Bulk Attendance")
-     */
+    #[Permissions('create_attendance', group: 'attendance', desc: 'Bulk Attendance')]
     public function bulkStore(Request $request)
     {
         $request->validate([

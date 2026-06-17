@@ -11,11 +11,7 @@ use App\Http\Requests\Api\Admin\Settings\TaxRequest;
 
 class TaxController extends Controller
 {
-    /**
-     * @Permissions("list_tax", group="tax", desc="List Tax")
-     *
-     * Pass ?for=invoice or ?for=bill to get only VAT-type taxes suitable for line items.
-     */
+    #[Permissions('list_tax', group: 'tax', desc: 'List Tax')]
     public function index(Request $request)
     {
         $query = Tax::query();
@@ -29,9 +25,7 @@ class TaxController extends Controller
         return TaxResource::collection($taxes);
     }
 
-    /**
-     * @Permissions("create_tax", group="tax", desc="Create Tax")
-     */
+    #[Permissions('create_tax', group: 'tax', desc: 'Create Tax')]
     public function store(TaxRequest $request)
     {
         $tax = Tax::create($request->validated());
@@ -42,17 +36,13 @@ class TaxController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_tax", group="tax", desc="Show Tax")
-     */
+    #[Permissions('show_tax', group: 'tax', desc: 'Show Tax')]
     public function show(Tax $tax)
     {
         return TaxResource::make($tax);
     }
 
-    /**
-     * @Permissions("edit_tax", group="tax", desc="Edit Tax")
-     */
+    #[Permissions('edit_tax', group: 'tax', desc: 'Edit Tax')]
     public function update(TaxRequest $request, Tax $tax)
     {
         if ($tax->is_system) {
@@ -69,9 +59,7 @@ class TaxController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_tax", group="tax", desc="Delete Tax")
-     */
+    #[Permissions('delete_tax', group: 'tax', desc: 'Delete Tax')]
     public function destroy(Tax $tax)
     {
         if ($tax->is_system) {

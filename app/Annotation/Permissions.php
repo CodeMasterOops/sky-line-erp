@@ -2,79 +2,40 @@
 
 namespace App\Annotation;
 
-/**
- * Class Permissions
- *
- * @Annotation
- */
+#[\Attribute(\Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
 class Permissions
 {
-    /**
-     * @var string
-     */
-    public $value;
+    public function __construct(
+        public readonly string $value,
+        public readonly string $group = '',
+        public readonly string $desc = '',
+        public readonly string $route = '',
+        public readonly string $parent = '',
+        /** @var string[] */
+        public readonly array $child = [],
+    ) {}
 
-    /**
-     * @var string
-     */
-    public $desc;
-
-    /**
-     * @var string
-     */
-    public $group;
-
-    /**
-     * @var array
-     */
-    public $child = [];
-
-    /**
-     * @var string
-     */
-    public $parent;
-
-    /**
-     * @var string
-     */
-    public $route;
-
-    /**
-     * @return string
-     */
-    public function getDesc()
+    public function getDesc(): string
     {
         return $this->desc;
     }
 
-    /**
-     * @return string
-     */
-    public function getGroup()
+    public function getGroup(): string
     {
         return $this->group;
     }
 
-    /**
-     * @return array
-     */
-    public function getChild()
+    public function getChild(): array
     {
         return $this->child;
     }
 
-    /**
-     * @return string
-     */
-    public function getParent()
+    public function getParent(): string
     {
         return $this->parent;
     }
 
-    /**
-     * @return string
-     */
-    public function getRoute()
+    public function getRoute(): string
     {
         return $this->route;
     }
@@ -82,15 +43,5 @@ class Permissions
     public function getValue(): string
     {
         return $this->value;
-    }
-
-    /**
-     * @return $this;
-     */
-    public function setValue(string $value)
-    {
-        $this->value = $value;
-
-        return $this;
     }
 }

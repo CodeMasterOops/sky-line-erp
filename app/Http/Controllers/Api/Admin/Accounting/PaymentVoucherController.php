@@ -21,9 +21,7 @@ class PaymentVoucherController extends Controller
         private PeriodLockGuard $periodGuard,
     ) {}
 
-    /**
-     * @Permissions("list_payment_voucher", group="payment_voucher", desc="List Payment Voucher")
-     */
+    #[Permissions('list_payment_voucher', group: 'payment_voucher', desc: 'List Payment Voucher')]
     public function index(Request $request)
     {
         $filters = $request->all();
@@ -36,9 +34,7 @@ class PaymentVoucherController extends Controller
         return PaymentVoucherResource::collection($vouchers);
     }
 
-    /**
-     * @Permissions("create_payment_voucher", group="payment_voucher", desc="Create Payment Voucher")
-     */
+    #[Permissions('create_payment_voucher', group: 'payment_voucher', desc: 'Create Payment Voucher')]
     public function store(PaymentVoucherRequest $request)
     {
         $formData = $request->validated();
@@ -86,9 +82,7 @@ class PaymentVoucherController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_payment_voucher", group="payment_voucher", desc="Show Payment Voucher")
-     */
+    #[Permissions('show_payment_voucher', group: 'payment_voucher', desc: 'Show Payment Voucher')]
     public function show(Journal $paymentVoucher)
     {
         $this->ensurePaymentVoucher($paymentVoucher);
@@ -98,9 +92,7 @@ class PaymentVoucherController extends Controller
         return PaymentVoucherResource::make($paymentVoucher);
     }
 
-    /**
-     * @Permissions("edit_payment_voucher", group="payment_voucher", desc="Edit Payment Voucher")
-     */
+    #[Permissions('edit_payment_voucher', group: 'payment_voucher', desc: 'Edit Payment Voucher')]
     public function update(PaymentVoucherRequest $request, Journal $paymentVoucher)
     {
         $this->ensurePaymentVoucher($paymentVoucher);
@@ -136,9 +128,7 @@ class PaymentVoucherController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_payment_voucher", group="payment_voucher", desc="Delete Payment Voucher")
-     */
+    #[Permissions('delete_payment_voucher', group: 'payment_voucher', desc: 'Delete Payment Voucher')]
     public function destroy(Journal $paymentVoucher)
     {
         $this->ensurePaymentVoucher($paymentVoucher);
@@ -157,9 +147,7 @@ class PaymentVoucherController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_payment_voucher", group="payment_voucher", desc="Approve Payment Voucher")
-     */
+    #[Permissions('approve_payment_voucher', group: 'payment_voucher', desc: 'Approve Payment Voucher')]
     public function approve(Journal $paymentVoucher)
     {
         $this->ensurePaymentVoucher($paymentVoucher);

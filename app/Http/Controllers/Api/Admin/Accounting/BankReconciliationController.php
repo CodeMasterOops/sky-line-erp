@@ -14,9 +14,7 @@ use App\Services\NepalBankStatementParser;
 
 class BankReconciliationController extends Controller
 {
-    /**
-     * @Permissions("list_bank_account", group="bank_reconciliation", desc="List Bank Accounts")
-     */
+    #[Permissions('list_bank_account', group: 'bank_reconciliation', desc: 'List Bank Accounts')]
     public function bankAccounts(Request $request)
     {
         $company = auth('admin')->user()->company;
@@ -28,9 +26,7 @@ class BankReconciliationController extends Controller
         return response()->json(['data' => $accounts]);
     }
 
-    /**
-     * @Permissions("create_bank_account", group="bank_reconciliation", desc="Create Bank Account")
-     */
+    #[Permissions('create_bank_account', group: 'bank_reconciliation', desc: 'Create Bank Account')]
     public function storeBankAccount(Request $request)
     {
         $validated = $request->validate([
@@ -50,9 +46,7 @@ class BankReconciliationController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("list_bank_statement", group="bank_reconciliation", desc="List Statement Lines")
-     */
+    #[Permissions('list_bank_statement', group: 'bank_reconciliation', desc: 'List Statement Lines')]
     public function statementLines(Request $request, BankAccount $bankAccount)
     {
         $request->validate([
@@ -89,9 +83,7 @@ class BankReconciliationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("create_bank_statement", group="bank_reconciliation", desc="Import Statement Lines")
-     */
+    #[Permissions('create_bank_statement', group: 'bank_reconciliation', desc: 'Import Statement Lines')]
     public function importLines(Request $request, BankAccount $bankAccount)
     {
         $validated = $request->validate([
@@ -127,9 +119,7 @@ class BankReconciliationController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("edit_bank_statement", group="bank_reconciliation", desc="Match Statement Line")
-     */
+    #[Permissions('edit_bank_statement', group: 'bank_reconciliation', desc: 'Match Statement Line')]
     public function matchLine(Request $request, BankStatementLine $bankStatementLine)
     {
         $companyId = auth('admin')->user()->company_id;
@@ -160,9 +150,7 @@ class BankReconciliationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_bank_statement", group="bank_reconciliation", desc="Unmatch Statement Line")
-     */
+    #[Permissions('edit_bank_statement', group: 'bank_reconciliation', desc: 'Unmatch Statement Line')]
     public function unmatchLine(BankStatementLine $bankStatementLine)
     {
         $companyId = auth('admin')->user()->company_id;
@@ -181,9 +169,7 @@ class BankReconciliationController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_bank_statement", group="bank_reconciliation", desc="Auto Match Lines")
-     */
+    #[Permissions('list_bank_statement', group: 'bank_reconciliation', desc: 'Auto Match Lines')]
     public function autoMatch(BankAccount $bankAccount)
     {
         $companyId = auth('admin')->user()->company_id;
@@ -245,9 +231,7 @@ class BankReconciliationController extends Controller
         return round((float) ($balance ?? 0), 2);
     }
 
-    /**
-     * @Permissions("create_bank_statement", group="bank_reconciliation", desc="Import CSV from Nepal Banks")
-     */
+    #[Permissions('create_bank_statement', group: 'bank_reconciliation', desc: 'Import CSV from Nepal Banks')]
     public function importCsv(Request $request, BankAccount $bankAccount, NepalBankStatementParser $parser)
     {
         $request->validate([

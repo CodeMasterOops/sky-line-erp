@@ -19,9 +19,7 @@ class ReceiptVoucherController extends Controller
         private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
-    /**
-     * @Permissions("list_receipt_voucher", group="receipt_voucher", desc="List Receipt Voucher")
-     */
+    #[Permissions('list_receipt_voucher', group: 'receipt_voucher', desc: 'List Receipt Voucher')]
     public function index(Request $request)
     {
         $filters = $request->all();
@@ -34,9 +32,7 @@ class ReceiptVoucherController extends Controller
         return ReceiptVoucherResource::collection($vouchers);
     }
 
-    /**
-     * @Permissions("create_receipt_voucher", group="receipt_voucher", desc="Create Receipt Voucher")
-     */
+    #[Permissions('create_receipt_voucher', group: 'receipt_voucher', desc: 'Create Receipt Voucher')]
     public function store(ReceiptVoucherRequest $request)
     {
         $formData = $request->validated();
@@ -80,9 +76,7 @@ class ReceiptVoucherController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_receipt_voucher", group="receipt_voucher", desc="Show Receipt Voucher")
-     */
+    #[Permissions('show_receipt_voucher', group: 'receipt_voucher', desc: 'Show Receipt Voucher')]
     public function show(Journal $receiptVoucher)
     {
         $this->ensureReceiptVoucher($receiptVoucher);
@@ -92,9 +86,7 @@ class ReceiptVoucherController extends Controller
         return ReceiptVoucherResource::make($receiptVoucher);
     }
 
-    /**
-     * @Permissions("edit_receipt_voucher", group="receipt_voucher", desc="Edit Receipt Voucher")
-     */
+    #[Permissions('edit_receipt_voucher', group: 'receipt_voucher', desc: 'Edit Receipt Voucher')]
     public function update(ReceiptVoucherRequest $request, Journal $receiptVoucher)
     {
         $this->ensureReceiptVoucher($receiptVoucher);
@@ -130,9 +122,7 @@ class ReceiptVoucherController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_receipt_voucher", group="receipt_voucher", desc="Delete Receipt Voucher")
-     */
+    #[Permissions('delete_receipt_voucher', group: 'receipt_voucher', desc: 'Delete Receipt Voucher')]
     public function destroy(Journal $receiptVoucher)
     {
         $this->ensureReceiptVoucher($receiptVoucher);
@@ -145,9 +135,7 @@ class ReceiptVoucherController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_receipt_voucher", group="receipt_voucher", desc="Approve Receipt Voucher")
-     */
+    #[Permissions('approve_receipt_voucher', group: 'receipt_voucher', desc: 'Approve Receipt Voucher')]
     public function approve(Journal $receiptVoucher)
     {
         $this->ensureReceiptVoucher($receiptVoucher);

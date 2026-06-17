@@ -18,9 +18,7 @@ class CreditNoteController extends Controller
         private CreditNoteService $creditNoteService,
     ) {}
 
-    /**
-     * @Permissions("list_credit_note", group="credit_note", desc="List Credit Note")
-     */
+    #[Permissions('list_credit_note', group: 'credit_note', desc: 'List Credit Note')]
     public function index(Request $request)
     {
         $creditNotes = CreditNote::filter($request->all())
@@ -31,9 +29,7 @@ class CreditNoteController extends Controller
         return CreditNoteResource::collection($creditNotes);
     }
 
-    /**
-     * @Permissions("create_credit_note", group="credit_note", desc="Create Credit Note")
-     */
+    #[Permissions('create_credit_note', group: 'credit_note', desc: 'Create Credit Note')]
     public function store(CreditNoteRequest $request)
     {
         $user = auth('admin')->user();
@@ -62,9 +58,7 @@ class CreditNoteController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_credit_note", group="credit_note", desc="Show Credit Note")
-     */
+    #[Permissions('show_credit_note', group: 'credit_note', desc: 'Show Credit Note')]
     public function show(CreditNote $creditNote)
     {
         $creditNote->load([
@@ -79,9 +73,7 @@ class CreditNoteController extends Controller
         return CreditNoteResource::make($creditNote);
     }
 
-    /**
-     * @Permissions("edit_credit_note", group="credit_note", desc="Edit Credit Note")
-     */
+    #[Permissions('edit_credit_note', group: 'credit_note', desc: 'Edit Credit Note')]
     public function update(CreditNoteRequest $request, CreditNote $creditNote)
     {
         if ($creditNote->voided_at) {
@@ -113,9 +105,7 @@ class CreditNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_credit_note", group="credit_note", desc="Delete Credit Note")
-     */
+    #[Permissions('delete_credit_note', group: 'credit_note', desc: 'Delete Credit Note')]
     public function destroy(CreditNote $creditNote)
     {
         if ($creditNote->status === StatusEnum::APPROVED && ! $creditNote->voided_at) {
@@ -132,9 +122,7 @@ class CreditNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("void_credit_note", group="credit_note", desc="Void Credit Note")
-     */
+    #[Permissions('void_credit_note', group: 'credit_note', desc: 'Void Credit Note')]
     public function void(CreditNote $creditNote)
     {
         if ($creditNote->voided_at) {
@@ -176,9 +164,7 @@ class CreditNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_credit_note", group="credit_note", desc="Approve Credit Note")
-     */
+    #[Permissions('approve_credit_note', group: 'credit_note', desc: 'Approve Credit Note')]
     public function approve(CreditNote $creditNote)
     {
         if ($creditNote->voided_at) {

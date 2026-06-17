@@ -21,9 +21,7 @@ class JournalVoucherController extends Controller
         private readonly PeriodLockGuard $periodGuard,
     ) {}
 
-    /**
-     * @Permissions("list_journal_voucher", group="journal_voucher", desc="List Journal Voucher")
-     */
+    #[Permissions('list_journal_voucher', group: 'journal_voucher', desc: 'List Journal Voucher')]
     public function index(Request $request)
     {
         $filters = $request->all();
@@ -36,9 +34,7 @@ class JournalVoucherController extends Controller
         return JournalVoucherResource::collection($journals);
     }
 
-    /**
-     * @Permissions("create_journal_voucher", group="journal_voucher", desc="Create Journal Voucher")
-     */
+    #[Permissions('create_journal_voucher', group: 'journal_voucher', desc: 'Create Journal Voucher')]
     public function store(JournalVoucherRequest $request)
     {
         $formData = $request->validated();
@@ -59,9 +55,7 @@ class JournalVoucherController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_journal_voucher", group="journal_voucher", desc="Show Journal Voucher")
-     */
+    #[Permissions('show_journal_voucher', group: 'journal_voucher', desc: 'Show Journal Voucher')]
     public function show(Journal $journalVoucher)
     {
         $this->ensureJournalVoucher($journalVoucher);
@@ -71,9 +65,7 @@ class JournalVoucherController extends Controller
         return JournalVoucherResource::make($journalVoucher);
     }
 
-    /**
-     * @Permissions("edit_journal_voucher", group="journal_voucher", desc="Edit Journal Voucher")
-     */
+    #[Permissions('edit_journal_voucher', group: 'journal_voucher', desc: 'Edit Journal Voucher')]
     public function update(JournalVoucherRequest $request, Journal $journalVoucher)
     {
         $this->ensureJournalVoucher($journalVoucher);
@@ -96,9 +88,7 @@ class JournalVoucherController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_journal_voucher", group="journal_voucher", desc="Delete Journal Voucher")
-     */
+    #[Permissions('delete_journal_voucher', group: 'journal_voucher', desc: 'Delete Journal Voucher')]
     public function destroy(Journal $journalVoucher)
     {
         $this->ensureJournalVoucher($journalVoucher);
@@ -117,9 +107,7 @@ class JournalVoucherController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_journal_voucher", group="journal_voucher", desc="Approve Journal Voucher")
-     */
+    #[Permissions('approve_journal_voucher', group: 'journal_voucher', desc: 'Approve Journal Voucher')]
     public function approve(Journal $journalVoucher)
     {
         $this->ensureJournalVoucher($journalVoucher);

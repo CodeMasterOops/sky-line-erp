@@ -18,9 +18,7 @@ class InvoicePdfController extends Controller
         private NepaliNumberService $nepaliNumber,
     ) {}
 
-    /**
-     * @Permissions("show_invoice", group="invoice", desc="Download Invoice PDF")
-     */
+    #[Permissions('show_invoice', group: 'invoice', desc: 'Download Invoice PDF')]
     public function __invoke(Invoice $invoice)
     {
         $invoice->load([

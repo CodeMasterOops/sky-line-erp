@@ -20,14 +20,6 @@ export const formatDateTime = (value, format = 'DD MMM YYYY, h:mm A') => {
     return dayjs(value).format(format);
 };
 
-export const storedPermissions = () => {
-    let permissions = [];
-    if (localStorage.getItem('permissions')) {
-        permissions = JSON.parse(atob(localStorage.getItem('permissions')));
-    }
-    return permissions;
-}
-
 export const containsHtmlTag = (str) => {
     const div = document.createElement('div');
     div.innerHTML = str;

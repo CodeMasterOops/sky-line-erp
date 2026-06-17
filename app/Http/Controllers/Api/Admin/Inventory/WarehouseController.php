@@ -15,9 +15,7 @@ class WarehouseController extends Controller
 {
     use GeneratesEntityCode;
 
-    /**
-     * @Permissions("list_warehouse", group="warehouse", desc="List Warehouse")
-     */
+    #[Permissions('list_warehouse', group: 'warehouse', desc: 'List Warehouse')]
     public function index(Request $request)
     {
         $warehouses = Warehouse::query()
@@ -29,17 +27,13 @@ class WarehouseController extends Controller
         return WarehouseResource::collection($warehouses);
     }
 
-    /**
-     * @Permissions("create_warehouse", group="warehouse", desc="Create Warehouse")
-     */
+    #[Permissions('create_warehouse', group: 'warehouse', desc: 'Create Warehouse')]
     public function nextCode()
     {
         return $this->nextCodeResponse(EntityCodeType::Warehouse);
     }
 
-    /**
-     * @Permissions("create_warehouse", group="warehouse", desc="Create Warehouse")
-     */
+    #[Permissions('create_warehouse', group: 'warehouse', desc: 'Create Warehouse')]
     public function store(WarehouseRequest $request)
     {
         $data = $request->validated();
@@ -53,9 +47,7 @@ class WarehouseController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_warehouse", group="warehouse", desc="Show Warehouse")
-     */
+    #[Permissions('show_warehouse', group: 'warehouse', desc: 'Show Warehouse')]
     public function show(Warehouse $warehouse)
     {
         $warehouse->load('parent:id,name,code');
@@ -63,9 +55,7 @@ class WarehouseController extends Controller
         return WarehouseResource::make($warehouse);
     }
 
-    /**
-     * @Permissions("edit_warehouse", group="warehouse", desc="Edit Warehouse")
-     */
+    #[Permissions('edit_warehouse', group: 'warehouse', desc: 'Edit Warehouse')]
     public function update(WarehouseRequest $request, Warehouse $warehouse)
     {
         $warehouse->update($request->validated());
@@ -77,9 +67,7 @@ class WarehouseController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_warehouse", group="warehouse", desc="Delete Warehouse")
-     */
+    #[Permissions('delete_warehouse', group: 'warehouse', desc: 'Delete Warehouse')]
     public function destroy(Warehouse $warehouse)
     {
         if ($warehouse->children()->exists()) {

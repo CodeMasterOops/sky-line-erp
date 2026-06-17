@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Models\User;
 use App\Services\TenantService;
 use App\Http\Controllers\Controller;
 use App\Services\BranchAccessService;
@@ -22,8 +23,8 @@ class ProfileController extends Controller
     }
 
     /**
-     * Return the current user's effective permissions for the active branch context.
-     * Called by the frontend after a branch switch so the nav menu updates correctly.
+     * Return the current user's effective permissions and user_type for the active branch context.
+     * Called by the frontend on page load and after a branch switch so the nav menu updates correctly.
      */
     public function permissions()
     {
@@ -42,6 +43,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'permissions' => base64_encode(json_encode($permissions)),
+            'user_type' => $user->user_type,
         ]);
     }
 
@@ -62,10 +64,30 @@ class ProfileController extends Controller
 
     public function changePassword(ChangePasswordRequest $request)
     {
-        auth('admin')->user()->update($request->validated());
+        $user = auth('admin')->user();
+        $user->update($request->validated());
+
+        // Revoke all tokens so stale sessions are invalidated after a password change.
+        $user->tokens()->delete();
+
+        $abilities = $this->buildTokenAbilities($user);
+        $tokenData = $user->createToken('auth-token', $abilities, now()->addWeek());
 
         return response()->json([
+            'access_token' => $tokenData->plainTextToken,
+            'expires_at' => $tokenData->accessToken->expires_at,
             'message' => 'Password Changed Successfully',
         ]);
+    }
+
+    private function buildTokenAbilities(User $user): array
+    {
+        if ($user->isAdmin()) {
+            return ['*'];
+        }
+
+        $permissions = userPermissions($user);
+
+        return $permissions ?: ['user:read'];
     }
 }

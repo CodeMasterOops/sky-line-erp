@@ -38,9 +38,7 @@ class BranchController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_branch", group="branch", desc="List Branches")
-     */
+    #[Permissions('list_branch', group: 'branch', desc: 'List Branches')]
     public function index(Request $request)
     {
         $branches = Branch::query()
@@ -50,17 +48,13 @@ class BranchController extends Controller
         return BranchResource::collection($branches);
     }
 
-    /**
-     * @Permissions("create_branch", group="branch", desc="Create Branch")
-     */
+    #[Permissions('create_branch', group: 'branch', desc: 'Create Branch')]
     public function nextCode()
     {
         return $this->nextCodeResponse(EntityCodeType::Branch);
     }
 
-    /**
-     * @Permissions("create_branch", group="branch", desc="Create Branch")
-     */
+    #[Permissions('create_branch', group: 'branch', desc: 'Create Branch')]
     public function store(BranchRequest $request)
     {
         $company = auth('admin')->user()->company;
@@ -85,17 +79,13 @@ class BranchController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_branch", group="branch", desc="Show Branch")
-     */
+    #[Permissions('show_branch', group: 'branch', desc: 'Show Branch')]
     public function show(Branch $branch)
     {
         return BranchResource::make($branch);
     }
 
-    /**
-     * @Permissions("edit_branch", group="branch", desc="Edit Branch")
-     */
+    #[Permissions('edit_branch', group: 'branch', desc: 'Edit Branch')]
     public function update(BranchRequest $request, Branch $branch)
     {
         $branch->update($request->validated());
@@ -106,9 +96,7 @@ class BranchController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_branch", group="branch", desc="Delete Branch")
-     */
+    #[Permissions('delete_branch', group: 'branch', desc: 'Delete Branch')]
     public function destroy(Branch $branch)
     {
         $branch->delete();
@@ -116,9 +104,7 @@ class BranchController extends Controller
         return response()->json(['message' => 'Branch deleted successfully']);
     }
 
-    /**
-     * @Permissions("list_branch", group="branch", desc="Branch P&L Report")
-     */
+    #[Permissions('list_branch', group: 'branch', desc: 'Branch P&L Report')]
     public function plReport(Request $request, Branch $branch)
     {
         $request->validate([
@@ -165,9 +151,7 @@ class BranchController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("list_branch", group="branch", desc="Consolidated P&L all branches")
-     */
+    #[Permissions('list_branch', group: 'branch', desc: 'Consolidated P&L all branches')]
     public function consolidatedReport(Request $request)
     {
         $request->validate([

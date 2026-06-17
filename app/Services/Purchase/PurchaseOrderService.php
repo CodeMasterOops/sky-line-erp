@@ -5,6 +5,7 @@ namespace App\Services\Purchase;
 use App\Enums\StatusEnum;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
 
@@ -49,15 +50,11 @@ readonly class PurchaseOrderService
 
             $order->saveDiscount($orderDiscountType, $orderDiscountValue, $orderDiscountAmount);
 
-            foreach ($items as $item) {
-                $orderItem = $order->purchaseOrderItems()->create($item);
-
-                $orderItem->saveDiscount(
-                    $item['line_discount_type'],
-                    isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                    $item['discount_amount'],
-                );
-            }
+            DocumentLineItemSyncer::sync(
+                $order->purchaseOrderItems(),
+                $items,
+                fn ($item) => $item,
+            );
 
             return $order;
         });

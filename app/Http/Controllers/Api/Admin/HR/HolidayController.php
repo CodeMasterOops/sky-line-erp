@@ -11,9 +11,7 @@ use App\Http\Requests\Api\Admin\HR\HolidayRequest;
 
 class HolidayController extends Controller
 {
-    /**
-     * @Permissions("list_holiday", group="holiday", desc="List Holiday")
-     */
+    #[Permissions('list_holiday', group: 'holiday', desc: 'List Holiday')]
     public function index(Request $request)
     {
         $holidays = Holiday::filter($request->all())
@@ -23,9 +21,7 @@ class HolidayController extends Controller
         return HolidayResource::collection($holidays);
     }
 
-    /**
-     * @Permissions("create_holiday", group="holiday", desc="Create Holiday")
-     */
+    #[Permissions('create_holiday', group: 'holiday', desc: 'Create Holiday')]
     public function store(HolidayRequest $request)
     {
         $holiday = Holiday::create($request->validated());
@@ -36,17 +32,13 @@ class HolidayController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_holiday", group="holiday", desc="Show Holiday")
-     */
+    #[Permissions('show_holiday', group: 'holiday', desc: 'Show Holiday')]
     public function show(Holiday $holiday)
     {
         return HolidayResource::make($holiday);
     }
 
-    /**
-     * @Permissions("edit_holiday", group="holiday", desc="Edit Holiday")
-     */
+    #[Permissions('edit_holiday', group: 'holiday', desc: 'Edit Holiday')]
     public function update(HolidayRequest $request, Holiday $holiday)
     {
         $holiday->update($request->validated());
@@ -57,9 +49,7 @@ class HolidayController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_holiday", group="holiday", desc="Delete Holiday")
-     */
+    #[Permissions('delete_holiday', group: 'holiday', desc: 'Delete Holiday')]
     public function destroy(Holiday $holiday)
     {
         $holiday->delete();

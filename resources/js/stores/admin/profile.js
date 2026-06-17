@@ -43,6 +43,8 @@ export const useProfileStore = defineStore('admin-profile', {
         changePassword(form) {
             return apiAdmin(`profile/change-password`, 'put', form)
                 .then((res) => {
+                    // All previous tokens were revoked server-side; update the stored token.
+                    useAdminAuthStore().setAuthToken(res.data.access_token, res.data.expires_at);
                     return res;
                 }).catch((err) => {
                     throw err;

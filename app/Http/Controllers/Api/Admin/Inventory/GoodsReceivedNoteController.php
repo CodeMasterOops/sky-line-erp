@@ -21,9 +21,7 @@ class GoodsReceivedNoteController extends Controller
         private DocumentNumberGenerator $documentNumberGenerator,
     ) {}
 
-    /**
-     * @Permissions("list_grn", group="grn", desc="List GRNs")
-     */
+    #[Permissions('list_grn', group: 'grn', desc: 'List GRNs')]
     public function index(Request $request)
     {
         $grns = GoodsReceivedNote::with(['party', 'warehouse', 'purchaseOrder', 'createUser'])
@@ -35,9 +33,7 @@ class GoodsReceivedNoteController extends Controller
         return GoodsReceivedNoteResource::collection($grns);
     }
 
-    /**
-     * @Permissions("show_grn", group="grn", desc="Show GRN")
-     */
+    #[Permissions('show_grn', group: 'grn', desc: 'Show GRN')]
     public function show(GoodsReceivedNote $goodsReceivedNote)
     {
         $goodsReceivedNote->load([
@@ -48,9 +44,7 @@ class GoodsReceivedNoteController extends Controller
         return GoodsReceivedNoteResource::make($goodsReceivedNote);
     }
 
-    /**
-     * @Permissions("list_grn", group="grn", desc="List billable GRN lines")
-     */
+    #[Permissions('list_grn', group: 'grn', desc: 'List billable GRN lines')]
     public function billableItems(Request $request)
     {
         $request->validate([
@@ -66,9 +60,7 @@ class GoodsReceivedNoteController extends Controller
         return response()->json(['data' => $items]);
     }
 
-    /**
-     * @Permissions("create_grn", group="grn", desc="Create GRN")
-     */
+    #[Permissions('create_grn', group: 'grn', desc: 'Create GRN')]
     public function store(GoodsReceivedNoteRequest $request)
     {
         $validated = $request->validated();
@@ -90,9 +82,7 @@ class GoodsReceivedNoteController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("edit_grn", group="grn", desc="Update GRN")
-     */
+    #[Permissions('edit_grn', group: 'grn', desc: 'Update GRN')]
     public function update(GoodsReceivedNoteRequest $request, GoodsReceivedNote $goodsReceivedNote)
     {
         $validated = $request->validated();
@@ -107,9 +97,7 @@ class GoodsReceivedNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_grn", group="grn", desc="Approve GRN")
-     */
+    #[Permissions('approve_grn', group: 'grn', desc: 'Approve GRN')]
     public function approve(GoodsReceivedNote $goodsReceivedNote)
     {
         $user = auth('admin')->user();
@@ -131,9 +119,7 @@ class GoodsReceivedNoteController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_grn", group="grn", desc="Delete GRN")
-     */
+    #[Permissions('delete_grn', group: 'grn', desc: 'Delete GRN')]
     public function destroy(GoodsReceivedNote $goodsReceivedNote)
     {
         if ($goodsReceivedNote->status === StatusEnum::APPROVED) {

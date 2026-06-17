@@ -10,9 +10,7 @@ use App\Http\Controllers\Controller;
 
 class BomController extends Controller
 {
-    /**
-     * @Permissions("list_bom", group="bom", desc="List BOMs")
-     */
+    #[Permissions('list_bom', group: 'bom', desc: 'List BOMs')]
     public function index(Request $request)
     {
         $boms = Bom::query()
@@ -35,9 +33,7 @@ class BomController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("create_bom", group="bom", desc="Create BOM")
-     */
+    #[Permissions('create_bom', group: 'bom', desc: 'Create BOM')]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -81,9 +77,7 @@ class BomController extends Controller
         });
     }
 
-    /**
-     * @Permissions("show_bom", group="bom", desc="Show BOM")
-     */
+    #[Permissions('show_bom', group: 'bom', desc: 'Show BOM')]
     public function show(Bom $bom)
     {
         return response()->json([
@@ -91,9 +85,7 @@ class BomController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_bom", group="bom", desc="Update BOM")
-     */
+    #[Permissions('edit_bom', group: 'bom', desc: 'Update BOM')]
     public function update(Request $request, Bom $bom)
     {
         $data = $request->validate([
@@ -139,9 +131,7 @@ class BomController extends Controller
         });
     }
 
-    /**
-     * @Permissions("delete_bom", group="bom", desc="Delete BOM")
-     */
+    #[Permissions('delete_bom', group: 'bom', desc: 'Delete BOM')]
     public function destroy(Bom $bom)
     {
         $bom->delete();

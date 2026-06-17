@@ -17,9 +17,7 @@ class ReceiptController extends Controller
         private readonly ReceiptService $receiptService,
     ) {}
 
-    /**
-     * @Permissions("list_receipt", group="receipt", desc="List Receipt")
-     */
+    #[Permissions('list_receipt', group: 'receipt', desc: 'List Receipt')]
     public function index(Request $request)
     {
         $receipts = Receipt::filter($request->all())
@@ -30,9 +28,7 @@ class ReceiptController extends Controller
         return ReceiptResource::collection($receipts);
     }
 
-    /**
-     * @Permissions("create_receipt", group="receipt", desc="Create Receipt")
-     */
+    #[Permissions('create_receipt', group: 'receipt', desc: 'Create Receipt')]
     public function store(ReceiptRequest $request)
     {
         $receipt = $this->receiptService->createReceipt($request->validated());
@@ -45,9 +41,7 @@ class ReceiptController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_receipt", group="receipt", desc="Show Receipt")
-     */
+    #[Permissions('show_receipt', group: 'receipt', desc: 'Show Receipt')]
     public function show(Receipt $receipt)
     {
         $receipt->load(['party', 'account', 'allocations.invoice']);
@@ -55,9 +49,7 @@ class ReceiptController extends Controller
         return ReceiptResource::make($receipt);
     }
 
-    /**
-     * @Permissions("edit_receipt", group="receipt", desc="Edit Receipt")
-     */
+    #[Permissions('edit_receipt', group: 'receipt', desc: 'Edit Receipt')]
     public function update(ReceiptRequest $request, Receipt $receipt)
     {
         if ($receipt->status === StatusEnum::APPROVED) {
@@ -76,9 +68,7 @@ class ReceiptController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_receipt", group="receipt", desc="Delete Receipt")
-     */
+    #[Permissions('delete_receipt', group: 'receipt', desc: 'Delete Receipt')]
     public function destroy(Receipt $receipt)
     {
         if ($receipt->status === StatusEnum::APPROVED) {
@@ -95,9 +85,7 @@ class ReceiptController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("void_receipt", group="receipt", desc="Void Receipt")
-     */
+    #[Permissions('void_receipt', group: 'receipt', desc: 'Void Receipt')]
     public function void(Receipt $receipt)
     {
         $this->receiptService->voidReceipt($receipt);
@@ -107,9 +95,7 @@ class ReceiptController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_receipt", group="receipt", desc="Approve Receipt")
-     */
+    #[Permissions('approve_receipt', group: 'receipt', desc: 'Approve Receipt')]
     public function approve(Receipt $receipt)
     {
         if ($receipt->status === StatusEnum::APPROVED) {

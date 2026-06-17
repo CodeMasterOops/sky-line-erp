@@ -12,9 +12,7 @@ use App\Services\Inventory\InventoryCostingMethodSwitchService;
 
 class SettingController extends Controller
 {
-    /**
-     * @Permissions("list_setting", group="setting", desc="List Setting")
-     */
+    #[Permissions('list_setting', group: 'setting', desc: 'List Setting')]
     public function index()
     {
         $setting = auth('admin')->user()->company;
@@ -23,9 +21,7 @@ class SettingController extends Controller
         return SettingResource::make($setting);
     }
 
-    /**
-     * @Permissions("update_setting", group="setting", desc="Update Setting")
-     */
+    #[Permissions('update_setting', group: 'setting', desc: 'Update Setting')]
     public function store(UpdateSettingRequest $request)
     {
         $setting = auth('admin')->user()->company;

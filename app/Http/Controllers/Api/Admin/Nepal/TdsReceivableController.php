@@ -14,9 +14,7 @@ class TdsReceivableController extends Controller
 {
     public function __construct(private TdsReceivableService $service) {}
 
-    /**
-     * @Permissions("list_tds_receivable", group="tds_receivable", desc="List TDS Receivables")
-     */
+    #[Permissions('list_tds_receivable', group: 'tds_receivable', desc: 'List TDS Receivables')]
     public function index(Request $request): JsonResponse
     {
         $rows = TdsReceivable::query()
@@ -30,9 +28,7 @@ class TdsReceivableController extends Controller
         return response()->json(['data' => $rows]);
     }
 
-    /**
-     * @Permissions("create_tds_receivable", group="tds_receivable", desc="Record TDS Certificate")
-     */
+    #[Permissions('create_tds_receivable', group: 'tds_receivable', desc: 'Record TDS Certificate')]
     public function store(TdsReceivableRequest $request): JsonResponse
     {
         $receivable = $this->service->record($request->validated());
@@ -40,9 +36,7 @@ class TdsReceivableController extends Controller
         return response()->json(['data' => $receivable->load('party:id,name,pan')], 201);
     }
 
-    /**
-     * @Permissions("view_tds_receivable", group="tds_receivable", desc="View TDS Receivable")
-     */
+    #[Permissions('view_tds_receivable', group: 'tds_receivable', desc: 'View TDS Receivable')]
     public function show(TdsReceivable $tdsReceivable): JsonResponse
     {
         return response()->json([
@@ -50,9 +44,7 @@ class TdsReceivableController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("approve_tds_receivable", group="tds_receivable", desc="Approve TDS Receivable")
-     */
+    #[Permissions('approve_tds_receivable', group: 'tds_receivable', desc: 'Approve TDS Receivable')]
     public function approve(TdsReceivable $tdsReceivable): JsonResponse
     {
         $this->service->approve($tdsReceivable);
@@ -60,9 +52,7 @@ class TdsReceivableController extends Controller
         return response()->json(['data' => $tdsReceivable->refresh()]);
     }
 
-    /**
-     * @Permissions("settle_tds_receivable", group="tds_receivable", desc="Settle TDS Receivable")
-     */
+    #[Permissions('settle_tds_receivable', group: 'tds_receivable', desc: 'Settle TDS Receivable')]
     public function settle(Request $request, TdsReceivable $tdsReceivable): JsonResponse
     {
         $request->validate([

@@ -11,9 +11,7 @@ use App\Http\Requests\Api\Admin\Inventory\ProductCategoryRequest;
 
 class ProductCategoryController extends Controller
 {
-    /**
-     * @Permissions("list_product_category", group="product_category", desc="List Product Category")
-     */
+    #[Permissions('list_product_category', group: 'product_category', desc: 'List Product Category')]
     public function index(Request $request)
     {
         $productCategories = ProductCategory::query()
@@ -26,9 +24,7 @@ class ProductCategoryController extends Controller
         return ProductCategoryResource::collection($productCategories);
     }
 
-    /**
-     * @Permissions("create_product_category", group="product_category", desc="Create Product Category")
-     */
+    #[Permissions('create_product_category', group: 'product_category', desc: 'Create Product Category')]
     public function store(ProductCategoryRequest $request)
     {
         $productCategory = ProductCategory::create($request->validated());
@@ -41,9 +37,7 @@ class ProductCategoryController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("show_product_category", group="product_category", desc="Show ProductCategory")
-     */
+    #[Permissions('show_product_category', group: 'product_category', desc: 'Show ProductCategory')]
     public function show(ProductCategory $productCategory)
     {
         $productCategory->load('parent:id,name');
@@ -52,9 +46,7 @@ class ProductCategoryController extends Controller
         return ProductCategoryResource::make($productCategory);
     }
 
-    /**
-     * @Permissions("edit_product_category", group="product_category", desc="Edit ProductCategory")
-     */
+    #[Permissions('edit_product_category', group: 'product_category', desc: 'Edit ProductCategory')]
     public function update(ProductCategoryRequest $request, ProductCategory $productCategory)
     {
         $productCategory->update($request->validated());
@@ -67,9 +59,7 @@ class ProductCategoryController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_product_category", group="product_category", desc="Delete ProductCategory")
-     */
+    #[Permissions('delete_product_category', group: 'product_category', desc: 'Delete ProductCategory')]
     public function destroy(ProductCategory $productCategory)
     {
         if ($productCategory->children()->exists()) {

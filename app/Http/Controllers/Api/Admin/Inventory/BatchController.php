@@ -9,9 +9,7 @@ use App\Http\Controllers\Controller;
 
 class BatchController extends Controller
 {
-    /**
-     * @Permissions("list_batch", group="batch", desc="List Batches")
-     */
+    #[Permissions('list_batch', group: 'batch', desc: 'List Batches')]
     public function index(Request $request)
     {
         $batches = Batch::query()
@@ -27,9 +25,7 @@ class BatchController extends Controller
         return response()->json($batches);
     }
 
-    /**
-     * @Permissions("create_batch", group="batch", desc="Create Batch")
-     */
+    #[Permissions('create_batch', group: 'batch', desc: 'Create Batch')]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -50,17 +46,13 @@ class BatchController extends Controller
         return response()->json(['data' => $batch, 'message' => 'Batch created successfully'], 201);
     }
 
-    /**
-     * @Permissions("show_batch", group="batch", desc="Show Batch")
-     */
+    #[Permissions('show_batch', group: 'batch', desc: 'Show Batch')]
     public function show(Batch $batch)
     {
         return response()->json(['data' => $batch->load(['productVariant.product', 'warehouse'])]);
     }
 
-    /**
-     * @Permissions("edit_batch", group="batch", desc="Edit Batch")
-     */
+    #[Permissions('edit_batch', group: 'batch', desc: 'Edit Batch')]
     public function update(Request $request, Batch $batch)
     {
         $data = $request->validate([
@@ -77,9 +69,7 @@ class BatchController extends Controller
         return response()->json(['data' => $batch, 'message' => 'Batch updated successfully']);
     }
 
-    /**
-     * @Permissions("list_batch", group="batch", desc="Expiry Alerts")
-     */
+    #[Permissions('list_batch', group: 'batch', desc: 'Expiry Alerts')]
     public function expiryAlerts(Request $request)
     {
         $days = (int) ($request->days ?? 30);
@@ -99,9 +89,7 @@ class BatchController extends Controller
         return response()->json(['data' => $batches, 'days' => $days]);
     }
 
-    /**
-     * @Permissions("list_batch", group="batch", desc="Available batches for FEFO picking")
-     */
+    #[Permissions('list_batch', group: 'batch', desc: 'Available batches for FEFO picking')]
     public function fefoList(Request $request)
     {
         $request->validate([

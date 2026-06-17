@@ -50,6 +50,13 @@ router.beforeEach(async (to, from, next) => {
             next({ name: 'admin.dashboard' });
             return;
         }
+
+        // Fetch permissions from the server on the first navigation after page load.
+        // Permissions are no longer persisted in localStorage.
+        if (adminAuth.authUser.access_token && !adminAuth.authUser.permissionsLoaded) {
+            await adminAuth.refreshPermissions();
+        }
+
         if (adminAuth.authUser.access_token && !to.meta.isGuest) {
             const requirement = getAdminRoutePermission(to.name);
             if (

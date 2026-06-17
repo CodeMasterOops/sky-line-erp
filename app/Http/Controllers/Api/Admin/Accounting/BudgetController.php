@@ -12,9 +12,7 @@ use App\Http\Controllers\Controller;
 
 class BudgetController extends Controller
 {
-    /**
-     * @Permissions("list_budget", group="budget", desc="List Budgets")
-     */
+    #[Permissions('list_budget', group: 'budget', desc: 'List Budgets')]
     public function index(Request $request)
     {
         $budgets = Budget::with(['fiscalYear:id,year_code', 'branch:id,name,code', 'createdBy:id,name'])
@@ -34,9 +32,7 @@ class BudgetController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("create_budget", group="budget", desc="Create Budget")
-     */
+    #[Permissions('create_budget', group: 'budget', desc: 'Create Budget')]
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -70,9 +66,7 @@ class BudgetController extends Controller
         });
     }
 
-    /**
-     * @Permissions("show_budget", group="budget", desc="Show Budget")
-     */
+    #[Permissions('show_budget', group: 'budget', desc: 'Show Budget')]
     public function show(Budget $budget)
     {
         return response()->json([
@@ -80,9 +74,7 @@ class BudgetController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("edit_budget", group="budget", desc="Update Budget")
-     */
+    #[Permissions('edit_budget', group: 'budget', desc: 'Update Budget')]
     public function update(Request $request, Budget $budget)
     {
         $data = $request->validate([
@@ -116,9 +108,7 @@ class BudgetController extends Controller
         });
     }
 
-    /**
-     * @Permissions("delete_budget", group="budget", desc="Delete Budget")
-     */
+    #[Permissions('delete_budget', group: 'budget', desc: 'Delete Budget')]
     public function destroy(Budget $budget)
     {
         $budget->delete();
@@ -126,9 +116,7 @@ class BudgetController extends Controller
         return response()->json(['message' => 'Budget deleted successfully']);
     }
 
-    /**
-     * @Permissions("list_budget", group="budget", desc="Budget vs Actual Report")
-     */
+    #[Permissions('list_budget', group: 'budget', desc: 'Budget vs Actual Report')]
     public function vsActual(Request $request, Budget $budget)
     {
         $budget->load(['lines.account', 'fiscalYear']);

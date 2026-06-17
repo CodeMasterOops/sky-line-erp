@@ -8,6 +8,7 @@ use App\Enums\StatusEnum;
 use App\Models\CreditNote;
 use App\Enums\ChangeTypeEnum;
 use Illuminate\Support\Facades\DB;
+use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalVoidService;
@@ -62,8 +63,10 @@ class CreditNoteService
                 );
             }
 
-            foreach ($formData['items'] ?? [] as $item) {
-                $creditNoteItem = $creditNote->creditNoteItems()->create([
+            DocumentLineItemSyncer::sync(
+                $creditNote->creditNoteItems(),
+                $formData['items'] ?? [],
+                fn ($item) => [
                     'invoice_item_id' => $item['invoice_item_id'] ?? null,
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
@@ -73,16 +76,8 @@ class CreditNoteService
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $creditNoteItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
+                ],
+            );
 
             if ($status === StatusEnum::APPROVED->value) {
                 $creditNote->refresh();
@@ -117,8 +112,10 @@ class CreditNoteService
                 );
             }
 
-            foreach ($formData['items'] ?? [] as $item) {
-                $creditNoteItem = $creditNote->creditNoteItems()->create([
+            DocumentLineItemSyncer::sync(
+                $creditNote->creditNoteItems(),
+                $formData['items'] ?? [],
+                fn ($item) => [
                     'invoice_item_id' => $item['invoice_item_id'] ?? null,
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
@@ -128,16 +125,8 @@ class CreditNoteService
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
-                ]);
-
-                if (isset($item['line_discount_type']) || isset($item['line_discount_value'])) {
-                    $creditNoteItem->saveDiscount(
-                        $item['line_discount_type'] ?? 'fixed',
-                        isset($item['line_discount_value']) ? (float) $item['line_discount_value'] : null,
-                        $item['discount_amount'] ?? 0,
-                    );
-                }
-            }
+                ],
+            );
 
             return $creditNote;
         });

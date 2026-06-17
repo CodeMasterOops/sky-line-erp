@@ -21,9 +21,7 @@ class RecurringJournalController extends Controller
         private JournalBalanceGuard $balanceGuard,
     ) {}
 
-    /**
-     * @Permissions("list_recurring_journal", group="recurring_journal", desc="List Recurring Journals")
-     */
+    #[Permissions('list_recurring_journal', group: 'recurring_journal', desc: 'List Recurring Journals')]
     public function index(Request $request)
     {
         $company = auth('admin')->user()->company;
@@ -36,9 +34,7 @@ class RecurringJournalController extends Controller
         return response()->json($journals);
     }
 
-    /**
-     * @Permissions("show_recurring_journal", group="recurring_journal", desc="Show Recurring Journal")
-     */
+    #[Permissions('show_recurring_journal', group: 'recurring_journal', desc: 'Show Recurring Journal')]
     public function show(RecurringJournal $recurringJournal)
     {
         return response()->json([
@@ -46,9 +42,7 @@ class RecurringJournalController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("create_recurring_journal", group="recurring_journal", desc="Create Recurring Journal")
-     */
+    #[Permissions('create_recurring_journal', group: 'recurring_journal', desc: 'Create Recurring Journal')]
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -97,9 +91,7 @@ class RecurringJournalController extends Controller
         ], 201);
     }
 
-    /**
-     * @Permissions("edit_recurring_journal", group="recurring_journal", desc="Update Recurring Journal")
-     */
+    #[Permissions('edit_recurring_journal', group: 'recurring_journal', desc: 'Update Recurring Journal')]
     public function update(Request $request, RecurringJournal $recurringJournal)
     {
         $validated = $request->validate([
@@ -144,9 +136,7 @@ class RecurringJournalController extends Controller
         ]);
     }
 
-    /**
-     * @Permissions("delete_recurring_journal", group="recurring_journal", desc="Delete Recurring Journal")
-     */
+    #[Permissions('delete_recurring_journal', group: 'recurring_journal', desc: 'Delete Recurring Journal')]
     public function destroy(RecurringJournal $recurringJournal)
     {
         $recurringJournal->items()->delete();
@@ -155,9 +145,7 @@ class RecurringJournalController extends Controller
         return response()->json(['message' => 'Recurring journal deleted successfully.']);
     }
 
-    /**
-     * @Permissions("create_recurring_journal", group="recurring_journal", desc="Run Recurring Journal Now")
-     */
+    #[Permissions('create_recurring_journal', group: 'recurring_journal', desc: 'Run Recurring Journal Now')]
     public function runNow(RecurringJournal $recurringJournal)
     {
         if (! $recurringJournal->is_active) {
