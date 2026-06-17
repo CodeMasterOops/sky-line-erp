@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Enums\PayrollStatusEnum;
 use App\Services\PayrollService;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\HR\PayrollRunResource;
 use App\Http\Requests\Api\Admin\HR\PayrollRunRequest;
@@ -38,19 +39,27 @@ class PayrollController extends Controller
 
         abort_if(! $fiscalYear->is_current, 422, 'Payroll can only be created for the current fiscal year.');
 
-        $exists = PayrollRun::where('fiscal_year_id', $request->fiscal_year_id)
-            ->where('month', $request->month)
-            ->exists();
+        $run = DB::transaction(function () use ($request) {
+            FiscalYear::withoutGlobalScopes()
+                ->where('id', $request->fiscal_year_id)
+                ->lockForUpdate()
+                ->first();
 
-        if ($exists) {
-            return response()->json(['message' => 'Payroll run already exists for this month.'], 422);
-        }
+            $exists = PayrollRun::where('fiscal_year_id', $request->fiscal_year_id)
+                ->where('month', $request->month)
+                ->exists();
 
-        $run = PayrollRun::create([
-            'fiscal_year_id' => $request->fiscal_year_id,
-            'month' => $request->month,
-            'status' => PayrollStatusEnum::DRAFT,
-        ]);
+            if ($exists) {
+                abort(422, 'Payroll run already exists for this month.');
+            }
+
+            return PayrollRun::create([
+                'company_id' => auth('admin')->user()->company_id,
+                'fiscal_year_id' => $request->fiscal_year_id,
+                'month' => $request->month,
+                'status' => PayrollStatusEnum::DRAFT,
+            ]);
+        });
 
         return response()->json([
             'data' => PayrollRunResource::make($run->load('fiscalYear')),
@@ -82,6 +91,19 @@ class PayrollController extends Controller
     }
 
     /**
+     * @Permissions("edit_payroll", group="payroll", desc="Approve Payroll Run")
+     */
+    public function approve(PayrollRun $payrollRun)
+    {
+        $payrollRun = $this->payrollService->approve($payrollRun);
+
+        return response()->json([
+            'data' => PayrollRunResource::make($payrollRun->load('fiscalYear')),
+            'message' => 'Payroll Approved Successfully',
+        ]);
+    }
+
+    /**
      * @Permissions("edit_payroll", group="payroll", desc="Confirm Payroll Run as Paid")
      */
     public function confirm(Request $request, PayrollRun $payrollRun)
@@ -92,9 +114,7 @@ class PayrollController extends Controller
             'paid_account_id' => ['required', 'integer', 'exists:accounts,id'],
         ]);
 
-        $this->payrollService->postToLedger($payrollRun, (int) $request->paid_account_id);
-
-        $payrollRun->update(['status' => PayrollStatusEnum::PAID]);
+        $journal = $this->payrollService->postToLedger($payrollRun, (int) $request->paid_account_id);
 
         return response()->json([
             'data' => PayrollRunResource::make($payrollRun->fresh()->load(['fiscalYear', 'journal', 'paidAccount'])),

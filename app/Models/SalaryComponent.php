@@ -19,6 +19,8 @@ class SalaryComponent extends Model
         'calculation_type',
         'is_taxable',
         'is_active',
+        'is_system',
+        'system_code',
         'account_id',
     ];
 
@@ -26,6 +28,7 @@ class SalaryComponent extends Model
         'type' => SalaryComponentTypeEnum::class,
         'is_taxable' => 'boolean',
         'is_active' => 'boolean',
+        'is_system' => 'boolean',
     ];
 
     public function salaryStructureItems(): HasMany

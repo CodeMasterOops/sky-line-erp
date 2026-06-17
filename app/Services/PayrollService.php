@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use Carbon\Carbon;
-use App\Models\Account;
 use App\Models\Holiday;
 use App\Models\Journal;
 use App\Models\Payslip;
@@ -16,19 +15,24 @@ use App\Models\JournalItem;
 use App\Models\PayslipItem;
 use App\Models\TdsDeduction;
 use App\Enums\JournalTypeEnum;
+use App\Enums\LeaveStatusEnum;
 use App\Models\AccountSetting;
+use App\Enums\PayrollStatusEnum;
+use App\Models\LeaveApplication;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AttendanceStatusEnum;
 use App\Enums\SalaryComponentTypeEnum;
 use App\Services\Accounting\PeriodLockGuard;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalBalanceGuard;
+use App\Services\Payroll\SalarySlabTaxCalculator;
 
 class PayrollService
 {
     public function __construct(
         private PeriodLockGuard $periodGuard,
         private JournalBalanceGuard $balanceGuard,
+        private SalarySlabTaxCalculator $slabCalculator,
     ) {}
 
     public function calculate(PayrollRun $payrollRun): PayrollRun
@@ -48,106 +52,137 @@ class PayrollService
             ->with(['salaryStructures' => fn ($q) => $q->where('is_active', true)->with('items.salaryComponent')])
             ->get();
 
-        $payrollRun->payslips()->each(fn ($p) => $p->items()->delete());
-        $payrollRun->payslips()->delete();
+        return DB::transaction(function () use ($payrollRun, $employees, $month, $year, $workingDays) {
+            $payrollRun->payslips()->each(fn ($p) => $p->items()->delete());
+            $payrollRun->payslips()->delete();
 
-        $totalGross = 0;
-        $totalDeductions = 0;
-        $totalTds = 0;
+            $totalGross = 0;
+            $totalDeductions = 0;
+            $totalTds = 0;
 
-        foreach ($employees as $employee) {
-            $structure = $employee->salaryStructures->first();
-            if (! $structure) {
-                continue;
-            }
+            $monthStart = Carbon::create($year, $month, 1)->startOfDay();
+            $monthEnd = $monthStart->copy()->endOfMonth()->endOfDay();
 
-            $presentDays = Attendance::where('employee_id', $employee->id)
-                ->whereMonth('date', $month)
-                ->whereYear('date', $year)
-                ->whereIn('status', [AttendanceStatusEnum::PRESENT->value, AttendanceStatusEnum::LATE->value])
-                ->count();
-
-            $halfDays = Attendance::where('employee_id', $employee->id)
-                ->whereMonth('date', $month)
-                ->whereYear('date', $year)
-                ->where('status', AttendanceStatusEnum::HALF_DAY->value)
-                ->count();
-
-            $effectiveDays = $presentDays + ($halfDays * 0.5);
-            $leaveDays = max(0, $workingDays - $effectiveDays);
-
-            $prorateRatio = $workingDays > 0 ? $effectiveDays / $workingDays : 1;
-
-            $grossSalary = 0;
-            $totalDed = 0;
-            $payslipItems = [];
-
-            foreach ($structure->items as $item) {
-                $component = $item->salaryComponent;
-                if (! $component || ! $component->is_active) {
+            foreach ($employees as $employee) {
+                $structure = $employee->salaryStructures->first();
+                if (! $structure) {
                     continue;
                 }
 
-                $amount = $item->amount;
+                $presentDays = Attendance::where('employee_id', $employee->id)
+                    ->whereMonth('date', $month)
+                    ->whereYear('date', $year)
+                    ->whereIn('status', [AttendanceStatusEnum::PRESENT->value, AttendanceStatusEnum::LATE->value])
+                    ->count();
 
-                if ($component->type === SalaryComponentTypeEnum::EARNING) {
-                    $proratedAmount = round($amount * $prorateRatio, 2);
-                    $grossSalary += $proratedAmount;
-                    $payslipItems[] = [
-                        'salary_component_id' => $component->id,
-                        'component_name' => $component->name,
-                        'component_type' => $component->type->value,
-                        'amount' => $proratedAmount,
-                    ];
-                } else {
-                    $totalDed += $amount;
-                    $payslipItems[] = [
-                        'salary_component_id' => $component->id,
-                        'component_name' => $component->name,
-                        'component_type' => $component->type->value,
-                        'amount' => $amount,
-                    ];
+                $halfDays = Attendance::where('employee_id', $employee->id)
+                    ->whereMonth('date', $month)
+                    ->whereYear('date', $year)
+                    ->where('status', AttendanceStatusEnum::HALF_DAY->value)
+                    ->count();
+
+                $approvedLeaveDays = LeaveApplication::withoutGlobalScopes()
+                    ->where('employee_id', $employee->id)
+                    ->where('status', LeaveStatusEnum::APPROVED)
+                    ->where('from_date', '<=', $monthEnd->toDateString())
+                    ->where('to_date', '>=', $monthStart->toDateString())
+                    ->get()
+                    ->sum(function (LeaveApplication $leave) use ($monthStart, $monthEnd): float {
+                        $start = max($leave->from_date, $monthStart->toDateString());
+                        $end = min($leave->to_date, $monthEnd->toDateString());
+
+                        return (float) Carbon::parse($start)->diffInDays(Carbon::parse($end)) + 1;
+                    });
+
+                $effectiveDays = $presentDays + ($halfDays * 0.5) + $approvedLeaveDays;
+                $leaveDays = max(0, $workingDays - $effectiveDays);
+
+                $prorateRatio = $workingDays > 0 ? $effectiveDays / $workingDays : 1;
+
+                // First pass: total fixed earnings (base for percentage components)
+                $fixedEarningsBase = 0.0;
+                foreach ($structure->items as $item) {
+                    $component = $item->salaryComponent;
+                    if ($component && $component->is_active
+                        && $component->type === SalaryComponentTypeEnum::EARNING
+                        && $component->calculation_type !== 'percentage') {
+                        $fixedEarningsBase += (float) $item->amount;
+                    }
                 }
+
+                $grossSalary = 0;
+                $totalDed = 0;
+                $payslipItems = [];
+
+                foreach ($structure->items as $item) {
+                    $component = $item->salaryComponent;
+                    if (! $component || ! $component->is_active) {
+                        continue;
+                    }
+
+                    $amount = $component->calculation_type === 'percentage'
+                        ? round($fixedEarningsBase * ((float) $item->percentage / 100), 2)
+                        : (float) $item->amount;
+
+                    if ($component->type === SalaryComponentTypeEnum::EARNING) {
+                        $proratedAmount = round($amount * $prorateRatio, 2);
+                        $grossSalary += $proratedAmount;
+                        $payslipItems[] = [
+                            'salary_component_id' => $component->id,
+                            'component_name' => $component->name,
+                            'component_type' => $component->type->value,
+                            'amount' => $proratedAmount,
+                        ];
+                    } else {
+                        $totalDed += $amount;
+                        $payslipItems[] = [
+                            'salary_component_id' => $component->id,
+                            'component_name' => $component->name,
+                            'component_type' => $component->type->value,
+                            'amount' => $amount,
+                        ];
+                    }
+                }
+
+                $tdsAmount = $this->calculateTds($employee, $grossSalary, $structure);
+                $netSalary = $grossSalary - $totalDed - $tdsAmount;
+
+                $payslip = Payslip::create([
+                    'payroll_run_id' => $payrollRun->id,
+                    'employee_id' => $employee->id,
+                    'working_days' => $workingDays,
+                    'present_days' => (int) $effectiveDays,
+                    'leave_days' => (int) $leaveDays,
+                    'gross_salary' => round($grossSalary, 2),
+                    'total_deductions' => round($totalDed, 2),
+                    'tds_amount' => round($tdsAmount, 2),
+                    'net_salary' => round($netSalary, 2),
+                ]);
+
+                foreach ($payslipItems as $psItem) {
+                    PayslipItem::create(array_merge(['payslip_id' => $payslip->id], $psItem));
+                }
+
+                $totalGross += $grossSalary;
+                $totalDeductions += $totalDed;
+                $totalTds += $tdsAmount;
             }
 
-            $tdsAmount = $this->calculateTds($employee, $grossSalary, $structure);
-            $netSalary = $grossSalary - $totalDed - $tdsAmount;
-
-            $payslip = Payslip::create([
-                'payroll_run_id' => $payrollRun->id,
-                'employee_id' => $employee->id,
-                'working_days' => $workingDays,
-                'present_days' => (int) $effectiveDays,
-                'leave_days' => (int) $leaveDays,
-                'gross_salary' => round($grossSalary, 2),
-                'total_deductions' => round($totalDed, 2),
-                'tds_amount' => round($tdsAmount, 2),
-                'net_salary' => round($netSalary, 2),
+            $payrollRun->update([
+                'total_gross' => round($totalGross, 2),
+                'total_deductions' => round($totalDeductions, 2),
+                'total_net' => round($totalGross - $totalDeductions - $totalTds, 2),
+                'status' => PayrollStatusEnum::PENDING_APPROVAL,
+                'processed_by' => auth('admin')->id(),
+                'processed_at' => now(),
             ]);
 
-            foreach ($payslipItems as $item) {
-                PayslipItem::create(array_merge(['payslip_id' => $payslip->id], $item));
-            }
-
-            $totalGross += $grossSalary;
-            $totalDeductions += $totalDed;
-            $totalTds += $tdsAmount;
-        }
-
-        $payrollRun->update([
-            'total_gross' => round($totalGross, 2),
-            'total_deductions' => round($totalDeductions, 2),
-            'total_net' => round($totalGross - $totalDeductions - $totalTds, 2),
-            'status' => 'processed',
-            'processed_by' => auth('admin')->id(),
-            'processed_at' => now(),
-        ]);
-
-        return $payrollRun->fresh();
+            return $payrollRun->fresh();
+        });
     }
 
     /**
-     * Calculate TDS for an employee based on their tds_category and taxable earnings.
+     * Calculate TDS for an employee based on their tds_category and prorated taxable earnings.
      */
     public function calculateTds(Employee $employee, float $grossSalary, $structure): float
     {
@@ -155,27 +190,52 @@ class PayrollService
             return 0;
         }
 
-        $taxableAmount = 0;
+        if ($employee->tds_category->isSalary()) {
+            return $this->slabCalculator->monthlyWithholding($grossSalary);
+        }
+
+        // Flat-rate TDS (vendor TDS categories)
+        $totalEarnings = 0.0;
+        $taxableEarnings = 0.0;
         foreach ($structure->items as $item) {
             $component = $item->salaryComponent;
-            if ($component && $component->is_taxable && $component->type === SalaryComponentTypeEnum::EARNING) {
-                $taxableAmount += $item->amount;
+            if ($component && $component->type === SalaryComponentTypeEnum::EARNING) {
+                $totalEarnings += (float) $item->amount;
+                if ($component->is_taxable) {
+                    $taxableEarnings += (float) $item->amount;
+                }
             }
         }
 
-        if ($taxableAmount <= 0) {
+        if ($taxableEarnings <= 0) {
             return 0;
         }
 
-        $rate = $employee->tds_category->rate();
+        // Apply taxable fraction to the already-prorated gross salary
+        $taxableFraction = $totalEarnings > 0 ? $taxableEarnings / $totalEarnings : 1.0;
+        $taxableBase = $grossSalary * $taxableFraction;
 
-        return round($taxableAmount * $rate / 100, 2);
+        return round($taxableBase * $employee->tds_category->rate() / 100, 2);
     }
 
     /**
-     * Post confirmed payroll to the general ledger and create TDS deduction records.
-     * Creates one journal entry debiting salary expense accounts and crediting
-     * the payment account (net) and TDS payable account (TDS withheld).
+     * Approve a processed payroll run (PENDING_APPROVAL → PROCESSED).
+     */
+    public function approve(PayrollRun $payrollRun): PayrollRun
+    {
+        if ($payrollRun->status !== PayrollStatusEnum::PENDING_APPROVAL) {
+            throw ValidationException::withMessages([
+                'status' => 'Only payroll runs pending approval can be approved.',
+            ]);
+        }
+
+        $payrollRun->update(['status' => PayrollStatusEnum::PROCESSED]);
+
+        return $payrollRun->fresh();
+    }
+
+    /**
+     * Post confirmed payroll to the general ledger and mark as PAID atomically.
      */
     public function postToLedger(PayrollRun $payrollRun, int $paidAccountId): Journal
     {
@@ -203,7 +263,6 @@ class PayrollService
                 'status' => StatusEnum::APPROVED,
             ]);
 
-            // Group earnings by account_id for DR entries
             $earningsByAccount = [];
             $totalTds = 0;
 
@@ -223,7 +282,6 @@ class PayrollService
                 }
             }
 
-            // DR salary expense accounts (one line per distinct account)
             foreach ($earningsByAccount as $accountId => $amount) {
                 JournalItem::create([
                     'journal_id' => $journal->id,
@@ -234,7 +292,6 @@ class PayrollService
                 ]);
             }
 
-            // CR bank/cash account for net pay
             $totalNetPay = $payrollRun->total_net ?? ($payrollRun->total_gross - $payrollRun->total_deductions - $totalTds);
             JournalItem::create([
                 'journal_id' => $journal->id,
@@ -244,7 +301,6 @@ class PayrollService
                 'remarks' => "Net salary paid – {$monthLabel}",
             ]);
 
-            // CR TDS payable account if there is TDS
             if ($totalTds > 0) {
                 $accountSetting = AccountSetting::withoutGlobalScopes()
                     ->where('company_id', $companyId)
@@ -265,7 +321,6 @@ class PayrollService
                     'remarks' => "TDS withheld on salary – {$monthLabel}",
                 ]);
 
-                // Create TDS deduction records per payslip
                 foreach ($payrollRun->payslips as $payslip) {
                     if (($payslip->tds_amount ?? 0) <= 0) {
                         continue;
@@ -292,11 +347,11 @@ class PayrollService
 
             $this->balanceGuard->assertBalanced($journal);
 
-            // Save journal_id and paid_account_id on the payroll run
             $payrollRun->update([
                 'journal_id' => $journal->id,
                 'paid_account_id' => $paidAccountId,
                 'paid_at' => now(),
+                'status' => PayrollStatusEnum::PAID,
             ]);
 
             return $journal;

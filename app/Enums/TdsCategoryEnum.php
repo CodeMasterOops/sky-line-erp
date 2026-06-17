@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum TdsCategoryEnum: string
 {
+    case SALARY = 'salary';
     case SERVICE_VAT_BILL = 'service_vat_bill';
     case SERVICE_PAN_BILL = 'service_pan_bill';
     case SERVICE_VAT_EXEMPT_INSTITUTION = 'service_vat_exempt_institution';
@@ -21,6 +22,7 @@ enum TdsCategoryEnum: string
     public function label(): string
     {
         return match ($this) {
+            self::SALARY => 'Salary Income Tax (Progressive Slab)',
             self::SERVICE_VAT_BILL => 'Service Fee (VAT Bill) – 1.5%',
             self::SERVICE_PAN_BILL => 'Service Fee (PAN Bill) – 15%',
             self::SERVICE_VAT_EXEMPT_INSTITUTION => 'Service Fee (VAT-Exempt Institution) – 1%',
@@ -37,9 +39,15 @@ enum TdsCategoryEnum: string
         };
     }
 
+    public function isSalary(): bool
+    {
+        return $this === self::SALARY;
+    }
+
     public function rate(): float
     {
         return match ($this) {
+            self::SALARY => 0.0,
             self::SERVICE_VAT_BILL => 1.5,
             self::SERVICE_PAN_BILL => 15.0,
             self::SERVICE_VAT_EXEMPT_INSTITUTION => 1.0,
@@ -59,6 +67,7 @@ enum TdsCategoryEnum: string
     public function revenueCode(): string
     {
         return match ($this) {
+            self::SALARY => '11221',
             self::SERVICE_VAT_BILL,
             self::SERVICE_PAN_BILL,
             self::SERVICE_VAT_EXEMPT_INSTITUTION,
