@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Employees" subtitle="Manage your workforce" @refresh="loadEmployees">
+    <PageHeader title="Employees" subtitle="Manage your workforce" @refresh="fetchEmployees">
         <template #actions>
             <router-link :to="{ name: 'admin.hr-employee-create' }" class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i> Add Employee
@@ -7,86 +7,96 @@
         </template>
     </PageHeader>
 
-    <section class="section">
-        <div class="card">
-            <div class="card-header">
-                <div class="row g-2">
-                    <div class="col-md-4">
-                        <input v-model="filters.search" @input="loadEmployees" type="text" class="form-control" placeholder="Search by name, code, email..." />
-                    </div>
-                    <div class="col-md-3">
-                        <select v-model="filters.status" @change="loadEmployees" class="form-select">
-                            <option value="">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="terminated">Terminated</option>
-                        </select>
-                    </div>
+    <div class="card table-list-card">
+        <VTableToolbar v-model="filter.search" placeholder="Search by name, code, email..." :is-filtered="isFiltered"
+            @search="onSearchInput" @reset="resetFilters">
+            <template #filters>
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ selectedStatus || 'Status' }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="filter.status = ''">All Statuses</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="filter.status = 'active'">Active</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="filter.status = 'inactive'">Inactive</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="filter.status = 'terminated'">Terminated</a>
+                        </li>
+                    </ul>
                 </div>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>SN</th>
-                                <th>Code</th>
-                                <th>Name</th>
-                                <th>Department</th>
-                                <th>Designation</th>
-                                <th>Type</th>
-                                <th>Status</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                            <VLoader v-if="employees.loading" :colspan="8" />
-                            <template v-else-if="employees.data.length">
-                                <tr v-for="(emp, i) in employees.data" :key="emp.id">
-                                    <th>{{ i + 1 }}</th>
-                                    <td>{{ emp.employee_code }}</td>
-                                    <td>{{ emp.full_name }}</td>
-                                    <td>{{ emp.department?.name || '—' }}</td>
-                                    <td>{{ emp.designation?.name || '—' }}</td>
-                                    <td>{{ emp.employment_type_label }}</td>
-                                    <td>
-                                        <span :class="statusBadge(emp.status)">{{ emp.status_label }}</span>
-                                    </td>
-                                    <td style="width:100px;">
-                                        <router-link :to="{ name: 'admin.hr-employee-edit', params: { id: emp.id } }" class="btn btn-sm btn-outline-primary">
-                                            <i class="fa fa-edit"></i>
-                                        </router-link>
-                                        <button type="button" @click="deleteEmp(emp.id)" class="btn btn-sm btn-outline-danger">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </template>
-                            <tr v-else>
-                                <td colspan="8" class="text-center">No employees found.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+            </template>
+        </VTableToolbar>
+
+        <div class="card-body">
+            <div class="custom-datatable-filter table-responsive">
+                <a-table class="table datanew table-hover table-center mb-0" :columns="employeeColumns"
+                    :data-source="employees.data" :pagination="false" :loading="employees.loading">
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.key === 'sn'">
+                            {{ (employees.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                        </template>
+                        <template v-else-if="column.key === 'department'">
+                            {{ record.department?.name || '—' }}
+                        </template>
+                        <template v-else-if="column.key === 'designation'">
+                            {{ record.designation?.name || '—' }}
+                        </template>
+                        <template v-else-if="column.key === 'type'">
+                            {{ record.employment_type_label }}
+                        </template>
+                        <template v-else-if="column.key === 'status'">
+                            <span :class="statusBadge(record.status)">{{ record.status_label }}</span>
+                        </template>
+                        <template v-else-if="column.key === 'action'">
+                            <VTableActions :actions="rowActions" :record="record" />
+                        </template>
+                    </template>
+                </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="employees.meta" />
             </div>
         </div>
-    </section>
+    </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import Swal from 'sweetalert2';
-import { toast } from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
+import VPagination from '@/components/base/VPagination.vue';
 import { useEmployeeStore } from '@/stores/admin/hr/employee.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { employeeColumns, createRowActions } from './tableConfig.js';
 
+const router = useRouter();
 const store = useEmployeeStore();
 const { employees } = storeToRefs(store);
-const filters = reactive({ search: '', status: '' });
 
-const loadEmployees = () => store.getEmployees({ ...filters });
-onMounted(loadEmployees);
+const fetchEmployees = () => store.getEmployees(filter);
+
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', status: '', page: 1, limit: 10 },
+    onFilter: fetchEmployees,
+});
+
+const selectedStatus = computed(() => {
+    const labels = { active: 'Active', inactive: 'Inactive', terminated: 'Terminated' };
+    return labels[filter.status] ?? '';
+});
 
 const statusBadge = (status) => ({
     active: 'badge bg-success',
@@ -94,13 +104,13 @@ const statusBadge = (status) => ({
     terminated: 'badge bg-danger',
 }[status?.value ?? status] ?? 'badge bg-secondary');
 
-const deleteEmp = (id) => {
-    Swal.fire({ title: 'Delete employee?', icon: 'warning', showCancelButton: true, confirmButtonColor: 'red', confirmButtonText: 'Yes' })
-        .then(async (r) => {
-            if (r.value) {
-                try { const res = await store.deleteEmployee(id); toast(res.status, res.data.message); }
-                catch (e) { showErrors(e); }
-            }
-        });
-};
+const { confirmDelete } = useConfirmAction();
+
+const rowActions = createRowActions({
+    onEdit: (id) => router.push({ name: 'admin.hr-employee-edit', params: { id } }),
+    onDelete: (id) => confirmDelete(
+        () => store.deleteEmployee(id),
+        fetchEmployees,
+    ),
+});
 </script>

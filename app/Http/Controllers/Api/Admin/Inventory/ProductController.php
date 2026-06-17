@@ -80,8 +80,6 @@ class ProductController extends Controller
                             ->orWhere('code', 'like', $like);
                     });
             });
-        } else {
-            $query->whereRaw('0 = 1');
         }
 
         $variants = $query->latest('product_variants.id')->paginate($perPage);

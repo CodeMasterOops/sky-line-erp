@@ -405,7 +405,6 @@
                   <td>
                     <span class="pos-receipt__item-name">{{ item.name }}</span>
                     <span v-if="item.sku" class="pos-receipt__item-sku">{{ item.sku }}</span>
-                    <span v-if="item.warehouse_name" class="pos-receipt__item-wh">{{ item.warehouse_name }}</span>
                   </td>
                   <td class="text-end">{{ item.quantity }}</td>
                   <td class="text-end">{{ formatMoneyPlain(item.rate) }}</td>
@@ -797,7 +796,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="item in returnResult.items" :key="item.sku">
-                    <td>{{ item.name }}<br><small class="text-muted">{{ item.warehouse_name }}</small></td>
+                    <td>{{ item.name }}</td>
                     <td class="text-end">{{ item.quantity }}</td>
                     <td class="text-end">{{ formatMoney(item.rate) }}</td>
                     <td class="text-end fw-semibold">{{ formatMoney(item.total) }}</td>

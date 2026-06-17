@@ -50,12 +50,13 @@
                                             </th>
                                             <th class="po-col-disc">Discount</th>
                                             <th class="po-col-tax">Tax</th>
+                                            <th class="text-end po-col-total">Total</th>
                                             <th class="text-center po-col-action">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr v-if="!form.items.length">
-                                            <td colspan="7" class="text-center text-muted py-4">
+                                            <td colspan="8" class="text-center text-muted py-4">
                                                 Search and select a product to add lines.
                                             </td>
                                         </tr>
@@ -112,6 +113,9 @@
                                                     :options="lineTaxOptions"
                                                     @validate="validateField(`items[${index}].tax_id`)"
                                                     :error="errors[`items[${index}].tax_id`]" />
+                                            </td>
+                                            <td class="text-end po-col-total">
+                                                <span class="po-line-total">{{ formatMoney(calcLineTotal(item, index)) }}</span>
                                             </td>
                                             <td class="text-center">
                                                 <button type="button" class="btn btn-sm btn-outline-danger"
@@ -217,7 +221,7 @@ import { usePartyStore } from '@/stores/admin/party.js';
 import { useTaxStore } from '@/stores/admin/settings/tax.js';
 import { usePurchaseOrderStore } from '@/stores/admin/purchase/purchase-order.js';
 import { useDateHelper } from '@/composables/dateHelper.js';
-import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
+import {lineDiscountMoneyFromItem, lineNetFromItem, orderDiscountMoney, buildOrderAllocations} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
@@ -346,7 +350,15 @@ const validations = object({
 
 const { errors, validateField, validateForm } = useYup(form, validations);
 
-const { summary, syncTaxAmounts } = useLineOrderDiscountTotals({ form, taxes });
+const { calcLineTax, summary, syncTaxAmounts } = useLineOrderDiscountTotals({ form, taxes });
+
+function calcLineTotal(item, index) {
+    const nets = form.items.map((i) => lineNetFromItem(i));
+    const sumLineNet = nets.reduce((a, b) => a + b, 0);
+    const orderDisc = orderDiscountMoney(sumLineNet, form.order_discount_type, form.order_discount_value);
+    const allocs = buildOrderAllocations(nets, orderDisc);
+    return Math.max(0, lineNetFromItem(item) - (allocs[index] || 0)) + calcLineTax(item, index);
+}
 
 const buildOrderPayload = () => {
     syncTaxAmounts();
@@ -423,8 +435,17 @@ function resetForm() {
     width: 2.5rem;
 }
 
+.order-lines-table .po-col-total {
+    min-width: 5.5rem;
+}
+
 .order-lines-table .po-col-action {
     width: 3rem;
+}
+
+.po-line-total {
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 
 .order-lines-table .po-discount-cell {

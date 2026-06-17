@@ -1,108 +1,155 @@
 <template>
-    <PageHeader title="Accounting Periods" subtitle="Manage and close accounting periods" />
-
-    <div class="card border-0 mb-3">
-        <div class="card-body d-flex gap-3 align-items-end flex-wrap">
-            <div>
-                <label class="form-label">Fiscal Year</label>
-                <Multiselect
-                    v-model="selectedFiscalYear"
-                    :options="fiscalYearOptions"
-                    value-prop="value" label="label" :searchable="true"
-                    placeholder="Select Fiscal Year"
-                    class="w-200px"
-                    @update:modelValue="loadPeriods"
-                />
-            </div>
-            <button class="btn btn-outline-primary" @click="generatePeriods" :disabled="!selectedFiscalYear || generating">
-                <span v-if="generating" class="spinner-border spinner-border-sm me-1"></span>
-                <i v-else class="ti ti-refresh me-1"></i>
+    <PageHeader title="Accounting Periods" subtitle="Manage and close accounting periods" @refresh="loadPeriods">
+        <template #actions>
+            <button
+                class="btn btn-outline-primary d-flex align-items-center"
+                :disabled="!selectedFiscalYear || generating"
+                @click="generatePeriods"
+            >
+                <span v-if="generating" class="spinner-border spinner-border-sm me-2"></span>
+                <i v-else class="ti ti-refresh me-2"></i>
                 Generate Periods
             </button>
-        </div>
-    </div>
+        </template>
+    </PageHeader>
 
-    <div class="card border-0">
+    <div class="card table-list-card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <label class="form-label mb-0 text-nowrap">Fiscal Year</label>
+                <select
+                    v-model="selectedFiscalYear"
+                    class="form-select form-select-sm"
+                    style="min-width: 280px"
+                    :disabled="fiscalYears.loading"
+                    @change="loadPeriods"
+                >
+                    <option value="">— Select Fiscal Year —</option>
+                    <option v-for="fy in fiscalYears.data" :key="fy.id" :value="fy.id">
+                        {{ fy.year_name }} ({{ formatDate(fy.start_date) }} – {{ formatDate(fy.end_date) }}){{ fy.is_current ? ' · Current' : '' }}
+                    </option>
+                </select>
+            </div>
+        </div>
+
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Period</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
-                            <th>Status</th>
-                            <th>Closed By</th>
-                            <th>Closed At</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-if="!periods.length && !loading">
-                            <td colspan="8" class="text-center text-muted py-4">
-                                Select a fiscal year and generate periods.
-                            </td>
-                        </tr>
-                        <tr v-for="period in periods" :key="period.id">
-                            <td>{{ period.period_number }}</td>
-                            <td>{{ period.period_name }}</td>
-                            <td>{{ formatDate(period.start_date) }}</td>
-                            <td>{{ formatDate(period.end_date) }}</td>
-                            <td>
-                                <span class="badge" :class="statusBadge(period.status)">{{ period.status }}</span>
-                            </td>
-                            <td>{{ period.closed_by?.name || '-' }}</td>
-                            <td>{{ formatDate(period.closed_at) }}</td>
-                            <td>
-                                <div class="d-flex gap-2">
-                                    <button
-                                        v-if="period.status === 'open'"
-                                        class="btn btn-sm btn-warning"
-                                        @click="closePeriod(period.id)"
-                                    >Close</button>
-                                    <button
-                                        v-if="period.status === 'closed'"
-                                        class="btn btn-sm btn-outline-success"
-                                        @click="reopenPeriod(period.id)"
-                                    >Reopen</button>
-                                    <button
-                                        v-if="period.status === 'closed'"
-                                        class="btn btn-sm btn-danger"
-                                        @click="lockPeriod(period.id)"
-                                    >Lock</button>
+            <div class="custom-datatable-filter table-responsive">
+                <a-table
+                    class="table datanew table-hover table-center mb-0"
+                    :columns="columns"
+                    :data-source="periods"
+                    :pagination="false"
+                    :loading="loading"
+                >
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.key === 'sn'">
+                            {{ index + 1 }}
+                        </template>
+                        <template v-else-if="column.key === 'start_date'">
+                            {{ formatDate(record.start_date) }}
+                        </template>
+                        <template v-else-if="column.key === 'end_date'">
+                            {{ formatDate(record.end_date) }}
+                        </template>
+                        <template v-else-if="column.key === 'status'">
+                            <span class="badge" :class="statusBadge(record.status)">
+                                {{ record.status }}
+                            </span>
+                        </template>
+                        <template v-else-if="column.key === 'closed_by'">
+                            {{ record.closed_by?.name || '—' }}
+                        </template>
+                        <template v-else-if="column.key === 'closed_at'">
+                            {{ record.closed_at ? formatDate(record.closed_at) : '—' }}
+                        </template>
+                        <template v-else-if="column.key === 'action'">
+                            <div class="action-table-data">
+                                <div class="edit-delete-action">
+                                    <a
+                                        v-if="record.status === 'open'"
+                                        href="javascript:void(0);"
+                                        class="me-2 p-2"
+                                        title="Close Period"
+                                        @click="handleClose(record)"
+                                    >
+                                        <i class="ti ti-lock"></i>
+                                    </a>
+                                    <a
+                                        v-if="record.status === 'closed'"
+                                        href="javascript:void(0);"
+                                        class="me-2 p-2"
+                                        title="Reopen Period"
+                                        @click="handleReopen(record)"
+                                    >
+                                        <i class="ti ti-lock-open"></i>
+                                    </a>
+                                    <a
+                                        v-if="record.status === 'closed'"
+                                        href="javascript:void(0);"
+                                        class="p-2"
+                                        title="Lock Period"
+                                        @click="handleLock(record)"
+                                    >
+                                        <i class="ti ti-shield-lock"></i>
+                                    </a>
                                 </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </div>
+                        </template>
+                    </template>
+
+                    <template #emptyText>
+                        <div class="text-center text-muted py-5">
+                            <i class="ti ti-calendar-off display-4 d-block mb-3"></i>
+                            {{ selectedFiscalYear ? 'No periods found. Click "Generate Periods" to create them.' : 'Select a fiscal year to view its accounting periods.' }}
+                        </div>
+                    </template>
+                </a-table>
             </div>
         </div>
     </div>
 </template>
 
 <script setup>
-import {ref, onMounted} from 'vue';
-import {apiAdmin} from '@/helpers/api.js';
+import { ref, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
-import {toast} from '@/helpers/toast.js';
-import {formatDate} from '@/helpers/helper.js';
+import { toast } from '@/helpers/toast.js';
+import { formatDate } from '@/helpers/helper.js';
+import { useAdminSettingStore } from '@/stores/admin/settings/admin-setting.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
 
-const selectedFiscalYear = ref(null);
-const fiscalYearOptions = ref([]);
+const adminSettingStore = useAdminSettingStore();
+const { fiscalYears, currentFiscalYear } = storeToRefs(adminSettingStore);
+const { confirmAction } = useConfirmAction();
+
+const selectedFiscalYear = ref('');
 const periods = ref([]);
 const loading = ref(false);
 const generating = ref(false);
 
-const loadFiscalYears = async () => {
-    try {
-        const res = await apiAdmin('admin-setting/fiscal-year', 'get');
-        fiscalYearOptions.value = (res.data.data || []).map(fy => ({ label: fy.year_name, value: fy.id }));
-    } catch (e) { /* ignore */ }
-};
+const columns = [
+    { title: '#', key: 'sn', width: 60 },
+    { title: 'Period', dataIndex: 'period_name' },
+    { title: 'Start Date', key: 'start_date' },
+    { title: 'End Date', key: 'end_date' },
+    { title: 'Status', key: 'status' },
+    { title: 'Closed By', key: 'closed_by' },
+    { title: 'Closed At', key: 'closed_at' },
+    { title: 'Actions', key: 'action' },
+];
+
+const statusBadge = (status) => ({
+    open: 'bg-success',
+    closed: 'bg-warning text-dark',
+    locked: 'bg-danger',
+}[status] ?? 'bg-secondary');
 
 const loadPeriods = async () => {
-    if (!selectedFiscalYear.value) return;
+    if (!selectedFiscalYear.value) {
+        periods.value = [];
+        return;
+    }
     loading.value = true;
     try {
         const res = await apiAdmin('accounting-period', 'get', { fiscal_year_id: selectedFiscalYear.value });
@@ -115,7 +162,6 @@ const loadPeriods = async () => {
 };
 
 const generatePeriods = async () => {
-    if (!selectedFiscalYear.value) return;
     generating.value = true;
     try {
         const res = await apiAdmin('accounting-period/generate', 'post', { fiscal_year_id: selectedFiscalYear.value });
@@ -128,35 +174,51 @@ const generatePeriods = async () => {
     }
 };
 
-const closePeriod = async (id) => {
-    try {
-        const res = await apiAdmin(`accounting-period/${id}/close`, 'post');
-        toast('success', res.data.message);
-        await loadPeriods();
-    } catch (e) { showErrors(e); }
+const handleClose = (period) => {
+    confirmAction({
+        title: 'Close Period?',
+        text: `This will close "${period.period_name}". No transactions can be posted once closed.`,
+        icon: 'warning',
+        confirmButtonColor: '#d97706',
+        confirmButtonText: 'Close Period',
+        action: () => apiAdmin(`accounting-period/${period.id}/close`, 'post'),
+        onSuccess: loadPeriods,
+    });
 };
 
-const reopenPeriod = async (id) => {
-    try {
-        const res = await apiAdmin(`accounting-period/${id}/reopen`, 'post');
-        toast('success', res.data.message);
-        await loadPeriods();
-    } catch (e) { showErrors(e); }
+const handleReopen = (period) => {
+    confirmAction({
+        title: 'Reopen Period?',
+        text: `This will reopen "${period.period_name}" and allow new transactions.`,
+        icon: 'question',
+        confirmButtonColor: 'green',
+        confirmButtonText: 'Reopen',
+        action: () => apiAdmin(`accounting-period/${period.id}/reopen`, 'post'),
+        onSuccess: loadPeriods,
+    });
 };
 
-const lockPeriod = async (id) => {
-    try {
-        const res = await apiAdmin(`accounting-period/${id}/lock`, 'post');
-        toast('success', res.data.message);
-        await loadPeriods();
-    } catch (e) { showErrors(e); }
+const handleLock = (period) => {
+    confirmAction({
+        title: 'Lock Period?',
+        text: `Locking "${period.period_name}" is permanent and cannot be undone.`,
+        icon: 'warning',
+        confirmButtonColor: 'red',
+        confirmButtonText: 'Lock',
+        action: () => apiAdmin(`accounting-period/${period.id}/lock`, 'post'),
+        onSuccess: loadPeriods,
+    });
 };
 
-const statusBadge = (status) => ({
-    open: 'bg-success',
-    closed: 'bg-warning text-dark',
-    locked: 'bg-danger',
-}[status] || 'bg-secondary');
+onMounted(async () => {
+    await Promise.all([
+        adminSettingStore.getFiscalYears(),
+        adminSettingStore.getCurrentFiscalYear(),
+    ]);
 
-onMounted(() => { loadFiscalYears(); });
+    if (currentFiscalYear.value.data?.id) {
+        selectedFiscalYear.value = currentFiscalYear.value.data.id;
+        await loadPeriods();
+    }
+});
 </script>

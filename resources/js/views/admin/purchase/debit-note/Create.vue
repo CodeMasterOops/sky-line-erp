@@ -117,12 +117,13 @@
                                         <th class="dn-col-rate">Rate</th>
                                         <th class="dn-col-disc">Discount</th>
                                         <th class="dn-col-tax">Tax</th>
+                                        <th class="text-end dn-col-total">Total</th>
                                         <th class="text-center dn-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="7" class="text-center text-muted py-4">
+                                        <td colspan="8" class="text-center text-muted py-4">
                                             Add lines from the bill or search for a product.
                                         </td>
                                     </tr>
@@ -204,6 +205,9 @@
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
                                             />
+                                        </td>
+                                        <td class="text-end dn-col-total">
+                                            <span class="dn-line-total">{{ formatMoney(calcLineTotal(item, index)) }}</span>
                                         </td>
                                         <td class="text-center">
                                             <button
@@ -330,7 +334,7 @@ import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js'
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {lineDiscountMoneyFromItem} from '@/composables/purchaseOrderTotals.js';
+import {lineDiscountMoneyFromItem, lineNetFromItem, orderDiscountMoney, buildOrderAllocations} from '@/composables/purchaseOrderTotals.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
@@ -677,6 +681,14 @@ const {calcLineTax, summary, syncTaxAmounts} = useLineOrderDiscountTotals({
     taxes,
 });
 
+function calcLineTotal(item, index) {
+    const nets = form.items.map((i) => lineNetFromItem(i));
+    const sumLineNet = nets.reduce((a, b) => a + b, 0);
+    const orderDisc = orderDiscountMoney(sumLineNet, form.order_discount_type, form.order_discount_value);
+    const allocs = buildOrderAllocations(nets, orderDisc);
+    return Math.max(0, lineNetFromItem(item) - (allocs[index] || 0)) + calcLineTax(item, index);
+}
+
 function buildDebitNotePayload() {
     syncTaxAmounts();
     return {
@@ -762,8 +774,15 @@ function resetForm() {
     z-index: 2;
     overflow: visible;
 }
+.debit-note-lines-table .dn-col-total {
+    min-width: 5.5rem;
+}
 .debit-note-lines-table .dn-col-action {
     width: 3.25rem;
+}
+.dn-line-total {
+    font-weight: 600;
+    font-size: 0.875rem;
 }
 .dn-line-product {
     display: flex;

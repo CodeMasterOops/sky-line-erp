@@ -4,7 +4,7 @@ import showErrors from '@/helpers/showErrors.js';
 
 export const usePayrollStore = defineStore('payroll', {
     state: () => ({
-        components: { data: [], loading: false },
+        components: { data: [], loading: false, meta: {} },
         structures: { data: [], loading: false, meta: {} },
         runs: { data: [], loading: false, meta: {} },
         run: { data: {}, loading: false },
@@ -14,10 +14,13 @@ export const usePayrollStore = defineStore('payroll', {
 
     actions: {
         // Salary Components
-        getComponents() {
+        getComponents(params = {}) {
             this.components.loading = true;
-            return apiAdmin('hr/salary-component')
-                .then((res) => { this.components.data = res.data.data; })
+            return apiAdmin('hr/salary-component', 'get', params)
+                .then((res) => {
+                    this.components.data = res.data.data;
+                    this.components.meta = res.data.meta ?? {};
+                })
                 .catch(showErrors)
                 .finally(() => { this.components.loading = false; });
         },

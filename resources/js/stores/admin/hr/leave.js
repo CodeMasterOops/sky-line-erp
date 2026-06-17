@@ -4,16 +4,19 @@ import showErrors from '@/helpers/showErrors.js';
 
 export const useLeaveStore = defineStore('leave', {
     state: () => ({
-        leaveTypes: { data: [], loading: false },
+        leaveTypes: { data: [], loading: false, meta: {} },
         applications: { data: [], loading: false, meta: {} },
-        holidays: { data: [], loading: false },
+        holidays: { data: [], loading: false, meta: {} },
     }),
 
     actions: {
-        getLeaveTypes() {
+        getLeaveTypes(params = {}) {
             this.leaveTypes.loading = true;
-            return apiAdmin('hr/leave-type')
-                .then((res) => { this.leaveTypes.data = res.data.data; })
+            return apiAdmin('hr/leave-type', 'get', params)
+                .then((res) => {
+                    this.leaveTypes.data = res.data.data;
+                    this.leaveTypes.meta = res.data.meta ?? {};
+                })
                 .catch(showErrors)
                 .finally(() => { this.leaveTypes.loading = false; });
         },
@@ -77,7 +80,10 @@ export const useLeaveStore = defineStore('leave', {
         getHolidays(params = {}) {
             this.holidays.loading = true;
             return apiAdmin('hr/holiday', 'get', params)
-                .then((res) => { this.holidays.data = res.data.data; })
+                .then((res) => {
+                    this.holidays.data = res.data.data;
+                    this.holidays.meta = res.data.meta ?? {};
+                })
                 .catch(showErrors)
                 .finally(() => { this.holidays.loading = false; });
         },

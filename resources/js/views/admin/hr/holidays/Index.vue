@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Holidays" subtitle="Manage company holidays" @refresh="load">
+    <PageHeader title="Holidays" subtitle="Manage company holidays" @refresh="fetchHolidays">
         <template #actions>
             <button type="button" @click="createModalOpened = true" class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i> Add Holiday
@@ -7,58 +7,57 @@
         </template>
     </PageHeader>
 
-    <section class="section">
-        <div class="card">
-            <div class="card-header">
-                <div class="row g-2">
-                    <div class="col-md-3">
-                        <label class="form-label">Year</label>
-                        <select v-model="filters.year" @change="load" class="form-select">
-                            <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-                        </select>
-                    </div>
+    <div class="card table-list-card">
+        <VTableToolbar v-model="filter.search" placeholder="Search holidays" :is-filtered="isFiltered"
+            @search="onSearchInput" @reset="resetFilters">
+            <template #filters>
+                <div class="dropdown me-2">
+                    <a href="javascript:void(0);"
+                        class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
+                        data-bs-toggle="dropdown">
+                        {{ filter.year || 'Year' }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-3">
+                        <li>
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="filter.year = ''">All Years</a>
+                        </li>
+                        <li v-for="y in years" :key="y">
+                            <a href="javascript:void(0);" class="dropdown-item rounded-1"
+                                @click="filter.year = y">{{ y }}</a>
+                        </li>
+                    </ul>
                 </div>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>SN</th>
-                                <th>Name</th>
-                                <th>Date</th>
-                                <th>Description</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                            <VLoader v-if="holidays.loading" :colspan="5" />
-                            <template v-else-if="holidays.data.length">
-                                <tr v-for="(h, i) in holidays.data" :key="h.id">
-                                    <th>{{ i + 1 }}</th>
-                                    <td>{{ h.name }}</td>
-                                    <td>{{ h.date }}</td>
-                                    <td>{{ h.description || '—' }}</td>
-                                    <td style="width:100px;">
-                                        <button type="button" @click="editItem = { ...h }" class="btn btn-sm btn-outline-primary"><i class="fa fa-edit"></i></button>
-                                        <button type="button" @click="deleteHoliday(h.id)" class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
-                                    </td>
-                                </tr>
-                            </template>
-                            <tr v-else><td colspan="5" class="text-center">No holidays found.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            </template>
+        </VTableToolbar>
+
+        <div class="card-body">
+            <div class="custom-datatable-filter table-responsive">
+                <a-table class="table datanew table-hover table-center mb-0" :columns="holidayColumns"
+                    :data-source="holidays.data" :pagination="false" :loading="holidays.loading">
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.key === 'sn'">
+                            {{ (holidays.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                        </template>
+                        <template v-else-if="column.key === 'action'">
+                            <VTableActions :actions="rowActions" :record="record" />
+                        </template>
+                    </template>
+                </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="holidays.meta" />
             </div>
         </div>
-    </section>
+    </div>
 
     <VModal :show-modal="createModalOpened" @close-click="createModalOpened = false" title="Add Holiday">
         <template #modal-body>
             <form @submit.prevent="storeHoliday" class="row g-3">
                 <div class="col-md-6"><VInput v-model="cForm.name" label="Name *" /></div>
                 <div class="col-md-6"><VDatepicker id="create_date" v-model="cForm.date" label="Date" required /></div>
-                <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" v-model="cForm.description" rows="2"></textarea></div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" v-model="cForm.description" rows="2"></textarea>
+                </div>
                 <div class="col-12 text-end">
                     <button type="button" @click="createModalOpened = false" class="btn btn-danger me-2">Close</button>
                     <VButton :loading="cSubmitting" />
@@ -72,7 +71,10 @@
             <form v-if="editItem" @submit.prevent="updateHoliday" class="row g-3">
                 <div class="col-md-6"><VInput v-model="editItem.name" label="Name *" /></div>
                 <div class="col-md-6"><VDatepicker id="edit_date" v-model="editItem.date" label="Date" required /></div>
-                <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" v-model="editItem.description" rows="2"></textarea></div>
+                <div class="col-12">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" v-model="editItem.description" rows="2"></textarea>
+                </div>
                 <div class="col-12 text-end">
                     <button type="button" @click="editItem = null" class="btn btn-danger me-2">Close</button>
                     <VButton :loading="eSubmitting" />
@@ -83,42 +85,73 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import Swal from 'sweetalert2';
+import { ref, reactive } from 'vue';
+import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
+import VPagination from '@/components/base/VPagination.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
+import { useLeaveStore } from '@/stores/admin/hr/leave.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import { storeToRefs } from 'pinia';
-import { useLeaveStore } from '@/stores/admin/hr/leave.js';
-import VDatepicker from '@/components/base/VDatepicker.vue';
+import { holidayColumns, createRowActions } from './tableConfig.js';
 
 const leaveStore = useLeaveStore();
 const { holidays } = storeToRefs(leaveStore);
+
 const now = new Date();
 const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
-const filters = reactive({ year: now.getFullYear() });
+
 const createModalOpened = ref(false);
 const editItem = ref(null);
 const cSubmitting = ref(false);
 const eSubmitting = ref(false);
 const cForm = reactive({ name: '', date: '', description: '' });
 
-const load = () => leaveStore.getHolidays(filters);
-onMounted(load);
+const fetchHolidays = () => leaveStore.getHolidays(filter);
+
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', year: now.getFullYear(), page: 1, limit: 10 },
+    onFilter: fetchHolidays,
+});
+
+const { confirmDelete } = useConfirmAction();
+
+const rowActions = createRowActions({
+    onEdit:   (record) => { editItem.value = { ...record }; },
+    onDelete: (id) => confirmDelete(
+        () => leaveStore.deleteHoliday(id),
+        fetchHolidays,
+    ),
+});
 
 const storeHoliday = async () => {
     cSubmitting.value = true;
-    try { const res = await leaveStore.storeHoliday(cForm); toast(res.status, res.data.message); createModalOpened.value = false; Object.assign(cForm, { name: '', date: '', description: '' }); }
-    catch (e) { showErrors(e); } finally { cSubmitting.value = false; }
+    try {
+        const res = await leaveStore.storeHoliday(cForm);
+        toast(res.status, res.data.message);
+        createModalOpened.value = false;
+        Object.assign(cForm, { name: '', date: '', description: '' });
+        fetchHolidays();
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        cSubmitting.value = false;
+    }
 };
 
 const updateHoliday = async () => {
     eSubmitting.value = true;
-    try { const res = await leaveStore.updateHoliday(editItem.value.id, editItem.value); toast(res.status, res.data.message); editItem.value = null; }
-    catch (e) { showErrors(e); } finally { eSubmitting.value = false; }
-};
-
-const deleteHoliday = (id) => {
-    Swal.fire({ title: 'Delete holiday?', icon: 'warning', showCancelButton: true, confirmButtonColor: 'red', confirmButtonText: 'Yes' })
-        .then(async (r) => { if (r.value) { try { const res = await leaveStore.deleteHoliday(id); toast(res.status, res.data.message); } catch (e) { showErrors(e); } } });
+    try {
+        const res = await leaveStore.updateHoliday(editItem.value.id, editItem.value);
+        toast(res.status, res.data.message);
+        editItem.value = null;
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        eSubmitting.value = false;
+    }
 };
 </script>

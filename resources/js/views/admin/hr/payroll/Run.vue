@@ -1,5 +1,5 @@
 <template>
-    <PageHeader title="Payroll Runs" subtitle="Process monthly payroll" @refresh="payrollStore.getRuns()">
+    <PageHeader title="Payroll Runs" subtitle="Process monthly payroll" @refresh="fetchRuns">
         <template #actions>
             <button type="button" @click="openCreateModal" class="btn btn-primary d-flex align-items-center">
                 <i class="ti ti-circle-plus me-2"></i> New Payroll Run
@@ -7,47 +7,33 @@
         </template>
     </PageHeader>
 
-    <section class="section">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>SN</th>
-                                <th>Period</th>
-                                <th>Status</th>
-                                <th>Total Gross</th>
-                                <th>Deductions</th>
-                                <th>Net Pay</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="align-middle">
-                            <VLoader v-if="runs.loading" :colspan="7" />
-                            <template v-else-if="runs.data.length">
-                                <tr v-for="(r, i) in runs.data" :key="r.id">
-                                    <th>{{ i + 1 }}</th>
-                                    <td>{{ r.period_label }}</td>
-                                    <td><span :class="statusBadge(r.status)">{{ r.status_label }}</span></td>
-                                    <td>{{ formatMoney(r.total_gross) }}</td>
-                                    <td>{{ formatMoney(r.total_deductions) }}</td>
-                                    <td>{{ formatMoney(r.total_net) }}</td>
-                                    <td style="width:170px;" class="text-center">
-                                        <router-link :to="{ name: 'admin.hr-payroll-detail', params: { id: r.id } }" class="btn btn-sm btn-outline-info me-1"><i class="ti ti-eye"></i></router-link>
-                                        <button v-if="r.status !== 'paid'" type="button" @click="processRun(r.id)" class="btn btn-sm btn-outline-primary me-1" title="Calculate"><i class="ti ti-calculator"></i></button>
-                                        <button v-if="r.status === 'processed'" type="button" @click="confirmRun(r.id)" class="btn btn-sm btn-outline-success me-1" title="Mark Paid"><i class="ti ti-check"></i></button>
-                                        <button v-if="r.status !== 'paid'" type="button" @click="deleteRun(r.id)" class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
-                                    </td>
-                                </tr>
-                            </template>
-                            <tr v-else><td colspan="7" class="text-center">No payroll runs found.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+    <div class="card table-list-card">
+        <VTableToolbar v-model="filter.search" placeholder="Search payroll runs" :is-filtered="isFiltered"
+            @search="onSearchInput" @reset="resetFilters" />
+
+        <div class="card-body">
+            <div class="custom-datatable-filter table-responsive">
+                <a-table class="table datanew table-hover table-center mb-0" :columns="runColumns"
+                    :data-source="runs.data" :pagination="false" :loading="runs.loading">
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.key === 'sn'">
+                            {{ (runs.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
+                        </template>
+                        <template v-else-if="column.key === 'period'">
+                            {{ record.period_label }}
+                        </template>
+                        <template v-else-if="column.key === 'status'">
+                            <span :class="statusBadge(record.status)">{{ record.status_label }}</span>
+                        </template>
+                        <template v-else-if="column.key === 'action'">
+                            <VTableActions :actions="rowActions" :record="record" />
+                        </template>
+                    </template>
+                </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="runs.meta" />
             </div>
         </div>
-    </section>
+    </div>
 
     <VModal :show-modal="showCreateModal" @close-click="showCreateModal = false" title="Create Payroll Run">
         <template #modal-body>
@@ -62,7 +48,7 @@
                         No current fiscal year set. Please ask the super admin to set one.
                     </div>
                 </div>
-                <div class="col-12" v-if="currentFiscalYear">
+                <div v-if="currentFiscalYear" class="col-12">
                     <label class="form-label">Month</label>
                     <select v-model="cForm.month" class="form-select">
                         <option v-for="m in 12" :key="m" :value="m">{{ monthName(m) }}</option>
@@ -78,17 +64,24 @@
 </template>
 
 <script setup>
-import {formatMoney} from '@/helpers/formatMoney.js';
 import { ref, reactive, computed, onMounted } from 'vue';
-import Swal from 'sweetalert2';
+import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePayrollStore } from '@/stores/admin/hr/payroll.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import { storeToRefs } from 'pinia';
-import { usePayrollStore } from '@/stores/admin/hr/payroll.js';
 import { apiAdmin } from '@/helpers/api.js';
+import { runColumns, createRowActions } from './runsTableConfig.js';
 
+const router = useRouter();
 const payrollStore = usePayrollStore();
 const { runs } = storeToRefs(payrollStore);
+
 const showCreateModal = ref(false);
 const cSubmitting = ref(false);
 const fiscalYears = ref([]);
@@ -99,16 +92,27 @@ const cForm = reactive({ fiscal_year_id: null, month: now.getMonth() + 1 });
 const currentFiscalYear = computed(() => fiscalYears.value.find(fy => fy.is_current) ?? null);
 
 const monthName = (m) => new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' });
-const statusBadge = (s) => ({ draft: 'badge bg-secondary', processed: 'badge bg-primary', paid: 'badge bg-success' }[s?.value ?? s] ?? 'badge bg-secondary');
+const statusBadge = (s) => ({
+    draft:     'badge bg-secondary',
+    processed: 'badge bg-primary',
+    paid:      'badge bg-success',
+}[s?.value ?? s] ?? 'badge bg-secondary');
 
-const loadFiscalYears = async () => {
+const fetchRuns = () => payrollStore.getRuns(filter);
+
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', page: 1, limit: 10 },
+    onFilter: fetchRuns,
+});
+
+onMounted(async () => {
     try {
         const res = await apiAdmin('admin-setting/fiscal-year');
         fiscalYears.value = res.data.data;
     } catch (e) {
         showErrors(e);
     }
-};
+});
 
 const openCreateModal = () => {
     if (currentFiscalYear.value) {
@@ -116,11 +120,6 @@ const openCreateModal = () => {
     }
     showCreateModal.value = true;
 };
-
-onMounted(() => {
-    payrollStore.getRuns();
-    loadFiscalYears();
-});
 
 const storeRun = async () => {
     if (!currentFiscalYear.value) return;
@@ -130,6 +129,7 @@ const storeRun = async () => {
         const res = await payrollStore.storeRun(cForm);
         toast(res.status, res.data.message);
         showCreateModal.value = false;
+        fetchRuns();
     } catch (e) {
         showErrors(e);
     } finally {
@@ -138,20 +138,32 @@ const storeRun = async () => {
 };
 
 const processRun = async (id) => {
-    try { const res = await payrollStore.processRun(id); toast(res.status, res.data.message); }
-    catch (e) { showErrors(e); }
-};
-
-const confirmRun = async (id) => {
-    const result = await Swal.fire({ title: 'Mark payroll as Paid?', icon: 'question', showCancelButton: true, confirmButtonText: 'Yes, Confirm' });
-    if (result.value) {
-        try { const res = await payrollStore.confirmRun(id); toast(res.status, res.data.message); }
-        catch (e) { showErrors(e); }
+    try {
+        const res = await payrollStore.processRun(id);
+        toast(res.status, res.data.message);
+    } catch (e) {
+        showErrors(e);
     }
 };
 
-const deleteRun = (id) => {
-    Swal.fire({ title: 'Delete payroll run?', icon: 'warning', showCancelButton: true, confirmButtonColor: 'red', confirmButtonText: 'Yes' })
-        .then(async (r) => { if (r.value) { try { const res = await payrollStore.deleteRun(id); toast(res.status, res.data.message); } catch (e) { showErrors(e); } } });
-};
+const { confirmAction, confirmDelete } = useConfirmAction();
+
+const confirmRun = (id) => confirmAction({
+    title:              'Mark payroll as Paid?',
+    icon:               'question',
+    confirmButtonColor: 'green',
+    confirmButtonText:  'Yes, Confirm',
+    action:             () => payrollStore.confirmRun(id),
+    onSuccess:          fetchRuns,
+});
+
+const rowActions = createRowActions({
+    onView:    (id) => router.push({ name: 'admin.hr-payroll-detail', params: { id } }),
+    onProcess: processRun,
+    onConfirm: confirmRun,
+    onDelete:  (id) => confirmDelete(
+        () => payrollStore.deleteRun(id),
+        fetchRuns,
+    ),
+});
 </script>
