@@ -758,3 +758,24 @@ it('VAL-001: fiscal year validation passes through when company has no fiscal ye
     $billDateErrors = $response->json('errors')['bill_date'] ?? null;
     expect($billDateErrors)->toBeNull();
 });
+
+// ─── BUG-007: morph-alias discount duplicate key ──────────────────────────────
+
+it('BUG-007: updating a bill does not create a duplicate discount row', function () {
+    $response = $this->postJson('/api/admin/bill', pafBillPayload($this));
+    $response->assertCreated();
+
+    $bill = Bill::latest()->first();
+
+    // Second save (update) must update the existing discount row, not insert a new one
+    $updateResponse = $this->putJson("/api/admin/bill/{$bill->id}", pafBillPayload($this, [
+        'order_discount_type' => 'fixed',
+        'order_discount_value' => 5,
+    ]));
+
+    $updateResponse->assertOk();
+
+    expect(\App\Models\Discount::where('discountable_type', $bill->getMorphClass())
+        ->where('discountable_id', $bill->id)
+        ->count())->toBe(1);
+});

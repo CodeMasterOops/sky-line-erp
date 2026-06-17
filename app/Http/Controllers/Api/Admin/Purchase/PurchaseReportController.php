@@ -328,7 +328,7 @@ class PurchaseReportController extends Controller
 
         $discountsAgg = DB::table('discounts')
             ->selectRaw('discountable_id, COALESCE(SUM(amount), 0) as amount')
-            ->where('discountable_type', Bill::class)
+            ->where('discountable_type', (new Bill)->getMorphClass())
             ->groupBy('discountable_id');
 
         $paAgg = DB::table('payment_allocations as pa')

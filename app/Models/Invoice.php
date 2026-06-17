@@ -153,7 +153,7 @@ class Invoice extends Model
     public function refreshTotals(): void
     {
         $orderDiscount = (float) DB::table('discounts')
-            ->where('discountable_type', self::class)
+            ->where('discountable_type', $this->getMorphClass())
             ->where('discountable_id', $this->id)
             ->value('amount');
 

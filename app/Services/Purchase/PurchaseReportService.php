@@ -26,7 +26,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
@@ -144,7 +144,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->leftJoinSub($this->paidSubQuery($companyId), 'pt', fn ($j) => $j->on('bills.id', '=', 'pt.payable_id'))
             ->where('bills.company_id', $companyId)
@@ -384,7 +384,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->leftJoinSub($this->paidSubQuery($companyId), 'pt', fn ($j) => $j->on('bills.id', '=', 'pt.payable_id'))
             ->where('bills.company_id', $companyId)
@@ -528,7 +528,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
@@ -773,7 +773,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
@@ -822,7 +822,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
@@ -871,7 +871,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
@@ -928,7 +928,7 @@ class PurchaseReportService
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('bills.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Bill::class);
+                    ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
