@@ -264,7 +264,7 @@ class InvoiceController extends Controller
             })
             ->leftJoin('discounts', function ($join) {
                 $join->on('invoices.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', '=', \App\Models\Invoice::class);
+                    ->where('discounts.discountable_type', '=', (new Invoice)->getMorphClass());
             })
             ->where('invoices.company_id', TenantService::companyId())
             ->where('invoices.party_id', $partyId)

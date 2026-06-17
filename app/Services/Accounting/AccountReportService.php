@@ -1324,7 +1324,7 @@ class AccountReportService
 
         $orderDiscounts = (float) (DB::table('discounts')
             ->join('invoices', 'discounts.discountable_id', '=', 'invoices.id')
-            ->where('discounts.discountable_type', Invoice::class)
+            ->where('discounts.discountable_type', (new Invoice)->getMorphClass())
             ->where('invoices.company_id', $companyId)
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.voided_at')

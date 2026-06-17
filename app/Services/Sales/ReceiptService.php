@@ -354,7 +354,7 @@ readonly class ReceiptService
             })
             ->leftJoin('discounts', function ($join) {
                 $join->on('invoices.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', '=', \App\Models\Invoice::class);
+                    ->where('discounts.discountable_type', '=', (new Invoice)->getMorphClass());
             })
             ->whereIn('invoices.id', $invoiceIds)
             ->where('invoices.party_id', $partyId)

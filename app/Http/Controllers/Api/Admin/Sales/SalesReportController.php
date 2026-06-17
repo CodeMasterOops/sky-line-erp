@@ -345,7 +345,7 @@ class SalesReportController extends Controller
             ->leftJoinSub($paidSub, 'paid_totals', fn ($j) => $j->on('invoices.id', '=', 'paid_totals.invoice_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('invoices.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Invoice::class);
+                    ->where('discounts.discountable_type', (new Invoice)->getMorphClass());
             })
             ->where('invoices.company_id', $companyId)
             ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
@@ -413,7 +413,7 @@ class SalesReportController extends Controller
             ->leftJoinSub($paidSub, 'paid_totals', fn ($j) => $j->on('invoices.id', '=', 'paid_totals.invoice_id'))
             ->leftJoin('discounts', function ($j) {
                 $j->on('invoices.id', '=', 'discounts.discountable_id')
-                    ->where('discounts.discountable_type', Invoice::class);
+                    ->where('discounts.discountable_type', (new Invoice)->getMorphClass());
             })
             ->where('invoices.company_id', $companyId)
             ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
