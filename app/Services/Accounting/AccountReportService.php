@@ -55,7 +55,11 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $compareFiscalYear = $this->resolveCompareFiscalYear($request, $period['fiscal_year']);
         $rootGroups = $this->loadSortedRootGroups()
-            ->filter(fn (AccountGroup $group) => in_array(strtolower($group->name), ['assets', 'liabilities', 'equity']))
+            ->filter(fn (AccountGroup $group) => in_array($group->account_type, [
+                AccountGroupTypeEnum::Asset,
+                AccountGroupTypeEnum::Liability,
+                AccountGroupTypeEnum::Equity,
+            ]))
             ->values();
 
         $currentAmounts = $this->fetchNetAmountsForDate($rootGroups, $period['end_date']);
@@ -97,7 +101,10 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $compareFiscalYear = $this->resolveCompareFiscalYear($request, $period['fiscal_year']);
         $rootGroups = $this->loadSortedRootGroups()
-            ->filter(fn (AccountGroup $group) => in_array(strtolower($group->name), ['income', 'expenses']))
+            ->filter(fn (AccountGroup $group) => in_array($group->account_type, [
+                AccountGroupTypeEnum::Income,
+                AccountGroupTypeEnum::Expense,
+            ]))
             ->values();
 
         $currentAmounts = $this->fetchPeriodNetAmounts($rootGroups, $period['start_date'], $period['end_date']);
@@ -229,7 +236,7 @@ class AccountReportService
             ->all();
 
         $accountId = $validated['account_id'] ?? null;
-        $selectedAccount = $accountId ? Account::find($accountId) : null;
+        $selectedAccount = $accountId ? Account::with('accountGroup')->find($accountId) : null;
 
         if (! $selectedAccount) {
             return [
@@ -255,7 +262,14 @@ class AccountReportService
             ];
         }
 
-        $openingBalance = $this->fetchLedgerOpeningBalance($selectedAccount->id, $period['start_date']);
+        // Debit-normal accounts (Asset, Expense): balance = DR − CR.
+        // Credit-normal accounts (Liability, Equity, Income): balance = CR − DR.
+        $isDebitNormal = in_array($selectedAccount->accountGroup?->account_type, [
+            AccountGroupTypeEnum::Asset,
+            AccountGroupTypeEnum::Expense,
+        ]);
+
+        $openingBalance = $this->fetchLedgerOpeningBalance($selectedAccount->id, $period['start_date'], $isDebitNormal);
         $ledgerItems = $this->fetchLedgerEntries($selectedAccount->id, $period['start_date'], $period['end_date']);
 
         $runningBalance = $openingBalance;
@@ -272,7 +286,9 @@ class AccountReportService
         foreach ($ledgerItems as $item) {
             $debit = round((float) $item->dr_amount, 2);
             $credit = round((float) $item->cr_amount, 2);
-            $runningBalance = round($runningBalance + $credit - $debit, 2);
+            $runningBalance = $isDebitNormal
+                ? round($runningBalance + $debit - $credit, 2)
+                : round($runningBalance + $credit - $debit, 2);
 
             $rows[] = [
                 'type' => 'entry',
@@ -317,9 +333,29 @@ class AccountReportService
     {
         $period = $this->resolvePeriod($request);
         $companyId = auth('admin')->user()->company_id;
-        $start = $period['start_date']->toDateString();
-        $end = $period['end_date']->toDateString();
 
+        $rows = $this->fetchVatSalesRows($companyId, $period['start_date']->toDateString(), $period['end_date']->toDateString());
+
+        return [
+            'period' => [
+                'start_date' => $period['start_date']->toDateString(),
+                'end_date' => $period['end_date']->toDateString(),
+                'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
+            ],
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'rows' => $rows,
+            'summary' => [
+                'taxable_amount' => round(collect($rows)->sum('taxable_amount'), 2),
+                'vat_amount' => round(collect($rows)->sum('vat_amount'), 2),
+                'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
+                'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
+                'total_amount' => round(collect($rows)->sum('total_amount'), 2),
+            ],
+        ];
+    }
+
+    private function fetchVatSalesRows(int $companyId, string $start, string $end): array
+    {
         $dbRows = DB::table('invoices')
             ->leftJoin('parties', 'parties.id', '=', 'invoices.party_id')
             ->leftJoin('invoice_items', function ($join) {
@@ -347,7 +383,7 @@ class AccountReportService
             ])
             ->get();
 
-        $rows = $dbRows->map(fn ($row) => [
+        return $dbRows->map(fn ($row) => [
             'date' => $row->invoice_date,
             'bijak_no' => $row->bijak_no ?: $row->invoice_no,
             'buyer_name' => $row->buyer_name,
@@ -358,6 +394,14 @@ class AccountReportService
             'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
             'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
         ])->values()->all();
+    }
+
+    public function vatPurchaseRegister(Request $request): array
+    {
+        $period = $this->resolvePeriod($request);
+        $companyId = auth('admin')->user()->company_id;
+
+        $rows = $this->fetchVatPurchaseRows($companyId, $period['start_date']->toDateString(), $period['end_date']->toDateString());
 
         return [
             'period' => [
@@ -369,7 +413,7 @@ class AccountReportService
             'rows' => $rows,
             'summary' => [
                 'taxable_amount' => round(collect($rows)->sum('taxable_amount'), 2),
-                'vat_amount' => round(collect($rows)->sum('vat_amount'), 2),
+                'input_vat' => round(collect($rows)->sum('input_vat'), 2),
                 'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
                 'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
                 'total_amount' => round(collect($rows)->sum('total_amount'), 2),
@@ -377,13 +421,8 @@ class AccountReportService
         ];
     }
 
-    public function vatPurchaseRegister(Request $request): array
+    private function fetchVatPurchaseRows(int $companyId, string $start, string $end): array
     {
-        $period = $this->resolvePeriod($request);
-        $companyId = auth('admin')->user()->company_id;
-        $start = $period['start_date']->toDateString();
-        $end = $period['end_date']->toDateString();
-
         $dbRows = DB::table('bills')
             ->leftJoin('parties', 'parties.id', '=', 'bills.party_id')
             ->leftJoin('bill_items', function ($join) {
@@ -409,7 +448,7 @@ class AccountReportService
             ])
             ->get();
 
-        $rows = $dbRows->map(fn ($row) => [
+        return $dbRows->map(fn ($row) => [
             'date' => $row->bill_date,
             'bill_no' => $row->bill_no,
             'supplier_name' => $row->supplier_name,
@@ -420,54 +459,59 @@ class AccountReportService
             'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
             'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
         ])->values()->all();
-
-        return [
-            'period' => [
-                'start_date' => $period['start_date']->toDateString(),
-                'end_date' => $period['end_date']->toDateString(),
-                'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
-            ],
-            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
-            'rows' => $rows,
-            'summary' => [
-                'taxable_amount' => round(collect($rows)->sum('taxable_amount'), 2),
-                'input_vat' => round(collect($rows)->sum('input_vat'), 2),
-                'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
-                'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
-                'total_amount' => round(collect($rows)->sum('total_amount'), 2),
-            ],
-        ];
     }
 
     public function vatReturn(Request $request): array
     {
         $period = $this->resolvePeriod($request);
-        $salesData = $this->vatSalesRegister($request);
-        $purchaseData = $this->vatPurchaseRegister($request);
+        $companyId = auth('admin')->user()->company_id;
+        $start = $period['start_date']->toDateString();
+        $end = $period['end_date']->toDateString();
 
-        $outputVat = $salesData['summary']['vat_amount'];
-        $inputVat = $purchaseData['summary']['input_vat'];
-        $netVatPayable = round($outputVat - $inputVat, 2);
+        $salesRows = $this->fetchVatSalesRows($companyId, $start, $end);
+        $purchaseRows = $this->fetchVatPurchaseRows($companyId, $start, $end);
+
+        $salesSummary = [
+            'taxable_amount' => round(collect($salesRows)->sum('taxable_amount'), 2),
+            'vat_amount' => round(collect($salesRows)->sum('vat_amount'), 2),
+            'exempt_amount' => round(collect($salesRows)->sum('exempt_amount'), 2),
+            'zero_rated_amount' => round(collect($salesRows)->sum('zero_rated_amount'), 2),
+            'total_amount' => round(collect($salesRows)->sum('total_amount'), 2),
+        ];
+        $purchaseSummary = [
+            'taxable_amount' => round(collect($purchaseRows)->sum('taxable_amount'), 2),
+            'input_vat' => round(collect($purchaseRows)->sum('input_vat'), 2),
+            'exempt_amount' => round(collect($purchaseRows)->sum('exempt_amount'), 2),
+            'zero_rated_amount' => round(collect($purchaseRows)->sum('zero_rated_amount'), 2),
+            'total_amount' => round(collect($purchaseRows)->sum('total_amount'), 2),
+        ];
+
+        $netVatPayable = round($salesSummary['vat_amount'] - $purchaseSummary['input_vat'], 2);
+        $periodInfo = [
+            'start_date' => $period['start_date']->toDateString(),
+            'end_date' => $period['end_date']->toDateString(),
+            'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
+        ];
 
         return [
-            'period' => $salesData['period'],
-            'fiscal_year' => $salesData['fiscal_year'],
+            'period' => $periodInfo,
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
             'sales' => [
-                'taxable_amount' => $salesData['summary']['taxable_amount'],
-                'output_vat' => $salesData['summary']['vat_amount'],
-                'exempt_amount' => $salesData['summary']['exempt_amount'],
-                'zero_rated_amount' => $salesData['summary']['zero_rated_amount'],
-                'total_sales' => $salesData['summary']['total_amount'],
+                'taxable_amount' => $salesSummary['taxable_amount'],
+                'output_vat' => $salesSummary['vat_amount'],
+                'exempt_amount' => $salesSummary['exempt_amount'],
+                'zero_rated_amount' => $salesSummary['zero_rated_amount'],
+                'total_sales' => $salesSummary['total_amount'],
             ],
             'purchases' => [
-                'taxable_amount' => $purchaseData['summary']['taxable_amount'],
-                'input_vat' => $purchaseData['summary']['input_vat'],
-                'exempt_amount' => $purchaseData['summary']['exempt_amount'],
-                'total_purchases' => $purchaseData['summary']['total_amount'],
+                'taxable_amount' => $purchaseSummary['taxable_amount'],
+                'input_vat' => $purchaseSummary['input_vat'],
+                'exempt_amount' => $purchaseSummary['exempt_amount'],
+                'total_purchases' => $purchaseSummary['total_amount'],
             ],
             'net_vat_payable' => $netVatPayable,
-            'sales_rows' => $salesData['rows'],
-            'purchase_rows' => $purchaseData['rows'],
+            'sales_rows' => $salesRows,
+            'purchase_rows' => $purchaseRows,
         ];
     }
 
@@ -488,9 +532,14 @@ class AccountReportService
     {
         $companyId = auth('admin')->user()->company_id;
         $period = $this->resolvePeriod($request);
-        $return = $this->vatReturn($request);
+        $start = $period['start_date']->toDateString();
+        $end = $period['end_date']->toDateString();
 
-        $computedNet = (float) $return['net_vat_payable'];
+        $salesRows = $this->fetchVatSalesRows($companyId, $start, $end);
+        $purchaseRows = $this->fetchVatPurchaseRows($companyId, $start, $end);
+        $outputVat = round(collect($salesRows)->sum('vat_amount'), 2);
+        $inputVat = round(collect($purchaseRows)->sum('input_vat'), 2);
+        $computedNet = round($outputVat - $inputVat, 2);
 
         $settings = AccountSetting::withoutGlobalScopes()
             ->where('company_id', $companyId)
@@ -500,10 +549,14 @@ class AccountReportService
         $vatAccountId = $settings?->vat_account_id;
 
         $base = [
-            'period' => $return['period'],
-            'fiscal_year' => $return['fiscal_year'],
-            'output_vat' => $return['sales']['output_vat'],
-            'input_vat' => $return['purchases']['input_vat'],
+            'period' => [
+                'start_date' => $period['start_date']->toDateString(),
+                'end_date' => $period['end_date']->toDateString(),
+                'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
+            ],
+            'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'output_vat' => $outputVat,
+            'input_vat' => $inputVat,
             'computed_net_vat' => round($computedNet, 2),
         ];
 
@@ -647,6 +700,8 @@ class AccountReportService
                 'label' => sprintf('For the period %s to %s', $period['start_date']->format('d-m-Y'), $period['end_date']->format('d-m-Y')),
             ],
             'fiscal_year' => $this->mapFiscalYear($period['fiscal_year']),
+            'basis' => 'accrual',
+            'basis_note' => 'This report is prepared using accrual-basis journal movements and does not represent actual cash receipts and payments.',
             'operating' => round($operating, 2),
             'investing' => round($investing, 2),
             'financing' => round($financing, 2),
@@ -664,6 +719,7 @@ class AccountReportService
             ->where('company_id', $companyId)
             ->where('status', StatusEnum::APPROVED->value)
             ->whereNull('voided_at')
+            ->where('invoice_date', '<=', $asOf->toDateString())
             ->get();
 
         $invoiceIds = $invoices->pluck('id');
@@ -738,6 +794,7 @@ class AccountReportService
             ->where('company_id', $companyId)
             ->where('status', StatusEnum::APPROVED->value)
             ->whereNull('voided_at')
+            ->where('bill_date', '<=', $asOf->toDateString())
             ->get();
 
         $billIds = $bills->pluck('id');
@@ -1696,9 +1753,13 @@ class AccountReportService
             ->map(fn ($row) => round((float) $row->net_amount, 2));
     }
 
-    private function fetchLedgerOpeningBalance(int $accountId, Carbon $startDate): float
+    private function fetchLedgerOpeningBalance(int $accountId, Carbon $startDate, bool $isDebitNormal = false): float
     {
         $companyId = auth('admin')->user()->company_id;
+
+        $expr = $isDebitNormal
+            ? 'SUM(journal_items.dr_amount - journal_items.cr_amount) as opening_balance'
+            : 'SUM(journal_items.cr_amount - journal_items.dr_amount) as opening_balance';
 
         $openingBalance = JournalItem::query()
             ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
@@ -1707,7 +1768,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '<', $startDate->toDateString())
-            ->selectRaw('SUM(journal_items.cr_amount - journal_items.dr_amount) as opening_balance')
+            ->selectRaw($expr)
             ->value('opening_balance');
 
         return round((float) ($openingBalance ?? 0), 2);

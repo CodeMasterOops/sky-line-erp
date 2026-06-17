@@ -39,5 +39,8 @@ class AccountSetting extends Model
         'customer_advance_account_id',
         'bad_debt_account_id',
         'stock_adjustment_account_id',
+        'pos_cash_account_id',
+        'pos_float_account_id',
+        'pos_over_short_account_id',
     ];
 }

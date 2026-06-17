@@ -24,6 +24,7 @@ class PosSession extends Model
         'status',
         'opened_at',
         'closed_at',
+        'open_journal_id',
     ];
 
     protected function casts(): array

@@ -5,22 +5,26 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\Party;
 use App\Models\Company;
 use App\Models\Invoice;
+use App\Models\Journal;
 use App\Models\Product;
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Models\Warehouse;
 use App\Models\CreditNote;
 use App\Models\PosSession;
+use App\Models\JournalItem;
 use App\Models\PaymentMode;
 use App\Enums\PartyTypeEnum;
 use App\Models\PosHeldOrder;
 use Illuminate\Http\Request;
 use App\Enums\ChangeTypeEnum;
+use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
 use App\Models\PosCashMovement;
 use App\Models\ProductCategory;
+use App\Services\TenantService;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +32,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Sales\ReceiptService;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Nepal\NepaliDateService;
+use App\Services\Accounting\BooksHealthService;
 use App\Services\Accounting\GlAccountConfigGuard;
 use App\Http\Requests\Api\Admin\PosCheckoutRequest;
 use App\Services\Accounting\InvoiceGlPostingService;
@@ -49,6 +54,7 @@ class PosController extends Controller
         private DocumentNumberGenerator $documentNumberGenerator,
         private GlAccountConfigGuard $glAccountGuard,
         private ReceiptService $receiptService,
+        private BooksHealthService $booksHealth,
     ) {}
 
     /**
@@ -237,12 +243,15 @@ class PosController extends Controller
         $taxTotal = (float) ($totals->tax_total ?? 0);
         $saleTotal = $subtotal - $discountTotal + $taxTotal;
 
-        // Profit = revenue - COGS (purchase_price * qty)
-        $cogsSub = DB::table('invoice_items as ii')
-            ->join('product_variants as pv', 'pv.id', '=', 'ii.product_variant_id')
-            ->whereIn('ii.invoice_id', $invoiceIds)
-            ->whereNull('ii.deleted_at')
-            ->selectRaw('SUM(ii.quantity * pv.purchase_price) as cogs')
+        // Profit = revenue - COGS using actual inventory layer cost at time of issue
+        $invoiceMorphType = (new Invoice)->getMorphClass();
+        $cogsSub = DB::table('stock_movements as sm')
+            ->join('stock_movement_layers as sml', 'sml.stock_movement_id', '=', 'sm.id')
+            ->whereIn('sm.reference_id', $invoiceIds->isEmpty() ? [0] : $invoiceIds)
+            ->where('sm.reference_type', $invoiceMorphType)
+            ->whereNull('sm.deleted_at')
+            ->whereNull('sml.deleted_at')
+            ->selectRaw('COALESCE(SUM(sml.quantity * sml.unit_cost), 0) as cogs')
             ->first();
 
         $cogs = (float) ($cogsSub->cogs ?? 0);
@@ -594,13 +603,20 @@ class PosController extends Controller
         ]);
 
         $user = auth('admin')->user();
+        $branchId = TenantService::branchId();
 
-        return DB::transaction(function () use ($user, $request): JsonResponse {
-            // Lock the company row to serialize concurrent open-till requests for
-            // the same company, preventing duplicate open sessions.
-            Company::lockForUpdate()->find($user->company_id);
+        return DB::transaction(function () use ($user, $branchId, $request): JsonResponse {
+            // Lock all sessions for this (company, branch) to serialize concurrent
+            // openTill calls at the same branch while allowing other branches to proceed.
+            PosSession::withoutGlobalScopes()
+                ->where('company_id', $user->company_id)
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                ->lockForUpdate()
+                ->get();
 
-            $existing = PosSession::where('company_id', $user->company_id)
+            $existing = PosSession::withoutGlobalScopes()
+                ->where('company_id', $user->company_id)
+                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->where('status', 'open')
                 ->latest()
                 ->first();
@@ -614,14 +630,56 @@ class PosController extends Controller
 
             $session = PosSession::create([
                 'company_id' => $user->company_id,
+                'branch_id' => $branchId,
                 'user_id' => $user->id,
                 'opening_cash' => (float) $request->opening_cash,
                 'status' => 'open',
                 'opened_at' => now(),
             ]);
 
+            // Post opening float journal if GL accounts are configured.
+            $openingCash = (float) $request->opening_cash;
+            if ($openingCash > 0) {
+                $accountSetting = AccountSetting::withoutGlobalScopes()
+                    ->where('company_id', $user->company_id)
+                    ->first();
+
+                if ($accountSetting?->pos_cash_account_id && $accountSetting?->pos_float_account_id) {
+                    $company = $user->company;
+                    $journal = Journal::create([
+                        'company_id' => $user->company_id,
+                        'fiscal_year_id' => $company->fiscal_year_id,
+                        'type' => JournalTypeEnum::JOURNAL_VOUCHER,
+                        'voucher_no' => 'TILL-OPEN-'.$session->id,
+                        'date' => now()->toDateString(),
+                        'remarks' => 'Till opened – opening float',
+                        'create_user_id' => $user->id,
+                        'status' => StatusEnum::APPROVED,
+                    ]);
+
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $accountSetting->pos_cash_account_id,
+                        'dr_amount' => $openingCash,
+                        'cr_amount' => 0,
+                        'remarks' => 'Opening float – POS Cash',
+                    ]);
+
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $accountSetting->pos_float_account_id,
+                        'dr_amount' => 0,
+                        'cr_amount' => $openingCash,
+                        'remarks' => 'Opening float – Till Float',
+                    ]);
+
+                    $session->update(['open_journal_id' => $journal->id]);
+                    $this->booksHealth->invalidateCache($user->company_id);
+                }
+            }
+
             return response()->json([
-                'data' => $this->formatSession($session),
+                'data' => $this->formatSession($session->fresh()),
                 'message' => 'Till opened successfully.',
             ], 201);
         });
@@ -647,15 +705,83 @@ class PosController extends Controller
         $summary = $this->buildTillSummaryData($session);
         $expectedCash = $summary['expected_cash'];
         $closingCash = (float) $request->closing_cash;
+        $cashDifference = round($closingCash - $expectedCash, 2);
 
         $session->update([
             'closing_cash' => $closingCash,
             'expected_cash' => $expectedCash,
-            'cash_difference' => round($closingCash - $expectedCash, 2),
+            'cash_difference' => $cashDifference,
             'notes' => $request->notes,
             'status' => 'closed',
             'closed_at' => now(),
         ]);
+
+        // Post close-till GL journals if accounts are configured.
+        $user = auth('admin')->user();
+        $accountSetting = AccountSetting::withoutGlobalScopes()
+            ->where('company_id', $session->company_id)
+            ->first();
+
+        if ($accountSetting?->pos_cash_account_id && $accountSetting?->pos_float_account_id) {
+            DB::transaction(function () use ($session, $cashDifference, $user, $accountSetting) {
+                $company = $user->company;
+
+                // Reverse the opening float journal (DR Float, CR POS Cash).
+                $openingCash = (float) $session->opening_cash;
+                $closeJournal = Journal::create([
+                    'company_id' => $session->company_id,
+                    'fiscal_year_id' => $company->fiscal_year_id,
+                    'type' => JournalTypeEnum::JOURNAL_VOUCHER,
+                    'voucher_no' => 'TILL-CLOSE-'.$session->id,
+                    'date' => now()->toDateString(),
+                    'remarks' => 'Till closed – float reversal',
+                    'create_user_id' => $user->id,
+                    'status' => StatusEnum::APPROVED,
+                ]);
+
+                JournalItem::create([
+                    'journal_id' => $closeJournal->id,
+                    'account_id' => $accountSetting->pos_float_account_id,
+                    'dr_amount' => $openingCash,
+                    'cr_amount' => 0,
+                    'remarks' => 'Float reversal on close',
+                ]);
+
+                JournalItem::create([
+                    'journal_id' => $closeJournal->id,
+                    'account_id' => $accountSetting->pos_cash_account_id,
+                    'dr_amount' => 0,
+                    'cr_amount' => $openingCash,
+                    'remarks' => 'Float reversal on close',
+                ]);
+
+                // Post cash over/short to the configured P&L account.
+                if (abs($cashDifference) > 0.005 && $accountSetting->pos_over_short_account_id) {
+                    $overShortJournal = Journal::create([
+                        'company_id' => $session->company_id,
+                        'fiscal_year_id' => $company->fiscal_year_id,
+                        'type' => JournalTypeEnum::JOURNAL_VOUCHER,
+                        'voucher_no' => 'TILL-DIFF-'.$session->id,
+                        'date' => now()->toDateString(),
+                        'remarks' => $cashDifference > 0 ? 'Cash over on till close' : 'Cash short on till close',
+                        'create_user_id' => $user->id,
+                        'status' => StatusEnum::APPROVED,
+                    ]);
+
+                    if ($cashDifference > 0) {
+                        // Over: DR POS Cash, CR Over/Short income
+                        JournalItem::create(['journal_id' => $overShortJournal->id, 'account_id' => $accountSetting->pos_cash_account_id, 'dr_amount' => $cashDifference, 'cr_amount' => 0, 'remarks' => 'Cash over']);
+                        JournalItem::create(['journal_id' => $overShortJournal->id, 'account_id' => $accountSetting->pos_over_short_account_id, 'dr_amount' => 0, 'cr_amount' => $cashDifference, 'remarks' => 'Cash over']);
+                    } else {
+                        // Short: DR Over/Short expense, CR POS Cash
+                        JournalItem::create(['journal_id' => $overShortJournal->id, 'account_id' => $accountSetting->pos_over_short_account_id, 'dr_amount' => abs($cashDifference), 'cr_amount' => 0, 'remarks' => 'Cash short']);
+                        JournalItem::create(['journal_id' => $overShortJournal->id, 'account_id' => $accountSetting->pos_cash_account_id, 'dr_amount' => 0, 'cr_amount' => abs($cashDifference), 'remarks' => 'Cash short']);
+                    }
+                }
+
+                $this->booksHealth->invalidateCache($session->company_id);
+            });
+        }
 
         return response()->json([
             'data' => array_merge($this->formatSession($session->fresh()), ['summary' => $summary]),
@@ -1045,9 +1171,12 @@ class PosController extends Controller
 
     private function getOpenSession(): ?PosSession
     {
-        $companyId = auth('admin')->user()->company_id;
+        $user = auth('admin')->user();
+        $branchId = TenantService::branchId();
 
-        return PosSession::where('company_id', $companyId)
+        return PosSession::withoutGlobalScopes()
+            ->where('company_id', $user->company_id)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->where('status', 'open')
             ->latest()
             ->first();

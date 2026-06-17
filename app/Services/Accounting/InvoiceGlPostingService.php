@@ -33,6 +33,7 @@ class InvoiceGlPostingService
         private PeriodLockGuard $periodGuard,
         private GlAccountConfigGuard $glAccountGuard,
         private TaxCalculationEngine $taxEngine,
+        private BooksHealthService $booksHealth,
     ) {}
 
     /**
@@ -185,6 +186,7 @@ class InvoiceGlPostingService
             }
 
             $this->balanceGuard->assertBalanced($journal);
+            $this->booksHealth->invalidateCache($invoice->company_id);
         });
     }
 
