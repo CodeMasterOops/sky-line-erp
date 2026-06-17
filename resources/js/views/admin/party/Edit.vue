@@ -7,12 +7,6 @@
         <template #modal-body>
             <VLoader v-if="party.loading" loader-type="progress"/>
             <form @submit.prevent="updateParty(party.data.id)" class="row g-3">
-                <PartyTypeSelector
-                    id-prefix="party-edit"
-                    v-model="form.type"
-                    :error="errors.type"
-                    @change="validateField('type')"
-                />
                 <div class="col-md-6">
                     <VInput
                         id="name"
@@ -116,7 +110,6 @@ import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {usePartyStore} from "@/stores/admin/party.js";
-import PartyTypeSelector from '@/components/party/PartyTypeSelector.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 
 const partyStore = usePartyStore();

@@ -33,6 +33,8 @@ class SetTenantContext
                         'branch_id' => $branchId,
                         'company_id' => $user->company_id,
                         'ip' => $request->ip(),
+                        'path' => $request->path(),
+                        'user_agent' => substr((string) $request->userAgent(), 0, 255),
                     ]);
 
                     abort(Response::HTTP_FORBIDDEN, 'You do not have access to this branch.');
@@ -52,6 +54,15 @@ class SetTenantContext
         }
 
         return $next($request);
+    }
+
+    /**
+     * Reset tenant context after each request so static state does not leak
+     * between requests on long-lived processes (Octane, Swoole, RoadRunner).
+     */
+    public function terminate(Request $request, Response $response): void
+    {
+        TenantService::reset();
     }
 
     /**

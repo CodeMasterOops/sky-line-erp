@@ -30,12 +30,12 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('logout', 'logout')->middleware('auth:admin');
 });
 
-Route::middleware(['auth:admin', SetTenantContext::class])->prefix('onboarding')->as('onboarding.')->group(function () {
-    Route::put('company', [OnboardingController::class, 'updateCompany'])->name('company');
-    Route::post('complete', [OnboardingController::class, 'complete'])->name('complete');
-});
-
 Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
+    Route::prefix('onboarding')->as('onboarding.')->group(function () {
+        Route::put('company', [OnboardingController::class, 'updateCompany'])->name('company');
+        Route::post('complete', [OnboardingController::class, 'complete'])->name('complete');
+    });
+
     Route::middleware('checkRole')->group(function () {
         // profile
         Route::prefix('profile')->as('profile')->controller(ProfileController::class)->group(function () {

@@ -158,7 +158,6 @@
                 target="#document-print-area"
                 title="Invoice"
                 label="Print Invoice"
-                button-class="btn-primary"
             />
             <button
                 v-if="inv.id"

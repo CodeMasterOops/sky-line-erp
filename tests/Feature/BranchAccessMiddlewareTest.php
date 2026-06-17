@@ -10,6 +10,8 @@ use App\Enums\UserTypeEnum;
 use Laravel\Sanctum\Sanctum;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Foundation\Http\Events\RequestHandled;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -185,10 +187,19 @@ it('sets branch-specific permissions in TenantService when valid header provided
 
     Sanctum::actingAs($this->regularUser, [], 'admin');
 
+    // Capture TenantService state during the request (before terminate() resets it).
+    // RequestHandled fires after response is built but before middleware::terminate().
+    $capturedRoleId = null;
+    $capturedPermissions = null;
+    Event::listen(RequestHandled::class, function () use (&$capturedRoleId, &$capturedPermissions) {
+        $capturedRoleId = TenantService::branchRoleId();
+        $capturedPermissions = TenantService::branchPermissions();
+    });
+
     $this->getJson('/api/admin/branch/my-branches', [
         'X-Branch-Id' => (string) $this->branchA->id,
     ])->assertSuccessful();
 
-    expect(TenantService::branchRoleId())->toBe($this->role->id)
-        ->and(TenantService::branchPermissions())->toContain('sales.view');
+    expect($capturedRoleId)->toBe($this->role->id)
+        ->and($capturedPermissions)->toContain('sales.view');
 });

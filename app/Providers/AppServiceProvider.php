@@ -19,9 +19,11 @@ use App\Policies\PartyPolicy;
 use App\Policies\BranchPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\PaymentPolicy;
+use App\Services\TenantService;
 use App\Observers\StockObserver;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Gate;
+use Laravel\Telescope\IncomingEntry;
 use App\Observers\BranchUserObserver;
 use App\Services\BranchAccessService;
 use Illuminate\Support\Facades\Cache;
@@ -48,6 +50,31 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * Register Telescope tags for null-tenant-context admin API requests.
+     * Entries tagged 'tenant:null-context' indicate a request that reached an
+     * admin API route without a company being set in TenantService — a signal
+     * that SetTenantContext was bypassed or the route is missing the middleware.
+     */
+    protected function registerTelescopeTenantTag(): void
+    {
+        if (! class_exists(\Laravel\Telescope\Telescope::class)) {
+            return;
+        }
+
+        \Laravel\Telescope\Telescope::tag(function (IncomingEntry $entry) {
+            if (
+                TenantService::companyId() === null
+                && request()->is('api/admin/*')
+                && auth('admin')->check()
+            ) {
+                return ['tenant:null-context'];
+            }
+
+            return [];
+        });
+    }
+
+    /**
      * Bootstrap any application services.
      */
     public function boot(): void
@@ -63,12 +90,16 @@ class AppServiceProvider extends ServiceProvider
         BranchUser::observe(BranchUserObserver::class);
         Stock::observe(StockObserver::class);
 
-        if ($this->app->environment('local', 'staging')) {
+        // Register in all environments: the observer logs (never throws) in production.
+        // RuntimeException is only thrown in local to surface leaks during development.
+        if (! $this->app->environment('testing')) {
             Invoice::observe(BelongsToCompanyObserver::class);
             Bill::observe(BelongsToCompanyObserver::class);
             Party::observe(BelongsToCompanyObserver::class);
             Payment::observe(BelongsToCompanyObserver::class);
         }
+
+        $this->registerTelescopeTenantTag();
 
         $this->registerBranchGates();
 

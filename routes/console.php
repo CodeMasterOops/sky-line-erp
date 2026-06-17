@@ -12,6 +12,8 @@ Artisan::command('inspire', function () {
 
 Schedule::command('data-transfer:prune')->daily();
 
+Schedule::command('app:check-orphan-rows')->dailyAt('02:00');
+
 Schedule::call(function () {
     DataTransferSchedule::query()
         ->where('is_active', true)

@@ -23,8 +23,20 @@ trait BranchTenant
         });
 
         static::addGlobalScope('branch_scope', function (Builder $builder) {
+            $table = $builder->getModel()->getTable();
+
             if ($branchId = TenantService::branchId()) {
-                $builder->where($builder->getModel()->getTable().'.branch_id', $branchId);
+                $builder->where("{$table}.branch_id", $branchId);
+
+                return;
+            }
+
+            // No branch header sent — scope non-admin users to their accessible branches
+            // so they cannot see data from branches they are not assigned to.
+            $user = auth('admin')->user();
+            if ($user && ! $user->isAdmin()) {
+                $branchIds = $user->accessibleBranchIds();
+                $builder->whereIn("{$table}.branch_id", $branchIds->isEmpty() ? [0] : $branchIds);
             }
         });
     }

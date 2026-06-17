@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductionOrderConsumption extends Model
 {
+    use MultiTenant;
+
     protected $fillable = [
+        'company_id',
         'production_order_id',
         'product_variant_id',
         'warehouse_id',
