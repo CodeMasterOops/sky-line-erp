@@ -53,4 +53,10 @@ class InventoryReportController extends Controller
     {
         return response()->json(['data' => $this->reportService->stockOpening($request)]);
     }
+
+    #[Permissions('inventory_summary_report', group: 'inventory_report', desc: 'Inventory Summary Report')]
+    public function inventorySummary(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->inventorySummary($request)]);
+    }
 }

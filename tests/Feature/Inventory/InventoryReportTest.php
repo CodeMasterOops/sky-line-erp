@@ -413,6 +413,130 @@ it('warehouse transfer report scopes results to the active branch', function () 
     expect($refs->contains('TRF-BRANCH-B'))->toBeFalse();
 });
 
+// Inventory Summary Report
+it('returns inventory summary with opening, purchase, sale and closing columns', function () {
+    // Purchase movement in the fiscal year period
+    StockMovement::create([
+        'company_id' => $this->company->id,
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => ChangeTypeEnum::PURCHASE,
+        'direction' => StockDirectionEnum::IN,
+        'quantity' => 50,
+        'unit_cost' => 10.00,
+        'total_cost' => 500.00,
+        'created_at' => '2026-03-01 10:00:00',
+    ]);
+
+    // Sale movement in the fiscal year period
+    StockMovement::create([
+        'company_id' => $this->company->id,
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => ChangeTypeEnum::SALE,
+        'direction' => StockDirectionEnum::OUT,
+        'quantity' => 20,
+        'unit_cost' => 10.00,
+        'total_cost' => 200.00,
+        'created_at' => '2026-04-01 10:00:00',
+    ]);
+
+    // Sale return in the fiscal year period
+    StockMovement::create([
+        'company_id' => $this->company->id,
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => ChangeTypeEnum::RETURN_IN,
+        'direction' => StockDirectionEnum::IN,
+        'quantity' => 5,
+        'unit_cost' => 10.00,
+        'total_cost' => 50.00,
+        'created_at' => '2026-04-05 10:00:00',
+    ]);
+
+    // Purchase return in the fiscal year period
+    StockMovement::create([
+        'company_id' => $this->company->id,
+        'product_variant_id' => $this->variant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => ChangeTypeEnum::RETURN_OUT,
+        'direction' => StockDirectionEnum::OUT,
+        'quantity' => 10,
+        'unit_cost' => 10.00,
+        'total_cost' => 100.00,
+        'created_at' => '2026-04-10 10:00:00',
+    ]);
+
+    $response = $this->getJson('/api/admin/inventory-report/inventory-summary?from_date=2026-01-01&to_date=2026-12-31');
+
+    $response->assertOk();
+    $rows = $response->json('data.rows');
+    expect($rows)->not->toBeEmpty();
+
+    $row = collect($rows)->firstWhere('sku', 'SKU-001');
+    expect($row)->not->toBeNull();
+    expect($row['purchase_qty'])->toEqual(50.0);
+    expect($row['purchase_value'])->toEqual(500.0);
+    expect($row['purchase_return_qty'])->toEqual(10.0);
+    expect($row['sale_qty'])->toEqual(20.0);
+    expect($row['sale_return_qty'])->toEqual(5.0);
+    // closing_qty = opening(100) + purchase(50) - purchase_return(10) - sale(20) + sale_return(5) = 125
+    expect($row['closing_qty'])->toEqual(125.0);
+});
+
+it('returns zero in-period columns when date range has no activity', function () {
+    $response = $this->getJson('/api/admin/inventory-report/inventory-summary?from_date=2030-01-01&to_date=2030-12-31');
+
+    $response->assertOk();
+    $row = collect($response->json('data.rows'))->firstWhere('sku', 'SKU-001');
+    expect($row)->not->toBeNull();
+    expect($row['purchase_qty'])->toEqual(0.0);
+    expect($row['sale_qty'])->toEqual(0.0);
+    expect($row['sale_return_qty'])->toEqual(0.0);
+    expect($row['purchase_return_qty'])->toEqual(0.0);
+});
+
+it('filters inventory summary by category', function () {
+    $otherProduct = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Other Product',
+        'code' => 'OTHER',
+    ]);
+
+    $otherVariant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $otherProduct->id,
+        'sku' => 'SKU-OTHER',
+        'is_default' => true,
+    ]);
+
+    StockMovement::create([
+        'company_id' => $this->company->id,
+        'product_variant_id' => $otherVariant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => ChangeTypeEnum::OPENING_STOCK,
+        'direction' => StockDirectionEnum::IN,
+        'quantity' => 10,
+        'unit_cost' => 5.00,
+        'total_cost' => 50.00,
+    ]);
+
+    // Filter by a non-existent category to get empty results
+    $response = $this->getJson('/api/admin/inventory-report/inventory-summary?category_id=99999');
+
+    $response->assertOk();
+    expect($response->json('data.rows'))->toBeEmpty();
+});
+
+it('inventory summary returns filter_options on first load', function () {
+    $response = $this->getJson('/api/admin/inventory-report/inventory-summary?with_options=1');
+
+    $response->assertOk();
+    expect($response->json('data.filter_options'))->not->toBeNull();
+    expect($response->json('data.filter_options.warehouse_options'))->toBeArray();
+    expect($response->json('data.filter_options.category_options'))->toBeArray();
+});
+
 it('stock opening report scopes results to the active branch', function () {
     $branch = Branch::create([
         'company_id' => $this->company->id,

@@ -95,6 +95,7 @@ Route::prefix('inventory-report')->as('inventory-report.')->controller(Inventory
     Route::get('expiry-stock', 'expiryStock')->name('expiry-stock');
     Route::get('dead-stock', 'deadStock')->name('dead-stock');
     Route::get('stock-opening', 'stockOpening')->name('stock-opening');
+    Route::get('inventory-summary', 'inventorySummary')->name('inventory-summary');
 });
 
 // Production Orders

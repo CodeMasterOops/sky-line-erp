@@ -160,6 +160,7 @@ const REPORT_CATEGORIES = [
             { label: 'Expiry Stock Report', name: 'admin.expiry-stock-report', permission: 'list_product' },
             { label: 'Dead Stock Report', name: 'admin.dead-stock-report', permission: 'list_product' },
             { label: 'Stock Opening Report', name: 'admin.stock-opening-report', permission: 'list_product' },
+            { label: 'Inventory Summary Report', name: 'admin.inventory-summary-report', permission: 'inventory_summary_report' },
         ],
     },
     {

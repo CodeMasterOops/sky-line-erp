@@ -200,6 +200,12 @@ export default [
         component: () => import("@/views/admin/inventory/reports/StockOpening.vue"),
     },
     {
+        path: "inventory-summary-report",
+        name: "admin.inventory-summary-report",
+        meta: {pageTitle: "Inventory Summary Report"},
+        component: () => import("@/views/admin/inventory/reports/InventorySummary.vue"),
+    },
+    {
         path: "serial-numbers",
         name: "admin.serial-numbers",
         meta: {pageTitle: "Serial / Lot Numbers"},

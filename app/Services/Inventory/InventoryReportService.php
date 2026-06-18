@@ -542,6 +542,140 @@ class InventoryReportService
         ];
     }
 
+    public function inventorySummary(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+        $withOptions = $request->boolean('with_options', false);
+
+        $query = DB::table('stock_movements')
+            ->join('product_variants', 'product_variants.id', '=', 'stock_movements.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
+            ->where('stock_movements.company_id', $companyId)
+            ->whereNull('stock_movements.deleted_at')
+            ->whereNull('products.deleted_at')
+            ->whereNull('product_variants.deleted_at')
+            ->where(DB::raw('DATE(stock_movements.created_at)'), '<=', $toDate)
+            ->groupBy(
+                'product_variants.id',
+                'products.id',
+                'products.name',
+                'products.code',
+                'product_variants.sku',
+                'product_categories.name'
+            )
+            ->orderBy('products.name')
+            ->selectRaw("
+                product_variants.id as variant_id,
+                products.name as product_name,
+                products.code as product_code,
+                product_variants.sku,
+                product_categories.name as category_name,
+
+                ROUND(
+                    SUM(CASE WHEN DATE(stock_movements.created_at) < ? AND stock_movements.direction = 'in' THEN stock_movements.quantity ELSE 0 END) -
+                    SUM(CASE WHEN DATE(stock_movements.created_at) < ? AND stock_movements.direction = 'out' THEN stock_movements.quantity ELSE 0 END),
+                4) as opening_qty,
+
+                ROUND(
+                    SUM(CASE WHEN DATE(stock_movements.created_at) < ? AND stock_movements.direction = 'in' THEN stock_movements.total_cost ELSE 0 END) -
+                    SUM(CASE WHEN DATE(stock_movements.created_at) < ? AND stock_movements.direction = 'out' THEN stock_movements.total_cost ELSE 0 END),
+                2) as opening_value,
+
+                ROUND(SUM(CASE WHEN DATE(stock_movements.created_at) BETWEEN ? AND ? AND stock_movements.type IN ('purchase','grn-receipt') THEN stock_movements.quantity ELSE 0 END), 4) as purchase_qty,
+                ROUND(SUM(CASE WHEN DATE(stock_movements.created_at) BETWEEN ? AND ? AND stock_movements.type IN ('purchase','grn-receipt') THEN stock_movements.total_cost ELSE 0 END), 2) as purchase_value,
+
+                ROUND(SUM(CASE WHEN DATE(stock_movements.created_at) BETWEEN ? AND ? AND stock_movements.type = 'return-out' THEN stock_movements.quantity ELSE 0 END), 4) as purchase_return_qty,
+
+                ROUND(SUM(CASE WHEN DATE(stock_movements.created_at) BETWEEN ? AND ? AND stock_movements.type IN ('sale','delivery') THEN stock_movements.quantity ELSE 0 END), 4) as sale_qty,
+
+                ROUND(SUM(CASE WHEN DATE(stock_movements.created_at) BETWEEN ? AND ? AND stock_movements.type = 'return-in' THEN stock_movements.quantity ELSE 0 END), 4) as sale_return_qty,
+
+                ROUND(
+                    SUM(CASE WHEN stock_movements.direction = 'in' THEN stock_movements.quantity ELSE 0 END) -
+                    SUM(CASE WHEN stock_movements.direction = 'out' THEN stock_movements.quantity ELSE 0 END),
+                4) as closing_qty,
+
+                ROUND(
+                    SUM(CASE WHEN stock_movements.direction = 'in' THEN stock_movements.total_cost ELSE 0 END) -
+                    SUM(CASE WHEN stock_movements.direction = 'out' THEN stock_movements.total_cost ELSE 0 END),
+                2) as closing_value
+            ", [
+                $fromDate, $fromDate,
+                $fromDate, $fromDate,
+                $fromDate, $toDate,
+                $fromDate, $toDate,
+                $fromDate, $toDate,
+                $fromDate, $toDate,
+                $fromDate, $toDate,
+            ]);
+
+        if ($request->filled('product_variant_id')) {
+            $query->where('stock_movements.product_variant_id', $request->product_variant_id);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->where('products.product_category_id', $request->category_id);
+        }
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('stock_movements.warehouse_id', $request->warehouse_id);
+        }
+
+        $paginator = $query->paginate($request->input('limit', 50));
+
+        $rows = collect($paginator->items())->map(fn ($row) => [
+            'product_name' => $row->product_name,
+            'product_code' => $row->product_code,
+            'sku' => $row->sku,
+            'category' => $row->category_name ?? '-',
+            'opening_qty' => (float) $row->opening_qty,
+            'opening_value' => (float) $row->opening_value,
+            'purchase_qty' => (float) $row->purchase_qty,
+            'purchase_value' => (float) $row->purchase_value,
+            'purchase_return_qty' => (float) $row->purchase_return_qty,
+            'sale_qty' => (float) $row->sale_qty,
+            'sale_return_qty' => (float) $row->sale_return_qty,
+            'closing_qty' => (float) $row->closing_qty,
+            'closing_value' => (float) $row->closing_value,
+        ])->values();
+
+        return [
+            'period' => $this->buildPeriod($fromDate, $toDate),
+            'rows' => $rows->all(),
+            'summary' => [
+                'total_products' => $paginator->total(),
+                'total_opening_value' => round($rows->sum('opening_value'), 2),
+                'total_purchase_value' => round($rows->sum('purchase_value'), 2),
+                'total_sale_qty' => round($rows->sum('sale_qty'), 2),
+                'total_closing_value' => round($rows->sum('closing_value'), 2),
+            ],
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+            'filter_options' => $withOptions ? $this->inventorySummaryFilterOptions($companyId) : null,
+        ];
+    }
+
+    private function inventorySummaryFilterOptions(int $companyId): array
+    {
+        return [
+            'category_options' => DB::table('product_categories')
+                ->where('company_id', $companyId)
+                ->whereNull('deleted_at')
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn ($r) => ['id' => (string) $r->id, 'name' => $r->name])
+                ->all(),
+            'warehouse_options' => $this->warehouseOptions($companyId),
+        ];
+    }
+
     private function movementFilterOptions(int $companyId): array
     {
         return [

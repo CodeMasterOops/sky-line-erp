@@ -9,72 +9,67 @@
 
     <!-- Summary Stats -->
     <div class="row g-3 mb-4">
-        <div class="col-xl col-md-4 col-6">
-            <div class="card mb-0 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10"
-                        style="width:44px;height:44px;flex-shrink:0;">
-                        <i class="ti ti-user-check text-success fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold fs-5 lh-1">{{ summary.present }}</div>
-                        <div class="text-muted small">Present</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl col-md-4 col-6">
-            <div class="card mb-0 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger bg-opacity-10"
-                        style="width:44px;height:44px;flex-shrink:0;">
-                        <i class="ti ti-user-x text-danger fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold fs-5 lh-1">{{ summary.absent }}</div>
-                        <div class="text-muted small">Absent</div>
+        <div class="col-xl col-md-4 col-6 d-flex">
+            <div class="card border-0 shadow-sm sale-widget widget-success flex-fill">
+                <div class="card-body d-flex align-items-center">
+                    <span class="sale-icon bg-success-subtle text-success">
+                        <i class="ti ti-user-check fs-24"></i>
+                    </span>
+                    <div class="ms-3">
+                        <p class="fw-medium mb-1">Present</p>
+                        <h4 class="mb-0">{{ summary.present }}</h4>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl col-md-4 col-6">
-            <div class="card mb-0 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10"
-                        style="width:44px;height:44px;flex-shrink:0;">
-                        <i class="ti ti-clock-half-2 text-warning fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold fs-5 lh-1">{{ summary.half_day }}</div>
-                        <div class="text-muted small">Half Day</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl col-md-4 col-6">
-            <div class="card mb-0 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-secondary bg-opacity-10"
-                        style="width:44px;height:44px;flex-shrink:0;">
-                        <i class="ti ti-clock-exclamation text-secondary fs-5"></i>
-                    </div>
-                    <div>
-                        <div class="fw-bold fs-5 lh-1">{{ summary.late }}</div>
-                        <div class="text-muted small">Late</div>
+        <div class="col-xl col-md-4 col-6 d-flex">
+            <div class="card border-0 shadow-sm sale-widget widget-danger flex-fill">
+                <div class="card-body d-flex align-items-center">
+                    <span class="sale-icon bg-danger-subtle text-danger">
+                        <i class="ti ti-user-x fs-24"></i>
+                    </span>
+                    <div class="ms-3">
+                        <p class="fw-medium mb-1">Absent</p>
+                        <h4 class="mb-0">{{ summary.absent }}</h4>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-xl col-md-4 col-6">
-            <div class="card mb-0 border-0 shadow-sm">
-                <div class="card-body d-flex align-items-center gap-3 py-3">
-                    <div class="rounded-circle d-flex align-items-center justify-content-center bg-info bg-opacity-10"
-                        style="width:44px;height:44px;flex-shrink:0;">
-                        <i class="ti ti-beach text-info fs-5"></i>
+        <div class="col-xl col-md-4 col-6 d-flex">
+            <div class="card border-0 shadow-sm sale-widget widget-warning flex-fill">
+                <div class="card-body d-flex align-items-center">
+                    <span class="sale-icon bg-warning-subtle text-warning">
+                        <i class="ti ti-clock-half-2 fs-24"></i>
+                    </span>
+                    <div class="ms-3">
+                        <p class="fw-medium mb-1">Half Day</p>
+                        <h4 class="mb-0">{{ summary.half_day }}</h4>
                     </div>
-                    <div>
-                        <div class="fw-bold fs-5 lh-1">{{ summary.on_leave }}</div>
-                        <div class="text-muted small">On Leave</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-md-4 col-6 d-flex">
+            <div class="card border-0 shadow-sm sale-widget widget-secondary flex-fill">
+                <div class="card-body d-flex align-items-center">
+                    <span class="sale-icon bg-secondary-subtle text-secondary">
+                        <i class="ti ti-clock-exclamation fs-24"></i>
+                    </span>
+                    <div class="ms-3">
+                        <p class="fw-medium mb-1">Late</p>
+                        <h4 class="mb-0">{{ summary.late }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl col-md-4 col-6 d-flex">
+            <div class="card border-0 shadow-sm sale-widget widget-info flex-fill">
+                <div class="card-body d-flex align-items-center">
+                    <span class="sale-icon bg-info-subtle text-info">
+                        <i class="ti ti-beach fs-24"></i>
+                    </span>
+                    <div class="ms-3">
+                        <p class="fw-medium mb-1">On Leave</p>
+                        <h4 class="mb-0">{{ summary.on_leave }}</h4>
                     </div>
                 </div>
             </div>
@@ -318,6 +313,38 @@ const summary = computed(() => {
 </script>
 
 <style scoped>
+.sale-widget {
+    overflow: hidden;
+    position: relative;
+}
+
+.sale-widget::after {
+    content: '';
+    position: absolute;
+    inset: auto -22px -22px auto;
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    opacity: 0.08;
+    background: currentColor;
+}
+
+.sale-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.widget-success   { color: #198754; background: linear-gradient(135deg, #ffffff 0%, #f1fbf5 100%); }
+.widget-danger    { color: #dc3545; background: linear-gradient(135deg, #ffffff 0%, #fff1f3 100%); }
+.widget-warning   { color: #b7791f; background: linear-gradient(135deg, #ffffff 0%, #fff9ed 100%); }
+.widget-secondary { color: #6c757d; background: linear-gradient(135deg, #ffffff 0%, #f4f5f7 100%); }
+.widget-info      { color: #0d6efd; background: linear-gradient(135deg, #ffffff 0%, #eef6ff 100%); }
+
 /* Sticky employee column */
 .sticky-col {
     position: sticky;
