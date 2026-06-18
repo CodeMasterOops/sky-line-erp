@@ -82,4 +82,9 @@ class ProductionOrder extends Model
     {
         return $this->morphMany(StockMovement::class, 'reference');
     }
+
+    public function stockReservations(): MorphMany
+    {
+        return $this->morphMany(StockReservation::class, 'reservable');
+    }
 }

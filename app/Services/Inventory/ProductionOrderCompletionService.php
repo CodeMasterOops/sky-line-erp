@@ -43,31 +43,52 @@ class ProductionOrderCompletionService
             $consumedQty = (int) $consumptionData['consumed_qty'];
             $isPhysical = ! $consumption->productVariant->isService();
 
-            if ($consumedQty > 0 && $isPhysical) {
-                $movement = $this->issueService->issue(
+            if ($consumedQty <= 0 || ! $isPhysical) {
+                $consumption->update([
+                    'consumed_qty' => $consumedQty,
+                    'batch_id' => $consumptionData['batch_id'] ?? $consumption->batch_id,
+                ]);
+
+                continue;
+            }
+
+            // Split: planned (required) qty goes to MANUFACTURING_ISSUE (enters WIP cost),
+            // excess (wastage) goes to WASTAGE (expensed to variance account).
+            $requiredQty = (int) $consumption->required_qty;
+            $plannedQty = min($consumedQty, $requiredQty);
+            $wastageQty = max(0, $consumedQty - $requiredQty);
+
+            $movement = $this->issueService->issue(
+                $company,
+                $productionOrder,
+                $consumption->product_variant_id,
+                $consumption->warehouse_id,
+                $plannedQty,
+                ChangeTypeEnum::MANUFACTURING_ISSUE,
+                $userId,
+                "Production Order {$productionOrder->order_no}",
+            );
+
+            $totalMaterialCost += $movement->total_cost;
+
+            if ($wastageQty > 0) {
+                $this->issueService->issue(
                     $company,
                     $productionOrder,
                     $consumption->product_variant_id,
                     $consumption->warehouse_id,
-                    $consumedQty,
-                    ChangeTypeEnum::MANUFACTURING_ISSUE,
+                    $wastageQty,
+                    ChangeTypeEnum::WASTAGE,
                     $userId,
-                    "Production Order {$productionOrder->order_no}",
+                    "Production Order {$productionOrder->order_no} — Wastage",
                 );
-
-                $consumption->update([
-                    'consumed_qty' => $consumedQty,
-                    'unit_cost' => $movement->unit_cost,
-                    'batch_id' => $consumptionData['batch_id'] ?? $consumption->batch_id,
-                ]);
-
-                $totalMaterialCost += $movement->total_cost;
-            } else {
-                $consumption->update([
-                    'consumed_qty' => $consumedQty,
-                    'batch_id' => $consumptionData['batch_id'] ?? $consumption->batch_id,
-                ]);
             }
+
+            $consumption->update([
+                'consumed_qty' => $consumedQty,
+                'unit_cost' => $movement->unit_cost,
+                'batch_id' => $consumptionData['batch_id'] ?? $consumption->batch_id,
+            ]);
         }
 
         $producedQty = (int) $data['produced_qty'];
@@ -90,6 +111,7 @@ class ProductionOrderCompletionService
             ChangeTypeEnum::FINISHED_GOODS,
             $userId,
             "Production Order {$productionOrder->order_no} — Finished Goods",
+            sourceProductionOrderId: $productionOrder->id,
         );
 
         $productionOrder->update([

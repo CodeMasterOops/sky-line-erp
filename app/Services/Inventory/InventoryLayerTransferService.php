@@ -16,7 +16,7 @@ class InventoryLayerTransferService
     ) {}
 
     /**
-     * Move valued quantity from source to destination: consume source layers, receipt slices at dest, two stock movements.
+     * Combined dispatch + receive in one step. Used by the legacy approve() action.
      */
     public function applyLine(
         Company $company,
@@ -85,6 +85,115 @@ class InventoryLayerTransferService
         }
 
         $this->quantities->adjust($company->id, $variantId, (int) $toId, $qty);
+
+        $transfer->stockMovements()->create([
+            'company_id' => $company->id,
+            'product_variant_id' => $variantId,
+            'warehouse_id' => $toId,
+            'type' => ChangeTypeEnum::TRANSFER_IN,
+            'direction' => StockDirectionEnum::IN,
+            'quantity' => $qty,
+            'unit_cost' => $outUnit,
+            'total_cost' => $outTotal,
+            'user_id' => $userId,
+            'remarks' => $remarks,
+        ]);
+    }
+
+    /**
+     * Step 1 of in-transit transfer: deduct from source, create TRANSFER_OUT movement only.
+     */
+    public function applyDispatch(
+        Company $company,
+        StockTransfer $transfer,
+        StockTransferItem $item,
+        ?int $userId,
+        ?string $remarks,
+    ): void {
+        $qty = (int) $item->quantity;
+        if ($qty <= 0) {
+            return;
+        }
+
+        $variantId = $item->product_variant_id;
+        $fromId = (int) ($item->from_warehouse_id ?? $transfer->from_warehouse_id);
+        $toId = (int) $transfer->to_warehouse_id;
+
+        $lockFirstW = min($fromId, $toId);
+        $lockSecondW = max($fromId, $toId);
+
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirstW);
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW);
+
+        $lines = $this->ledger->consume($company, $variantId, $fromId, $qty);
+        $this->quantities->adjust($company->id, $variantId, $fromId, -$qty);
+
+        $outTotal = round(array_sum(array_map(fn ($l) => $l['quantity'] * $l['unit_cost'], $lines)), 4);
+        $outUnit = $qty > 0 ? round($outTotal / $qty, 4) : 0.0;
+
+        $outMovement = $transfer->stockMovements()->create([
+            'company_id' => $company->id,
+            'product_variant_id' => $variantId,
+            'warehouse_id' => $fromId,
+            'type' => ChangeTypeEnum::TRANSFER_OUT,
+            'direction' => StockDirectionEnum::OUT,
+            'quantity' => $qty,
+            'unit_cost' => $outUnit,
+            'total_cost' => $outTotal,
+            'user_id' => $userId,
+            'remarks' => $remarks,
+        ]);
+
+        foreach ($lines as $line) {
+            $outMovement->movementLayers()->create([
+                'stock_layer_id' => $line['layer']->id,
+                'quantity' => $line['quantity'],
+                'unit_cost' => $line['unit_cost'],
+            ]);
+        }
+    }
+
+    /**
+     * Step 2 of in-transit transfer: add to destination, create TRANSFER_IN movement only.
+     * Reads the existing TRANSFER_OUT movement(s) to match costs.
+     */
+    public function applyReceive(
+        Company $company,
+        StockTransfer $transfer,
+        StockTransferItem $item,
+        ?int $userId,
+        ?string $remarks,
+    ): void {
+        $qty = (int) $item->quantity;
+        if ($qty <= 0) {
+            return;
+        }
+
+        $variantId = $item->product_variant_id;
+        $toId = (int) $transfer->to_warehouse_id;
+
+        $outMovement = $transfer->stockMovements()
+            ->withoutGlobalScopes()
+            ->where('product_variant_id', $variantId)
+            ->where('type', ChangeTypeEnum::TRANSFER_OUT)
+            ->first();
+
+        $outUnit = $outMovement ? (float) $outMovement->unit_cost : 0.0;
+        $outTotal = $outMovement ? (float) $outMovement->total_cost : 0.0;
+
+        $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $toId);
+
+        $this->ledger->receipt(
+            $company,
+            $variantId,
+            $toId,
+            $qty,
+            $outUnit,
+            null,
+            now(),
+        );
+
+        $this->quantities->adjust($company->id, $variantId, $toId, $qty);
 
         $transfer->stockMovements()->create([
             'company_id' => $company->id,

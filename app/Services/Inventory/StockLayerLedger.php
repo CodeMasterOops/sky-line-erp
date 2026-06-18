@@ -45,6 +45,8 @@ class StockLayerLedger
         ?int $sourceBillItemId = null,
         ?\DateTimeInterface $receivedAt = null,
         ?int $sourceGrnItemId = null,
+        ?int $sourceProductionOrderId = null,
+        ?int $batchId = null,
     ): void {
         $method = $company->inventory_costing_method ?? InventoryCostingMethodEnum::FIFO;
         $at = $receivedAt ?? now();
@@ -59,6 +61,8 @@ class StockLayerLedger
                 $sourceBillItemId,
                 $at,
                 $sourceGrnItemId,
+                $sourceProductionOrderId,
+                $batchId,
             );
 
             return;
@@ -73,6 +77,8 @@ class StockLayerLedger
             $sourceBillItemId,
             $at,
             $sourceGrnItemId,
+            $sourceProductionOrderId,
+            $batchId,
         );
     }
 
@@ -85,6 +91,8 @@ class StockLayerLedger
         ?int $sourceBillItemId,
         \DateTimeInterface $receivedAt,
         ?int $sourceGrnItemId = null,
+        ?int $sourceProductionOrderId = null,
+        ?int $batchId = null,
     ): void {
         StockLayer::create([
             'company_id' => $company->id,
@@ -97,6 +105,8 @@ class StockLayerLedger
             'received_at' => $receivedAt,
             'source_bill_item_id' => $sourceBillItemId,
             'source_grn_item_id' => $sourceGrnItemId,
+            'source_production_order_id' => $sourceProductionOrderId,
+            'batch_id' => $batchId,
         ]);
     }
 
@@ -109,6 +119,8 @@ class StockLayerLedger
         ?int $sourceBillItemId,
         \DateTimeInterface $receivedAt,
         ?int $sourceGrnItemId = null,
+        ?int $sourceProductionOrderId = null,
+        ?int $batchId = null,
     ): void {
         $layer = StockLayer::withoutGlobalScopes()
             ->where('company_id', $company->id)
@@ -131,6 +143,8 @@ class StockLayerLedger
                 'received_at' => $receivedAt,
                 'source_bill_item_id' => $sourceBillItemId,
                 'source_grn_item_id' => $sourceGrnItemId,
+                'source_production_order_id' => $sourceProductionOrderId,
+                'batch_id' => $batchId,
             ]);
 
             return;
@@ -153,6 +167,8 @@ class StockLayerLedger
             'received_at' => $receivedAt,
             'source_bill_item_id' => $sourceBillItemId ?? $layer->source_bill_item_id,
             'source_grn_item_id' => $sourceGrnItemId ?? $layer->source_grn_item_id,
+            'source_production_order_id' => $sourceProductionOrderId ?? $layer->source_production_order_id,
+            'batch_id' => $batchId ?? $layer->batch_id,
         ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Batch;
 use App\Models\Company;
 use App\Models\GrnItem;
 use App\Enums\StatusEnum;
@@ -247,20 +248,61 @@ class GoodsReceivedNoteService
                 continue;
             }
 
+            $unitCost = InventoryCostCalculator::unitCostFromGrnItem($item);
+            $batchId = $this->findOrCreateBatch($item, $grn, $company->id, $qty, $unitCost);
+
             $this->inventoryReceipt->receive(
                 $company,
                 $grn,
                 $item->product_variant_id,
                 (int) $grn->warehouse_id,
                 $qty,
-                InventoryCostCalculator::unitCostFromGrnItem($item),
+                $unitCost,
                 ChangeTypeEnum::GRN_RECEIPT,
                 $userId,
                 $grn->remarks,
                 null,
                 $item->id,
+                null,
+                $batchId,
             );
         }
+    }
+
+    private function findOrCreateBatch(GrnItem $item, GoodsReceivedNote $grn, int $companyId, int $qty, float $unitCost): ?int
+    {
+        if (empty($item->batch_no)) {
+            return null;
+        }
+
+        $batch = Batch::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('product_variant_id', $item->product_variant_id)
+            ->where('warehouse_id', $grn->warehouse_id)
+            ->where('batch_no', $item->batch_no)
+            ->first();
+
+        if ($batch) {
+            $batch->increment('remaining_qty', $qty);
+            $batch->increment('initial_qty', $qty);
+        } else {
+            $batch = Batch::create([
+                'company_id' => $companyId,
+                'product_variant_id' => $item->product_variant_id,
+                'warehouse_id' => $grn->warehouse_id,
+                'batch_no' => $item->batch_no,
+                'lot_no' => $item->batch_no,
+                'expiry_date' => $item->expiry_date,
+                'initial_qty' => $qty,
+                'remaining_qty' => $qty,
+                'unit_cost' => $unitCost,
+                'status' => 'active',
+            ]);
+        }
+
+        $item->update(['batch_id' => $batch->id]);
+
+        return $batch->id;
     }
 
     /**

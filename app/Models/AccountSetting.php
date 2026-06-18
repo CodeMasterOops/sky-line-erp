@@ -40,6 +40,7 @@ class AccountSetting extends Model
         'bad_debt_account_id',
         'stock_adjustment_account_id',
         'wip_account_id',
+        'manufacturing_variance_account_id',
         'pos_cash_account_id',
         'pos_float_account_id',
         'pos_over_short_account_id',

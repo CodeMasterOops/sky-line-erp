@@ -166,6 +166,86 @@ class StockTransferController extends Controller
         ]);
     }
 
+    #[Permissions('dispatch_stock_transfer', group: 'stock_transfer', desc: 'Dispatch Stock Transfer (In-Transit)')]
+    public function dispatch(StockTransfer $stockTransfer)
+    {
+        if ($stockTransfer->status !== StatusEnum::DRAFT) {
+            return response()->json(['message' => 'Only draft transfers can be dispatched.'], 422);
+        }
+
+        $user = auth('admin')->user();
+
+        try {
+            DB::transaction(function () use ($stockTransfer, $user) {
+                $stockTransfer->update([
+                    'status' => StatusEnum::IN_TRANSIT->value,
+                    'dispatch_user_id' => $user->id,
+                    'dispatched_at' => now(),
+                ]);
+
+                $stockTransfer->loadMissing('stockTransferItems');
+                $company = Company::findOrFail($stockTransfer->company_id);
+
+                foreach ($stockTransfer->stockTransferItems as $item) {
+                    $this->inventoryTransfer->applyDispatch(
+                        $company, $stockTransfer, $item, $user->id, $stockTransfer->remarks,
+                    );
+                }
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => StockTransferResource::make($stockTransfer->fresh()),
+            'message' => 'Stock Transfer dispatched — now in transit.',
+        ]);
+    }
+
+    #[Permissions('receive_stock_transfer', group: 'stock_transfer', desc: 'Receive Stock Transfer (In-Transit)')]
+    public function receive(StockTransfer $stockTransfer)
+    {
+        if ($stockTransfer->status !== StatusEnum::IN_TRANSIT) {
+            return response()->json(['message' => 'Only in-transit transfers can be received.'], 422);
+        }
+
+        $user = auth('admin')->user();
+
+        try {
+            DB::transaction(function () use ($stockTransfer, $user) {
+                $stockTransfer->update([
+                    'status' => StatusEnum::APPROVED->value,
+                    'receive_user_id' => $user->id,
+                    'received_at' => now(),
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                ]);
+
+                $stockTransfer->loadMissing('stockTransferItems');
+                $company = Company::findOrFail($stockTransfer->company_id);
+
+                foreach ($stockTransfer->stockTransferItems as $item) {
+                    $this->inventoryTransfer->applyReceive(
+                        $company, $stockTransfer, $item, $user->id, $stockTransfer->remarks,
+                    );
+                }
+            });
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => StockTransferResource::make($stockTransfer->fresh()),
+            'message' => 'Stock Transfer received and approved.',
+        ]);
+    }
+
     #[Permissions('approve_stock_transfer', group: 'stock_transfer', desc: 'Approve Stock Transfer')]
     public function approve(StockTransfer $stockTransfer)
     {

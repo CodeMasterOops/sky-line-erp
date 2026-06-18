@@ -56,6 +56,8 @@ Route::apiResource('serial-number', SerialNumberController::class)->only(['index
 
 // stock transfer
 Route::post('stock-transfer/{stockTransfer}/approve', [StockTransferController::class, 'approve'])->name('stock-transfer.approve');
+Route::post('stock-transfer/{stockTransfer}/dispatch', [StockTransferController::class, 'dispatch'])->name('stock-transfer.dispatch');
+Route::post('stock-transfer/{stockTransfer}/receive', [StockTransferController::class, 'receive'])->name('stock-transfer.receive');
 Route::apiResource('stock-transfer', StockTransferController::class);
 
 // stock adjustment
@@ -96,6 +98,7 @@ Route::prefix('inventory-report')->as('inventory-report.')->controller(Inventory
     Route::get('dead-stock', 'deadStock')->name('dead-stock');
     Route::get('stock-opening', 'stockOpening')->name('stock-opening');
     Route::get('inventory-summary', 'inventorySummary')->name('inventory-summary');
+    Route::get('production-variance', 'productionVariance')->name('production-variance');
 });
 
 // Production Orders

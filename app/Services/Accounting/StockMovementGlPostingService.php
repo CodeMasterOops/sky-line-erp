@@ -64,6 +64,7 @@ class StockMovementGlPostingService
             $settings->opening_stock_equity_account_id,
             $settings->stock_adjustment_account_id,
             $settings->wip_account_id,
+            $settings->manufacturing_variance_account_id,
         );
         if ($pair === null) {
             return;
@@ -147,6 +148,7 @@ class StockMovementGlPostingService
         ?int $openingStockEquityId,
         ?int $stockAdjustmentId,
         ?int $wipId = null,
+        ?int $mfgVarianceId = null,
     ): ?array {
         if (! $inventoryId) {
             return null;
@@ -254,13 +256,15 @@ class StockMovementGlPostingService
             return [$inventoryId, $effectiveWip];
         }
 
-        // Production wastage write-off: Stock Adjustment Dr / Inventory Cr
+        // Production wastage write-off: Manufacturing Variance Dr / Inventory Cr
+        // Falls back to Stock Adjustment when no variance account is configured.
         if ($movement->type === ChangeTypeEnum::WASTAGE) {
-            if (! $stockAdjustmentId) {
+            $effectiveVariance = $mfgVarianceId ?? $stockAdjustmentId;
+            if (! $effectiveVariance) {
                 return null;
             }
 
-            return [$stockAdjustmentId, $inventoryId];
+            return [$effectiveVariance, $inventoryId];
         }
 
         // By-product receipt: Inventory Dr / WIP Cr (reduces WIP balance)

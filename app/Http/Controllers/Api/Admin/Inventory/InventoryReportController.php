@@ -59,4 +59,10 @@ class InventoryReportController extends Controller
     {
         return response()->json(['data' => $this->reportService->inventorySummary($request)]);
     }
+
+    #[Permissions('inventory_production_variance_report', group: 'inventory_report', desc: 'Production Variance Report')]
+    public function productionVariance(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->productionVariance($request)]);
+    }
 }

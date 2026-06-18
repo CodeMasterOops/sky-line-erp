@@ -80,21 +80,20 @@
     }
     @endif
 
-    /* ── Roll label layout: full-width, one label per page ──────── */
+    /* ── Roll label layout: 2"×1" landscape, one label per page ─── */
     @if ($paper === 'roll')
     body {
         font-size: 8px;
-        /* page margins for 2"×1" roll */
         margin: 0;
-        padding: 2pt;
+        padding: 1pt;
     }
 
     .roll-label {
         width: 100%;
-        display: table;          /* dompdf block-level full width */
+        display: block;
         text-align: center;
         page-break-after: always;
-        padding: 2pt 3pt;
+        padding: 1pt 3pt;
     }
 
     .roll-label:last-child {
@@ -111,25 +110,25 @@
     }
 
     .lbl-name {
-        font-size: 8px;
+        font-size: 7px;
         font-weight: bold;
         color: #111;
-        margin-bottom: 2pt;
+        margin-bottom: 1pt;
     }
 
     .lbl-barcode { text-align: center; margin: 1pt 0; }
 
-    /* On a 2"×1" roll the printable width is ~130pt; height for barcode ~32pt */
+    /* 2"×1" landscape: printable width ~138pt; barcode height ~28pt */
     .lbl-barcode img.barcode-1d {
-        width: 130pt;
-        height: 32pt;
+        width: 132pt;
+        height: 28pt;
         display: block;
         margin: 0 auto;
     }
 
     .lbl-barcode img.barcode-qr {
-        width: 44pt;
-        height: 44pt;
+        width: 40pt;
+        height: 40pt;
         display: block;
         margin: 0 auto;
     }
@@ -143,7 +142,7 @@
     }
 
     .lbl-price {
-        font-size: 9px;
+        font-size: 8px;
         font-weight: bold;
         color: #111;
         margin-top: 1pt;

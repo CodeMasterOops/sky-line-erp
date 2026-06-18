@@ -30,6 +30,8 @@ class InventoryLayerReceiptService
         ?string $remarks,
         ?int $sourceBillItemId = null,
         ?int $sourceGrnItemId = null,
+        ?int $sourceProductionOrderId = null,
+        ?int $batchId = null,
     ): StockMovement {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Receipt quantity must be positive.');
@@ -46,6 +48,8 @@ class InventoryLayerReceiptService
             $sourceBillItemId,
             null,
             $sourceGrnItemId,
+            $sourceProductionOrderId,
+            $batchId,
         );
 
         $this->quantities->adjust($company->id, $productVariantId, $warehouseId, $quantity);

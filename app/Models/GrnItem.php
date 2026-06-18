@@ -19,6 +19,7 @@ class GrnItem extends Model
         'unit_cost',
         'batch_no',
         'expiry_date',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -57,5 +58,10 @@ class GrnItem extends Model
     public function stockLayers(): HasMany
     {
         return $this->hasMany(StockLayer::class, 'source_grn_item_id');
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

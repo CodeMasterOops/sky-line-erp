@@ -24,6 +24,8 @@ class StockLayer extends Model
         'lot_number',
         'source_bill_item_id',
         'source_grn_item_id',
+        'source_production_order_id',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -52,5 +54,15 @@ class StockLayer extends Model
     public function sourceGrnItem(): BelongsTo
     {
         return $this->belongsTo(GrnItem::class, 'source_grn_item_id');
+    }
+
+    public function sourceProductionOrder(): BelongsTo
+    {
+        return $this->belongsTo(ProductionOrder::class, 'source_production_order_id');
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

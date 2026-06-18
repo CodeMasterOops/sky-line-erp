@@ -57,6 +57,47 @@ class StockQuantityService
         }
     }
 
+    /**
+     * Increment on_hold for a reservation. Validates available (quantity - on_hold) >= qty.
+     * Must be called inside a transaction with lockForUpdateOrCreate() already called.
+     */
+    public function holdOnHand(int $companyId, int $productVariantId, int $warehouseId, int $qty): void
+    {
+        $stock = Stock::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('product_variant_id', $productVariantId)
+            ->where('warehouse_id', $warehouseId)
+            ->lockForUpdate()
+            ->first();
+
+        $available = $stock ? (int) $stock->quantity - (int) $stock->on_hold : 0;
+
+        if ($available < $qty) {
+            throw ValidationException::withMessages([
+                'quantity' => __('Insufficient available stock to reserve for this product at the selected warehouse.'),
+            ]);
+        }
+
+        if ($stock) {
+            $stock->increment('on_hold', $qty);
+        }
+    }
+
+    /**
+     * Decrement on_hold when a reservation is released or fulfilled.
+     * Must be called inside a transaction.
+     */
+    public function releaseOnHold(int $companyId, int $productVariantId, int $warehouseId, int $qty): void
+    {
+        Stock::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('product_variant_id', $productVariantId)
+            ->where('warehouse_id', $warehouseId)
+            ->lockForUpdate()
+            ->first()
+            ?->decrement('on_hold', $qty);
+    }
+
     private function performAdjust(int $companyId, int $productVariantId, int $warehouseId, int $delta): void
     {
         $stock = Stock::withoutGlobalScopes()

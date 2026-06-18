@@ -9,6 +9,7 @@ use App\Models\ProductionOrder;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Inventory\StockReservationService;
 use App\Services\Inventory\ProductionOrderCompletionService;
 use App\Http\Requests\Api\Admin\Inventory\ProductionOrderRequest;
 use App\Http\Requests\Api\Admin\Inventory\ProductionOrderCompleteRequest;
@@ -18,6 +19,7 @@ class ProductionOrderController extends Controller
     public function __construct(
         private DocumentNumberGenerator $documentNumberGenerator,
         private ProductionOrderCompletionService $completionService,
+        private StockReservationService $reservationService,
     ) {}
 
     #[Permissions('list_production_order', group: 'production_order', desc: 'List Production Orders')]
@@ -57,14 +59,28 @@ class ProductionOrderController extends Controller
             ]);
 
             $ratio = $request->planned_qty / $bom->output_qty;
+            $reservationItems = [];
             foreach ($bom->items as $item) {
+                $requiredQty = (int) round($item->quantity * (1 + $item->wastage_pct / 100) * $ratio);
                 $order->consumptions()->create([
                     'company_id' => $company->id,
                     'product_variant_id' => $item->product_variant_id,
                     'warehouse_id' => $request->warehouse_id,
-                    'required_qty' => round($item->quantity * (1 + $item->wastage_pct / 100) * $ratio, 4),
+                    'required_qty' => $requiredQty,
                     'unit_id' => $item->unit_id,
                 ]);
+
+                if ($item->item_type === 'material' && $requiredQty > 0) {
+                    $reservationItems[] = [
+                        'product_variant_id' => $item->product_variant_id,
+                        'warehouse_id' => (int) $request->warehouse_id,
+                        'quantity' => $requiredQty,
+                    ];
+                }
+            }
+
+            if (! empty($reservationItems)) {
+                $this->reservationService->reserve($company, $order, $reservationItems, auth()->id());
             }
 
             return response()->json([
@@ -139,7 +155,11 @@ class ProductionOrderController extends Controller
             'Cannot cancel a completed or already-cancelled order.'
         );
 
-        $productionOrder->update(['status' => 'cancelled']);
+        DB::transaction(function () use ($productionOrder) {
+            $company = auth()->user()->company;
+            $this->reservationService->release($company, $productionOrder);
+            $productionOrder->update(['status' => 'cancelled']);
+        });
 
         return response()->json(['message' => 'Production order cancelled.']);
     }

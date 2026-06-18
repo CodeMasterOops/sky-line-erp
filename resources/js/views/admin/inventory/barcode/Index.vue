@@ -365,9 +365,39 @@ const printBrowser = async () => {
             }
         }
 
-        const gridHtml = `
-            <style>
-                body { font-family: Arial, sans-serif; margin: 0; padding: 8px; }
+        const isRoll   = store.config.paper === 'roll';
+        const pageSize = store.config.paper === 'letter' ? 'letter' : 'A4';
+
+        let style, content;
+
+        if (isRoll) {
+            style = `
+                @page { size: 2in 1in; margin: 0; }
+                body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+                .lbl {
+                    width: 2in; height: 1in;
+                    display: flex; flex-direction: column;
+                    align-items: center; justify-content: center;
+                    padding: 2pt 4pt;
+                    text-align: center;
+                    page-break-after: always;
+                    box-sizing: border-box;
+                    overflow: hidden;
+                }
+                .lbl:last-child { page-break-after: avoid; }
+                .lbl-company { font-size:7px; font-weight:600; color:#666; text-transform:uppercase; letter-spacing:.4px; }
+                .lbl-name    { font-size:8px; font-weight:600; color:#111; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; max-width:100%; }
+                .lbl-barcode { text-align:center; flex-shrink:0; }
+                .lbl-barcode svg { width:1.8in !important; height:0.4in !important; display:block; }
+                .lbl-barcode img { width:0.5in; height:0.5in; }
+                .lbl-value   { font-size:7px; color:#555; font-family:monospace; }
+                .lbl-price   { font-size:9px; font-weight:700; color:#111; }
+            `;
+            content = `<div>${labelHtmlParts.join('')}</div>`;
+        } else {
+            style = `
+                @page { size: ${pageSize}; margin: 8mm; }
+                body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
                 .grid { display: flex; flex-wrap: wrap; gap: 6px; }
                 .lbl {
                     width: 180px;
@@ -383,13 +413,13 @@ const printBrowser = async () => {
                 .lbl-barcode img { width:80px; height:80px; }
                 .lbl-value   { font-size:8px; color:#555; font-family:monospace; margin-top:1px; }
                 .lbl-price   { font-size:12px; font-weight:700; color:#111; margin-top:2px; }
-            </style>
-            <div class="grid">${labelHtmlParts.join('')}</div>
-        `;
+            `;
+            content = `<div class="grid">${labelHtmlParts.join('')}</div>`;
+        }
 
         const {default: printJS} = await import('print-js');
         printJS({
-            printable:     gridHtml,
+            printable:     `<style>${style}</style>${content}`,
             type:          'raw-html',
             documentTitle: 'Barcode Labels',
             showModal:     true,

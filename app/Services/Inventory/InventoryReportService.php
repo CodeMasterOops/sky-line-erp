@@ -662,6 +662,123 @@ class InventoryReportService
         ];
     }
 
+    public function productionVariance(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+
+        $query = DB::table('production_orders as po')
+            ->join('boms as b', 'b.id', '=', 'po.bom_id')
+            ->join('product_variants as fv', 'fv.id', '=', 'b.product_variant_id')
+            ->join('products as fp', 'fp.id', '=', 'fv.product_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'po.warehouse_id')
+            ->where('po.company_id', $companyId)
+            ->whereNull('po.deleted_at')
+            ->where('po.status', 'completed')
+            ->whereBetween(DB::raw('DATE(po.approved_at)'), [$fromDate, $toDate])
+            ->select([
+                'po.id',
+                'po.order_no',
+                'po.planned_qty',
+                'po.produced_qty',
+                'po.approved_at as completed_at',
+                'fp.name as finished_product',
+                'fv.sku as finished_sku',
+                'w.name as warehouse_name',
+            ])
+            ->orderByDesc('po.approved_at')
+            ->orderByDesc('po.id');
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('po.warehouse_id', $request->warehouse_id);
+        }
+
+        $orders = $query->get();
+        $orderIds = $orders->pluck('id')->all();
+
+        if (empty($orderIds)) {
+            return [
+                'period' => $this->buildPeriod($fromDate, $toDate),
+                'rows' => [],
+                'summary' => [
+                    'total_orders' => 0,
+                    'total_standard_cost' => 0.0,
+                    'total_actual_cost' => 0.0,
+                    'total_variance' => 0.0,
+                ],
+                'warehouse_options' => $this->warehouseOptions($companyId),
+            ];
+        }
+
+        $consumptions = DB::table('production_order_consumptions as poc')
+            ->join('product_variants as rv', 'rv.id', '=', 'poc.product_variant_id')
+            ->join('products as rp', 'rp.id', '=', 'rv.product_id')
+            ->whereIn('poc.production_order_id', $orderIds)
+            ->select([
+                'poc.production_order_id',
+                'poc.required_qty',
+                'poc.consumed_qty',
+                'poc.unit_cost',
+                'rp.name as material_name',
+                'rp.code as material_code',
+                'rv.sku as material_sku',
+            ])
+            ->get()
+            ->groupBy('production_order_id');
+
+        $rows = $orders->map(function ($order) use ($consumptions) {
+            $components = $consumptions->get($order->id) ?? collect();
+
+            $componentRows = $components->map(function ($c) {
+                $standardCost = round((float) $c->required_qty * (float) $c->unit_cost, 4);
+                $actualCost = round((float) $c->consumed_qty * (float) $c->unit_cost, 4);
+
+                return [
+                    'material_name' => $c->material_name,
+                    'material_code' => $c->material_code,
+                    'material_sku' => $c->material_sku,
+                    'required_qty' => (float) $c->required_qty,
+                    'consumed_qty' => (float) $c->consumed_qty,
+                    'unit_cost' => (float) $c->unit_cost,
+                    'standard_cost' => $standardCost,
+                    'actual_cost' => $actualCost,
+                    'variance' => round($actualCost - $standardCost, 4),
+                ];
+            })->values()->all();
+
+            $totalStandard = round(collect($componentRows)->sum('standard_cost'), 2);
+            $totalActual = round(collect($componentRows)->sum('actual_cost'), 2);
+
+            return [
+                'id' => $order->id,
+                'order_no' => $order->order_no,
+                'finished_product' => $order->finished_product,
+                'finished_sku' => $order->finished_sku,
+                'warehouse' => $order->warehouse_name ?? '-',
+                'planned_qty' => (float) $order->planned_qty,
+                'produced_qty' => (float) $order->produced_qty,
+                'completed_at' => $order->completed_at ? Carbon::parse($order->completed_at)->toDateString() : null,
+                'components' => $componentRows,
+                'total_standard_cost' => $totalStandard,
+                'total_actual_cost' => $totalActual,
+                'total_variance' => round($totalActual - $totalStandard, 2),
+            ];
+        })->values();
+
+        return [
+            'period' => $this->buildPeriod($fromDate, $toDate),
+            'rows' => $rows->all(),
+            'summary' => [
+                'total_orders' => $rows->count(),
+                'total_standard_cost' => round($rows->sum('total_standard_cost'), 2),
+                'total_actual_cost' => round($rows->sum('total_actual_cost'), 2),
+                'total_variance' => round($rows->sum('total_variance'), 2),
+            ],
+            'warehouse_options' => $this->warehouseOptions($companyId),
+        ];
+    }
+
     private function inventorySummaryFilterOptions(int $companyId): array
     {
         return [
