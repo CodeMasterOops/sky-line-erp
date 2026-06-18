@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Accounting;
 
+use App\Models\Account;
 use App\Models\AccountGroup;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
@@ -52,6 +53,19 @@ class AccountGroupController extends Controller
     #[Permissions('delete_account_group', group: 'account_group', desc: 'Delete Account Group')]
     public function destroy(AccountGroup $accountGroup)
     {
+        $childGroupIds = AccountGroup::where(function ($q) use ($accountGroup) {
+            $q->where('parent_id', $accountGroup->id)
+                ->orWhere('id', $accountGroup->id);
+        })->pluck('id');
+
+        $hasAccounts = Account::whereIn('account_group_id', $childGroupIds)->exists();
+
+        if ($hasAccounts) {
+            return response()->json([
+                'message' => 'Cannot delete this account group because it contains accounts. Reassign or delete the accounts first.',
+            ], 422);
+        }
+
         $accountGroup->delete();
 
         return response()->json([

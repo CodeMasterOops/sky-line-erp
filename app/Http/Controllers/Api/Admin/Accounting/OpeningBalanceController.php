@@ -75,6 +75,18 @@ class OpeningBalanceController extends Controller
         $company = $user->company;
         $fiscalYearId = $validated['fiscal_year_id'] ?? $company->fiscal_year_id;
 
+        $exists = Journal::where('company_id', $company->id)
+            ->where('type', JournalTypeEnum::OPENING_BALANCE->value)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'fiscal_year_id' => 'An opening balance entry already exists for this fiscal year. Void the existing entry before posting a new one.',
+            ]);
+        }
+
         $journal = DB::transaction(function () use ($validated, $items, $user, $company, $fiscalYearId) {
             $voucherNo = $this->documentNumberGenerator->journalVoucher(
                 JournalTypeEnum::OPENING_BALANCE,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Accounting;
 
+use App\Enums\StatusEnum;
 use App\Models\BankAccount;
 use App\Models\JournalItem;
 use Illuminate\Http\Request;
@@ -219,7 +220,8 @@ class BankReconciliationController extends Controller
         $companyId = auth('admin')->user()->company_id;
 
         $balance = JournalItem::whereHas('journal', function ($q) use ($companyId, $endDate) {
-            $q->where('company_id', $companyId);
+            $q->where('company_id', $companyId)
+                ->where('status', StatusEnum::APPROVED->value);
             if ($endDate) {
                 $q->where('date', '<=', $endDate);
             }

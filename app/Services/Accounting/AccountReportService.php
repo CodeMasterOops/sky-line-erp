@@ -117,13 +117,30 @@ class AccountReportService
             ->values()
             ->all();
 
-        $incomeRow = collect($rows)->first(fn ($row) => strtolower($row['name']) === 'income');
-        $expenseRow = collect($rows)->first(fn ($row) => strtolower($row['name']) === 'expenses');
+        $incomeAmount = 0.0;
+        $expenseAmount = 0.0;
+        $incomePrevAmount = 0.0;
+        $expensePrevAmount = 0.0;
 
-        $incomeAmount = (float) ($incomeRow['amount'] ?? 0);
-        $expenseAmount = (float) ($expenseRow['amount'] ?? 0);
-        $incomePrevAmount = (float) ($incomeRow['prev_amount'] ?? 0);
-        $expensePrevAmount = (float) ($expenseRow['prev_amount'] ?? 0);
+        foreach ($rootGroups as $group) {
+            $row = collect($rows)->firstWhere('id', $group->id);
+            if (! $row) {
+                continue;
+            }
+
+            if ($group->account_type === AccountGroupTypeEnum::Income) {
+                $incomeAmount += (float) ($row['amount'] ?? 0);
+                $incomePrevAmount += (float) ($row['prev_amount'] ?? 0);
+            } elseif ($group->account_type === AccountGroupTypeEnum::Expense) {
+                $expenseAmount += (float) ($row['amount'] ?? 0);
+                $expensePrevAmount += (float) ($row['prev_amount'] ?? 0);
+            }
+        }
+
+        $incomeAmount = round($incomeAmount, 2);
+        $expenseAmount = round($expenseAmount, 2);
+        $incomePrevAmount = round($incomePrevAmount, 2);
+        $expensePrevAmount = round($expensePrevAmount, 2);
 
         return [
             'period' => [
@@ -433,11 +450,12 @@ class AccountReportService
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.deleted_at')
             ->whereBetween('bills.bill_date', [$start, $end])
-            ->groupBy('bills.id', 'bills.bill_no', 'bills.bill_date', 'parties.pan', 'parties.name')
+            ->groupBy('bills.id', 'bills.bill_no', 'bills.supplier_invoice_no', 'bills.bill_date', 'parties.pan', 'parties.name')
             ->orderBy('bills.bill_date')
             ->orderBy('bills.bill_no')
             ->select([
                 'bills.bill_no',
+                'bills.supplier_invoice_no',
                 'bills.bill_date',
                 DB::raw("COALESCE(parties.name, '-') as supplier_name"),
                 DB::raw("COALESCE(parties.pan, '-') as supplier_pan"),
@@ -451,6 +469,7 @@ class AccountReportService
         return $dbRows->map(fn ($row) => [
             'date' => $row->bill_date,
             'bill_no' => $row->bill_no,
+            'supplier_invoice_no' => $row->supplier_invoice_no ?? '-',
             'supplier_name' => $row->supplier_name,
             'supplier_pan' => $row->supplier_pan,
             'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
@@ -807,17 +826,30 @@ class AccountReportService
             ->selectRaw('payable_id, COALESCE(SUM(amount), 0) as paid')
             ->pluck('paid', 'payable_id');
 
-        $bills = $bills->filter(function (Bill $bill) use ($paidByBill) {
+        $debitNoteOffsetByBill = DB::table('debit_note_items')
+            ->join('debit_notes', 'debit_notes.id', '=', 'debit_note_items.debit_note_id')
+            ->whereIn('debit_notes.bill_id', $billIds)
+            ->where('debit_notes.status', StatusEnum::APPROVED->value)
+            ->whereNull('debit_notes.voided_at')
+            ->whereNull('debit_notes.deleted_at')
+            ->whereNull('debit_note_items.deleted_at')
+            ->groupBy('debit_notes.bill_id')
+            ->selectRaw('debit_notes.bill_id, COALESCE(SUM((debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount + debit_note_items.tax_amount), 0) as offset_amount')
+            ->pluck('offset_amount', 'bill_id');
+
+        $bills = $bills->filter(function (Bill $bill) use ($paidByBill, $debitNoteOffsetByBill) {
             $paid = (float) ($paidByBill->get($bill->id, 0));
+            $debitNoteOffset = (float) ($debitNoteOffsetByBill->get($bill->id, 0));
             $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
 
-            return round($total - $paid, 2) > 0;
+            return round($total - $paid - $debitNoteOffset, 2) > 0;
         });
 
-        $rows = $bills->map(function (Bill $bill) use ($asOf, $paidByBill) {
+        $rows = $bills->map(function (Bill $bill) use ($asOf, $paidByBill, $debitNoteOffsetByBill) {
             $paid = (float) ($paidByBill->get($bill->id, 0));
+            $debitNoteOffset = (float) ($debitNoteOffsetByBill->get($bill->id, 0));
             $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
-            $outstanding = round($total - $paid, 2);
+            $outstanding = round($total - $paid - $debitNoteOffset, 2);
             $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date)->addDays(30);
             $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);
 

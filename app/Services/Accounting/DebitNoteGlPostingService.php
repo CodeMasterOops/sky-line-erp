@@ -29,6 +29,7 @@ class DebitNoteGlPostingService
         private GlAccountConfigGuard $glAccountGuard,
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
+        private BooksHealthService $booksHealth,
     ) {}
 
     public function isPosted(DebitNote $debitNote): bool
@@ -147,6 +148,7 @@ class DebitNoteGlPostingService
             }
 
             $this->balanceGuard->assertBalanced($journal);
+            $this->booksHealth->invalidateCache($debitNote->company_id);
         });
     }
 }
