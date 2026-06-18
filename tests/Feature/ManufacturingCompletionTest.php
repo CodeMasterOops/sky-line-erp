@@ -166,6 +166,7 @@ function createAndStartOrder(object $test, float $plannedQty = 1): ProductionOrd
 // ─── store ──────────────────────────────────────────────────────────────────
 
 it('creates a production order with consumptions pre-populated from BOM', function () {
+    seedRawStock($this, 10, 20.0); // 5 bolts × 2 rods each = 10 rods needed
     $response = $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
         'warehouse_id' => $this->warehouse->id,
@@ -189,6 +190,7 @@ it('rejects store without required fields', function () {
 // ─── start ──────────────────────────────────────────────────────────────────
 
 it('transitions status to in_progress on start', function () {
+    seedRawStock($this, 2, 20.0);
     $response = $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
         'warehouse_id' => $this->warehouse->id,
@@ -202,6 +204,7 @@ it('transitions status to in_progress on start', function () {
 });
 
 it('rejects starting an already in_progress order', function () {
+    seedRawStock($this, 2, 20.0);
     $order = createAndStartOrder($this);
 
     $this->postJson("/api/admin/production-order/{$order->id}/start")->assertStatus(422);
@@ -502,6 +505,7 @@ it('preserves FIFO cost in finished goods layer across multiple raw material lay
 // ─── complete — error paths ──────────────────────────────────────────────────
 
 it('rejects completing a draft order', function () {
+    seedRawStock($this, 2, 20.0);
     $response = $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
         'warehouse_id' => $this->warehouse->id,
@@ -529,13 +533,13 @@ it('rejects completing an already-completed order', function () {
 });
 
 it('rejects completion when raw material stock is insufficient', function () {
-    seedRawStock($this, 1, 20.0); // only 1 rod available, need 2
+    seedRawStock($this, 2, 20.0); // 2 rods reserved by the order; try to consume 3 → insufficient layers
     $order = createAndStartOrder($this, 1);
     $consumptionId = $order->consumptions()->first()->id;
 
     $this->postJson("/api/admin/production-order/{$order->id}/complete", [
         'produced_qty' => 1,
-        'consumptions' => [['id' => $consumptionId, 'consumed_qty' => 2]],
+        'consumptions' => [['id' => $consumptionId, 'consumed_qty' => 3]], // exceeds 2 available layers
     ])->assertUnprocessable();
 });
 
@@ -552,6 +556,7 @@ it('rejects completion with a consumption ID that does not belong to this order'
 // ─── cancel ──────────────────────────────────────────────────────────────────
 
 it('can cancel a draft order', function () {
+    seedRawStock($this, 2, 20.0);
     $response = $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
         'warehouse_id' => $this->warehouse->id,
@@ -564,6 +569,7 @@ it('can cancel a draft order', function () {
 });
 
 it('can cancel an in_progress order', function () {
+    seedRawStock($this, 2, 20.0);
     $order = createAndStartOrder($this, 1);
 
     $this->postJson("/api/admin/production-order/{$order->id}/cancel")->assertOk();
@@ -584,6 +590,7 @@ it('cannot cancel a completed order', function () {
 });
 
 it('cannot cancel an already-cancelled order', function () {
+    seedRawStock($this, 2, 20.0);
     $response = $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
         'warehouse_id' => $this->warehouse->id,

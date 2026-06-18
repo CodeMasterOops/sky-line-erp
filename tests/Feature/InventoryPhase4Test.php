@@ -26,7 +26,7 @@ use App\Services\Inventory\InventoryLayerReceiptService;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-function p4WarmCache(): void
+function invP4WarmCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
@@ -38,7 +38,7 @@ function p4WarmCache(): void
 }
 
 beforeEach(function () {
-    p4WarmCache();
+    invP4WarmCache();
 
     $this->fiscalYear = FiscalYear::create([
         'year_name' => '2026-P4', 'year_code' => '26P4',
@@ -102,7 +102,7 @@ beforeEach(function () {
     TenantService::setCompanyId($this->company->id);
 });
 
-function p4SeedStock(object $test, int $qty, float $unitCost): void
+function invP4SeedStock(object $test, int $qty, float $unitCost): void
 {
     $adj = StockAdjustment::create([
         'company_id' => $test->company->id,
@@ -175,7 +175,7 @@ it('can delete a draft damage report', function () {
 });
 
 it('cannot edit an approved damage report', function () {
-    p4SeedStock($this, 10, 50.0);
+    invP4SeedStock($this, 10, 50.0);
 
     $r = $this->postJson('/api/admin/damage-report', [
         'date' => now()->toDateString(),
@@ -198,7 +198,7 @@ it('cannot edit an approved damage report', function () {
 // ============================================================
 
 it('approving a damage report deducts stock and creates a DAMAGE movement', function () {
-    p4SeedStock($this, 10, 50.0);
+    invP4SeedStock($this, 10, 50.0);
 
     $r = $this->postJson('/api/admin/damage-report', [
         'date' => now()->toDateString(),
@@ -228,7 +228,7 @@ it('approving a damage report deducts stock and creates a DAMAGE movement', func
 });
 
 it('approving a damage report posts Dr Damage Expense / Cr Inventory GL journal', function () {
-    p4SeedStock($this, 10, 50.0);
+    invP4SeedStock($this, 10, 50.0);
 
     $r = $this->postJson('/api/admin/damage-report', [
         'date' => now()->toDateString(),
@@ -277,8 +277,8 @@ it('damage GL falls back to stock_adjustment_account when damage_account_id is n
         // no damage_account_id
     ]);
 
-    p4WarmCache();
-    p4SeedStock($this, 5, 50.0);
+    invP4WarmCache();
+    invP4SeedStock($this, 5, 50.0);
 
     $r = $this->postJson('/api/admin/damage-report', [
         'date' => now()->toDateString(),
@@ -304,7 +304,7 @@ it('damage GL falls back to stock_adjustment_account when damage_account_id is n
 });
 
 it('prevents damaging more stock than available', function () {
-    p4SeedStock($this, 3, 50.0);
+    invP4SeedStock($this, 3, 50.0);
 
     $r = $this->postJson('/api/admin/damage-report', [
         'date' => now()->toDateString(),
@@ -317,7 +317,7 @@ it('prevents damaging more stock than available', function () {
 });
 
 it('approving damage report directly on creation works via status=approved', function () {
-    p4SeedStock($this, 5, 50.0);
+    invP4SeedStock($this, 5, 50.0);
 
     $this->postJson('/api/admin/damage-report', [
         'date' => now()->toDateString(),
@@ -338,7 +338,7 @@ it('approving damage report directly on creation works via status=approved', fun
 // ============================================================
 
 it('valuation snapshot command captures stock layer totals', function () {
-    p4SeedStock($this, 10, 50.0);
+    invP4SeedStock($this, 10, 50.0);
 
     $date = now()->toDateString();
 
@@ -358,7 +358,7 @@ it('valuation snapshot command captures stock layer totals', function () {
 });
 
 it('valuation snapshot with --replace replaces existing snapshot for same date', function () {
-    p4SeedStock($this, 10, 50.0);
+    invP4SeedStock($this, 10, 50.0);
 
     $date = now()->toDateString();
 
@@ -366,7 +366,7 @@ it('valuation snapshot with --replace replaces existing snapshot for same date',
         ->assertSuccessful();
 
     // Add more stock and re-snapshot with --replace
-    p4SeedStock($this, 5, 50.0);
+    invP4SeedStock($this, 5, 50.0);
 
     $this->artisan('inventory:valuation-snapshot', ['date' => $date, '--company' => $this->company->id, '--replace' => true])
         ->assertSuccessful();
@@ -388,7 +388,7 @@ it('valuation snapshot with --replace replaces existing snapshot for same date',
 // ============================================================
 
 it('gl reconcile dry run lists movements without GL journals', function () {
-    p4SeedStock($this, 5, 50.0);
+    invP4SeedStock($this, 5, 50.0);
 
     // Manually null out a gl_journal_id to simulate a missing posting
     StockMovement::withoutGlobalScopes()
@@ -402,7 +402,7 @@ it('gl reconcile dry run lists movements without GL journals', function () {
 });
 
 it('gl reconcile command succeeds when no unposted movements exist', function () {
-    p4SeedStock($this, 5, 50.0);
+    invP4SeedStock($this, 5, 50.0);
 
     // All movements should already have journals
     $this->artisan('inventory:gl-reconcile', ['--company' => $this->company->id])

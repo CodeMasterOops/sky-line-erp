@@ -15,15 +15,19 @@ use App\Models\Warehouse;
 use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
 use Laravel\Sanctum\Sanctum;
+use App\Enums\ChangeTypeEnum;
 use App\Jobs\CheckLowStockJob;
 use App\Models\ProductVariant;
 use App\Models\CustomerAdvance;
 use App\Models\ProductionOrder;
+use App\Models\StockAdjustment;
 use App\Services\TenantService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use App\Enums\InventoryCostingMethodEnum;
 use App\Models\ProductionOrderConsumption;
+use App\Services\Inventory\InventoryLayerReceiptService;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
@@ -342,6 +346,21 @@ it('allows completing a production order with its own consumption IDs', function
         'warehouse_id' => $warehouse->id,
         'required_qty' => 2,
     ]);
+
+    // Seed stock so the completion ledger has layers to consume from
+    TenantService::setCompanyId($company->id);
+    $adj = StockAdjustment::create([
+        'company_id' => $company->id,
+        'reference_no' => 'SEED-'.uniqid(),
+        'date' => now()->toDateString(),
+        'warehouse_id' => $warehouse->id,
+        'create_user_id' => $admin->id,
+        'status' => 'approved',
+    ]);
+    DB::transaction(fn () => app(InventoryLayerReceiptService::class)->receive(
+        $company, $adj, $variant->id, $warehouse->id,
+        5, 10.0, ChangeTypeEnum::PURCHASE, $admin->id, null,
+    ));
 
     TenantService::reset();
     Sanctum::actingAs($admin, ['*'], 'admin');

@@ -31,7 +31,7 @@ use App\Services\Inventory\InventoryLayerReceiptService;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-function p3WarmCache(): void
+function invP3WarmCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
@@ -43,7 +43,7 @@ function p3WarmCache(): void
 }
 
 beforeEach(function () {
-    p3WarmCache();
+    invP3WarmCache();
 
     $this->fiscalYear = FiscalYear::create([
         'year_name' => '2026-P3', 'year_code' => '26P3',
@@ -134,7 +134,7 @@ beforeEach(function () {
     TenantService::setCompanyId($this->company->id);
 });
 
-function p3SeedStock(object $test, int $qty, float $unitCost, ?Warehouse $warehouse = null): void
+function invP3SeedStock(object $test, int $qty, float $unitCost, ?Warehouse $warehouse = null): void
 {
     $wh = $warehouse ?? $test->warehouseA;
     $adj = StockAdjustment::create([
@@ -159,7 +159,7 @@ function p3SeedStock(object $test, int $qty, float $unitCost, ?Warehouse $wareho
 // ============================================================
 
 it('reserves stock on production order creation and increments on_hold', function () {
-    p3SeedStock($this, 10, 20.0);
+    invP3SeedStock($this, 10, 20.0);
 
     $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
@@ -188,7 +188,7 @@ it('reserves stock on production order creation and increments on_hold', functio
 });
 
 it('releases reservations and decrements on_hold when production order is cancelled', function () {
-    p3SeedStock($this, 10, 20.0);
+    invP3SeedStock($this, 10, 20.0);
 
     $createResponse = $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
@@ -220,7 +220,7 @@ it('releases reservations and decrements on_hold when production order is cancel
 
 it('fails reservation when insufficient available stock (quantity - on_hold)', function () {
     // Seed 4 units, BOM needs 3 per FG, so after first order (3 on hold) only 1 free
-    p3SeedStock($this, 4, 20.0);
+    invP3SeedStock($this, 4, 20.0);
 
     $this->postJson('/api/admin/production-order', [
         'bom_id' => $this->bom->id,
@@ -255,7 +255,7 @@ it('creates one StockReservation per distinct BOM material', function () {
         'wastage_pct' => 0,
     ]);
 
-    p3SeedStock($this, 5, 20.0);
+    invP3SeedStock($this, 5, 20.0);
 
     $adj = StockAdjustment::create([
         'company_id' => $this->company->id,
@@ -444,7 +444,7 @@ it('does not create a batch record when GRN item has no batch_no', function () {
 // ============================================================
 
 it('dispatching a transfer sets status to in_transit and creates TRANSFER_OUT movement', function () {
-    p3SeedStock($this, 10, 20.0);
+    invP3SeedStock($this, 10, 20.0);
 
     $r = $this->postJson('/api/admin/stock-transfer', [
         'date' => now()->toDateString(),
@@ -491,7 +491,7 @@ it('dispatching a transfer sets status to in_transit and creates TRANSFER_OUT mo
 });
 
 it('receiving an in-transit transfer sets status to approved and creates TRANSFER_IN movement', function () {
-    p3SeedStock($this, 10, 20.0);
+    invP3SeedStock($this, 10, 20.0);
 
     $r = $this->postJson('/api/admin/stock-transfer', [
         'date' => now()->toDateString(),
@@ -538,7 +538,7 @@ it('receiving an in-transit transfer sets status to approved and creates TRANSFE
 });
 
 it('dispatch fails if transfer is already in_transit', function () {
-    p3SeedStock($this, 10, 20.0);
+    invP3SeedStock($this, 10, 20.0);
 
     $r = $this->postJson('/api/admin/stock-transfer', [
         'date' => now()->toDateString(),
@@ -558,7 +558,7 @@ it('dispatch fails if transfer is already in_transit', function () {
 });
 
 it('receive fails if transfer is still in draft status', function () {
-    p3SeedStock($this, 10, 20.0);
+    invP3SeedStock($this, 10, 20.0);
 
     $r = $this->postJson('/api/admin/stock-transfer', [
         'date' => now()->toDateString(),
@@ -577,7 +577,7 @@ it('receive fails if transfer is still in draft status', function () {
 });
 
 it('dispatch fails when source warehouse has insufficient stock', function () {
-    p3SeedStock($this, 2, 20.0);
+    invP3SeedStock($this, 2, 20.0);
 
     $r = $this->postJson('/api/admin/stock-transfer', [
         'date' => now()->toDateString(),

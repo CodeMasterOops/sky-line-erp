@@ -142,6 +142,8 @@ class ProductionOrderController extends Controller
                 auth()->id(),
             );
 
+            $this->reservationService->release($company, $productionOrder);
+
             return response()->json(['message' => 'Production order completed.', 'data' => $order]);
         });
     }
