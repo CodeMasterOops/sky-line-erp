@@ -4,7 +4,6 @@ namespace App\Services\Inventory;
 
 use App\Models\Company;
 use App\Models\StockReservation;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 
 class StockReservationService
@@ -35,6 +34,7 @@ class StockReservationService
                 'company_id' => $company->id,
                 'product_variant_id' => $variantId,
                 'warehouse_id' => $warehouseId,
+                'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 'reservable_type' => $reservable->getMorphClass(),
                 'reservable_id' => $reservable->getKey(),
                 'quantity' => $qty,

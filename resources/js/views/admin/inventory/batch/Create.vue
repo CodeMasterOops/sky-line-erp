@@ -6,7 +6,7 @@
         title="Record New Batch">
         <template #modal-body>
             <form @submit.prevent="saveBatch" class="row g-3">
-                <div class="col-md-6">
+                <div class="col-12">
                     <label class="form-label">Product <VRequiredMark /></label>
                     <div v-if="form.product_variant_id" class="d-flex gap-1">
                         <span class="form-control text-truncate">{{ productLabel }}</span>
@@ -16,6 +16,7 @@
                         v-else
                         label=""
                         physical-only
+                        batch-tracked-only
                         @select="onProductSelect"
                     />
                 </div>

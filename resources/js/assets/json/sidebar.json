@@ -187,6 +187,11 @@
                         "menuValue": "Batch / Lot Tracking",
                         "route": { "name": "admin.batch-list" },
                         "permission": "list_batch"
+                    },
+                    {
+                        "menuValue": "Damage Reports",
+                        "route": { "name": "admin.damage-report-list" },
+                        "permission": "list_damage_report"
                     }
                 ]
             },

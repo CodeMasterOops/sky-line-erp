@@ -779,6 +779,228 @@ class InventoryReportService
         ];
     }
 
+    public function batchStock(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        $query = DB::table('batches')
+            ->join('product_variants', 'product_variants.id', '=', 'batches.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'batches.warehouse_id')
+            ->where('batches.company_id', $companyId)
+            ->whereNull('batches.deleted_at')
+            ->select([
+                'batches.id',
+                'batches.batch_no',
+                'batches.lot_no',
+                'batches.mfg_date',
+                'batches.expiry_date',
+                'batches.initial_qty',
+                'batches.remaining_qty',
+                'batches.unit_cost',
+                'batches.status',
+                'products.name as product_name',
+                'products.code as product_code',
+                'product_variants.sku',
+                'warehouses.name as warehouse_name',
+            ])
+            ->orderByDesc('batches.created_at')
+            ->orderByDesc('batches.id');
+
+        if ($request->filled('product_variant_id')) {
+            $query->where('batches.product_variant_id', $request->product_variant_id);
+        }
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('batches.warehouse_id', $request->warehouse_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('batches.status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('batches.batch_no', 'like', '%'.$request->search.'%')
+                    ->orWhere('batches.lot_no', 'like', '%'.$request->search.'%')
+                    ->orWhere('products.name', 'like', '%'.$request->search.'%')
+                    ->orWhere('product_variants.sku', 'like', '%'.$request->search.'%');
+            });
+        }
+
+        $paginator = $query->paginate($request->input('limit', 50));
+
+        $rows = collect($paginator->items())->map(fn ($row) => [
+            'id' => $row->id,
+            'batch_no' => $row->batch_no,
+            'lot_no' => $row->lot_no ?? '-',
+            'product_name' => $row->product_name,
+            'product_code' => $row->product_code,
+            'sku' => $row->sku,
+            'warehouse' => $row->warehouse_name ?? '-',
+            'mfg_date' => $row->mfg_date,
+            'expiry_date' => $row->expiry_date,
+            'initial_qty' => (float) $row->initial_qty,
+            'remaining_qty' => (float) $row->remaining_qty,
+            'consumed_qty' => round((float) $row->initial_qty - (float) $row->remaining_qty, 4),
+            'unit_cost' => (float) $row->unit_cost,
+            'total_value' => round((float) $row->remaining_qty * (float) $row->unit_cost, 2),
+            'status' => $row->status,
+        ])->values();
+
+        return [
+            'rows' => $rows->all(),
+            'summary' => [
+                'total_batches' => $paginator->total(),
+                'total_remaining_qty' => round($rows->sum('remaining_qty'), 2),
+                'total_value' => round($rows->sum('total_value'), 2),
+            ],
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+            'warehouse_options' => $this->warehouseOptions($companyId),
+        ];
+    }
+
+    public function batchTraceability(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        if (! $request->filled('batch_id') && ! $request->filled('batch_no')) {
+            return [
+                'batch' => null,
+                'rows' => [],
+                'summary' => ['total_in' => 0.0, 'total_out' => 0.0, 'remaining_qty' => 0.0],
+            ];
+        }
+
+        $batchQuery = DB::table('batches')
+            ->join('product_variants', 'product_variants.id', '=', 'batches.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'batches.warehouse_id')
+            ->where('batches.company_id', $companyId)
+            ->whereNull('batches.deleted_at');
+
+        if ($request->filled('batch_id')) {
+            $batchQuery->where('batches.id', (int) $request->batch_id);
+        } else {
+            $batchQuery->where('batches.batch_no', $request->batch_no);
+        }
+
+        $batchId = $batchQuery->value('batches.id');
+
+        if (! $batchId) {
+            return [
+                'batch' => null,
+                'rows' => [],
+                'summary' => ['total_in' => 0.0, 'total_out' => 0.0, 'remaining_qty' => 0.0],
+            ];
+        }
+
+        $batch = DB::table('batches')
+            ->join('product_variants', 'product_variants.id', '=', 'batches.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('warehouses', 'warehouses.id', '=', 'batches.warehouse_id')
+            ->where('batches.company_id', $companyId)
+            ->where('batches.id', $batchId)
+            ->whereNull('batches.deleted_at')
+            ->select([
+                'batches.id',
+                'batches.batch_no',
+                'batches.lot_no',
+                'batches.mfg_date',
+                'batches.expiry_date',
+                'batches.initial_qty',
+                'batches.remaining_qty',
+                'batches.status',
+                'products.name as product_name',
+                'products.code as product_code',
+                'product_variants.sku',
+                'warehouses.name as warehouse_name',
+            ])
+            ->first();
+
+        if (! $batch) {
+            return [
+                'batch' => null,
+                'rows' => [],
+                'summary' => ['total_in' => 0.0, 'total_out' => 0.0, 'remaining_qty' => 0.0],
+            ];
+        }
+
+        $layerIds = DB::table('stock_layers')
+            ->where('company_id', $companyId)
+            ->where('batch_id', $batchId)
+            ->whereNull('deleted_at')
+            ->pluck('id')
+            ->all();
+
+        $rows = collect();
+
+        if (! empty($layerIds)) {
+            $rows = DB::table('stock_movement_layers')
+                ->join('stock_movements', 'stock_movements.id', '=', 'stock_movement_layers.stock_movement_id')
+                ->join('product_variants', 'product_variants.id', '=', 'stock_movements.product_variant_id')
+                ->join('products', 'products.id', '=', 'product_variants.product_id')
+                ->leftJoin('warehouses', 'warehouses.id', '=', 'stock_movements.warehouse_id')
+                ->whereIn('stock_movement_layers.stock_layer_id', $layerIds)
+                ->whereNull('stock_movement_layers.deleted_at')
+                ->whereNull('stock_movements.deleted_at')
+                ->select([
+                    'stock_movements.id as movement_id',
+                    'stock_movements.created_at as date',
+                    'stock_movements.type',
+                    'stock_movements.direction',
+                    'stock_movements.remarks',
+                    'stock_movement_layers.quantity',
+                    'stock_movement_layers.unit_cost',
+                    'products.name as product_name',
+                    'product_variants.sku',
+                    'warehouses.name as warehouse_name',
+                ])
+                ->orderBy('stock_movements.created_at')
+                ->orderBy('stock_movements.id')
+                ->get()
+                ->map(fn ($row) => [
+                    'movement_id' => $row->movement_id,
+                    'date' => Carbon::parse($row->date)->toDateString(),
+                    'type' => $row->type,
+                    'direction' => $row->direction,
+                    'quantity' => (float) $row->quantity,
+                    'unit_cost' => (float) $row->unit_cost,
+                    'total_cost' => round((float) $row->quantity * (float) $row->unit_cost, 2),
+                    'warehouse' => $row->warehouse_name ?? '-',
+                    'remarks' => $row->remarks ?? '',
+                ]);
+        }
+
+        return [
+            'batch' => [
+                'id' => $batch->id,
+                'batch_no' => $batch->batch_no,
+                'lot_no' => $batch->lot_no,
+                'product_name' => $batch->product_name,
+                'product_code' => $batch->product_code,
+                'sku' => $batch->sku,
+                'warehouse' => $batch->warehouse_name ?? '-',
+                'mfg_date' => $batch->mfg_date,
+                'expiry_date' => $batch->expiry_date,
+                'initial_qty' => (float) $batch->initial_qty,
+                'remaining_qty' => (float) $batch->remaining_qty,
+                'status' => $batch->status,
+            ],
+            'rows' => $rows->values()->all(),
+            'summary' => [
+                'total_in' => round($rows->where('direction', 'in')->sum('quantity'), 2),
+                'total_out' => round($rows->where('direction', 'out')->sum('quantity'), 2),
+                'remaining_qty' => (float) $batch->remaining_qty,
+            ],
+        ];
+    }
+
     private function inventorySummaryFilterOptions(int $companyId): array
     {
         return [

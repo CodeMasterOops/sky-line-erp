@@ -20,6 +20,7 @@ class SerialNumberService
         int $warehouseId,
         array $serials,
         StockMovement $movement,
+        ?int $batchId = null,
     ): void {
         $this->validateNoDuplicatesInBatch($serials);
         $this->validateNotAlreadyInStock($company, $productVariantId, $serials);
@@ -29,6 +30,7 @@ class SerialNumberService
                 'company_id' => $company->id,
                 'product_variant_id' => $productVariantId,
                 'serial_no' => $serial,
+                'batch_id' => $batchId,
                 'status' => 'in_stock',
                 'warehouse_id' => $warehouseId,
                 'receipt_movement_id' => $movement->id,

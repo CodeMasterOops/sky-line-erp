@@ -65,4 +65,16 @@ class InventoryReportController extends Controller
     {
         return response()->json(['data' => $this->reportService->productionVariance($request)]);
     }
+
+    #[Permissions('inventory_batch_stock_report', group: 'inventory_report', desc: 'Batch Stock Report')]
+    public function batchStock(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->batchStock($request)]);
+    }
+
+    #[Permissions('inventory_batch_traceability_report', group: 'inventory_report', desc: 'Batch Traceability Report')]
+    public function batchTraceability(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->batchTraceability($request)]);
+    }
 }

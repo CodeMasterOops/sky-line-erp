@@ -22,6 +22,12 @@ class DamageReportItemResource extends JsonResource
             'quantity' => $this->quantity ?? 0,
             'unit_cost' => $this->unit_cost,
             'remarks' => $this->remarks ?? '',
+            'batch_id' => $this->batch_id,
+            'batch' => $this->whenLoaded('batch', fn () => [
+                'id' => $this->batch->id,
+                'batch_no' => $this->batch->batch_no,
+                'expiry_date' => $this->batch->expiry_date?->toDateString(),
+            ]),
         ];
     }
 }

@@ -83,7 +83,7 @@ class DamageReportController extends Controller
             ], 422);
         }
 
-        $report->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit']);
+        $report->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit', 'damageReportItems.batch']);
 
         return response()->json([
             'data' => DamageReportResource::make($report),
@@ -94,7 +94,7 @@ class DamageReportController extends Controller
     #[Permissions('show_damage_report', group: 'damage_report', desc: 'Show Damage Report')]
     public function show(DamageReport $damageReport)
     {
-        $damageReport->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit']);
+        $damageReport->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit', 'damageReportItems.batch']);
 
         return DamageReportResource::make($damageReport);
     }
@@ -135,7 +135,7 @@ class DamageReportController extends Controller
             return $damageReport;
         });
 
-        $damageReport->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit']);
+        $damageReport->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit', 'damageReportItems.batch']);
 
         return response()->json([
             'data' => DamageReportResource::make($damageReport),
@@ -189,7 +189,7 @@ class DamageReportController extends Controller
             ], 422);
         }
 
-        $damageReport->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit']);
+        $damageReport->load(['warehouse', 'damageReportItems.productVariant.product', 'damageReportItems.unit', 'damageReportItems.batch']);
 
         return response()->json([
             'data' => DamageReportResource::make($damageReport),

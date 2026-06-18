@@ -123,6 +123,10 @@ const props = defineProps({
         type: Number,
         default: null,
     },
+    batchTrackedOnly: {
+        type: Boolean,
+        default: false,
+    },
     disabled: {
         type: Boolean,
         default: false,
@@ -167,6 +171,7 @@ const loadDefaults = async () => {
         const params = {
             limit: 20,
             physical_only: props.physicalOnly ? 1 : 0,
+            batch_tracked_only: props.batchTrackedOnly ? 1 : 0,
         };
         if (props.categoryId) {
             params.category_id = props.categoryId;
@@ -188,8 +193,8 @@ const runSearch = async (q, { barcode = false } = {}) => {
     try {
         const res = await productStore.searchProductVariants(
             barcode
-                ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0 }
-                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, category_id: props.categoryId },
+                ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0 }
+                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0, category_id: props.categoryId },
         );
         searchResults.value = res.data ?? [];
     } catch {

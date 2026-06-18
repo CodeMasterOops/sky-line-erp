@@ -62,6 +62,10 @@ class ProductController extends Controller
             $query->whereHas('product', fn ($q) => $q->where('product_type', ProductTypeEnum::PRODUCT->value));
         }
 
+        if ($request->boolean('batch_tracked_only')) {
+            $query->where('is_batch_tracked', true);
+        }
+
         if ($barcode !== '') {
             $query->where(function ($sub) use ($barcode) {
                 $sub->where('barcode', $barcode)

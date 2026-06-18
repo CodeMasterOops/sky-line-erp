@@ -15,6 +15,7 @@ class StockReservation extends Model
         'company_id',
         'product_variant_id',
         'warehouse_id',
+        'batch_id',
         'reservable_type',
         'reservable_id',
         'quantity',
@@ -42,6 +43,11 @@ class StockReservation extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 
     public function reservedBy(): BelongsTo

@@ -224,10 +224,40 @@ export default [
         component: () => import("@/views/admin/inventory/serial-numbers/Index.vue"),
     },
     {
+        path: "damage-reports",
+        name: "admin.damage-report-list",
+        meta: {pageTitle: "Damage Reports"},
+        component: () => import("@/views/admin/inventory/damage-report/Index.vue"),
+    },
+    {
+        path: "batch-stock-report",
+        name: "admin.batch-stock-report",
+        meta: {pageTitle: "Batch Stock Report"},
+        component: () => import("@/views/admin/inventory/reports/BatchStock.vue"),
+    },
+    {
+        path: "batch-traceability-report",
+        name: "admin.batch-traceability-report",
+        meta: {pageTitle: "Batch Traceability Report"},
+        component: () => import("@/views/admin/inventory/reports/BatchTraceability.vue"),
+    },
+    {
         path: "inventory/batches",
         name: "admin.batch-list",
         meta: {pageTitle: "Batch / Lot Tracking"},
         component: () => import("@/views/admin/inventory/batch/Index.vue"),
+    },
+    {
+        path: "inventory/batches/create",
+        name: "admin.batch-create",
+        meta: {pageTitle: "Record New Batch"},
+        component: () => import("@/views/admin/inventory/batch/Create.vue"),
+    },
+    {
+        path: "inventory/batches/:id/edit",
+        name: "admin.batch-edit",
+        meta: {pageTitle: "Edit Batch"},
+        component: () => import("@/views/admin/inventory/batch/Edit.vue"),
     },
     {
         path: "inventory/bom",

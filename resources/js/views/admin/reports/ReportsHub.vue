@@ -163,6 +163,8 @@ const REPORT_CATEGORIES = [
             { label: 'Inventory Summary Report', name: 'admin.inventory-summary-report', permission: 'inventory_summary_report' },
             { label: 'Damage Stock Report', name: 'admin.damage-stock-report', permission: 'list_damage_report' },
             { label: 'Production Variance Report', name: 'admin.production-variance-report', permission: 'list_production_order' },
+            { label: 'Batch Stock Report', name: 'admin.batch-stock-report', permission: 'list_batch' },
+            { label: 'Batch Traceability Report', name: 'admin.batch-traceability-report', permission: 'list_batch' },
         ],
     },
     {

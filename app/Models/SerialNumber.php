@@ -17,6 +17,7 @@ class SerialNumber extends Model
         'product_variant_id',
         'serial_no',
         'batch_no',
+        'batch_id',
         'expiry_date',
         'status',
         'warehouse_id',
@@ -27,6 +28,11 @@ class SerialNumber extends Model
     protected $casts = [
         'expiry_date' => 'date',
     ];
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
+    }
 
     public function productVariant(): BelongsTo
     {
