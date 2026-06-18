@@ -68,7 +68,7 @@ class AccountReportService
             : collect();
 
         $rows = $rootGroups
-            ->map(fn (AccountGroup $group) => $this->transformBalanceSheetGroup($group, $currentAmounts, $previousAmounts))
+            ->map(fn (AccountGroup $group) => $this->transformAmountTreeGroup($group, $currentAmounts, $previousAmounts))
             ->values()
             ->all();
 
@@ -1082,10 +1082,12 @@ class AccountReportService
         $expenseMorph = (new Expense)->getMorphClass();
         $creditNoteMorph = (new CreditNote)->getMorphClass();
         $debitNoteMorph = (new DebitNote)->getMorphClass();
+        $fiscalYearId = $request->integer('fiscal_year_id') ?: null;
 
         $invoices = Invoice::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($invoiceMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1100,6 +1102,7 @@ class AccountReportService
         $bills = Bill::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($billMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1115,6 +1118,7 @@ class AccountReportService
         $expenses = Expense::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($expenseMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1129,6 +1133,7 @@ class AccountReportService
         $creditNotes = CreditNote::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($creditNoteMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1143,6 +1148,7 @@ class AccountReportService
         $debitNotes = DebitNote::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($debitNoteMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1231,6 +1237,7 @@ class AccountReportService
     public function unbalancedJournals(Request $request): array
     {
         $companyId = auth('admin')->user()->company_id;
+        $fiscalYearId = $request->integer('fiscal_year_id') ?: null;
 
         // Pull totals per journal then filter in PHP — portable across MySQL
         // and SQLite without having-clause-on-alias differences, and the result
@@ -1241,6 +1248,7 @@ class AccountReportService
                     ->whereNull('journal_items.deleted_at');
             })
             ->where('journals.company_id', $companyId)
+            ->when($fiscalYearId, fn ($q) => $q->where('journals.fiscal_year_id', $fiscalYearId))
             ->whereNull('journals.deleted_at')
             ->groupBy(
                 'journals.id', 'journals.voucher_no', 'journals.type',
@@ -1880,11 +1888,6 @@ class AccountReportService
         ];
     }
 
-    private function transformBalanceSheetGroup(AccountGroup $group, Collection $currentAmounts, Collection $previousAmounts): array
-    {
-        return $this->transformAmountTreeGroup($group, $currentAmounts, $previousAmounts);
-    }
-
     private function transformAmountTreeGroup(AccountGroup $group, Collection $currentAmounts, Collection $previousAmounts): array
     {
         $children = [];
@@ -1908,11 +1911,6 @@ class AccountReportService
             'prev_amount' => round(collect($children)->sum('prev_amount'), 2),
             'children' => $children,
         ];
-    }
-
-    private function transformBalanceSheetAccount($account, Collection $currentAmounts, Collection $previousAmounts): array
-    {
-        return $this->transformAmountTreeAccount($account, $currentAmounts, $previousAmounts);
     }
 
     private function transformAmountTreeAccount($account, Collection $currentAmounts, Collection $previousAmounts): array

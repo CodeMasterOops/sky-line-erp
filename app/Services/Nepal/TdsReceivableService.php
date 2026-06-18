@@ -10,10 +10,14 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalBalanceGuard;
 
 readonly class TdsReceivableService
 {
-    public function __construct(private NepaliDateService $nepaliDate) {}
+    public function __construct(
+        private NepaliDateService $nepaliDate,
+        private JournalBalanceGuard $balanceGuard,
+    ) {}
 
     /**
      * Record a customer TDS certificate.
@@ -138,6 +142,8 @@ readonly class TdsReceivableService
                 'cr_amount' => $amount,
                 'remarks' => 'TDS certificate: '.($receivable->certificate_no ?? 'N/A'),
             ]);
+
+            $this->balanceGuard->assertBalanced($journal);
 
             $receivable->update([
                 'status' => 'settled',

@@ -100,6 +100,17 @@ class BankReconciliationController extends Controller
         $created = DB::transaction(function () use ($validated, $bankAccount) {
             $lines = [];
             foreach ($validated['lines'] as $line) {
+                $duplicate = BankStatementLine::where('bank_account_id', $bankAccount->id)
+                    ->where('transaction_date', $line['transaction_date'])
+                    ->where('debit', $line['debit'])
+                    ->where('credit', $line['credit'])
+                    ->where('reference', $line['reference'] ?? null)
+                    ->exists();
+
+                if ($duplicate) {
+                    continue;
+                }
+
                 $lines[] = BankStatementLine::create([
                     'bank_account_id' => $bankAccount->id,
                     'transaction_date' => $line['transaction_date'],

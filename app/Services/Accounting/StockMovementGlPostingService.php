@@ -24,6 +24,7 @@ class StockMovementGlPostingService
     public function __construct(
         private readonly PeriodLockGuard $periodGuard,
         private readonly JournalBalanceGuard $balanceGuard,
+        private readonly BooksHealthService $booksHealth,
     ) {}
 
     public function postFromMovement(StockMovement $movement): void
@@ -127,6 +128,7 @@ class StockMovementGlPostingService
             ]);
 
             $this->balanceGuard->assertBalanced($journal);
+            $this->booksHealth->invalidateCache($movement->company_id);
 
             $movement->forceFill(['gl_journal_id' => $journal->id])->saveQuietly();
         });
