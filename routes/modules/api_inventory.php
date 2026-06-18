@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Admin\Inventory\StockAdjustmentController;
 use App\Http\Controllers\Api\Admin\Inventory\GoodsReceivedNoteController;
 use App\Http\Controllers\Api\Admin\Inventory\InventoryStockReconciliationController;
 use App\Http\Controllers\Api\Admin\Inventory\InventoryStockReconciliationAlignController;
+use App\Http\Controllers\Api\Admin\Inventory\DamageReportController;
 use App\Http\Controllers\Api\Admin\Inventory\InventoryReportController;
 
 // unit
@@ -63,6 +64,10 @@ Route::apiResource('stock-transfer', StockTransferController::class);
 // stock adjustment
 Route::post('stock-adjustment/{stockAdjustment}/approve', [StockAdjustmentController::class, 'approve'])->name('stock-adjustment.approve');
 Route::apiResource('stock-adjustment', StockAdjustmentController::class);
+
+// damage reports
+Route::post('damage-report/{damageReport}/approve', [DamageReportController::class, 'approve'])->name('damage-report.approve');
+Route::apiResource('damage-report', DamageReportController::class)->parameters(['damage-report' => 'damageReport']);
 
 // opening stock entry
 Route::post('opening-stock-entry/{openingStockEntry}/approve', [OpeningStockEntryController::class, 'approve'])->name('opening-stock-entry.approve');

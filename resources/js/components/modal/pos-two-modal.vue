@@ -1537,10 +1537,10 @@ const RECEIPT_PRINT_STYLES = `
   .pos-receipt__footer-note { font-weight: 600; color: #333 !important; }
   /* PAN input area is outside print area — never shown in print */
   .pos-receipt-pan-bar { display: none; }
-  @page { margin: 4mm; size: 80mm auto; }
+  @page { margin: 0; size: 80mm auto; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .pos-receipt { max-width: 100%; padding: 0; }
+    .pos-receipt { max-width: 100%; padding: 3mm 2mm 5mm; }
   }
 `;
 
@@ -1744,7 +1744,10 @@ export default {
       const area = document.getElementById('receipt-print-area');
       if (!area) { return; }
 
-      const printWindow = window.open('', '_blank', 'width=420,height=720');
+      // Use the live element's rendered height as the initial popup size.
+      // 60px accounts for the browser's title bar / chrome.
+      const initialH = area.scrollHeight + 60;
+      const printWindow = window.open('', '_blank', `width=420,height=${initialH}`);
       if (!printWindow) {
         useToast().warning('Allow pop-ups to print the receipt');
 
@@ -1755,12 +1758,21 @@ export default {
       doc.head.innerHTML = `<meta charset="utf-8"><title>Receipt ${this.activeReceipt?.invoice_no ?? ''}</title><style>${RECEIPT_PRINT_STYLES}</style>`;
       doc.body.innerHTML = area.outerHTML;
 
+      const doActualPrint = () => {
+        // Resize to the popup's own rendered height now that print CSS has been applied.
+        try {
+          const h = printWindow.document.body.scrollHeight;
+          if (h > 0) { printWindow.resizeTo(420, h + 60); }
+        } catch (_) { /* resizeTo blocked by some browser configs — no-op */ }
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      };
+
       const runPrint = () => {
         const images = Array.from(printWindow.document.images ?? []);
         if (!images.length) {
-          printWindow.focus();
-          printWindow.print();
-          printWindow.close();
+          doActualPrint();
 
           return;
         }
@@ -1768,11 +1780,7 @@ export default {
         let settled = 0;
         const finish = () => {
           settled += 1;
-          if (settled >= images.length) {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-          }
+          if (settled >= images.length) { doActualPrint(); }
         };
 
         images.forEach((img) => {

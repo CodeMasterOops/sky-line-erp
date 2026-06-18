@@ -12,6 +12,10 @@ Artisan::command('inspire', function () {
 
 Schedule::command('data-transfer:prune')->daily();
 
+// Inventory health checks
+Schedule::command('inventory:gl-reconcile --limit=500')->dailyAt('03:00');
+Schedule::command('inventory:valuation-snapshot --replace')->monthlyOn(1, '01:00');
+
 Schedule::command('app:check-orphan-rows')->dailyAt('02:00');
 
 Schedule::call(function () {

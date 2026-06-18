@@ -65,6 +65,7 @@ class StockMovementGlPostingService
             $settings->stock_adjustment_account_id,
             $settings->wip_account_id,
             $settings->manufacturing_variance_account_id,
+            $settings->damage_account_id,
         );
         if ($pair === null) {
             return;
@@ -149,6 +150,7 @@ class StockMovementGlPostingService
         ?int $stockAdjustmentId,
         ?int $wipId = null,
         ?int $mfgVarianceId = null,
+        ?int $damageAccountId = null,
     ): ?array {
         if (! $inventoryId) {
             return null;
@@ -275,6 +277,17 @@ class StockMovementGlPostingService
             }
 
             return [$inventoryId, $effectiveWip];
+        }
+
+        // Damage write-off: Damage Expense Dr / Inventory Cr
+        // Falls back to Stock Adjustment account when no dedicated damage account is configured.
+        if ($movement->type === ChangeTypeEnum::DAMAGE) {
+            $effectiveDamage = $damageAccountId ?? $stockAdjustmentId;
+            if (! $effectiveDamage) {
+                return null;
+            }
+
+            return [$effectiveDamage, $inventoryId];
         }
 
         return null;
