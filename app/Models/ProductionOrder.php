@@ -87,4 +87,9 @@ class ProductionOrder extends Model
     {
         return $this->morphMany(StockReservation::class, 'reservable');
     }
+
+    public function operations(): HasMany
+    {
+        return $this->hasMany(ProductionOrderOperation::class)->orderBy('sequence');
+    }
 }

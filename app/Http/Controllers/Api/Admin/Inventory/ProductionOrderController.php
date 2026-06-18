@@ -8,6 +8,7 @@ use App\Annotation\Permissions;
 use App\Models\ProductionOrder;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\ProductionOrderOperation;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Inventory\StockReservationService;
 use App\Services\Inventory\ProductionOrderCompletionService;
@@ -58,6 +59,7 @@ class ProductionOrderController extends Controller
                 'create_user_id' => auth()->id(),
             ]);
 
+            $bom->loadMissing('operations');
             $ratio = $request->planned_qty / $bom->output_qty;
             $reservationItems = [];
             foreach ($bom->items as $item) {
@@ -79,12 +81,23 @@ class ProductionOrderController extends Controller
                 }
             }
 
+            foreach ($bom->operations as $op) {
+                $order->operations()->create([
+                    'company_id' => $company->id,
+                    'bom_operation_id' => $op->id,
+                    'sequence' => $op->sequence,
+                    'name' => $op->name,
+                    'work_center' => $op->work_center,
+                    'status' => 'pending',
+                ]);
+            }
+
             if (! empty($reservationItems)) {
                 $this->reservationService->reserve($company, $order, $reservationItems, auth()->id());
             }
 
             return response()->json([
-                'data' => $order->load(['bom.productVariant.product', 'consumptions.productVariant.product']),
+                'data' => $order->load(['bom.productVariant.product', 'consumptions.productVariant.product', 'operations']),
                 'message' => 'Production Order created successfully',
             ], 201);
         });
@@ -100,10 +113,60 @@ class ProductionOrderController extends Controller
                 'consumptions.batch',
                 'consumptions.unit',
                 'warehouse',
+                'operations',
                 'createUser:id,name',
                 'approveUser:id,name',
             ]),
         ]);
+    }
+
+    #[Permissions('edit_production_order', group: 'production_order', desc: 'Start Production Order Operation')]
+    public function startOperation(ProductionOrder $productionOrder, ProductionOrderOperation $operation)
+    {
+        abort_if($operation->production_order_id !== $productionOrder->id, 404);
+        abort_if($productionOrder->status !== 'in_progress', 422, 'Order must be in progress to advance operations.');
+        abort_if($operation->status !== 'pending', 422, 'Operation must be pending to start.');
+
+        $operation->update([
+            'status' => 'in_progress',
+            'started_at' => now(),
+            'started_by' => auth()->id(),
+        ]);
+
+        return response()->json(['message' => 'Operation started.', 'data' => $operation->fresh()]);
+    }
+
+    #[Permissions('edit_production_order', group: 'production_order', desc: 'Complete Production Order Operation')]
+    public function completeOperation(Request $request, ProductionOrder $productionOrder, ProductionOrderOperation $operation)
+    {
+        abort_if($operation->production_order_id !== $productionOrder->id, 404);
+        abort_if($productionOrder->status !== 'in_progress', 422, 'Order must be in progress to advance operations.');
+        abort_if($operation->status !== 'in_progress', 422, 'Operation must be in progress to complete.');
+
+        $data = $request->validate([
+            'remarks' => 'nullable|string|max:500',
+        ]);
+
+        $operation->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+            'completed_by' => auth()->id(),
+            'remarks' => $data['remarks'] ?? $operation->remarks,
+        ]);
+
+        return response()->json(['message' => 'Operation completed.', 'data' => $operation->fresh()]);
+    }
+
+    #[Permissions('edit_production_order', group: 'production_order', desc: 'Skip Production Order Operation')]
+    public function skipOperation(ProductionOrder $productionOrder, ProductionOrderOperation $operation)
+    {
+        abort_if($operation->production_order_id !== $productionOrder->id, 404);
+        abort_if($productionOrder->status !== 'in_progress', 422, 'Order must be in progress to advance operations.');
+        abort_if(in_array($operation->status, ['completed', 'skipped'], true), 422, 'Operation is already finished.');
+
+        $operation->update(['status' => 'skipped']);
+
+        return response()->json(['message' => 'Operation skipped.', 'data' => $operation->fresh()]);
     }
 
     #[Permissions('edit_production_order', group: 'production_order', desc: 'Start Production Order')]

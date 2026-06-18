@@ -51,4 +51,9 @@ class Bom extends Model
     {
         return $this->hasMany(ProductionOrder::class);
     }
+
+    public function operations(): HasMany
+    {
+        return $this->hasMany(BomOperation::class)->orderBy('sequence');
+    }
 }

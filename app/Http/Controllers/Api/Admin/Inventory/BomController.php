@@ -81,7 +81,7 @@ class BomController extends Controller
     public function show(Bom $bom)
     {
         return response()->json([
-            'data' => $bom->load(['productVariant.product', 'outputUnit', 'items.productVariant.product', 'items.unit']),
+            'data' => $bom->load(['productVariant.product', 'outputUnit', 'items.productVariant.product', 'items.unit', 'operations']),
         ]);
     }
 

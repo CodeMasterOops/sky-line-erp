@@ -2,7 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\Inventory\BomController;
+use App\Http\Controllers\Api\Admin\Inventory\BomOperationController;
 use App\Http\Controllers\Api\Admin\Inventory\UnitController;
+use App\Http\Controllers\Api\Admin\Inventory\UnitConversionController;
 use App\Http\Controllers\Api\Admin\Inventory\BatchController;
 use App\Http\Controllers\Api\Admin\Inventory\BrandController;
 use App\Http\Controllers\Api\Admin\Inventory\BarcodeController;
@@ -110,4 +112,13 @@ Route::prefix('inventory-report')->as('inventory-report.')->controller(Inventory
 Route::post('production-order/{productionOrder}/start', [ProductionOrderController::class, 'start'])->name('production-order.start');
 Route::post('production-order/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->name('production-order.complete');
 Route::post('production-order/{productionOrder}/cancel', [ProductionOrderController::class, 'cancel'])->name('production-order.cancel');
+Route::post('production-order/{productionOrder}/operations/{operation}/start', [ProductionOrderController::class, 'startOperation'])->name('production-order.operation.start');
+Route::post('production-order/{productionOrder}/operations/{operation}/complete', [ProductionOrderController::class, 'completeOperation'])->name('production-order.operation.complete');
+Route::post('production-order/{productionOrder}/operations/{operation}/skip', [ProductionOrderController::class, 'skipOperation'])->name('production-order.operation.skip');
 Route::apiResource('production-order', ProductionOrderController::class)->except(['update', 'destroy']);
+
+// BOM Operations (nested under BOM)
+Route::apiResource('bom.operations', BomOperationController::class)->parameters(['operations' => 'bomOperation'])->except(['show']);
+
+// Unit Conversions
+Route::apiResource('unit-conversion', UnitConversionController::class)->parameters(['unit-conversion' => 'unitConversion']);
