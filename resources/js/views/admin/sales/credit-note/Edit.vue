@@ -120,12 +120,13 @@
                                         <th class="so-col-rate">Rate (sale)</th>
                                         <th class="so-col-disc">Discount</th>
                                         <th class="so-col-tax">Tax</th>
+                                        <th class="so-col-batch">Batch</th>
                                         <th v-if="isDraft" class="text-center so-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 7 : 6" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 8 : 7" class="text-center text-muted py-4">
                                             No line items.
                                         </td>
                                     </tr>
@@ -219,6 +220,15 @@
                                                 :disabled="!isDraft"
                                                 @validate="validateField(`items[${index}].tax_id`)"
                                                 :error="errors[`items[${index}].tax_id`]"
+                                            />
+                                        </td>
+                                        <td class="so-col-batch">
+                                            <BatchPickerInput
+                                                v-if="item.is_batch_tracked && !item.is_service"
+                                                v-model="form.items[index].batch_id"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="item.warehouse_id"
+                                                :disabled="!isDraft"
                                             />
                                         </td>
                                         <td v-if="isDraft" class="text-center">
@@ -359,6 +369,7 @@ import {
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import CreateCustomer from '@/views/admin/party/Create.vue';
 
@@ -611,6 +622,8 @@ const onVariantSelected = async (variant) => {
         line_discount_type: 'fixed',
         line_discount_value: '0',
         is_service: isService,
+        is_batch_tracked: !isService && !!variant.is_batch_tracked,
+        batch_id: null,
         ...buildLineWarehouseFields(result.warehouse),
     });
 };
@@ -703,9 +716,11 @@ watch(
                     ? String(item.line_discount_value)
                     : '0',
             is_service: !!item.product_variant?.is_service,
-        warehouse_id: item.warehouse_id || '',
+            warehouse_id: item.warehouse_id || '',
             warehouse_name: item.warehouse?.name ?? whName ?? '',
             stock_qty: null,
+            is_batch_tracked: !!item.product_variant?.is_batch_tracked,
+            batch_id: item.batch_id ?? null,
         }));
         await nextTick();
         isHydratingCredit.value = false;
@@ -771,6 +786,7 @@ const buildCreditNotePayload = () => {
             line_discount_type: item.line_discount_type || 'fixed',
             line_discount_value: item.line_discount_value ?? '0',
             discount_amount: String(lineDiscountMoneyFromItem(item)),
+            batch_id: item.batch_id || null,
         })),
     };
 };

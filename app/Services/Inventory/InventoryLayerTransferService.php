@@ -40,7 +40,9 @@ class InventoryLayerTransferService
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirstW);
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW);
 
-        $lines = $this->ledger->consume($company, $variantId, (int) $fromId, $qty);
+        $batchId = $item->batch_id ?? null;
+
+        $lines = $this->ledger->consume($company, $variantId, (int) $fromId, $qty, $batchId);
 
         $this->quantities->adjust($company->id, $variantId, (int) $fromId, -$qty);
 
@@ -81,6 +83,9 @@ class InventoryLayerTransferService
                 $line['unit_cost'],
                 null,
                 now(),
+                null,
+                null,
+                $line['layer']->batch_id,
             );
         }
 
@@ -125,7 +130,9 @@ class InventoryLayerTransferService
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockFirstW);
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW);
 
-        $lines = $this->ledger->consume($company, $variantId, $fromId, $qty);
+        $batchId = $item->batch_id ?? null;
+
+        $lines = $this->ledger->consume($company, $variantId, $fromId, $qty, $batchId);
         $this->quantities->adjust($company->id, $variantId, $fromId, -$qty);
 
         $outTotal = round(array_sum(array_map(fn ($l) => $l['quantity'] * $l['unit_cost'], $lines)), 4);
@@ -181,6 +188,8 @@ class InventoryLayerTransferService
         $outUnit = $outMovement ? (float) $outMovement->unit_cost : 0.0;
         $outTotal = $outMovement ? (float) $outMovement->total_cost : 0.0;
 
+        $batchId = $item->batch_id ?? null;
+
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $toId);
 
         $this->ledger->receipt(
@@ -191,6 +200,9 @@ class InventoryLayerTransferService
             $outUnit,
             null,
             now(),
+            null,
+            null,
+            $batchId,
         );
 
         $this->quantities->adjust($company->id, $variantId, $toId, $qty);

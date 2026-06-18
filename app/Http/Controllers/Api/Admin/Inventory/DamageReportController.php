@@ -57,7 +57,18 @@ class DamageReportController extends Controller
                     'status' => $status,
                 ]);
 
-                $report->damageReportItems()->createMany($formData['items']);
+                $damageItems = collect($formData['items'] ?? [])->map(function ($item) {
+                    return [
+                        'product_variant_id' => $item['product_variant_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'unit_cost' => $item['unit_cost'] ?? null,
+                        'remarks' => $item['remarks'] ?? null,
+                        'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    ];
+                })->all();
+
+                $report->damageReportItems()->createMany($damageItems);
 
                 if ($status === StatusEnum::APPROVED->value) {
                     $this->applyApprovalEffects($report, $user);
@@ -107,7 +118,19 @@ class DamageReportController extends Controller
             ]);
 
             $damageReport->damageReportItems()->delete();
-            $damageReport->damageReportItems()->createMany($formData['items']);
+
+            $updatedItems = collect($formData['items'] ?? [])->map(function ($item) {
+                return [
+                    'product_variant_id' => $item['product_variant_id'],
+                    'unit_id' => $item['unit_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'unit_cost' => $item['unit_cost'] ?? null,
+                    'remarks' => $item['remarks'] ?? null,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                ];
+            })->all();
+
+            $damageReport->damageReportItems()->createMany($updatedItems);
 
             return $damageReport;
         });
@@ -194,6 +217,7 @@ class DamageReportController extends Controller
                 ChangeTypeEnum::DAMAGE,
                 $user->id,
                 $report->remarks,
+                $item->batch_id,
             );
         }
     }

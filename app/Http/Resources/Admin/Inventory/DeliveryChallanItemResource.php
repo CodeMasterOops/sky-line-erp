@@ -18,8 +18,14 @@ class DeliveryChallanItemResource extends JsonResource
             'quantity' => (float) ($this->quantity ?? 0),
             'rate' => (float) ($this->rate ?? 0),
             'remarks' => $this->remarks ?? '',
+            'batch_id' => $this->batch_id ?? null,
             'product_variant' => $this->whenLoaded('productVariant', fn () => ProductVariantResource::make($this->productVariant)),
             'unit' => $this->whenLoaded('unit', fn () => UnitResource::make($this->unit)),
+            'batch' => $this->whenLoaded('batch', fn () => [
+                'id' => $this->batch->id,
+                'batch_no' => $this->batch->batch_no,
+                'expiry_date' => $this->batch->expiry_date?->toDateString(),
+            ]),
         ];
     }
 }

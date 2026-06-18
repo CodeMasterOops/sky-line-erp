@@ -30,6 +30,7 @@ class BillController extends Controller
             'billItems.unit',
             'billItems.tax',
             'billItems.warehouse',
+            'billItems.batch',
             'billItems.grnItem.goodsReceivedNote.landedCosts.account',
             'landedCosts.account',
             'landedCosts.allocations',

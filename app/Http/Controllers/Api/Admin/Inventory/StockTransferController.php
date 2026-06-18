@@ -86,6 +86,7 @@ class StockTransferController extends Controller
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
             'stockTransferItems.fromWarehouse',
+            'stockTransferItems.batch',
         ]);
 
         return response()->json([
@@ -103,6 +104,7 @@ class StockTransferController extends Controller
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
             'stockTransferItems.fromWarehouse',
+            'stockTransferItems.batch',
         ]);
 
         return StockTransferResource::make($stockTransfer);
@@ -143,6 +145,7 @@ class StockTransferController extends Controller
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
             'stockTransferItems.fromWarehouse',
+            'stockTransferItems.batch',
         ]);
 
         return response()->json([
@@ -285,6 +288,7 @@ class StockTransferController extends Controller
             'stockTransferItems.productVariant.product',
             'stockTransferItems.unit',
             'stockTransferItems.fromWarehouse',
+            'stockTransferItems.batch',
         ]);
 
         return response()->json([
@@ -322,6 +326,7 @@ class StockTransferController extends Controller
                 'unit_id' => $unitId,
                 'from_warehouse_id' => isset($item['from_warehouse_id']) ? (int) $item['from_warehouse_id'] : null,
                 'quantity' => (int) $item['quantity'],
+                'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
             ];
         })->all();
     }

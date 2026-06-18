@@ -32,6 +32,8 @@ class ProductVariantResource extends JsonResource
             'sales_price' => $this->sales_price ?? 0,
             'purchase_price' => $this->purchase_price ?? 0,
             'is_default' => $this->is_default ?? false,
+            'is_serialized' => $this->is_serialized ?? false,
+            'is_batch_tracked' => $this->is_batch_tracked ?? false,
             'variant_options' => $this->whenLoaded('variantOptions', function () {
                 return $this->formatVariantOptions();
             }),

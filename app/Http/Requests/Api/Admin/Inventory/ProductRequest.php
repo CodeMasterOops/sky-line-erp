@@ -189,6 +189,8 @@ class ProductRequest extends FormRequest
                 'min:0',
             ],
             'variants.*.is_default' => ['nullable', 'boolean'],
+            'variants.*.is_serialized' => ['nullable', 'boolean'],
+            'variants.*.is_batch_tracked' => ['nullable', 'boolean'],
             'variants.*.attribute_values' => ['nullable', 'array'],
             'attribute_values' => ['nullable', 'array'],
             'attribute_values.*' => [Rule::exists('attribute_values', 'id')->withoutTrashed()],

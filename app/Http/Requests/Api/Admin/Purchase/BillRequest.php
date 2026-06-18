@@ -62,6 +62,7 @@ class BillRequest extends FormRequest
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
             'items.*.grn_item_id' => ['nullable', 'integer', Rule::exists('grn_items', 'id')],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
             'landed_costs' => ['nullable', 'array'],
             'landed_costs.*.cost_type' => ['required_with:landed_costs', 'string', 'max:100'],
             'landed_costs.*.description' => ['nullable', 'string', 'max:255'],

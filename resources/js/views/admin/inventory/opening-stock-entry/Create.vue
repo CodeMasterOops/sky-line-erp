@@ -64,12 +64,13 @@
                                             Unit cost
                                             <VRequiredMark />
                                         </th>
+                                        <th class="ose-col-batch">Batch</th>
                                         <th class="text-center ose-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="5" class="text-center text-muted py-4">
+                                        <td colspan="6" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
@@ -96,6 +97,14 @@
                                                 v-model="form.items[index].unit_cost"
                                                 @validate="validateField(`items[${index}].unit_cost`)"
                                                 :error="errors[`items[${index}].unit_cost`]"
+                                            />
+                                        </td>
+                                        <td class="ose-col-batch">
+                                            <BatchPickerInput
+                                                v-if="item.is_batch_tracked"
+                                                v-model="form.items[index].batch_id"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="form.warehouse_id"
                                             />
                                         </td>
                                         <td class="text-center ose-col-action">
@@ -159,6 +168,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useOpeningStockEntryStore} from '@/stores/admin/inventory/opening-stock-entry.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
 const openingStockEntryStore = useOpeningStockEntryStore();
@@ -218,6 +228,8 @@ const onVariantSelected = (variant) => {
         unit_id: unitIdFromVariant(variant),
         quantity: '1',
         unit_cost: defaultCost,
+        is_batch_tracked: !!variant.is_batch_tracked,
+        batch_id: null,
     });
 };
 
@@ -241,6 +253,7 @@ const buildPayload = () => ({
         unit_id: item.unit_id === '' || item.unit_id == null ? null : item.unit_id,
         quantity: lineQtyInt(item.quantity),
         unit_cost: item.unit_cost === '' || item.unit_cost == null ? 0 : item.unit_cost,
+        batch_id: item.batch_id || null,
     })),
 });
 

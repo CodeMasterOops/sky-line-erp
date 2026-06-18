@@ -133,6 +133,7 @@ readonly class PurchaseBillService
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ],
             );
 
@@ -188,6 +189,7 @@ readonly class PurchaseBillService
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ],
             );
 
@@ -434,6 +436,7 @@ readonly class PurchaseBillService
                 $user->id,
                 $bill->remarks,
                 $item->id,
+                batchId: $item->batch_id,
             );
         }
     }

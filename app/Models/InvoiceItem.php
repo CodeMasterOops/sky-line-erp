@@ -26,6 +26,7 @@ class InvoiceItem extends Model
         'tax_amount',
         'discount_amount',
         'tax_line_type',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -75,5 +76,10 @@ class InvoiceItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

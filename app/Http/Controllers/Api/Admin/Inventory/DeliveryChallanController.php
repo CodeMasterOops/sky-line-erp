@@ -35,7 +35,7 @@ class DeliveryChallanController extends Controller
     {
         $deliveryChallan->load([
             'party', 'warehouse', 'reference', 'challanItems.productVariant.product', 'challanItems.unit',
-            'challanItems.salesOrderItem', 'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
+            'challanItems.salesOrderItem', 'challanItems.batch', 'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
         ]);
 
         return DeliveryChallanResource::make($deliveryChallan);

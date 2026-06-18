@@ -26,6 +26,7 @@ class CreditNoteItem extends Model
         'tax_amount',
         'tax_line_type',
         'discount_amount',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -71,5 +72,10 @@ class CreditNoteItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

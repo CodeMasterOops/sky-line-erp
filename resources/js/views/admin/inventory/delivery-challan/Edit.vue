@@ -95,13 +95,14 @@
                                         <th class="dc-col-qty">Qty</th>
                                         <th class="dc-col-rate">Rate</th>
                                         <th class="text-end dc-col-total">Total</th>
+                                        <th class="dc-col-batch">Batch</th>
                                         <th>Remarks</th>
                                         <th v-if="isDraft" class="text-center dc-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 7 : 6" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 8 : 7" class="text-center text-muted py-4">
                                             {{ isDraft ? 'Search and select a product to add lines.' : 'No line items.' }}
                                         </td>
                                     </tr>
@@ -142,6 +143,17 @@
                                             />
                                         </td>
                                         <td class="text-end fw-semibold">{{ formatMoney(lineTotalMoney(item)) }}</td>
+                                        <td class="dc-col-batch">
+                                            <BatchPickerInput
+                                                v-if="item.is_batch_tracked && isDraft"
+                                                v-model="form.items[index].batch_id"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="form.warehouse_id"
+                                                :required="true"
+                                            />
+                                            <span v-else-if="item.batch_no" class="small">{{ item.batch_no }}</span>
+                                            <span v-else class="text-muted small">—</span>
+                                        </td>
                                         <td>
                                             <VInput
                                                 input-class="form-control form-control-sm"
@@ -161,9 +173,9 @@
                                     </tbody>
                                     <tfoot v-if="form.items.length" class="table-secondary fw-bold">
                                     <tr>
-                                        <td :colspan="isDraft ? 4 : 4" class="text-end">Grand Total</td>
+                                        <td colspan="4" class="text-end">Grand Total</td>
                                         <td class="text-end">{{ formatMoney(grandTotal) }}</td>
-                                        <td :colspan="isDraft ? 2 : 1"></td>
+                                        <td :colspan="isDraft ? 3 : 2"></td>
                                     </tr>
                                     </tfoot>
                                 </table>
@@ -205,6 +217,7 @@ import {useDeliveryChallanStore} from '@/stores/admin/inventory/delivery-challan
 import {useDeliveryChallanForm} from '@/composables/useDeliveryChallanForm.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 
@@ -285,6 +298,9 @@ async function hydrateForm(data) {
         rate: String(item.rate),
         remarks: item.remarks || '',
         stock_qty: null,
+        is_batch_tracked: item.product_variant?.is_batch_tracked ?? false,
+        batch_id: item.batch_id ?? null,
+        batch_no: item.batch?.batch_no ?? null,
     }));
 
     await ensureDispatchWarehouse();

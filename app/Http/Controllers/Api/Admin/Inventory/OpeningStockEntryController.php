@@ -71,6 +71,7 @@ class OpeningStockEntryController extends Controller
                         'unit_id' => $item['unit_id'] ?? null,
                         'quantity' => $item['quantity'],
                         'unit_cost' => $item['unit_cost'],
+                        'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                     ])->all()
                 );
 
@@ -102,6 +103,7 @@ class OpeningStockEntryController extends Controller
             'warehouse',
             'openingStockEntryItems.productVariant.product',
             'openingStockEntryItems.unit',
+            'openingStockEntryItems.batch',
         ]);
 
         return OpeningStockEntryResource::make($openingStockEntry);
@@ -134,6 +136,7 @@ class OpeningStockEntryController extends Controller
                     'unit_id' => $item['unit_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_cost' => $item['unit_cost'],
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ])->all()
             );
 

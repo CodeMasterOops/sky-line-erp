@@ -19,6 +19,7 @@ class StockTransferItem extends Model
         'unit_id',
         'from_warehouse_id',
         'quantity',
+        'batch_id',
     ];
 
     public function stockTransfer(): BelongsTo
@@ -39,5 +40,10 @@ class StockTransferItem extends Model
     public function fromWarehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class, 'from_warehouse_id');
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

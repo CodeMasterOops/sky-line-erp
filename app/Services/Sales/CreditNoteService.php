@@ -3,6 +3,7 @@
 namespace App\Services\Sales;
 
 use App\Models\User;
+use App\Models\Batch;
 use App\Models\Company;
 use App\Enums\StatusEnum;
 use App\Models\CreditNote;
@@ -76,6 +77,7 @@ class CreditNoteService
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ],
             );
 
@@ -125,6 +127,7 @@ class CreditNoteService
                     'tax_id' => $item['tax_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ],
             );
 
@@ -200,7 +203,13 @@ class CreditNoteService
                 $user->id,
                 $creditNote->remarks,
                 null,
+                batchId: $item->batch_id,
             );
+
+            if ($item->batch_id) {
+                Batch::where('id', $item->batch_id)->increment('remaining_qty', $qty);
+                Batch::where('id', $item->batch_id)->where('status', 'depleted')->update(['status' => 'active']);
+            }
         }
     }
 }

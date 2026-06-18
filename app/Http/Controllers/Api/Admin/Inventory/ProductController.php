@@ -149,6 +149,8 @@ class ProductController extends Controller
                     'sales_price' => $variant['sales_price'] ?? 0,
                     'purchase_price' => $variant['purchase_price'] ?? 0,
                     'is_default' => $hasVariants ? $variant['is_default'] : true,
+                    'is_serialized' => (bool) ($variant['is_serialized'] ?? false),
+                    'is_batch_tracked' => (bool) ($variant['is_batch_tracked'] ?? false),
                 ]);
 
                 $productVariant->variantOptions()->attach($variant['attribute_values'] ?? []);
@@ -207,6 +209,8 @@ class ProductController extends Controller
                             'sales_price' => $variant['sales_price'] ?? 0,
                             'purchase_price' => $variant['purchase_price'] ?? 0,
                             'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
+                            'is_serialized' => (bool) ($variant['is_serialized'] ?? false),
+                            'is_batch_tracked' => (bool) ($variant['is_batch_tracked'] ?? false),
                         ]);
                         $productVariant->variantOptions()->sync($attrValues);
                     }
@@ -218,6 +222,8 @@ class ProductController extends Controller
                         'sales_price' => $variant['sales_price'] ?? 0,
                         'purchase_price' => $variant['purchase_price'] ?? 0,
                         'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
+                        'is_serialized' => (bool) ($variant['is_serialized'] ?? false),
+                        'is_batch_tracked' => (bool) ($variant['is_batch_tracked'] ?? false),
                     ]);
 
                     $productVariant->variantOptions()->attach($attrValues);

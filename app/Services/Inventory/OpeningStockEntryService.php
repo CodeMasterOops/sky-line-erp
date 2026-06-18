@@ -145,6 +145,7 @@ class OpeningStockEntryService
             ChangeTypeEnum::OPENING_STOCK,
             $user->id,
             $entry->remarks,
+            batchId: $item->batch_id,
         );
     }
 }

@@ -15,6 +15,7 @@ class DeliveryChallanItem extends Model
         'quantity',
         'rate',
         'remarks',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -40,5 +41,10 @@ class DeliveryChallanItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

@@ -182,6 +182,11 @@
                         "menuValue": "Serial / Lot Numbers",
                         "route": { "name": "admin.serial-numbers" },
                         "permission": "list_product"
+                    },
+                    {
+                        "menuValue": "Batch / Lot Tracking",
+                        "route": { "name": "admin.batch-list" },
+                        "permission": "list_batch"
                     }
                 ]
             },
@@ -190,11 +195,6 @@
                 "icon": "ti ti-tool",
                 "hasSubRoute": true,
                 "subMenus": [
-                    {
-                        "menuValue": "Batch / Lot Tracking",
-                        "route": { "name": "admin.batch-list" },
-                        "permission": "list_batch"
-                    },
                     {
                         "menuValue": "Bill of Materials",
                         "route": { "name": "admin.bom-list" },

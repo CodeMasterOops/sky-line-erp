@@ -58,6 +58,8 @@ class ProductionOrderCompletionService
             $plannedQty = min($consumedQty, $requiredQty);
             $wastageQty = max(0, $consumedQty - $requiredQty);
 
+            $consumptionBatchId = $consumptionData['batch_id'] ?? $consumption->batch_id ?? null;
+
             $movement = $this->issueService->issue(
                 $company,
                 $productionOrder,
@@ -67,6 +69,7 @@ class ProductionOrderCompletionService
                 ChangeTypeEnum::MANUFACTURING_ISSUE,
                 $userId,
                 "Production Order {$productionOrder->order_no}",
+                $consumptionBatchId,
             );
 
             $totalMaterialCost += $movement->total_cost;
@@ -81,6 +84,7 @@ class ProductionOrderCompletionService
                     ChangeTypeEnum::WASTAGE,
                     $userId,
                     "Production Order {$productionOrder->order_no} — Wastage",
+                    $consumptionBatchId,
                 );
             }
 

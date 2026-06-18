@@ -41,6 +41,11 @@ class BillItemResource extends JsonResource
             'tax_amount' => $this->tax_amount ?? 0,
             'discount_amount' => $this->discount_amount ?? 0,
             'tax_line_type' => $this->tax_line_type?->value ?? 'taxable',
+            'batch_id' => $this->batch_id,
+            'batch' => $this->whenLoaded('batch', fn () => [
+                'id' => $this->batch->id,
+                'batch_no' => $this->batch->batch_no,
+            ]),
             'grn_item_id' => $this->grn_item_id ?? '',
             'grn_no' => $this->when(
                 $this->relationLoaded('grnItem') && $this->grnItem?->relationLoaded('goodsReceivedNote'),

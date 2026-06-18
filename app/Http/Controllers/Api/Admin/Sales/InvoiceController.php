@@ -45,6 +45,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.batch',
         ]);
 
         return response()->json([
@@ -64,6 +65,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.batch',
             'receiptAllocations.receipt',
         ]);
 
@@ -95,6 +97,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.batch',
         ]);
 
         return response()->json([
@@ -146,6 +149,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.batch',
         ]);
 
         return response()->json([
@@ -206,6 +210,7 @@ class InvoiceController extends Controller
             'invoiceItems.unit',
             'invoiceItems.tax',
             'invoiceItems.warehouse',
+            'invoiceItems.batch',
         ]);
 
         return response()->json([

@@ -74,12 +74,13 @@
                                             Qty
                                             <VRequiredMark v-if="isDraft" />
                                         </th>
+                                        <th class="st-col-batch">Batch</th>
                                         <th v-if="isDraft" class="text-center st-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 6 : 5" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 7 : 6" class="text-center text-muted py-4">
                                             {{ isDraft ? (form.to_warehouse_id ? 'Search and select a product to add lines.' : 'Select a destination warehouse to start adding products.') : 'No line items.' }}
                                         </td>
                                     </tr>
@@ -113,6 +114,16 @@
                                                 @validate="validateField(`items[${index}].quantity`)"
                                                 :error="errors[`items[${index}].quantity`]"
                                             />
+                                        </td>
+                                        <td class="st-col-batch">
+                                            <BatchPickerInput
+                                                v-if="item.is_batch_tracked && isDraft"
+                                                v-model="form.items[index].batch_id"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="item.from_warehouse_id"
+                                            />
+                                            <span v-else-if="item.batch_no" class="small text-muted">{{ item.batch_no }}</span>
+                                            <span v-else class="text-muted small">—</span>
                                         </td>
                                         <td v-if="isDraft" class="text-center">
                                             <button
@@ -177,6 +188,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useStockTransferStore} from '@/stores/admin/inventory/stock-transfer.js';
 import {fetchVariantWarehouses} from '@/composables/useVariantWarehousePicker.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
@@ -297,6 +309,8 @@ const onVariantSelected = async (variant) => {
         from_warehouse_name: selectedWarehouse.warehouse_name,
         stock_qty: selectedWarehouse.quantity,
         quantity: '1',
+        is_batch_tracked: variant.is_batch_tracked ?? false,
+        batch_id: null,
     });
 };
 
@@ -319,6 +333,7 @@ const buildTransferPayload = () => ({
         product_variant_id: item.product_variant_id,
         from_warehouse_id: item.from_warehouse_id,
         quantity: lineQtyInt(item.quantity),
+        batch_id: item.batch_id || null,
     })),
 });
 
@@ -336,6 +351,9 @@ watch(
                 from_warehouse_name: item.from_warehouse_name ?? '',
                 stock_qty: null,
                 quantity: item.quantity != null && item.quantity !== '' ? String(item.quantity) : '',
+                is_batch_tracked: item.product_variant?.is_batch_tracked ?? false,
+                batch_id: item.batch_id ?? null,
+                batch_no: item.batch?.batch_no ?? null,
             }));
             form.reference_no = t.reference_no ?? '';
             form.date = t.date ?? '';

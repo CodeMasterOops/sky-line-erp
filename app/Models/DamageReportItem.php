@@ -17,6 +17,7 @@ class DamageReportItem extends Model
         'quantity',
         'unit_cost',
         'remarks',
+        'batch_id',
     ];
 
     protected function casts(): array
@@ -40,5 +41,10 @@ class DamageReportItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

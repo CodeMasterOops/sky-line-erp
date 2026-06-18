@@ -35,6 +35,7 @@ class DeliveryChallanRequest extends FormRequest
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string'],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
         ];
     }
 }

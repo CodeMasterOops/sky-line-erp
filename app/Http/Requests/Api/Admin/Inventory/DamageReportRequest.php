@@ -33,6 +33,7 @@ class DamageReportRequest extends FormRequest
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
             'items.*.remarks' => ['nullable', 'string', 'max:500'],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
         ];
     }
 

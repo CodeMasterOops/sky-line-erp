@@ -368,6 +368,7 @@
                                                         Purchase Price (Default) <VRequiredMark /></th>
                                                     <th class="text-end" title="Default selling price for sales and purchase screens">
                                                         Selling Price <VRequiredMark /></th>
+                                                    <th class="text-center" title="Enable lot/batch tracking for this variant">Batch Tracked</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -417,6 +418,16 @@
                                                             @validate="validateField(`variants[${index}].sales_price`)"
                                                             :error="errors[`variants[${index}].sales_price`]" />
                                                     </td>
+                                                    <td class="text-center">
+                                                        <div class="form-check form-switch d-flex justify-content-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                class="form-check-input"
+                                                                :id="`is_batch_tracked_${index}`"
+                                                                v-model="form.variants[index].is_batch_tracked"
+                                                            />
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -464,6 +475,19 @@
                                         label="Selling Price" required
                                         @validate="validateField(`variants[0].sales_price`)"
                                         :error="errors[`variants[0].sales_price`]" />
+                                </div>
+                                <div v-if="isPhysicalProduct" class="col-auto d-flex align-items-end pb-1">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            type="checkbox"
+                                            class="form-check-input"
+                                            id="is_batch_tracked_0"
+                                            v-model="form.variants[0].is_batch_tracked"
+                                        />
+                                        <label class="form-check-label" for="is_batch_tracked_0">
+                                            Batch Tracked
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -631,6 +655,7 @@ function mergeHydratedVariantIds(idMap) {
             row.sales_price = hit.sales_price != null ? String(hit.sales_price) : '';
             row.purchase_price = hit.purchase_price != null ? String(hit.purchase_price) : '';
             row.is_default = !!hit.is_default;
+            row.is_batch_tracked = !!hit.is_batch_tracked;
         }
     });
 }
@@ -673,6 +698,7 @@ async function hydrateFromProduct(data) {
                 sales_price: v.sales_price,
                 purchase_price: v.purchase_price,
                 is_default: v.is_default,
+                is_batch_tracked: v.is_batch_tracked ?? false,
             });
         }
 
@@ -715,6 +741,7 @@ async function hydrateFromProduct(data) {
                     sales_price: src.sales_price != null ? String(src.sales_price) : '',
                     purchase_price: src.purchase_price != null ? String(src.purchase_price) : '',
                     is_default: src.is_default ?? true,
+                    is_batch_tracked: src.is_batch_tracked ?? false,
                     value_labels: [],
                     attribute_values: [],
                 }];
@@ -739,6 +766,7 @@ const addVariants = () => {
         sales_price: '',
         purchase_price: '',
         is_default: false,
+        is_batch_tracked: false,
     });
 };
 
@@ -884,6 +912,7 @@ watch(() => selectedVariants.value, () => {
             sales_price: '',
             purchase_price: '',
             is_default: index === 0,
+            is_batch_tracked: false,
             attribute_values: cmb.map(a => a.value_id)
         });
     });
@@ -1057,6 +1086,7 @@ function buildPayload() {
             sales_price: v.sales_price,
             purchase_price: isService && !String(v.purchase_price ?? '').trim() ? 0 : v.purchase_price,
             is_default: v.is_default,
+            is_batch_tracked: !!v.is_batch_tracked,
             attribute_values: Array.isArray(v.attribute_values) ? v.attribute_values : [],
         };
         if (v.id != null && v.id !== '') {

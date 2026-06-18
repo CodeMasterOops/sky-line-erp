@@ -24,6 +24,11 @@ class StockTransferItemResource extends JsonResource
             'from_warehouse_id' => $this->from_warehouse_id ?? null,
             'from_warehouse_name' => $this->whenLoaded('fromWarehouse', fn () => $this->fromWarehouse?->name ?? '', ''),
             'quantity' => $this->quantity ?? 0,
+            'batch_id' => $this->batch_id,
+            'batch' => $this->whenLoaded('batch', fn () => [
+                'id' => $this->batch->id,
+                'batch_no' => $this->batch->batch_no,
+            ]),
         ];
     }
 }

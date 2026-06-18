@@ -12,6 +12,9 @@ Artisan::command('inspire', function () {
 
 Schedule::command('data-transfer:prune')->daily();
 
+// Batch expiry
+Schedule::command('batch:expire')->dailyAt('01:00');
+
 // Inventory health checks
 Schedule::command('inventory:gl-reconcile --limit=500')->dailyAt('03:00');
 Schedule::command('inventory:valuation-snapshot --replace')->monthlyOn(1, '01:00');

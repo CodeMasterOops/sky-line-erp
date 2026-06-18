@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Batch;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
@@ -27,14 +28,30 @@ class InventoryLayerIssueService
         ChangeTypeEnum $changeType,
         ?int $userId,
         ?string $remarks,
+        ?int $batchId = null,
     ): StockMovement {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Issue quantity must be positive.');
         }
 
+        if ($batchId !== null) {
+            $batch = Batch::lockForUpdate()->findOrFail($batchId);
+
+            if ($batch->status === 'expired') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'batch_id' => __('Batch :no has expired and cannot be issued.', ['no' => $batch->batch_no]),
+                ]);
+            }
+        }
+
         $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
 
-        $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $quantity);
+        $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $quantity, $batchId);
+
+        if ($batchId !== null) {
+            Batch::where('id', $batchId)->decrement('remaining_qty', $quantity);
+            Batch::where('id', $batchId)->where('remaining_qty', '<=', 0)->update(['status' => 'depleted']);
+        }
 
         $this->quantities->adjust($company->id, $productVariantId, $warehouseId, -$quantity);
 

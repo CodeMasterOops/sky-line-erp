@@ -26,6 +26,7 @@ class BillItem extends Model
         'tax_amount',
         'discount_amount',
         'tax_line_type',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -75,5 +76,10 @@ class BillItem extends Model
     public function stockLayers(): HasMany
     {
         return $this->hasMany(StockLayer::class, 'source_bill_item_id');
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

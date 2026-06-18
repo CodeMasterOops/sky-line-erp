@@ -6,6 +6,7 @@ use App\Models\Batch;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\Inventory\BatchResource;
 
 class BatchController extends Controller
 {
@@ -22,7 +23,7 @@ class BatchController extends Controller
             ->orderBy('expiry_date')
             ->paginate($request->per_page ?? 25);
 
-        return response()->json($batches);
+        return BatchResource::collection($batches);
     }
 
     #[Permissions('create_batch', group: 'batch', desc: 'Create Batch')]
@@ -42,14 +43,17 @@ class BatchController extends Controller
 
         $data['remaining_qty'] = $data['initial_qty'];
         $batch = Batch::create($data);
+        $batch->load(['productVariant.product', 'warehouse']);
 
-        return response()->json(['data' => $batch, 'message' => 'Batch created successfully'], 201);
+        return response()->json(['data' => BatchResource::make($batch), 'message' => 'Batch created successfully'], 201);
     }
 
     #[Permissions('show_batch', group: 'batch', desc: 'Show Batch')]
     public function show(Batch $batch)
     {
-        return response()->json(['data' => $batch->load(['productVariant.product', 'warehouse'])]);
+        $batch->load(['productVariant.product', 'warehouse']);
+
+        return response()->json(['data' => BatchResource::make($batch)]);
     }
 
     #[Permissions('edit_batch', group: 'batch', desc: 'Edit Batch')]
@@ -65,8 +69,9 @@ class BatchController extends Controller
         ]);
 
         $batch->update($data);
+        $batch->load(['productVariant.product', 'warehouse']);
 
-        return response()->json(['data' => $batch, 'message' => 'Batch updated successfully']);
+        return response()->json(['data' => BatchResource::make($batch), 'message' => 'Batch updated successfully']);
     }
 
     #[Permissions('list_batch', group: 'batch', desc: 'Expiry Alerts')]

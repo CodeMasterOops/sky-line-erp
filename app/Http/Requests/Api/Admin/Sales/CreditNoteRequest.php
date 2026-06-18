@@ -105,6 +105,7 @@ class CreditNoteRequest extends FormRequest
             'items.*.tax_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
             'items.*.invoice_item_id' => [
                 'nullable',
                 'integer',

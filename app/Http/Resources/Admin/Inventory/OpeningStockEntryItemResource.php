@@ -23,6 +23,11 @@ class OpeningStockEntryItemResource extends JsonResource
             }),
             'quantity' => $this->quantity ?? 0,
             'unit_cost' => $this->unit_cost,
+            'batch_id' => $this->batch_id,
+            'batch' => $this->whenLoaded('batch', fn () => [
+                'id' => $this->batch->id,
+                'batch_no' => $this->batch->batch_no,
+            ]),
         ];
     }
 }
