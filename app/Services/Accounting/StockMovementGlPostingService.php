@@ -63,6 +63,7 @@ class StockMovementGlPostingService
             $grniId,
             $settings->opening_stock_equity_account_id,
             $settings->stock_adjustment_account_id,
+            $settings->wip_account_id,
         );
         if ($pair === null) {
             return;
@@ -145,6 +146,7 @@ class StockMovementGlPostingService
         ?int $grniId,
         ?int $openingStockEquityId,
         ?int $stockAdjustmentId,
+        ?int $wipId = null,
     ): ?array {
         if (! $inventoryId) {
             return null;
@@ -229,6 +231,46 @@ class StockMovementGlPostingService
             }
 
             return [$stockAdjustmentId, $inventoryId];
+        }
+
+        // Raw material issued to production: WIP Dr / Inventory Cr
+        // Falls back to COGS when no dedicated WIP account is configured.
+        if ($movement->type === ChangeTypeEnum::MANUFACTURING_ISSUE) {
+            $effectiveWip = $wipId ?? $cogsId;
+            if (! $effectiveWip) {
+                return null;
+            }
+
+            return [$effectiveWip, $inventoryId];
+        }
+
+        // Finished goods received from production: Inventory Dr / WIP Cr
+        if ($movement->type === ChangeTypeEnum::FINISHED_GOODS) {
+            $effectiveWip = $wipId ?? $cogsId;
+            if (! $effectiveWip) {
+                return null;
+            }
+
+            return [$inventoryId, $effectiveWip];
+        }
+
+        // Production wastage write-off: Stock Adjustment Dr / Inventory Cr
+        if ($movement->type === ChangeTypeEnum::WASTAGE) {
+            if (! $stockAdjustmentId) {
+                return null;
+            }
+
+            return [$stockAdjustmentId, $inventoryId];
+        }
+
+        // By-product receipt: Inventory Dr / WIP Cr (reduces WIP balance)
+        if ($movement->type === ChangeTypeEnum::BY_PRODUCT) {
+            $effectiveWip = $wipId ?? $cogsId;
+            if (! $effectiveWip) {
+                return null;
+            }
+
+            return [$inventoryId, $effectiveWip];
         }
 
         return null;
