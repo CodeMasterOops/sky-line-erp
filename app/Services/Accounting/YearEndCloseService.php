@@ -42,11 +42,12 @@ class YearEndCloseService
 
         $fyRequest = Request::create('/', 'GET', ['fiscal_year_id' => $fiscalYearId]);
         $plRequest = Request::create('/', 'GET', ['fiscal_year_id' => $fiscalYearId]);
+        $companyRequest = Request::create('/', 'GET');
 
         $unbalanced = $this->accountReportService->unbalancedJournals($fyRequest);
         $unposted = $this->accountReportService->unpostedDocuments($fyRequest);
-        $arAp = $this->accountReportService->arApReconciliation($emptyRequest);
-        $inventory = $this->accountReportService->inventoryGlReconciliation($emptyRequest);
+        $arAp = $this->accountReportService->arApReconciliation($companyRequest);
+        $inventory = $this->accountReportService->inventoryGlReconciliation($companyRequest);
         $profitLoss = $this->accountReportService->profitLoss($plRequest);
 
         $unbalancedCount = (int) ($unbalanced['summary']['count'] ?? 0);

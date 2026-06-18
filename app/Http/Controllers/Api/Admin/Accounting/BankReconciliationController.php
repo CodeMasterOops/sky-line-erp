@@ -101,9 +101,9 @@ class BankReconciliationController extends Controller
             $lines = [];
             foreach ($validated['lines'] as $line) {
                 $duplicate = BankStatementLine::where('bank_account_id', $bankAccount->id)
-                    ->where('transaction_date', $line['transaction_date'])
-                    ->where('debit', $line['debit'])
-                    ->where('credit', $line['credit'])
+                    ->whereDate('transaction_date', $line['transaction_date'])
+                    ->where('debit', (float) $line['debit'])
+                    ->where('credit', (float) $line['credit'])
                     ->where('reference', $line['reference'] ?? null)
                     ->exists();
 
