@@ -33,6 +33,10 @@ class StockTransferController extends Controller
             $query->where('reference_no', 'like', $key);
         }
 
+        if (! empty($request->status)) {
+            $query->where('status', $request->status);
+        }
+
         $transfers = $query->paginate($request->limit ?? 25);
 
         return StockTransferResource::collection($transfers);

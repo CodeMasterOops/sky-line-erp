@@ -1,213 +1,135 @@
 <template>
-    <PageHeader title="Stock Transfers" subtitle="Manage your stock transfers" @refresh="fetchTransfers">
+    <PageHeader
+        title="Stock Transfers"
+        subtitle="Manage your stock transfers"
+        @refresh="fetchTransfers">
         <template #actions>
             <button
                 v-can="'create_stock_transfer'"
                 type="button"
-                @click.prevent="createModalOpened = true"
-                class="btn btn-primary d-flex align-items-center">
-                <i class="ti ti-circle-plus me-2"></i>
-                Add Transfer
+                class="btn btn-primary d-flex align-items-center"
+                @click="createModalOpened = true">
+                <i class="ti ti-circle-plus me-2"></i>Add Transfer
             </button>
         </template>
     </PageHeader>
 
     <div class="card table-list-card">
-        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-            <div class="search-set">
-                <div class="search-input">
-                    <a href="javascript:void(0);" class="btn-searchset">
-                        <i class="ti ti-search fs-14 feather-search"></i>
-                    </a>
-                    <input
-                        type="search"
-                        v-model="filter.search"
-                        class="form-control form-control-sm"
-                        placeholder="Search reference"
-                        @input="debouncedFetch"
-                    >
+        <VTableToolbar
+            v-model="filter.search"
+            placeholder="Search reference"
+            :is-filtered="isFiltered"
+            @search="onSearchInput"
+            @reset="resetFilters">
+            <template #filters>
+                <div class="btn-group btn-group-sm me-2">
+                    <button
+                        v-for="s in STATUS_TABS"
+                        :key="s.value"
+                        :class="['btn', filter.status === s.value ? 'btn-primary' : 'btn-outline-secondary']"
+                        @click="filter.status = s.value">
+                        {{ s.label }}
+                    </button>
                 </div>
-            </div>
-        </div>
+            </template>
+        </VTableToolbar>
+
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
                 <a-table
                     class="table datanew table-hover table-center mb-0"
-                    :columns="columns"
+                    :columns="stockTransferColumns"
                     :data-source="transfers.data"
                     :pagination="false"
                     :loading="transfers.loading"
-                >
+                    @change="handleTableChange">
                     <template #bodyCell="{ column, record, index }">
                         <template v-if="column.key === 'sn'">
                             {{ (transfers.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span
-                                class="badge"
-                                :class="record.status === 'approved' ? 'bg-success' : 'bg-secondary'">
-                                {{ record.status }}
+                            <span class="badge" :class="STATUS_BADGE[record.status] ?? 'bg-secondary'">
+                                {{ record.status?.replace('_', ' ') }}
                             </span>
                         </template>
                         <template v-else-if="column.key === 'action'">
-                            <div class="action-table-data">
-                                <div class="edit-delete-action">
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 edit-icon p-2"
-                                        href="javascript:void(0);"
-                                        @click="editTransfer(record.id)">
-                                        <i class="ti ti-edit"></i>
-                                    </a>
-                                    <a
-                                        v-if="record.status === 'draft'"
-                                        class="me-2 p-2"
-                                        href="javascript:void(0);"
-                                        @click="approveTransfer(record.id)">
-                                        <i class="ti ti-check"></i>
-                                    </a>
-                                    <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
-                                       @click="deleteTransfer(record.id)">
-                                        <i class="ti ti-trash"></i>
-                                    </a>
-                                </div>
-                            </div>
+                            <VTableActions :actions="rowActions" :record="record" />
                         </template>
                     </template>
                 </a-table>
-                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="transfers.meta" />
+                <VPagination
+                    v-model:page="filter.page"
+                    v-model:limit="filter.limit"
+                    :meta="transfers.meta"
+                />
             </div>
         </div>
     </div>
 
-    <CreateStockTransfer v-model:create-modal-opened="createModalOpened"/>
-    <EditStockTransfer v-model:transfer_id="edit_transfer_id"/>
+    <CreateStockTransfer v-model:create-modal-opened="createModalOpened" />
+    <EditStockTransfer v-model:transfer_id="editTransferId" />
 </template>
 
 <script setup>
-import {onMounted, reactive, ref, watch} from 'vue';
-import VPagination from '@/components/base/VPagination.vue';
-import Swal from 'sweetalert2';
-import {toast} from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
-import {storeToRefs} from 'pinia';
-import debounce from 'lodash/debounce';
+import { computed, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
 import CreateStockTransfer from './Create.vue';
 import EditStockTransfer from './Edit.vue';
-import {useStockTransferStore} from '@/stores/admin/inventory/stock-transfer.js';
+import { useStockTransferStore } from '@/stores/admin/inventory/stock-transfer.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useTablePagination } from '@/composables/useTablePagination.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { stockTransferColumns, STATUS_BADGE, STATUS_TABS, createRowActions } from './tableConfig.js';
 
 const stockTransferStore = useStockTransferStore();
-
-const {transfers} = storeToRefs(stockTransferStore);
+const { transfers } = storeToRefs(stockTransferStore);
 
 const createModalOpened = ref(false);
-const edit_transfer_id = ref('');
+const editTransferId = ref('');
 
-const filter = reactive({
-    search: '',
-    page: 1,
-    limit: 10
+const { confirmAction, confirmDelete } = useConfirmAction();
+
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', status: '', page: 1, limit: 25 },
+    onFilter: (f) => stockTransferStore.getTransfers({ filter: f }),
 });
 
-const columns = [
-    {
-        title: 'SN',
-        key: 'sn',
-        width: 60,
-    },
-    {
-        title: 'Reference',
-        dataIndex: 'reference_no',
-        sorter: true,
-    },
-    {
-        title: 'Date',
-        dataIndex: 'date',
-        sorter: true,
-    },
-    {
-        title: 'From',
-        dataIndex: 'from_warehouse',
-        sorter: true,
-    },
-    {
-        title: 'To',
-        dataIndex: 'to_warehouse',
-        sorter: true,
-    },
-    {
-        title: 'Status',
-        key: 'status',
-    },
-    {
-        title: 'Action',
-        key: 'action',
-    },
-];
-
-onMounted(() => {
-    fetchTransfers();
+const { handleTableChange } = useTablePagination({
+    meta: computed(() => transfers.value.meta),
+    filter,
 });
 
-const fetchTransfers = () => {
-    stockTransferStore.getTransfers({filter});
-};
+function fetchTransfers() {
+    stockTransferStore.getTransfers({ filter });
+}
 
-const debouncedFetch = debounce(() => {
-    const onFirstPage = filter.page === 1;
-    filter.page = 1;
-    if (onFirstPage) {
-        fetchTransfers();
-    }
-}, 300);
-
-watch(() => [filter.page, filter.limit], () => {
-    fetchTransfers();
-});
-
-const editTransfer = (id) => {
-    edit_transfer_id.value = id;
-};
-
-const deleteTransfer = async (id) => {
-    Swal.fire({
-        title: 'Are You Sure to Delete ? ',
-        text: 'If you delete this, it will be gone forever.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'red',
-        confirmButtonText: 'Yes'
-    }).then(async (result) => {
-        if (result.value) {
-            try {
-                let res = await stockTransferStore.deleteTransfer(id);
-                toast(res.status, res.data.message);
-                fetchTransfers();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
-};
-
-const approveTransfer = async (id) => {
-    Swal.fire({
-        title: 'Approve Stock Transfer?',
-        text: 'This will mark the transfer as approved.',
+const rowActions = createRowActions({
+    onEdit: (id) => {
+        editTransferId.value = id;
+    },
+    onDispatch: (id) => confirmAction({
+        title: 'Dispatch Stock Transfer?',
+        text: 'This will mark the transfer as in-transit.',
         icon: 'question',
-        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        confirmButtonText: 'Dispatch',
+        action: () => stockTransferStore.dispatchTransfer(id),
+        onSuccess: fetchTransfers,
+    }),
+    onReceive: (id) => confirmAction({
+        title: 'Receive Stock Transfer?',
+        text: 'This will approve the transfer and update destination stock.',
+        icon: 'question',
         confirmButtonColor: 'green',
-        confirmButtonText: 'Yes'
-    }).then(async (result) => {
-        if (result.value) {
-            try {
-                let res = await stockTransferStore.approveTransfer(id);
-                toast(res.status, res.data.message);
-                fetchTransfers();
-            } catch (e) {
-                showErrors(e);
-            }
-        }
-    });
-};
+        confirmButtonText: 'Receive',
+        action: () => stockTransferStore.receiveTransfer(id),
+        onSuccess: fetchTransfers,
+    }),
+    onDelete: (id) => confirmDelete(
+        () => stockTransferStore.deleteTransfer(id),
+        fetchTransfers,
+    ),
+});
 </script>

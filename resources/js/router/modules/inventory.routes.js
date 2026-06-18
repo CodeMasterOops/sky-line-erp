@@ -206,6 +206,18 @@ export default [
         component: () => import("@/views/admin/inventory/reports/InventorySummary.vue"),
     },
     {
+        path: "damage-stock-report",
+        name: "admin.damage-stock-report",
+        meta: {pageTitle: "Damage Stock Report"},
+        component: () => import("@/views/admin/inventory/reports/DamageStockReport.vue"),
+    },
+    {
+        path: "production-variance-report",
+        name: "admin.production-variance-report",
+        meta: {pageTitle: "Production Variance Report"},
+        component: () => import("@/views/admin/inventory/reports/ProductionVarianceReport.vue"),
+    },
+    {
         path: "serial-numbers",
         name: "admin.serial-numbers",
         meta: {pageTitle: "Serial / Lot Numbers"},

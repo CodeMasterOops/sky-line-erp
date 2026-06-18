@@ -1,271 +1,148 @@
 <template>
-    <PageHeader title="Production Orders" subtitle="Manufacturing & assembly orders" @refresh="fetchOrders">
+    <PageHeader
+        title="Production Orders"
+        subtitle="Manufacturing & assembly orders"
+        @refresh="fetchOrders">
         <template #actions>
-            <button v-can="'create_production_order'" type="button" class="btn btn-primary" @click="showCreate = true">
-                <i class="ti ti-circle-plus me-2"></i> New Order
+            <button
+                v-can="'create_production_order'"
+                type="button"
+                class="btn btn-primary d-flex align-items-center"
+                @click="createModalOpened = true">
+                <i class="ti ti-circle-plus me-2"></i>New Order
             </button>
         </template>
     </PageHeader>
 
-    <!-- Status filter tabs -->
-    <section class="section">
-        <div class="card mb-3">
-            <div class="card-body py-2">
-                <div class="btn-group btn-group-sm">
-                    <button v-for="s in statuses" :key="s.value"
+    <div class="card table-list-card">
+        <VTableToolbar
+            v-model="filter.search"
+            placeholder="Search order number"
+            :is-filtered="isFiltered"
+            @search="onSearchInput"
+            @reset="resetFilters">
+            <template #filters>
+                <div class="btn-group btn-group-sm me-2">
+                    <button
+                        v-for="s in STATUS_TABS"
+                        :key="s.value"
                         :class="['btn', filter.status === s.value ? 'btn-primary' : 'btn-outline-secondary']"
-                        @click="setStatus(s.value)">{{ s.label }}</button>
+                        @click="filter.status = s.value">
+                        {{ s.label }}
+                    </button>
                 </div>
-            </div>
-        </div>
+            </template>
+        </VTableToolbar>
 
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <a-table :columns="columns" :data-source="orders" :loading="loading" :pagination="false" row-key="id">
-                        <template #bodyCell="{ column, record, index }">
-                            <template v-if="column.key === 'sn'">
-                                {{ (listMeta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
-                            </template>
-                            <template v-if="column.key === 'product'">
-                                {{ record.bom?.product_variant?.product?.name }}
-                            </template>
-                            <template v-if="column.key === 'status'">
-                                <span :class="statusBadge(record.status)" class="badge">{{ record.status }}</span>
-                            </template>
-                            <template v-if="column.key === 'qty'">
-                                {{ record.produced_qty }}/{{ record.planned_qty }}
-                            </template>
-                            <template v-if="column.key === 'action'">
-                                <div class="d-flex gap-2">
-                                    <a href="#" @click.prevent="openDetail(record)"><i class="ti ti-eye"></i></a>
-                                    <a v-if="record.status === 'draft'" href="#" @click.prevent="startOrder(record.id)"
-                                       class="text-success" title="Start"><i class="ti ti-player-play"></i></a>
-                                    <a v-if="record.status === 'in_progress'" href="#" @click.prevent="openComplete(record)"
-                                       class="text-primary" title="Complete"><i class="ti ti-check"></i></a>
-                                    <a v-if="!['completed','cancelled'].includes(record.status)" href="#"
-                                       @click.prevent="cancelOrder(record.id)" class="text-danger" title="Cancel">
-                                       <i class="ti ti-x"></i></a>
-                                </div>
-                            </template>
+        <div class="card-body">
+            <div class="custom-datatable-filter table-responsive">
+                <a-table
+                    class="table datanew table-hover table-center mb-0"
+                    :columns="productionOrderColumns"
+                    :data-source="orders.data"
+                    :pagination="false"
+                    :loading="orders.loading"
+                    @change="handleTableChange">
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.key === 'sn'">
+                            {{ (orders.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
-                    </a-table>
-                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="listMeta" />
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Create Order Modal -->
-    <div v-if="showCreate" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header"><h5 class="modal-title">New Production Order</h5>
-                    <button type="button" class="btn-close" @click="showCreate = false"></button></div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">BOM ID <span class="text-danger">*</span></label>
-                            <input v-model="createForm.bom_id" type="number" class="form-control" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Warehouse <span class="text-danger">*</span></label>
-                            <VMultiselect
-                                id="production_warehouse_id"
-                                v-model="createForm.warehouse_id"
-                                :options="warehouseStore.optionsTree"
-                                :loading="warehouseStore.warehouses.loading"
-                                placeholder="Select warehouse"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Planned Qty <span class="text-danger">*</span></label>
-                            <input v-model="createForm.planned_qty" type="number" class="form-control" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Planned Start</label>
-                            <input v-model="createForm.planned_start" type="date" class="form-control" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Planned End</label>
-                            <input v-model="createForm.planned_end" type="date" class="form-control" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Remarks</label>
-                            <textarea v-model="createForm.remarks" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showCreate = false">Cancel</button>
-                    <button class="btn btn-primary" :disabled="saving" @click="createOrder">
-                        <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-                        Create Order
-                    </button>
-                </div>
+                        <template v-else-if="column.key === 'product'">
+                            {{ record.bom?.product_variant?.product?.name }}
+                        </template>
+                        <template v-else-if="column.key === 'qty'">
+                            {{ record.produced_qty ?? 0 }} / {{ record.planned_qty }}
+                        </template>
+                        <template v-else-if="column.key === 'status'">
+                            <span class="badge" :class="STATUS_BADGE[record.status] ?? 'bg-info'">
+                                {{ record.status?.replace('_', ' ') }}
+                            </span>
+                        </template>
+                        <template v-else-if="column.key === 'action'">
+                            <VTableActions :actions="rowActions" :record="record" />
+                        </template>
+                    </template>
+                </a-table>
+                <VPagination
+                    v-model:page="filter.page"
+                    v-model:limit="filter.limit"
+                    :meta="orders.meta"
+                />
             </div>
         </div>
     </div>
 
-    <!-- Complete Order Modal -->
-    <div v-if="completeModal" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white"><h5 class="modal-title">Complete Production: {{ selectedOrder?.order_no }}</h5>
-                    <button type="button" class="btn-close btn-close-white" @click="completeModal = false"></button></div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Actual Produced Qty</label>
-                        <input v-model="completeForm.produced_qty" type="number" class="form-control" />
-                    </div>
-                    <h6>Material Consumptions</h6>
-                    <table class="table table-sm">
-                        <thead><tr><th>Material</th><th>Required</th><th>Consumed</th><th>Batch</th></tr></thead>
-                        <tbody>
-                            <tr v-for="c in completeForm.consumptions" :key="c.id">
-                                <td>{{ c.product_variant?.product?.name }}</td>
-                                <td>{{ c.required_qty }}</td>
-                                <td><input v-model="c.consumed_qty" type="number" class="form-control form-control-sm" /></td>
-                                <td><input v-model="c.batch_id" type="number" class="form-control form-control-sm" placeholder="Batch ID" /></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="completeModal = false">Cancel</button>
-                    <button class="btn btn-success" :disabled="saving" @click="completeOrder">
-                        <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-                        Mark Complete
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <CreateOrder v-model:create-modal-opened="createModalOpened" @saved="fetchOrders" />
+    <DetailOrder v-model:order-id="detailOrderId" @completed="fetchOrders" />
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch } from 'vue';
-import VPagination from '@/components/base/VPagination.vue';
-import VMultiselect from '@/components/base/VMultiselect.vue';
-import { apiAdmin } from '@/helpers/api';
-import { toast } from '@/helpers/toast';
-import showErrors from '@/helpers/showErrors';
-import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
+import { computed, ref } from 'vue';
+import { storeToRefs } from 'pinia';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
+import CreateOrder from './Create.vue';
+import DetailOrder from './Detail.vue';
+import { useProductionOrderStore } from '@/stores/admin/inventory/production.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useTablePagination } from '@/composables/useTablePagination.js';
+import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { productionOrderColumns, STATUS_BADGE, createRowActions } from './tableConfig.js';
 
-const warehouseStore = useWarehouseStore();
-
-const loading = ref(false);
-const saving = ref(false);
-const orders = ref([]);
-const showCreate = ref(false);
-const completeModal = ref(false);
-const selectedOrder = ref(null);
-
-const filter = reactive({ status: '', page: 1, limit: 10 });
-const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
-const statuses = [
-    { value: '', label: 'All' }, { value: 'draft', label: 'Draft' },
-    { value: 'in_progress', label: 'In Progress' }, { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' },
+const STATUS_TABS = [
+    { value: '',            label: 'All' },
+    { value: 'draft',       label: 'Draft' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'completed',   label: 'Completed' },
+    { value: 'cancelled',   label: 'Cancelled' },
 ];
 
-const createForm = ref({ bom_id: '', warehouse_id: '', planned_qty: '', planned_start: '', planned_end: '', remarks: '' });
-const completeForm = ref({ produced_qty: '', consumptions: [] });
+const productionStore = useProductionOrderStore();
+const { orders } = storeToRefs(productionStore);
 
-const columns = [
-    { title: 'SN', key: 'sn', width: 60 },
-    { title: 'Order No', dataIndex: 'order_no', key: 'order_no' },
-    { title: 'Product (BOM)', key: 'product' },
-    { title: 'Warehouse', key: 'warehouse', dataIndex: ['warehouse', 'name'] },
-    { title: 'Qty (Done/Plan)', key: 'qty' },
-    { title: 'Status', key: 'status' },
-    { title: 'Planned Start', dataIndex: 'planned_start', key: 'planned_start' },
-    { title: 'Created By', key: 'created_by', dataIndex: ['create_user', 'name'] },
-    { title: 'Action', key: 'action' },
-];
+const createModalOpened = ref(false);
+const detailOrderId = ref(null);
 
-onMounted(() => { fetchOrders(); warehouseStore.getWarehouses(); });
+const { confirmAction, confirmDelete } = useConfirmAction();
 
-async function fetchOrders(resetPage = false) {
-    if (resetPage) {
-        filter.page = 1;
-    }
-    loading.value = true;
-    try {
-        const params = new URLSearchParams({
-            page: String(filter.page),
-            per_page: String(filter.limit),
-            ...(filter.status ? { status: filter.status } : {}),
-        });
-        const { data } = await apiAdmin(`production-order?${params}`);
-        orders.value = data.data ?? [];
-        listMeta.value = {
-            total: data.total ?? 0,
-            current_page: data.current_page ?? filter.page,
-            per_page: data.per_page ?? filter.limit,
-            from: data.from ?? null,
-            to: data.to ?? null,
-            last_page: data.last_page ?? 1,
-        };
-    } finally { loading.value = false; }
-}
-
-watch(() => [filter.page, filter.limit], () => {
-    fetchOrders();
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', status: '', page: 1, limit: 25 },
+    onFilter: (f) => productionStore.getOrders({ filter: f }),
 });
 
+const { handleTableChange } = useTablePagination({
+    meta: computed(() => orders.value.meta),
+    filter,
+});
 
-function setStatus(s) { filter.status = s; fetchOrders(true); }
-
-async function createOrder() {
-    saving.value = true;
-    try {
-        await apiAdmin('production-order', 'post', createForm.value);
-        toast('Production order created');
-        showCreate.value = false;
-        fetchOrders();
-    } catch (e) { showErrors(e); }
-    finally { saving.value = false; }
+function fetchOrders() {
+    productionStore.getOrders({ filter });
 }
 
-async function startOrder(id) {
-    await apiAdmin(`production-order/${id}/start`, 'post');
-    toast('Production started');
-    fetchOrders();
-}
-
-async function openComplete(order) {
-    const { data } = await apiAdmin(`production-order/${order.id}`);
-    selectedOrder.value = data.data;
-    completeForm.value = {
-        produced_qty: data.data.planned_qty,
-        consumptions: data.data.consumptions.map(c => ({ ...c, consumed_qty: c.required_qty, batch_id: '' })),
-    };
-    completeModal.value = true;
-}
-
-async function completeOrder() {
-    saving.value = true;
-    try {
-        await apiAdmin(`production-order/${selectedOrder.value.id}/complete`, 'post', completeForm.value);
-        toast('Production order completed');
-        completeModal.value = false;
-        fetchOrders();
-    } catch (e) { showErrors(e); }
-    finally { saving.value = false; }
-}
-
-async function openDetail(order) {
-    console.log(order); // TODO: Detail view
-}
-
-async function cancelOrder(id) {
-    await apiAdmin(`production-order/${id}/cancel`, 'post');
-    toast('Production order cancelled');
-    fetchOrders();
-}
-
-function statusBadge(s) {
-    return { draft: 'bg-secondary', in_progress: 'bg-warning text-dark', completed: 'bg-success', cancelled: 'bg-danger' }[s] ?? 'bg-info';
-}
+const rowActions = createRowActions({
+    onView: (record) => {
+        detailOrderId.value = record.id;
+    },
+    onStart: (id) => confirmAction({
+        title: 'Start Production Order?',
+        text: 'This will begin production and reserve materials.',
+        icon: 'question',
+        confirmButtonColor: 'green',
+        confirmButtonText: 'Start',
+        action: () => productionStore.startOrder(id),
+        onSuccess: fetchOrders,
+    }),
+    onDetail: (record) => {
+        detailOrderId.value = record.id;
+    },
+    onCancel: (id) => confirmAction({
+        title: 'Cancel Production Order?',
+        text: 'This will release reserved stock and cancel the order.',
+        icon: 'warning',
+        confirmButtonColor: 'red',
+        confirmButtonText: 'Cancel Order',
+        action: () => productionStore.cancelOrder(id),
+        onSuccess: fetchOrders,
+    }),
+});
 </script>
