@@ -45,6 +45,34 @@ class Journal extends Model
         'status' => StatusEnum::class,
     ];
 
+    /**
+     * Closed-period immutability: a posted journal that already lives inside a
+     * closed/locked accounting period may not be edited in place or force-deleted.
+     * Soft-deletes (the audit-preserving void path) bypass the model `updating`
+     * event, so reversals via a contra entry remain available. New postings into
+     * a closed period are blocked separately by PeriodLockGuard.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (Journal $journal) {
+            app(\App\Services\Accounting\PeriodLockGuard::class)->assertPostable(
+                $journal->company_id,
+                $journal->fiscal_year_id,
+                $journal->getOriginal('date'),
+            );
+        });
+
+        static::deleting(function (Journal $journal) {
+            if (method_exists($journal, 'isForceDeleting') && $journal->isForceDeleting()) {
+                app(\App\Services\Accounting\PeriodLockGuard::class)->assertPostable(
+                    $journal->company_id,
+                    $journal->fiscal_year_id,
+                    $journal->getOriginal('date'),
+                );
+            }
+        });
+    }
+
     public function scopeFilter($query, $param = [])
     {
         if (! empty($param['search'])) {

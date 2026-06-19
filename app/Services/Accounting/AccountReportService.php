@@ -8,6 +8,7 @@ use App\Models\Account;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Journal;
+use App\Rules\NepaliPan;
 use App\Enums\StatusEnum;
 use App\Models\DebitNote;
 use App\Models\CreditNote;
@@ -20,6 +21,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AccountGroupTypeEnum;
+use App\Services\Nepal\NepaliDateService;
 
 class AccountReportService
 {
@@ -367,6 +369,7 @@ class AccountReportService
                 'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
                 'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
                 'total_amount' => round(collect($rows)->sum('total_amount'), 2),
+                'invalid_pan_count' => collect($rows)->where('buyer_pan_valid', false)->count(),
             ],
         ];
     }
@@ -402,9 +405,11 @@ class AccountReportService
 
         return $dbRows->map(fn ($row) => [
             'date' => $row->invoice_date,
+            'date_bs' => $this->toBsDate($row->invoice_date),
             'bijak_no' => $row->bijak_no ?: $row->invoice_no,
             'buyer_name' => $row->buyer_name,
             'buyer_pan' => $row->buyer_pan,
+            'buyer_pan_valid' => $this->isPanValid($row->buyer_pan),
             'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
             'vat_amount' => round((float) ($row->vat_amount ?? 0), 2),
             'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
@@ -434,6 +439,7 @@ class AccountReportService
                 'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
                 'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
                 'total_amount' => round(collect($rows)->sum('total_amount'), 2),
+                'invalid_pan_count' => collect($rows)->where('supplier_pan_valid', false)->count(),
             ],
         ];
     }
@@ -468,16 +474,40 @@ class AccountReportService
 
         return $dbRows->map(fn ($row) => [
             'date' => $row->bill_date,
+            'date_bs' => $this->toBsDate($row->bill_date),
             'bill_no' => $row->bill_no,
             'supplier_invoice_no' => $row->supplier_invoice_no ?? '-',
             'supplier_name' => $row->supplier_name,
             'supplier_pan' => $row->supplier_pan,
+            'supplier_pan_valid' => $this->isPanValid($row->supplier_pan),
             'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
             'input_vat' => round((float) ($row->input_vat ?? 0), 2),
             'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
             'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
             'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
         ])->values()->all();
+    }
+
+    /**
+     * Bikram Sambat string for a register row, or null when the AD date falls
+     * outside the supported BS conversion range.
+     */
+    private function toBsDate(?string $adDate): ?string
+    {
+        if ($adDate === null || $adDate === '') {
+            return null;
+        }
+
+        try {
+            return app(NepaliDateService::class)->adToBsString($adDate);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function isPanValid(?string $pan): bool
+    {
+        return $pan !== null && $pan !== '-' && NepaliPan::isValid($pan);
     }
 
     public function vatReturn(Request $request): array
