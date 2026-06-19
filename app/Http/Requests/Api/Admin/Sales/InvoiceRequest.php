@@ -116,6 +116,15 @@ class InvoiceRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
+            \App\Services\Inventory\BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn (array $item) => $item['warehouse_id'] ?? null,
+            );
+        });
+
+        $validator->after(function ($validator) {
             // IRD: bijak_no is mandatory for B2B taxable transactions above Rs 50,000.
             if ($this->filled('bijak_no')) {
                 return;

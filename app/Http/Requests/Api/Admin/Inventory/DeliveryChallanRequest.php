@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Tenancy\TRule;
+use Illuminate\Validation\Validator;
+use App\Services\Inventory\BatchGuard;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -37,5 +39,17 @@ class DeliveryChallanRequest extends FormRequest
             'items.*.remarks' => ['nullable', 'string'],
             'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn () => $this->input('warehouse_id'),
+            );
+        });
     }
 }

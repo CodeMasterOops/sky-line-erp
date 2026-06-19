@@ -5,7 +5,9 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
+use App\Services\Inventory\BatchGuard;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockTransferRequest extends FormRequest
@@ -36,5 +38,17 @@ class StockTransferRequest extends FormRequest
             'POST', 'PUT' => $rules,
             default => $rules,
         };
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn (array $item) => $item['from_warehouse_id'] ?? $this->input('from_warehouse_id'),
+            );
+        });
     }
 }

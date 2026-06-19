@@ -60,6 +60,13 @@ class DamageReportRequest extends FormRequest
                     }
                 }
             }
+
+            \App\Services\Inventory\BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn () => $this->input('warehouse_id'),
+            );
         });
     }
 }

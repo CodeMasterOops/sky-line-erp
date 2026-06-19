@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Batch;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
@@ -53,6 +54,11 @@ class InventoryLayerReceiptService
         );
 
         $this->quantities->adjust($company->id, $productVariantId, $warehouseId, $quantity);
+
+        if ($batchId !== null) {
+            Batch::where('id', $batchId)->increment('initial_qty', $quantity);
+            Batch::reconcileRemaining($batchId);
+        }
 
         $totalCost = round($quantity * $unitCost, 4);
         $movementUnitCost = round($totalCost / $quantity, 4);

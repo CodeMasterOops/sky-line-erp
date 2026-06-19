@@ -2,11 +2,13 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Batch;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockTransfer;
 use App\Enums\StockDirectionEnum;
 use App\Models\StockTransferItem;
+use Illuminate\Validation\ValidationException;
 
 class InventoryLayerTransferService
 {
@@ -41,6 +43,7 @@ class InventoryLayerTransferService
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW);
 
         $batchId = $item->batch_id ?? null;
+        $this->assertBatchIssuable($batchId);
 
         $lines = $this->ledger->consume($company, $variantId, (int) $fromId, $qty, $batchId);
 
@@ -74,7 +77,13 @@ class InventoryLayerTransferService
             ]);
         }
 
+        $batchCache = [];
+        $touchedBatches = [];
+
         foreach ($lines as $line) {
+            $sourceBatchId = $line['layer']->batch_id;
+            $destBatchId = $this->resolveTransferBatch($sourceBatchId, (int) $toId, $batchCache);
+
             $this->ledger->receipt(
                 $company,
                 $variantId,
@@ -85,8 +94,21 @@ class InventoryLayerTransferService
                 now(),
                 null,
                 null,
-                $line['layer']->batch_id,
+                $destBatchId,
             );
+
+            if ($sourceBatchId !== null) {
+                $touchedBatches[$sourceBatchId] = true;
+            }
+
+            if ($destBatchId !== null) {
+                $touchedBatches[$destBatchId] = true;
+                Batch::where('id', $destBatchId)->increment('initial_qty', $line['quantity']);
+            }
+        }
+
+        foreach (array_keys($touchedBatches) as $batchId) {
+            Batch::reconcileRemaining($batchId);
         }
 
         $this->quantities->adjust($company->id, $variantId, (int) $toId, $qty);
@@ -103,6 +125,53 @@ class InventoryLayerTransferService
             'user_id' => $userId,
             'remarks' => $remarks,
         ]);
+    }
+
+    /**
+     * Guard against dispatching stock out of a batch that is on hold, expired or recalled.
+     */
+    private function assertBatchIssuable(?int $batchId): void
+    {
+        if ($batchId === null) {
+            return;
+        }
+
+        $batch = Batch::withoutGlobalScopes()->lockForUpdate()->find($batchId);
+
+        if ($batch && ! $batch->isIssuable()) {
+            throw ValidationException::withMessages([
+                'batch_id' => __('Batch :no is :status and cannot be issued.', [
+                    'no' => $batch->batch_no,
+                    'status' => $batch->status->label(),
+                ]),
+            ]);
+        }
+    }
+
+    /**
+     * Resolve the destination-warehouse batch for a source-warehouse batch, creating
+     * it if needed. Keeps batch records warehouse-bound so traceability and FEFO at
+     * the destination remain accurate after a transfer.
+     *
+     * @param  array<int, int|null>  $cache
+     */
+    private function resolveTransferBatch(?int $sourceBatchId, int $warehouseId, array &$cache): ?int
+    {
+        if ($sourceBatchId === null) {
+            return null;
+        }
+
+        if (array_key_exists($sourceBatchId, $cache)) {
+            return $cache[$sourceBatchId];
+        }
+
+        $source = Batch::withoutGlobalScopes()->find($sourceBatchId);
+
+        if (! $source) {
+            return $cache[$sourceBatchId] = null;
+        }
+
+        return $cache[$sourceBatchId] = (int) Batch::findOrCreateForTransfer($source, $warehouseId)->id;
     }
 
     /**
@@ -131,6 +200,7 @@ class InventoryLayerTransferService
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $lockSecondW);
 
         $batchId = $item->batch_id ?? null;
+        $this->assertBatchIssuable($batchId);
 
         $lines = $this->ledger->consume($company, $variantId, $fromId, $qty, $batchId);
         $this->quantities->adjust($company->id, $variantId, $fromId, -$qty);
@@ -151,12 +221,22 @@ class InventoryLayerTransferService
             'remarks' => $remarks,
         ]);
 
+        $touchedBatches = [];
+
         foreach ($lines as $line) {
             $outMovement->movementLayers()->create([
                 'stock_layer_id' => $line['layer']->id,
                 'quantity' => $line['quantity'],
                 'unit_cost' => $line['unit_cost'],
             ]);
+
+            if ($line['layer']->batch_id !== null) {
+                $touchedBatches[$line['layer']->batch_id] = true;
+            }
+        }
+
+        foreach (array_keys($touchedBatches) as $batchId) {
+            Batch::reconcileRemaining($batchId);
         }
     }
 
@@ -188,7 +268,8 @@ class InventoryLayerTransferService
         $outUnit = $outMovement ? (float) $outMovement->unit_cost : 0.0;
         $outTotal = $outMovement ? (float) $outMovement->total_cost : 0.0;
 
-        $batchId = $item->batch_id ?? null;
+        $batchCache = [];
+        $destBatchId = $this->resolveTransferBatch($item->batch_id, $toId, $batchCache);
 
         $this->quantities->lockForUpdateOrCreate($company->id, $variantId, $toId);
 
@@ -202,8 +283,13 @@ class InventoryLayerTransferService
             now(),
             null,
             null,
-            $batchId,
+            $destBatchId,
         );
+
+        if ($destBatchId !== null) {
+            Batch::where('id', $destBatchId)->increment('initial_qty', $qty);
+            Batch::reconcileRemaining($destBatchId);
+        }
 
         $this->quantities->adjust($company->id, $variantId, $toId, $qty);
 

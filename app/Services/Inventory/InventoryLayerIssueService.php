@@ -37,9 +37,20 @@ class InventoryLayerIssueService
         if ($batchId !== null) {
             $batch = Batch::lockForUpdate()->findOrFail($batchId);
 
-            if ($batch->status === 'expired') {
+            if ((int) $batch->company_id !== $company->id
+                || (int) $batch->product_variant_id !== $productVariantId
+                || (int) $batch->warehouse_id !== $warehouseId) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'batch_id' => __('Batch :no has expired and cannot be issued.', ['no' => $batch->batch_no]),
+                    'batch_id' => __('Selected batch does not belong to this product and warehouse.'),
+                ]);
+            }
+
+            if (! $batch->isIssuable()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'batch_id' => __('Batch :no is :status and cannot be issued.', [
+                        'no' => $batch->batch_no,
+                        'status' => $batch->status->label(),
+                    ]),
                 ]);
             }
         }
@@ -49,8 +60,7 @@ class InventoryLayerIssueService
         $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $quantity, $batchId);
 
         if ($batchId !== null) {
-            Batch::where('id', $batchId)->decrement('remaining_qty', $quantity);
-            Batch::where('id', $batchId)->where('remaining_qty', '<=', 0)->update(['status' => 'depleted']);
+            Batch::reconcileRemaining($batchId);
         }
 
         $this->quantities->adjust($company->id, $productVariantId, $warehouseId, -$quantity);

@@ -8,6 +8,7 @@ use App\Models\Stock;
 use App\Models\Company;
 use App\Enums\StatusEnum;
 use App\Enums\ChangeTypeEnum;
+use App\Enums\BatchStatusEnum;
 use App\Models\ProductVariant;
 use App\Models\OpeningStockEntry;
 use Illuminate\Support\Facades\DB;
@@ -136,7 +137,7 @@ class OpeningStockEntryService
 
         $unitCost = max(0, (float) $item->unit_cost);
 
-        $batchId = $item->batch_id ?? $this->findOrCreateBatch($item, $company, (int) $entry->warehouse_id, $quantity, $unitCost);
+        $batchId = $item->batch_id ?? $this->findOrCreateBatch($item, $company, (int) $entry->warehouse_id, $unitCost);
 
         $this->inventoryReceipt->receive(
             $company,
@@ -150,14 +151,9 @@ class OpeningStockEntryService
             $entry->remarks,
             batchId: $batchId,
         );
-
-        if ($batchId) {
-            Batch::where('id', $batchId)->increment('initial_qty', $quantity);
-            Batch::where('id', $batchId)->increment('remaining_qty', $quantity);
-        }
     }
 
-    private function findOrCreateBatch(OpeningStockEntryItem $item, Company $company, int $warehouseId, int $qty, float $unitCost): ?int
+    private function findOrCreateBatch(OpeningStockEntryItem $item, Company $company, int $warehouseId, float $unitCost): ?int
     {
         if (empty($item->batch_no)) {
             return null;
@@ -181,7 +177,7 @@ class OpeningStockEntryService
                 'initial_qty' => 0,
                 'remaining_qty' => 0,
                 'unit_cost' => $unitCost,
-                'status' => 'active',
+                'status' => BatchStatusEnum::Active,
             ]);
         }
 

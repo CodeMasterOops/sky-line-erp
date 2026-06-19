@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Batch;
 use Illuminate\Http\Request;
+use App\Enums\BatchStatusEnum;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\Inventory\BatchResource;
+use App\Http\Requests\Api\Admin\Inventory\BatchStoreRequest;
+use App\Http\Requests\Api\Admin\Inventory\BatchUpdateRequest;
 
 class BatchController extends Controller
 {
@@ -27,19 +30,9 @@ class BatchController extends Controller
     }
 
     #[Permissions('create_batch', group: 'batch', desc: 'Create Batch')]
-    public function store(Request $request)
+    public function store(BatchStoreRequest $request)
     {
-        $data = $request->validate([
-            'product_variant_id' => 'required|exists:product_variants,id',
-            'warehouse_id' => 'required|exists:warehouses,id',
-            'batch_no' => 'required|string|max:100',
-            'lot_no' => 'nullable|string|max:100',
-            'mfg_date' => 'nullable|date',
-            'expiry_date' => 'nullable|date|after_or_equal:mfg_date',
-            'initial_qty' => 'required|numeric|min:0',
-            'unit_cost' => 'nullable|numeric|min:0',
-            'remarks' => 'nullable|string',
-        ]);
+        $data = $request->validated();
 
         $data['remaining_qty'] = $data['initial_qty'];
         $batch = Batch::create($data);
@@ -57,18 +50,9 @@ class BatchController extends Controller
     }
 
     #[Permissions('edit_batch', group: 'batch', desc: 'Edit Batch')]
-    public function update(Request $request, Batch $batch)
+    public function update(BatchUpdateRequest $request, Batch $batch)
     {
-        $data = $request->validate([
-            'batch_no' => 'sometimes|string|max:100',
-            'lot_no' => 'nullable|string|max:100',
-            'mfg_date' => 'nullable|date',
-            'expiry_date' => 'nullable|date',
-            'status' => 'sometimes|in:active,expired,depleted',
-            'remarks' => 'nullable|string',
-        ]);
-
-        $batch->update($data);
+        $batch->update($request->validated());
         $batch->load(['productVariant.product', 'warehouse']);
 
         return response()->json(['data' => BatchResource::make($batch), 'message' => 'Batch updated successfully']);
@@ -88,8 +72,8 @@ class BatchController extends Controller
         // Also mark expired batches
         Batch::where('company_id', $company->id)
             ->expired()
-            ->where('status', 'active')
-            ->update(['status' => 'expired']);
+            ->where('status', BatchStatusEnum::Active->value)
+            ->update(['status' => BatchStatusEnum::Expired->value]);
 
         return response()->json(['data' => $batches, 'days' => $days]);
     }

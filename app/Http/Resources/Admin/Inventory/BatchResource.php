@@ -34,7 +34,8 @@ class BatchResource extends JsonResource
             'initial_qty' => $this->initial_qty,
             'remaining_qty' => $this->remaining_qty,
             'unit_cost' => $this->unit_cost,
-            'status' => $this->status,
+            'status' => $this->status?->value,
+            'status_label' => $this->status?->label(),
             'remarks' => $this->remarks,
             'created_at' => $this->created_at,
         ];

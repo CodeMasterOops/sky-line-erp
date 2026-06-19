@@ -4,7 +4,9 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Tenancy\TRule;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use App\Enums\LandedCostTreatmentEnum;
+use App\Services\Inventory\BatchGuard;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\LandedCostAllocationMethodEnum;
 
@@ -45,5 +47,17 @@ class GoodsReceivedNoteRequest extends FormRequest
             'landed_costs.*.vat_claimable_amount' => ['nullable', 'numeric', 'min:0'],
             'landed_costs.*.account_id' => ['nullable', TRule::exists('accounts', 'id')->withoutTrashed()],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn () => $this->input('warehouse_id'),
+            );
+        });
     }
 }

@@ -35,6 +35,8 @@ class InventoryDocumentReversalService
             ->orderBy('id')
             ->get();
 
+        $touchedBatches = [];
+
         foreach ($movements as $movement) {
             foreach ($movement->movementLayers as $ml) {
                 $layer = StockLayer::withoutGlobalScopes()
@@ -50,6 +52,10 @@ class InventoryDocumentReversalService
 
                 $layer->qty_remaining = (int) $layer->qty_remaining + (int) $ml->quantity;
                 $layer->save();
+
+                if ($layer->batch_id !== null) {
+                    $touchedBatches[$layer->batch_id] = true;
+                }
             }
 
             $this->quantities->adjust(
@@ -71,6 +77,10 @@ class InventoryDocumentReversalService
                 'user_id' => $userId,
                 'remarks' => $remarks,
             ]);
+        }
+
+        foreach (array_keys($touchedBatches) as $batchId) {
+            Batch::reconcileRemaining($batchId);
         }
     }
 
@@ -145,7 +155,7 @@ class InventoryDocumentReversalService
 
             if ($item->batch_id) {
                 Batch::where('id', $item->batch_id)->decrement('initial_qty', $qty);
-                Batch::where('id', $item->batch_id)->decrement('remaining_qty', $qty);
+                Batch::reconcileRemaining($item->batch_id);
             }
         }
     }
@@ -162,6 +172,8 @@ class InventoryDocumentReversalService
             ->orderBy('id')
             ->get();
 
+        $touchedBatches = [];
+
         foreach ($movements as $movement) {
             foreach ($movement->movementLayers as $ml) {
                 $layer = StockLayer::withoutGlobalScopes()
@@ -177,6 +189,10 @@ class InventoryDocumentReversalService
 
                 $layer->qty_remaining = (int) $layer->qty_remaining + (int) $ml->quantity;
                 $layer->save();
+
+                if ($layer->batch_id !== null) {
+                    $touchedBatches[$layer->batch_id] = true;
+                }
             }
 
             $this->quantities->adjust(
@@ -198,6 +214,10 @@ class InventoryDocumentReversalService
                 'user_id' => $userId,
                 'remarks' => $remarks,
             ]);
+        }
+
+        foreach (array_keys($touchedBatches) as $batchId) {
+            Batch::reconcileRemaining($batchId);
         }
     }
 
@@ -254,6 +274,8 @@ class InventoryDocumentReversalService
             ->orderBy('id')
             ->get();
 
+        $batchRemoved = [];
+
         foreach ($movements as $movement) {
             $layers = StockLayer::withoutGlobalScopes()
                 ->where('company_id', $grn->company_id)
@@ -282,6 +304,10 @@ class InventoryDocumentReversalService
                 $layer->qty_remaining = $layerQty - $take;
                 $layer->save();
                 $toRemove -= $take;
+
+                if ($layer->batch_id !== null) {
+                    $batchRemoved[$layer->batch_id] = ($batchRemoved[$layer->batch_id] ?? 0) + $take;
+                }
             }
 
             $this->quantities->adjust(
@@ -304,6 +330,11 @@ class InventoryDocumentReversalService
                 'remarks' => $remarks,
             ]);
         }
+
+        foreach ($batchRemoved as $batchId => $removed) {
+            Batch::where('id', $batchId)->decrement('initial_qty', $removed);
+            Batch::reconcileRemaining($batchId);
+        }
     }
 
     public function reverseApprovedDeliveryChallan(DeliveryChallan $challan, ?int $userId, ?string $remarks = null): void
@@ -317,6 +348,8 @@ class InventoryDocumentReversalService
             ->with('movementLayers')
             ->orderBy('id')
             ->get();
+
+        $touchedBatches = [];
 
         foreach ($movements as $movement) {
             foreach ($movement->movementLayers as $ml) {
@@ -333,6 +366,10 @@ class InventoryDocumentReversalService
 
                 $layer->qty_remaining = (int) $layer->qty_remaining + (int) $ml->quantity;
                 $layer->save();
+
+                if ($layer->batch_id !== null) {
+                    $touchedBatches[$layer->batch_id] = true;
+                }
             }
 
             $this->quantities->adjust(
@@ -354,6 +391,10 @@ class InventoryDocumentReversalService
                 'user_id' => $userId,
                 'remarks' => $remarks,
             ]);
+        }
+
+        foreach (array_keys($touchedBatches) as $batchId) {
+            Batch::reconcileRemaining($batchId);
         }
     }
 }

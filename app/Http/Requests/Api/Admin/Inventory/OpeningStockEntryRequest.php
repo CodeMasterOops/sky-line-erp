@@ -7,6 +7,7 @@ use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
+use App\Services\Inventory\BatchGuard;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OpeningStockEntryRequest extends FormRequest
@@ -50,6 +51,13 @@ class OpeningStockEntryRequest extends FormRequest
                     $seenVariantIds[] = $variantId;
                 }
             }
+
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn () => $this->input('warehouse_id'),
+            );
         });
     }
 }

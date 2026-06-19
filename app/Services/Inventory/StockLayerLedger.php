@@ -130,6 +130,8 @@ class StockLayerLedger
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
             ->where('qty_remaining', '>', 0)
+            ->when($batchId !== null, fn ($q) => $q->where('batch_id', $batchId))
+            ->when($batchId === null, fn ($q) => $q->whereNull('batch_id'))
             ->lockForUpdate()
             ->orderBy('id')
             ->first();

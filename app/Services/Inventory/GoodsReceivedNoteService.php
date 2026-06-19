@@ -7,13 +7,13 @@ use App\Models\Company;
 use App\Models\GrnItem;
 use App\Enums\StatusEnum;
 use App\Enums\ChangeTypeEnum;
+use App\Enums\BatchStatusEnum;
 use App\Models\GoodsReceivedNote;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
 use App\Enums\GrnBillingStatusEnum;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
-use App\Services\Inventory\SerialNumberService;
 
 class GoodsReceivedNoteService
 {
@@ -250,7 +250,7 @@ class GoodsReceivedNoteService
             }
 
             $unitCost = InventoryCostCalculator::unitCostFromGrnItem($item);
-            $batchId = $this->findOrCreateBatch($item, $grn, $company->id, $qty, $unitCost);
+            $batchId = $this->findOrCreateBatch($item, $grn, $company->id, $unitCost);
 
             $this->inventoryReceipt->receive(
                 $company,
@@ -270,7 +270,7 @@ class GoodsReceivedNoteService
         }
     }
 
-    private function findOrCreateBatch(GrnItem $item, GoodsReceivedNote $grn, int $companyId, int $qty, float $unitCost): ?int
+    private function findOrCreateBatch(GrnItem $item, GoodsReceivedNote $grn, int $companyId, float $unitCost): ?int
     {
         if (empty($item->batch_no)) {
             return null;
@@ -283,10 +283,7 @@ class GoodsReceivedNoteService
             ->where('batch_no', $item->batch_no)
             ->first();
 
-        if ($batch) {
-            $batch->increment('remaining_qty', $qty);
-            $batch->increment('initial_qty', $qty);
-        } else {
+        if (! $batch) {
             $batch = Batch::create([
                 'company_id' => $companyId,
                 'product_variant_id' => $item->product_variant_id,
@@ -294,10 +291,10 @@ class GoodsReceivedNoteService
                 'batch_no' => $item->batch_no,
                 'lot_no' => $item->batch_no,
                 'expiry_date' => $item->expiry_date,
-                'initial_qty' => $qty,
-                'remaining_qty' => $qty,
+                'initial_qty' => 0,
+                'remaining_qty' => 0,
                 'unit_cost' => $unitCost,
-                'status' => 'active',
+                'status' => BatchStatusEnum::Active,
             ]);
         }
 

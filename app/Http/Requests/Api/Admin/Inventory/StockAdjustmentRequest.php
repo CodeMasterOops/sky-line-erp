@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
+use App\Services\Inventory\BatchGuard;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockAdjustmentRequest extends FormRequest
@@ -82,6 +83,13 @@ class StockAdjustmentRequest extends FormRequest
                     }
                 }
             }
+
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn (array $item) => $item['warehouse_id'] ?? $this->input('warehouse_id'),
+            );
         });
     }
 }
