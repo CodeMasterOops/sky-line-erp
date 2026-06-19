@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use App\Enums\GrnBillingStatusEnum;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
+use App\Services\Inventory\SerialNumberService;
 
 class GoodsReceivedNoteService
 {

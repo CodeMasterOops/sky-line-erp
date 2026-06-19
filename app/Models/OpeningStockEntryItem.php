@@ -20,6 +20,8 @@ class OpeningStockEntryItem extends Model
         'quantity',
         'unit_cost',
         'batch_id',
+        'batch_no',
+        'expiry_date',
     ];
 
     protected function casts(): array

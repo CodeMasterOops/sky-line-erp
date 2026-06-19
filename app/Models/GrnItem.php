@@ -20,6 +20,7 @@ class GrnItem extends Model
         'batch_no',
         'expiry_date',
         'batch_id',
+        'serial_nos',
     ];
 
     protected $casts = [
@@ -28,6 +29,7 @@ class GrnItem extends Model
         'billed_qty' => 'float',
         'unit_cost' => 'float',
         'expiry_date' => 'date',
+        'serial_nos' => 'array',
     ];
 
     public function goodsReceivedNote(): BelongsTo

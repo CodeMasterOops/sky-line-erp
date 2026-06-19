@@ -3,6 +3,7 @@
 namespace App\Services\Purchase;
 
 use App\Models\Bill;
+use App\Models\Batch;
 use App\Models\GrnItem;
 use App\Models\Journal;
 use App\Enums\StatusEnum;
@@ -438,6 +439,11 @@ readonly class PurchaseBillService
                 $item->id,
                 batchId: $item->batch_id,
             );
+
+            if ($item->batch_id) {
+                Batch::where('id', $item->batch_id)->increment('initial_qty', $qty);
+                Batch::where('id', $item->batch_id)->increment('remaining_qty', $qty);
+            }
         }
     }
 

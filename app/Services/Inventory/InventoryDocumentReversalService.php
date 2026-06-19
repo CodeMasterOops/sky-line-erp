@@ -3,6 +3,7 @@
 namespace App\Services\Inventory;
 
 use App\Models\Bill;
+use App\Models\Batch;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\DebitNote;
@@ -141,6 +142,11 @@ class InventoryDocumentReversalService
                 'user_id' => $userId,
                 'remarks' => $remarks,
             ]);
+
+            if ($item->batch_id) {
+                Batch::where('id', $item->batch_id)->decrement('initial_qty', $qty);
+                Batch::where('id', $item->batch_id)->decrement('remaining_qty', $qty);
+            }
         }
     }
 

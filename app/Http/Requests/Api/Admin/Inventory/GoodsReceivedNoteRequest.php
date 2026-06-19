@@ -33,6 +33,8 @@ class GoodsReceivedNoteRequest extends FormRequest
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
             'items.*.batch_no' => ['nullable', 'string'],
             'items.*.expiry_date' => ['nullable', 'date'],
+            'items.*.serial_nos' => ['nullable', 'array'],
+            'items.*.serial_nos.*' => ['string', 'max:100'],
             'landed_costs' => ['nullable', 'array'],
             'landed_costs.*.cost_type' => ['required_with:landed_costs', 'string', 'max:100'],
             'landed_costs.*.description' => ['nullable', 'string', 'max:255'],

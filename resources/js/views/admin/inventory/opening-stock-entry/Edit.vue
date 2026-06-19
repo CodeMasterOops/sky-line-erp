@@ -103,12 +103,39 @@
                                             />
                                         </td>
                                         <td class="ose-col-batch">
-                                            <BatchPickerInput
-                                                v-if="item.is_batch_tracked && isDraft"
-                                                v-model="form.items[index].batch_id"
-                                                :product-variant-id="item.product_variant_id"
-                                                :warehouse-id="form.warehouse_id"
-                                            />
+                                            <template v-if="item.is_batch_tracked && isDraft">
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="form-check-input mt-0"
+                                                        :id="`new-batch-${index}`"
+                                                        v-model="form.items[index].create_batch"
+                                                        @change="form.items[index].batch_id = null"
+                                                    />
+                                                    <label :for="`new-batch-${index}`" class="form-label mb-0 small text-nowrap">
+                                                        {{ form.items[index].batch_id ? 'Linked' : 'New batch' }}
+                                                    </label>
+                                                </div>
+                                                <template v-if="form.items[index].create_batch">
+                                                    <VInput
+                                                        input-class="form-control form-control-sm mb-1"
+                                                        v-model="form.items[index].batch_no"
+                                                        placeholder="Batch No *"
+                                                    />
+                                                    <VInput
+                                                        input-type="date"
+                                                        input-class="form-control form-control-sm"
+                                                        v-model="form.items[index].expiry_date"
+                                                        placeholder="Expiry Date"
+                                                    />
+                                                </template>
+                                                <BatchPickerInput
+                                                    v-else
+                                                    v-model="form.items[index].batch_id"
+                                                    :product-variant-id="item.product_variant_id"
+                                                    :warehouse-id="form.warehouse_id"
+                                                />
+                                            </template>
                                             <span v-else-if="item.batch_id && !isDraft" class="small text-muted">
                                                 #{{ item.batch_id }}
                                             </span>
@@ -226,6 +253,9 @@ const onVariantSelected = (variant) => {
         unit_cost: defaultUnitCostFromVariant(variant),
         is_batch_tracked: !!variant.is_batch_tracked,
         batch_id: null,
+        create_batch: false,
+        batch_no: '',
+        expiry_date: '',
     });
 };
 
@@ -248,7 +278,9 @@ const buildPayload = () => ({
         unit_id: item.unit_id === '' || item.unit_id == null ? null : item.unit_id,
         quantity: lineQtyInt(item.quantity),
         unit_cost: item.unit_cost === '' || item.unit_cost == null ? 0 : item.unit_cost,
-        batch_id: item.batch_id || null,
+        batch_id: item.create_batch ? null : (item.batch_id || null),
+        batch_no: item.create_batch ? (item.batch_no || null) : null,
+        expiry_date: item.create_batch ? (item.expiry_date || null) : null,
     })),
 });
 
@@ -274,6 +306,9 @@ watch(
                             : '',
                     is_batch_tracked: !!pv?.is_batch_tracked,
                     batch_id: item.batch_id ?? null,
+                    create_batch: false,
+                    batch_no: '',
+                    expiry_date: '',
                 };
             });
             form.reference_no = d.reference_no ?? '';

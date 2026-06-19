@@ -30,6 +30,8 @@ class OpeningStockEntryRequest extends FormRequest
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
             'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
+            'items.*.batch_no' => ['nullable', 'string', 'max:100'],
+            'items.*.expiry_date' => ['nullable', 'date', 'after:today'],
         ];
     }
 

@@ -3,6 +3,7 @@
 namespace App\Services\Inventory;
 
 use App\Models\User;
+use App\Models\Batch;
 use App\Models\Stock;
 use App\Models\Company;
 use App\Enums\StatusEnum;
@@ -135,6 +136,8 @@ class OpeningStockEntryService
 
         $unitCost = max(0, (float) $item->unit_cost);
 
+        $batchId = $item->batch_id ?? $this->findOrCreateBatch($item, $company, (int) $entry->warehouse_id, $quantity, $unitCost);
+
         $this->inventoryReceipt->receive(
             $company,
             $entry,
@@ -145,7 +148,45 @@ class OpeningStockEntryService
             ChangeTypeEnum::OPENING_STOCK,
             $user->id,
             $entry->remarks,
-            batchId: $item->batch_id,
+            batchId: $batchId,
         );
+
+        if ($batchId) {
+            Batch::where('id', $batchId)->increment('initial_qty', $quantity);
+            Batch::where('id', $batchId)->increment('remaining_qty', $quantity);
+        }
+    }
+
+    private function findOrCreateBatch(OpeningStockEntryItem $item, Company $company, int $warehouseId, int $qty, float $unitCost): ?int
+    {
+        if (empty($item->batch_no)) {
+            return null;
+        }
+
+        $batch = Batch::withoutGlobalScopes()
+            ->where('company_id', $company->id)
+            ->where('product_variant_id', $item->product_variant_id)
+            ->where('warehouse_id', $warehouseId)
+            ->where('batch_no', $item->batch_no)
+            ->first();
+
+        if (! $batch) {
+            $batch = Batch::create([
+                'company_id' => $company->id,
+                'product_variant_id' => $item->product_variant_id,
+                'warehouse_id' => $warehouseId,
+                'batch_no' => $item->batch_no,
+                'lot_no' => $item->batch_no,
+                'expiry_date' => $item->expiry_date,
+                'initial_qty' => 0,
+                'remaining_qty' => 0,
+                'unit_cost' => $unitCost,
+                'status' => 'active',
+            ]);
+        }
+
+        $item->update(['batch_id' => $batch->id]);
+
+        return $batch->id;
     }
 }

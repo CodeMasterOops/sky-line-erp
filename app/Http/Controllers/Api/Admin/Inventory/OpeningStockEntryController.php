@@ -72,6 +72,8 @@ class OpeningStockEntryController extends Controller
                         'quantity' => $item['quantity'],
                         'unit_cost' => $item['unit_cost'],
                         'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                        'batch_no' => $item['batch_no'] ?? null,
+                        'expiry_date' => $item['expiry_date'] ?? null,
                     ])->all()
                 );
 
@@ -137,6 +139,8 @@ class OpeningStockEntryController extends Controller
                     'quantity' => $item['quantity'],
                     'unit_cost' => $item['unit_cost'],
                     'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    'batch_no' => $item['batch_no'] ?? null,
+                    'expiry_date' => $item['expiry_date'] ?? null,
                 ])->all()
             );
 
