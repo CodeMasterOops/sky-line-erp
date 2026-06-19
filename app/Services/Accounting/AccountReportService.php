@@ -21,6 +21,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AccountGroupTypeEnum;
+use Illuminate\Support\Facades\Cache;
 use App\Services\Nepal\NepaliDateService;
 
 class AccountReportService
@@ -376,6 +377,13 @@ class AccountReportService
 
     private function fetchVatSalesRows(int $companyId, string $start, string $end): array
     {
+        $key = $this->vatRegisterCacheKey('sales', $companyId, $start, $end);
+
+        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatSalesRows($companyId, $start, $end));
+    }
+
+    private function computeVatSalesRows(int $companyId, string $start, string $end): array
+    {
         $dbRows = DB::table('invoices')
             ->leftJoin('parties', 'parties.id', '=', 'invoices.party_id')
             ->leftJoin('invoice_items', function ($join) {
@@ -446,6 +454,13 @@ class AccountReportService
 
     private function fetchVatPurchaseRows(int $companyId, string $start, string $end): array
     {
+        $key = $this->vatRegisterCacheKey('purchase', $companyId, $start, $end);
+
+        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatPurchaseRows($companyId, $start, $end));
+    }
+
+    private function computeVatPurchaseRows(int $companyId, string $start, string $end): array
+    {
         $dbRows = DB::table('bills')
             ->leftJoin('parties', 'parties.id', '=', 'bills.party_id')
             ->leftJoin('bill_items', function ($join) {
@@ -508,6 +523,45 @@ class AccountReportService
     private function isPanValid(?string $pan): bool
     {
         return $pan !== null && $pan !== '-' && NepaliPan::isValid($pan);
+    }
+
+    /**
+     * Cache key for a VAT register window. A fingerprint of the source documents
+     * (row count + latest mutation) is baked into the key, so any new/edited/voided
+     * invoice or bill in the range yields a fresh key — the cache self-invalidates
+     * without needing posting services to clear it.
+     */
+    private function vatRegisterCacheKey(string $kind, int $companyId, string $start, string $end): string
+    {
+        $table = $kind === 'sales' ? 'invoices' : 'bills';
+        $dateColumn = $kind === 'sales' ? 'invoice_date' : 'bill_date';
+
+        $fingerprint = DB::table($table)
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('deleted_at')
+            ->when($kind === 'sales', fn ($q) => $q->whereNull('voided_at'))
+            ->whereBetween($dateColumn, [$start, $end])
+            ->selectRaw('COUNT(*) as row_count, COALESCE(MAX(updated_at), 0) as last_change')
+            ->first();
+
+        return sprintf(
+            'vat_register:%s:%d:%s:%s:%d:%s',
+            $kind, $companyId, $start, $end,
+            (int) ($fingerprint->row_count ?? 0),
+            (string) ($fingerprint->last_change ?? '0'),
+        );
+    }
+
+    /**
+     * Optional branch filter for the financial statements, read from the current
+     * request. Returns null (company-wide) when no branch is selected.
+     */
+    private function branchIdFilter(): ?int
+    {
+        $branchId = request()->input('branch_id');
+
+        return ($branchId === null || $branchId === '') ? null : (int) $branchId;
     }
 
     public function vatReturn(Request $request): array
@@ -1589,6 +1643,7 @@ class AccountReportService
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'fiscal_year_id' => ['nullable', 'integer', 'exists:fiscal_years,id'],
             'compare_fiscal_year_id' => ['nullable', 'integer', 'exists:fiscal_years,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
         ]);
 
         $company = auth('admin')->user()?->company?->loadMissing('fiscalYear');
@@ -1731,6 +1786,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '<=', $endDate->toDateString())
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1767,6 +1823,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '<=', $endDate->toDateString())
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1792,6 +1849,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereBetween('journals.date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1817,6 +1875,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->where('journals.fiscal_year_id', $fiscalYear->id)
             ->whereNull('journals.deleted_at')
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')

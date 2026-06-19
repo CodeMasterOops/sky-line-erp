@@ -44,7 +44,7 @@ return [
                                 'category' => 'Cash',
                             ],
                             [
-                                'name' => 'ABC Bank',
+                                'name' => 'Bank Account 1',
                                 'code' => 'AB',
                                 'description' => null,
                                 'category' => 'Bank',
@@ -351,14 +351,7 @@ return [
                         'name' => 'Medium & Long term Loan',
                         'code' => 'MLTL',
                         'description' => null,
-                        'accounts' => [
-                            [
-                                'name' => 'ABC Term Loan 001212121',
-                                'code' => 'ATL0',
-                                'description' => null,
-                                'category' => null,
-                            ],
-                        ],
+                        'accounts' => [],
                     ],
                 ],
             ],
@@ -372,7 +365,7 @@ return [
         'children' => [
             [
                 'name' => 'Share Capital',
-                'code' => 'SC',
+                'code' => 'SHC',
                 'description' => null,
                 'accounts' => [
                     [
