@@ -229,6 +229,7 @@ class GoodsReceivedNoteService
                 'ordered_qty' => $item['ordered_qty'] ?? 0,
                 'received_qty' => $item['received_qty'],
                 'unit_cost' => $item['unit_cost'],
+                'batch_id' => $item['batch_id'] ?? null,
                 'batch_no' => $item['batch_no'] ?? null,
                 'expiry_date' => $item['expiry_date'] ?? null,
                 'billed_qty' => 0,
@@ -250,7 +251,7 @@ class GoodsReceivedNoteService
             }
 
             $unitCost = InventoryCostCalculator::unitCostFromGrnItem($item);
-            $batchId = $this->findOrCreateBatch($item, $grn, $company->id, $unitCost);
+            $batchId = $item->batch_id ?? $this->findOrCreateBatch($item, $grn, $company->id, $unitCost);
 
             $this->inventoryReceipt->receive(
                 $company,

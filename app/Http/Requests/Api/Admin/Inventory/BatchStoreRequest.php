@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Tenancy\TRule;
+use App\Models\ProductVariant;
+use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BatchStoreRequest extends FormRequest
@@ -28,5 +30,31 @@ class BatchStoreRequest extends FormRequest
             'unit_cost' => ['nullable', 'numeric', 'min:0'],
             'remarks' => ['nullable', 'string'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $variantId = $this->input('product_variant_id');
+
+            if (! $variantId) {
+                return;
+            }
+
+            $variant = ProductVariant::withoutGlobalScopes()
+                ->where('company_id', (int) (auth('admin')->user()?->company?->id ?? 0))
+                ->find($variantId);
+
+            if (! $variant) {
+                return;
+            }
+
+            if ($variant->isService() || ! $variant->is_batch_tracked) {
+                $validator->errors()->add(
+                    'product_variant_id',
+                    __('Batches can only be created for batch-tracked products.'),
+                );
+            }
+        });
     }
 }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Batch;
 use App\Models\Party;
 use App\Models\Stock;
 use App\Models\Account;
@@ -162,6 +163,92 @@ it('creates a draft grn', function () {
     $response->assertCreated();
     expect(GoodsReceivedNote::count())->toBe(1);
     expect(GoodsReceivedNote::first()->status)->toBe(StatusEnum::DRAFT);
+});
+
+it('creates a single batch with correct initial quantity from grn batch_no', function () {
+    grnSeedAccounts($this->company);
+
+    $batchVariant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $this->product->id,
+        'sku' => 'SKU-GRN-BATCH',
+        'sales_price' => 100,
+        'is_batch_tracked' => true,
+    ]);
+
+    $create = $this->postJson('/api/admin/grn', grnPayload($this, [
+        'items' => [
+            [
+                'product_variant_id' => $batchVariant->id,
+                'ordered_qty' => 0,
+                'received_qty' => 5,
+                'unit_cost' => 50,
+                'batch_no' => 'B-001',
+                'expiry_date' => now()->addYear()->toDateString(),
+            ],
+        ],
+    ]));
+    $create->assertCreated();
+    $grnId = $create->json('data.id');
+
+    $this->postJson("/api/admin/grn/{$grnId}/approve")->assertSuccessful();
+
+    $batches = Batch::withoutGlobalScopes()
+        ->where('product_variant_id', $batchVariant->id)
+        ->where('batch_no', 'B-001')
+        ->get();
+
+    expect($batches)->toHaveCount(1);
+    expect((float) $batches->first()->initial_qty)->toBe(5.0);
+    expect((float) $batches->first()->remaining_qty)->toBe(5.0);
+});
+
+it('receives into an existing batch by batch_id without creating a duplicate', function () {
+    grnSeedAccounts($this->company);
+
+    $batchVariant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $this->product->id,
+        'sku' => 'SKU-GRN-EXISTING',
+        'sales_price' => 100,
+        'is_batch_tracked' => true,
+    ]);
+
+    $existing = Batch::create([
+        'company_id' => $this->company->id,
+        'product_variant_id' => $batchVariant->id,
+        'warehouse_id' => $this->warehouse->id,
+        'batch_no' => 'EXIST-1',
+        'lot_no' => 'EXIST-1',
+        'initial_qty' => 0,
+        'remaining_qty' => 0,
+        'unit_cost' => 50,
+    ]);
+
+    $create = $this->postJson('/api/admin/grn', grnPayload($this, [
+        'items' => [
+            [
+                'product_variant_id' => $batchVariant->id,
+                'ordered_qty' => 0,
+                'received_qty' => 7,
+                'unit_cost' => 50,
+                'batch_id' => $existing->id,
+            ],
+        ],
+    ]));
+    $create->assertCreated();
+    $grnId = $create->json('data.id');
+
+    $this->postJson("/api/admin/grn/{$grnId}/approve")->assertSuccessful();
+
+    $batches = Batch::withoutGlobalScopes()
+        ->where('product_variant_id', $batchVariant->id)
+        ->get();
+
+    expect($batches)->toHaveCount(1);
+    expect($batches->first()->id)->toBe($existing->id);
+    expect((float) $existing->fresh()->initial_qty)->toBe(7.0);
+    expect((float) $existing->fresh()->remaining_qty)->toBe(7.0);
 });
 
 it('approves grn and increases stock without duplicate on re-approve attempt', function () {

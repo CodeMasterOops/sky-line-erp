@@ -148,39 +148,46 @@
                                         </td>
                                         <td class="text-end fw-semibold">{{ formatMoney(lineTotal(item)) }}</td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-1 mb-1">
-                                                <input
-                                                    type="checkbox"
-                                                    class="form-check-input mt-0"
-                                                    v-model="form.items[index].create_batch"
-                                                    :id="`cb-batch-${index}`"
-                                                />
-                                                <label :for="`cb-batch-${index}`" class="form-label mb-0 small text-nowrap">
-                                                    {{ item.batch_id ? 'Linked' : 'Create batch' }}
-                                                </label>
-                                            </div>
-                                            <template v-if="item.create_batch && !item.batch_id">
-                                                <VInput
-                                                    input-class="form-control form-control-sm mb-1"
-                                                    v-model="form.items[index].batch_no"
-                                                    placeholder="Batch No"
-                                                />
-                                                <input
-                                                    type="date"
-                                                    class="form-control form-control-sm mb-1"
-                                                    v-model="form.items[index].mfg_date"
-                                                    title="Mfg Date"
-                                                />
-                                                <input
-                                                    type="date"
-                                                    class="form-control form-control-sm"
-                                                    v-model="form.items[index].expiry_date"
-                                                    title="Expiry Date"
+                                            <template v-if="item.is_batch_tracked">
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="form-check-input mt-0"
+                                                        v-model="form.items[index].create_batch"
+                                                        :id="`cb-batch-${index}`"
+                                                        @change="form.items[index].batch_id = null"
+                                                    />
+                                                    <label :for="`cb-batch-${index}`" class="form-label mb-0 small text-nowrap">
+                                                        New batch
+                                                    </label>
+                                                </div>
+                                                <template v-if="item.create_batch">
+                                                    <VInput
+                                                        input-class="form-control form-control-sm mb-1"
+                                                        v-model="form.items[index].batch_no"
+                                                        placeholder="Batch No *"
+                                                    />
+                                                    <input
+                                                        type="date"
+                                                        class="form-control form-control-sm mb-1"
+                                                        v-model="form.items[index].mfg_date"
+                                                        title="Mfg Date"
+                                                    />
+                                                    <input
+                                                        type="date"
+                                                        class="form-control form-control-sm"
+                                                        v-model="form.items[index].expiry_date"
+                                                        title="Expiry Date"
+                                                    />
+                                                </template>
+                                                <BatchPickerInput
+                                                    v-else
+                                                    v-model="form.items[index].batch_id"
+                                                    :product-variant-id="item.product_variant_id"
+                                                    :warehouse-id="form.warehouse_id"
                                                 />
                                             </template>
-                                            <span v-else-if="item.batch_id" class="badge bg-success-subtle text-success small">
-                                                Batch #{{ item.batch_id }}
-                                            </span>
+                                            <span v-else class="text-muted small">—</span>
                                         </td>
                                         <td class="text-center">
                                             <button
@@ -338,7 +345,7 @@
 </template>
 
 <script setup>
-import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
+import {formatMoney} from '@/helpers/formatMoney.js';
 import {computed, onMounted, reactive, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
@@ -353,6 +360,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
@@ -398,6 +406,7 @@ const newItemTemplate = () => ({
     ordered_qty: 0,
     received_qty: 1,
     unit_cost: 0,
+    is_batch_tracked: false,
     create_batch: false,
     batch_id: null,
     batch_no: '',
@@ -501,6 +510,7 @@ const onVariantSelected = (variant) => {
         product_label: variantLabel(variant),
         sku: variant.sku || '',
         unit_cost: Number(variant.purchase_price ?? variant.sales_price ?? 0),
+        is_batch_tracked: !!variant.is_batch_tracked,
     });
     productSearchRef.value?.focus?.();
 };
@@ -554,25 +564,9 @@ const loadFromPurchaseOrder = async (poId) => {
             ordered_qty: Number(item.quantity || 0),
             received_qty: Number(item.quantity || 1),
             unit_cost: Number(item.rate || 0),
+            is_batch_tracked: !!item.product_variant?.is_batch_tracked,
         });
     });
-};
-
-const createBatchForItem = async (item) => {
-    if (!item.create_batch || item.batch_id || !item.batch_no) {
-        return;
-    }
-    const payload = {
-        product_variant_id: item.product_variant_id,
-        warehouse_id: form.warehouse_id,
-        batch_no: item.batch_no,
-        mfg_date: item.mfg_date || null,
-        expiry_date: item.expiry_date || null,
-        initial_qty: Number(item.received_qty) || 0,
-        unit_cost: Number(item.unit_cost) || 0,
-    };
-    const res = await apiAdmin('batch', 'post', payload);
-    item.batch_id = res.data.data?.id ?? null;
 };
 
 const buildPayload = () => ({
@@ -588,8 +582,9 @@ const buildPayload = () => ({
         ordered_qty: item.ordered_qty,
         received_qty: item.received_qty,
         unit_cost: item.unit_cost,
-        batch_no: item.batch_no || null,
-        expiry_date: item.expiry_date || null,
+        batch_id: item.create_batch ? null : (item.batch_id || null),
+        batch_no: item.create_batch ? (item.batch_no || null) : null,
+        expiry_date: item.create_batch ? (item.expiry_date || null) : null,
     })),
     landed_costs: form.landed_costs
         .filter((cost) => cost.cost_type || Number(cost.amount || 0) > 0 || Number(cost.vat_amount || 0) > 0)
@@ -613,12 +608,6 @@ const save = async () => {
 
     saving.value = true;
     try {
-        await Promise.all(
-            form.items
-                .filter((i) => i.create_batch && !i.batch_id && i.batch_no)
-                .map((i) => createBatchForItem(i))
-        );
-
         const res = await apiAdmin('grn', 'post', buildPayload());
         toast(201, res.data.message);
         emit('saved');

@@ -33,6 +33,7 @@ class GoodsReceivedNoteRequest extends FormRequest
             'items.*.ordered_qty' => ['nullable', 'numeric', 'min:0'],
             'items.*.received_qty' => ['required', 'numeric', 'min:0.001'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
+            'items.*.batch_id' => ['nullable', TRule::exists('batches', 'id')->withoutTrashed()],
             'items.*.batch_no' => ['nullable', 'string'],
             'items.*.expiry_date' => ['nullable', 'date'],
             'items.*.serial_nos' => ['nullable', 'array'],
