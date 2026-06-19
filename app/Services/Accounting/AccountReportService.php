@@ -55,7 +55,7 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $compareFiscalYear = $this->resolveCompareFiscalYear($request, $period['fiscal_year']);
         $rootGroups = $this->loadSortedRootGroups()
-            ->filter(fn (AccountGroup $group) => in_array($group->account_type, [
+            ->filter(fn (AccountGroup $group) => in_array($group->resolvedAccountType(), [
                 AccountGroupTypeEnum::Asset,
                 AccountGroupTypeEnum::Liability,
                 AccountGroupTypeEnum::Equity,
@@ -101,7 +101,7 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $compareFiscalYear = $this->resolveCompareFiscalYear($request, $period['fiscal_year']);
         $rootGroups = $this->loadSortedRootGroups()
-            ->filter(fn (AccountGroup $group) => in_array($group->account_type, [
+            ->filter(fn (AccountGroup $group) => in_array($group->resolvedAccountType(), [
                 AccountGroupTypeEnum::Income,
                 AccountGroupTypeEnum::Expense,
             ]))
@@ -128,10 +128,10 @@ class AccountReportService
                 continue;
             }
 
-            if ($group->account_type === AccountGroupTypeEnum::Income) {
+            if ($group->resolvedAccountType() === AccountGroupTypeEnum::Income) {
                 $incomeAmount += (float) ($row['amount'] ?? 0);
                 $incomePrevAmount += (float) ($row['prev_amount'] ?? 0);
-            } elseif ($group->account_type === AccountGroupTypeEnum::Expense) {
+            } elseif ($group->resolvedAccountType() === AccountGroupTypeEnum::Expense) {
                 $expenseAmount += (float) ($row['amount'] ?? 0);
                 $expensePrevAmount += (float) ($row['prev_amount'] ?? 0);
             }

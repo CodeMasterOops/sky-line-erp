@@ -11,24 +11,16 @@ use App\Models\CreditNote;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
-use App\Services\Accounting\ExpenseService;
-use App\Services\Purchase\PurchaseBillService;
+use App\Services\Accounting\GlPostingRegistry;
 use App\Services\Accounting\BooksHealthService;
 use App\Services\Accounting\AccountReportService;
 use App\Services\Accounting\GlAccountConfigGuard;
-use App\Services\Accounting\InvoiceGlPostingService;
-use App\Services\Accounting\DebitNoteGlPostingService;
-use App\Services\Accounting\CreditNoteGlPostingService;
 
 class AccountReportController extends Controller
 {
     public function __construct(
         private readonly AccountReportService $accountReportService,
-        private readonly InvoiceGlPostingService $invoiceGlPostingService,
-        private readonly PurchaseBillService $purchaseBillService,
-        private readonly ExpenseService $expenseService,
-        private readonly CreditNoteGlPostingService $creditNoteGlPostingService,
-        private readonly DebitNoteGlPostingService $debitNoteGlPostingService,
+        private readonly GlPostingRegistry $postingRegistry,
         private readonly GlAccountConfigGuard $glAccountGuard,
         private readonly BooksHealthService $booksHealthService,
     ) {}
@@ -223,7 +215,7 @@ class AccountReportController extends Controller
             ], 422);
         }
 
-        if ($this->invoiceGlPostingService->isPosted($invoice)) {
+        if ($this->postingRegistry->isPosted($invoice)) {
             return response()->json([
                 'message' => 'Invoice is already posted to the ledger.',
             ], 422);
@@ -232,9 +224,9 @@ class AccountReportController extends Controller
         $hasTax = (float) $invoice->invoiceItems()->sum('tax_amount') > 0;
         $this->glAccountGuard->assertSalesPostable($hasTax);
 
-        $this->invoiceGlPostingService->postFromInvoice($invoice);
+        $this->postingRegistry->post($invoice);
 
-        if (! $this->invoiceGlPostingService->isPosted($invoice)) {
+        if (! $this->postingRegistry->isPosted($invoice)) {
             return response()->json([
                 'message' => 'Invoice could not be posted. Check that it has a positive total and a fiscal year is configured.',
             ], 422);
@@ -258,15 +250,15 @@ class AccountReportController extends Controller
             ], 422);
         }
 
-        if ($this->purchaseBillService->isPosted($bill)) {
+        if ($this->postingRegistry->isPosted($bill)) {
             return response()->json([
                 'message' => 'Bill is already posted to the ledger.',
             ], 422);
         }
 
-        $this->purchaseBillService->repost($bill);
+        $this->postingRegistry->post($bill);
 
-        if (! $this->purchaseBillService->isPosted($bill)) {
+        if (! $this->postingRegistry->isPosted($bill)) {
             return response()->json([
                 'message' => 'Bill could not be posted. Check that it has line items and a fiscal year is configured.',
             ], 422);
@@ -290,15 +282,15 @@ class AccountReportController extends Controller
             ], 422);
         }
 
-        if ($this->expenseService->isPosted($expense)) {
+        if ($this->postingRegistry->isPosted($expense)) {
             return response()->json([
                 'message' => 'Expense is already posted to the ledger.',
             ], 422);
         }
 
-        $this->expenseService->repost($expense);
+        $this->postingRegistry->post($expense);
 
-        if (! $this->expenseService->isPosted($expense)) {
+        if (! $this->postingRegistry->isPosted($expense)) {
             return response()->json([
                 'message' => 'Expense could not be posted. Check that it has line items and a fiscal year is configured.',
             ], 422);
@@ -322,15 +314,15 @@ class AccountReportController extends Controller
             ], 422);
         }
 
-        if ($this->creditNoteGlPostingService->isPosted($creditNote)) {
+        if ($this->postingRegistry->isPosted($creditNote)) {
             return response()->json([
                 'message' => 'Credit note is already posted to the ledger.',
             ], 422);
         }
 
-        $this->creditNoteGlPostingService->postFromCreditNote($creditNote);
+        $this->postingRegistry->post($creditNote);
 
-        if (! $this->creditNoteGlPostingService->isPosted($creditNote)) {
+        if (! $this->postingRegistry->isPosted($creditNote)) {
             return response()->json([
                 'message' => 'Credit note could not be posted. Check that it has a positive total and a fiscal year is configured.',
             ], 422);
@@ -354,15 +346,15 @@ class AccountReportController extends Controller
             ], 422);
         }
 
-        if ($this->debitNoteGlPostingService->isPosted($debitNote)) {
+        if ($this->postingRegistry->isPosted($debitNote)) {
             return response()->json([
                 'message' => 'Debit note is already posted to the ledger.',
             ], 422);
         }
 
-        $this->debitNoteGlPostingService->postFromDebitNote($debitNote);
+        $this->postingRegistry->post($debitNote);
 
-        if (! $this->debitNoteGlPostingService->isPosted($debitNote)) {
+        if (! $this->postingRegistry->isPosted($debitNote)) {
             return response()->json([
                 'message' => 'Debit note could not be posted. Check that it has a positive total and a fiscal year is configured.',
             ], 422);

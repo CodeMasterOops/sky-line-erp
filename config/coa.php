@@ -5,6 +5,7 @@ return [
         'name' => 'Assets',
         'code' => 'ASS',
         'description' => 'All Assets',
+        'account_type' => 'asset',
         'children' => [
             [
                 'name' => 'Current Assets',
@@ -15,6 +16,12 @@ return [
                         'name' => 'Inventory',
                         'code' => 'INV',
                         'description' => null,
+                        'category' => null,
+                    ],
+                    [
+                        'name' => 'Work In Progress',
+                        'code' => 'WIP',
+                        'description' => 'Raw materials issued to production not yet completed',
                         'category' => null,
                     ],
                 ],
@@ -42,6 +49,18 @@ return [
                                 'description' => null,
                                 'category' => 'Bank',
                             ],
+                            [
+                                'name' => 'POS Cash',
+                                'code' => 'POSC',
+                                'description' => 'Cash collected at point-of-sale tills',
+                                'category' => 'Cash',
+                            ],
+                            [
+                                'name' => 'POS Float',
+                                'code' => 'POSF',
+                                'description' => 'Opening till float held at point-of-sale',
+                                'category' => 'Cash',
+                            ],
                         ],
                     ],
                     [
@@ -65,6 +84,12 @@ return [
                                 'name' => 'TDS Receivable',
                                 'code' => 'TDSR',
                                 'description' => null,
+                                'category' => null,
+                            ],
+                            [
+                                'name' => 'Supplier Advance',
+                                'code' => 'SUPPADV',
+                                'description' => 'Advances paid to suppliers against future purchases',
                                 'category' => null,
                             ],
                         ],
@@ -104,6 +129,12 @@ return [
                                 'name' => 'Other Receivables',
                                 'code' => 'OR',
                                 'description' => 'Miscellaneous Receivables',
+                                'category' => null,
+                            ],
+                            [
+                                'name' => 'Suspense Account',
+                                'code' => 'SUSP',
+                                'description' => 'Temporary holding account for unidentified or unreconciled items',
                                 'category' => null,
                             ],
                         ],
@@ -168,6 +199,7 @@ return [
         'name' => 'Liabilities',
         'code' => 'LIA',
         'description' => 'All Liabilities',
+        'account_type' => 'liability',
         'children' => [
             [
                 'name' => 'Current Liabilities',
@@ -336,6 +368,7 @@ return [
         'name' => 'Equity',
         'code' => 'EQU',
         'description' => 'All Equity',
+        'account_type' => 'equity',
         'children' => [
             [
                 'name' => 'Share Capital',
@@ -369,6 +402,7 @@ return [
         'name' => 'Income',
         'code' => 'INC',
         'description' => 'All Income',
+        'account_type' => 'income',
         'children' => [
             [
                 'name' => 'Direct Income',
@@ -420,6 +454,7 @@ return [
         'name' => 'Expenses',
         'code' => 'EXP',
         'description' => 'All Expenses',
+        'account_type' => 'expense',
         'children' => [
             [
                 'name' => 'Direct Expenses',
@@ -454,6 +489,24 @@ return [
                         'name' => 'Stock Adjustment',
                         'code' => 'SADJ',
                         'description' => null,
+                        'category' => null,
+                    ],
+                    [
+                        'name' => 'Manufacturing Variance',
+                        'code' => 'MVAR',
+                        'description' => 'Production wastage and yield variances',
+                        'category' => null,
+                    ],
+                    [
+                        'name' => 'Damage Expense',
+                        'code' => 'DMG',
+                        'description' => 'Inventory written off due to damage',
+                        'category' => null,
+                    ],
+                    [
+                        'name' => 'Write-off Expense',
+                        'code' => 'WROFF',
+                        'description' => 'General write-offs (inventory, balances, rounding)',
                         'category' => null,
                     ],
                 ],
@@ -739,6 +792,18 @@ return [
                         'code' => 'IE3',
                         'description' => null,
                         'category' => 'Expense',
+                    ],
+                    [
+                        'name' => 'POS Cash Over/Short',
+                        'code' => 'POSOS',
+                        'description' => 'Till variances between counted cash and expected POS cash',
+                        'category' => null,
+                    ],
+                    [
+                        'name' => 'Rounding Off',
+                        'code' => 'ROUND',
+                        'description' => 'Invoice and journal rounding differences',
+                        'category' => null,
                     ],
                 ],
             ],

@@ -67,8 +67,19 @@ Route::prefix('bank-reconciliation')->as('bank-reconciliation.')->controller(Ban
     Route::get('bank-accounts/{bankAccount}/statement-lines', 'statementLines')->name('statement-lines');
     Route::post('bank-accounts/{bankAccount}/import-lines', 'importLines')->name('import-lines');
     Route::post('bank-accounts/{bankAccount}/auto-match', 'autoMatch')->name('auto-match');
+    Route::post('bank-accounts/{bankAccount}/apply-rules', 'applyRules')->name('apply-rules');
     Route::post('statement-lines/{bankStatementLine}/match', 'matchLine')->name('match');
     Route::post('statement-lines/{bankStatementLine}/unmatch', 'unmatchLine')->name('unmatch');
+    Route::post('statement-lines/{bankStatementLine}/create-entry', 'createEntry')->name('create-entry');
+    Route::post('statement-lines/{bankStatementLine}/park-suspense', 'parkToSuspense')->name('park-suspense');
+
+    Route::get('bank-accounts/{bankAccount}/rules', 'rules')->name('rules');
+    Route::post('rules', 'storeRule')->name('rules.store');
+
+    Route::get('bank-accounts/{bankAccount}/reconciliations', 'reconciliations')->name('reconciliations');
+    Route::post('bank-accounts/{bankAccount}/reconciliations', 'startReconciliation')->name('reconciliations.start');
+    Route::post('reconciliations/{bankReconciliation}/complete', 'completeReconciliation')->name('reconciliations.complete');
+    Route::post('reconciliations/{bankReconciliation}/reopen', 'reopenReconciliation')->name('reconciliations.reopen');
 });
 
 // fixed assets

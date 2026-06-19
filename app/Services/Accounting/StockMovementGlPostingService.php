@@ -13,6 +13,7 @@ use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Auto-posts balanced journal vouchers for inventory-valued stock movements when
@@ -47,6 +48,8 @@ class StockMovementGlPostingService
             ->first();
 
         if (! $settings) {
+            $this->warnUnposted($movement, 'no AccountSetting row configured for company');
+
             return;
         }
 
@@ -68,6 +71,10 @@ class StockMovementGlPostingService
             $settings->damage_account_id,
         );
         if ($pair === null) {
+            if ($this->isPostableType($movement->type)) {
+                $this->warnUnposted($movement, 'required GL account is not configured for this movement type');
+            }
+
             return;
         }
 
@@ -135,6 +142,47 @@ class StockMovementGlPostingService
 
             $movement->forceFill(['gl_journal_id' => $journal->id])->saveQuietly();
         });
+    }
+
+    /**
+     * Movement types that are expected to produce a GL journal. Used to decide
+     * whether a null account resolution is a misconfiguration (warn) or simply a
+     * non-financial movement such as a transfer (silent).
+     */
+    private function isPostableType(ChangeTypeEnum $type): bool
+    {
+        return in_array($type, [
+            ChangeTypeEnum::SALE,
+            ChangeTypeEnum::DELIVERY,
+            ChangeTypeEnum::PURCHASE,
+            ChangeTypeEnum::GRN_RECEIPT,
+            ChangeTypeEnum::RETURN_IN,
+            ChangeTypeEnum::RETURN_OUT,
+            ChangeTypeEnum::OPENING_STOCK,
+            ChangeTypeEnum::ADJUSTMENT_IN,
+            ChangeTypeEnum::ADJUSTMENT_OUT,
+            ChangeTypeEnum::MANUFACTURING_ISSUE,
+            ChangeTypeEnum::FINISHED_GOODS,
+            ChangeTypeEnum::WASTAGE,
+            ChangeTypeEnum::BY_PRODUCT,
+            ChangeTypeEnum::DAMAGE,
+            ChangeTypeEnum::LOST,
+        ], true);
+    }
+
+    /**
+     * Surfaces a stock movement that should have posted to the GL but could not.
+     * The drift is also detectable via `php artisan inventory:gl-reconcile`.
+     */
+    private function warnUnposted(StockMovement $movement, string $reason): void
+    {
+        Log::warning('Stock movement not posted to GL: '.$reason, [
+            'stock_movement_id' => $movement->id,
+            'company_id' => $movement->company_id,
+            'type' => $movement->type->value,
+            'direction' => $movement->direction->value,
+            'total_cost' => $movement->total_cost,
+        ]);
     }
 
     /**
@@ -279,9 +327,9 @@ class StockMovementGlPostingService
             return [$inventoryId, $effectiveWip];
         }
 
-        // Damage write-off: Damage Expense Dr / Inventory Cr
+        // Damage / Lost write-off: Damage Expense Dr / Inventory Cr
         // Falls back to Stock Adjustment account when no dedicated damage account is configured.
-        if ($movement->type === ChangeTypeEnum::DAMAGE) {
+        if ($movement->type === ChangeTypeEnum::DAMAGE || $movement->type === ChangeTypeEnum::LOST) {
             $effectiveDamage = $damageAccountId ?? $stockAdjustmentId;
             if (! $effectiveDamage) {
                 return null;

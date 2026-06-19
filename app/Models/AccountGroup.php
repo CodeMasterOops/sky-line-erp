@@ -30,6 +30,16 @@ class AccountGroup extends Model
         ];
     }
 
+    /**
+     * The group's account_type, falling back to a code/name-based inference for
+     * legacy groups that were never explicitly classified. Used by the financial
+     * statements so a missing account_type never silently drops a root group.
+     */
+    public function resolvedAccountType(): ?AccountGroupTypeEnum
+    {
+        return $this->account_type ?? AccountGroupTypeEnum::infer($this->code, $this->name);
+    }
+
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_id');
