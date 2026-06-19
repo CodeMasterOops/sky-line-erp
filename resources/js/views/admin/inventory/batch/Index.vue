@@ -21,8 +21,10 @@
                 <select class="form-select form-select-sm" v-model="filter.status">
                     <option value="">All Status</option>
                     <option value="active">Active</option>
+                    <option value="quarantine">Quarantine</option>
                     <option value="expired">Expired</option>
                     <option value="depleted">Depleted</option>
+                    <option value="recalled">Recalled</option>
                 </select>
                 <input
                     type="number"
@@ -55,8 +57,8 @@
                             </span>
                         </template>
                         <template v-else-if="column.key === 'status'">
-                            <span :class="statusBadge(record.status)" class="badge">
-                                {{ record.status }}
+                            <span :class="statusBadge(record.status)" class="badge text-capitalize">
+                                {{ record.status_label ?? record.status }}
                             </span>
                         </template>
                         <template v-else-if="column.key === 'remaining_qty'">
@@ -110,6 +112,8 @@ import VPagination from '@/components/base/VPagination.vue';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import { apiAdmin } from '@/helpers/api';
+import { toast } from '@/helpers/toast';
+import showErrors from '@/helpers/showErrors';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useBatchStore } from '@/stores/admin/inventory/batch.js';
 import CreateBatch from './Create.vue';
@@ -144,6 +148,30 @@ const columns = [
 
 const rowActions = [
     {
+        key: 'quarantine',
+        icon: 'ti-shield-lock',
+        title: 'Put on quarantine hold',
+        class: 'text-warning',
+        condition: (record) => record.status === 'active',
+        handler: (record) => updateStatus(record, 'quarantine'),
+    },
+    {
+        key: 'release',
+        icon: 'ti-shield-check',
+        title: 'Release hold (set active)',
+        class: 'text-success',
+        condition: (record) => record.status === 'quarantine',
+        handler: (record) => updateStatus(record, 'active'),
+    },
+    {
+        key: 'recall',
+        icon: 'ti-alert-octagon',
+        title: 'Recall batch',
+        class: 'text-danger',
+        condition: (record) => ['active', 'quarantine'].includes(record.status),
+        handler: (record) => updateStatus(record, 'recalled'),
+    },
+    {
         key: 'edit',
         icon: 'ti-edit',
         title: 'Edit',
@@ -151,6 +179,15 @@ const rowActions = [
         handler: (record) => { editBatchId.value = record.id; },
     },
 ];
+
+async function updateStatus(record, status) {
+    try {
+        const res = await batchStore.updateBatch(record.id, { status });
+        toast(res.status, res.data.message);
+    } catch (e) {
+        showErrors(e);
+    }
+}
 
 function fetchBatches() {
     batchStore.getBatches({ filter });
@@ -171,6 +208,12 @@ function expiryClass(date) {
 }
 
 function statusBadge(status) {
-    return { active: 'bg-success', expired: 'bg-danger', depleted: 'bg-secondary' }[status] ?? 'bg-info';
+    return {
+        active: 'bg-success',
+        quarantine: 'bg-warning',
+        expired: 'bg-danger',
+        depleted: 'bg-secondary',
+        recalled: 'bg-dark',
+    }[status] ?? 'bg-info';
 }
 </script>

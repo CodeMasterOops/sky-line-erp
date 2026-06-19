@@ -98,8 +98,10 @@ const isSubmitting = ref(false);
 
 const statusOptions = [
     { id: 'active', name: 'Active' },
+    { id: 'quarantine', name: 'Quarantine' },
     { id: 'expired', name: 'Expired' },
     { id: 'depleted', name: 'Depleted' },
+    { id: 'recalled', name: 'Recalled' },
 ];
 
 const getInitialForm = () => ({
