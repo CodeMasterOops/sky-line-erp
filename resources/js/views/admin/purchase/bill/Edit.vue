@@ -208,56 +208,14 @@
                                             <span class="po-line-total">{{ formatMoney(calcLineTotal(item, index)) }}</span>
                                         </td>
                                         <td class="po-col-batch">
-                                            <template v-if="item.grn_item_id">
-                                                <span class="text-muted small">From GRN</span>
-                                            </template>
-                                            <template v-else-if="!isDraft">
-                                                <span class="text-muted small">{{ item.batch_no || item.batch?.batch_no || '—' }}</span>
-                                            </template>
-                                            <template v-else-if="item.is_batch_tracked">
-                                                <div class="d-flex align-items-center gap-1 mb-1">
-                                                    <input
-                                                        type="checkbox"
-                                                        class="form-check-input mt-0"
-                                                        v-model="form.items[index].create_batch"
-                                                        :id="`bill-edit-cb-batch-${index}`"
-                                                        @change="form.items[index].batch_id = null"
-                                                    />
-                                                    <label :for="`bill-edit-cb-batch-${index}`" class="form-label mb-0 small text-nowrap">
-                                                        New batch
-                                                    </label>
-                                                </div>
-                                                <template v-if="item.create_batch">
-                                                    <VInput
-                                                        input-class="form-control form-control-sm mb-1"
-                                                        :class="{ 'is-invalid': !item.batch_no }"
-                                                        v-model="form.items[index].batch_no"
-                                                        placeholder="Batch No *"
-                                                    />
-                                                    <input
-                                                        type="date"
-                                                        class="form-control form-control-sm mb-1"
-                                                        v-model="form.items[index].mfg_date"
-                                                        title="Mfg Date"
-                                                    />
-                                                    <input
-                                                        type="date"
-                                                        class="form-control form-control-sm"
-                                                        v-model="form.items[index].expiry_date"
-                                                        title="Expiry Date"
-                                                    />
-                                                    <small v-if="batchDateWarning(item)" class="text-warning d-block mt-1">
-                                                        <i class="ti ti-alert-triangle me-1"></i>{{ batchDateWarning(item) }}
-                                                    </small>
-                                                    <small class="text-muted d-block mt-1">Qty &amp; cost taken from this line.</small>
-                                                </template>
-                                                <BatchPickerInput
-                                                    v-else
-                                                    v-model="form.items[index].batch_id"
-                                                    :product-variant-id="item.product_variant_id"
-                                                    :warehouse-id="form.warehouse_id"
-                                                />
-                                            </template>
+                                            <span v-if="item.grn_item_id" class="text-muted small">From GRN</span>
+                                            <span v-else-if="!isDraft" class="text-muted small">{{ item.batch_no || item.batch?.batch_no || '—' }}</span>
+                                            <BatchLineInput
+                                                v-else-if="item.is_batch_tracked"
+                                                :line="form.items[index]"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="form.warehouse_id"
+                                            />
                                             <span v-else class="text-muted small">—</span>
                                         </td>
                                         <td v-if="isDraft" class="text-center">
@@ -593,7 +551,7 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
-import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
+import BatchLineInput from '@/components/inventory/BatchLineInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
@@ -741,16 +699,6 @@ const batchLineDefaults = () => ({
     mfg_date: null,
     expiry_date: null,
 });
-
-const batchDateWarning = (item) => {
-    if (!item.create_batch) {
-        return null;
-    }
-    if (item.mfg_date && item.expiry_date && item.expiry_date <= item.mfg_date) {
-        return 'Expiry is on or before the manufacture date.';
-    }
-    return null;
-};
 
 const removeItem = (index) => {
     form.items.splice(index, 1);

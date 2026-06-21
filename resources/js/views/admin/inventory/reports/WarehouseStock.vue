@@ -36,8 +36,9 @@
                             <i class="ti ti-stack fs-24"></i>
                         </span>
                         <div class="ms-3">
-                            <p class="fw-medium mb-1">Total Quantity</p>
-                            <h4 class="mb-0">{{ formatMoneyPlain(kpi.total_quantity) }}</h4>
+                            <p class="fw-medium mb-1">On Hand / Available</p>
+                            <h4 class="mb-0">{{ formatMoneyPlain(kpi.total_quantity) }} <span class="fs-14 text-muted">/ {{ formatMoneyPlain(kpi.total_available) }}</span></h4>
+                            <small v-if="kpi.total_held > 0" class="text-warning">{{ formatMoneyPlain(kpi.total_held) }} held (recalled / quarantine / expired)</small>
                         </div>
                     </div>
                 </div>
@@ -73,7 +74,13 @@
         <div v-for="group in rows" :key="group.warehouse" class="card border-0 shadow-sm mb-3">
             <div class="card-header bg-light d-flex justify-content-between align-items-center">
                 <span class="fw-bold"><i class="ti ti-building-warehouse me-2"></i>{{ group.warehouse }}</span>
-                <span class="text-muted small">{{ group.item_count }} items &bull; {{ formatMoneyPlain(group.total_quantity) }} total qty</span>
+                <span class="text-muted small">
+                    {{ group.item_count }} items &bull; {{ formatMoneyPlain(group.total_quantity) }} on hand
+                    <template v-if="group.total_held > 0">
+                        &bull; <span class="text-warning">{{ formatMoneyPlain(group.total_held) }} held</span>
+                        &bull; {{ formatMoneyPlain(group.total_available) }} available
+                    </template>
+                </span>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -84,7 +91,9 @@
                                 <th>Code</th>
                                 <th>SKU</th>
                                 <th>Category</th>
-                                <th class="text-end">Quantity</th>
+                                <th class="text-end">On Hand</th>
+                                <th class="text-end">Held</th>
+                                <th class="text-end">Available</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,6 +103,8 @@
                                 <td>{{ item.sku }}</td>
                                 <td>{{ item.category }}</td>
                                 <td class="text-end fw-semibold">{{ formatMoneyPlain(item.quantity) }}</td>
+                                <td class="text-end" :class="item.held > 0 ? 'text-warning fw-semibold' : 'text-muted'">{{ formatMoneyPlain(item.held) }}</td>
+                                <td class="text-end fw-semibold">{{ formatMoneyPlain(item.available) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -123,13 +134,13 @@ const loading = ref(false);
 
 const filters = ref({warehouse_id: ''});
 
-const kpi = computed(() => summary.value ?? {total_warehouses: 0, total_items: 0, total_quantity: 0});
+const kpi = computed(() => summary.value ?? {total_warehouses: 0, total_items: 0, total_quantity: 0, total_held: 0, total_available: 0});
 
 const exportCsv = () => {
     if (!rows.value.length) { return; }
-    const headers = ['Warehouse', 'Product', 'Code', 'SKU', 'Category', 'Quantity'];
+    const headers = ['Warehouse', 'Product', 'Code', 'SKU', 'Category', 'On Hand', 'Held', 'Available'];
     const csvRows = rows.value.flatMap(g => g.items.map(item => [
-        g.warehouse, item.product_name, item.product_code, item.sku, item.category, item.quantity,
+        g.warehouse, item.product_name, item.product_code, item.sku, item.category, item.quantity, item.held, item.available,
     ].map(v => `"${v ?? ''}"`).join(',')));
     const csv = [headers.join(','), ...csvRows].join('\n');
     const a = document.createElement('a');

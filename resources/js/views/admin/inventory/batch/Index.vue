@@ -169,7 +169,15 @@ const rowActions = [
         title: 'Recall batch',
         class: 'text-danger',
         condition: (record) => ['active', 'quarantine'].includes(record.status),
-        handler: (record) => updateStatus(record, 'recalled'),
+        handler: (record) => recall(record),
+    },
+    {
+        key: 'write-off',
+        icon: 'ti-trash-x',
+        title: 'Write off remaining stock',
+        class: 'text-danger',
+        condition: (record) => ['recalled', 'quarantine', 'expired'].includes(record.status) && Number(record.remaining_qty) > 0,
+        handler: (record) => writeOff(record),
     },
     {
         key: 'edit',
@@ -180,10 +188,31 @@ const rowActions = [
     },
 ];
 
-async function updateStatus(record, status) {
+async function updateStatus(record, status, extra = {}) {
     try {
-        const res = await batchStore.updateBatch(record.id, { status });
+        const res = await batchStore.updateBatch(record.id, { status, ...extra });
         toast(res.status, res.data.message);
+    } catch (e) {
+        showErrors(e);
+    }
+}
+
+async function recall(record) {
+    const reason = window.prompt(`Recall batch ${record.batch_no}? Optionally note the reason (recorded in the audit trail):`, '');
+    if (reason === null) {
+        return;
+    }
+    await updateStatus(record, 'recalled', reason.trim() ? { remarks: reason.trim() } : {});
+}
+
+async function writeOff(record) {
+    if (!window.confirm(`Write off the remaining ${record.remaining_qty} unit(s) of batch ${record.batch_no}? This removes the stock and posts the loss to the GL.`)) {
+        return;
+    }
+    try {
+        const res = await apiAdmin(`batch/${record.id}/write-off`, 'post', {});
+        toast(res.status, res.data.message);
+        fetchBatches();
     } catch (e) {
         showErrors(e);
     }

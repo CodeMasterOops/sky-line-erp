@@ -251,6 +251,7 @@ class StockAdjustmentController extends Controller
                     $user->id,
                     $adjustment->remarks,
                     $item->batch_id,
+                    allowHeldBatch: true,
                 );
             }
         }

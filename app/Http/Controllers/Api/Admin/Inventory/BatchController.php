@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Batch;
 use Illuminate\Http\Request;
-use App\Enums\BatchStatusEnum;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\Inventory\BatchWriteOffService;
 use App\Http\Resources\Admin\Inventory\BatchResource;
 use App\Http\Requests\Api\Admin\Inventory\BatchStoreRequest;
 use App\Http\Requests\Api\Admin\Inventory\BatchUpdateRequest;
@@ -69,13 +69,28 @@ class BatchController extends Controller
             ->with(['productVariant.product:id,name', 'warehouse:id,name,code'])
             ->get();
 
-        // Also mark expired batches
-        Batch::where('company_id', $company->id)
-            ->expired()
-            ->where('status', BatchStatusEnum::Active->value)
-            ->update(['status' => BatchStatusEnum::Expired->value]);
+        // Expiring lots are flagged Expired by the scheduled `batch:expire` command, not
+        // as a side effect of reading this alert list. This endpoint is read-only.
 
         return response()->json(['data' => $batches, 'days' => $days]);
+    }
+
+    #[Permissions('write_off_batch', group: 'batch', desc: 'Write off remaining batch stock')]
+    public function writeOff(Request $request, Batch $batch, BatchWriteOffService $service)
+    {
+        $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $report = $service->writeOffRemaining($batch, auth('admin')->user(), $request->input('reason'));
+
+        $batch->refresh()->load(['productVariant.product', 'warehouse']);
+
+        return response()->json([
+            'data' => BatchResource::make($batch),
+            'damage_report_id' => $report->id,
+            'message' => 'Batch written off successfully',
+        ]);
     }
 
     #[Permissions('list_batch', group: 'batch', desc: 'Available batches for FEFO picking')]

@@ -100,41 +100,13 @@
                                             />
                                         </td>
                                         <td class="ose-col-batch">
-                                            <template v-if="item.is_batch_tracked">
-                                                <div class="d-flex align-items-center gap-1 mb-1">
-                                                    <input
-                                                        type="checkbox"
-                                                        class="form-check-input mt-0"
-                                                        :id="`new-batch-${index}`"
-                                                        v-model="form.items[index].create_batch"
-                                                        @change="form.items[index].batch_id = null"
-                                                    />
-                                                    <label :for="`new-batch-${index}`" class="form-label mb-0 small text-nowrap">
-                                                        {{ form.items[index].batch_id ? 'Linked' : 'New batch' }}
-                                                    </label>
-                                                </div>
-                                                <template v-if="form.items[index].create_batch">
-                                                    <VInput
-                                                        input-class="form-control form-control-sm mb-1"
-                                                        :class="{ 'is-invalid': !item.batch_no }"
-                                                        v-model="form.items[index].batch_no"
-                                                        placeholder="Batch No *"
-                                                    />
-                                                    <VInput
-                                                        input-type="date"
-                                                        input-class="form-control form-control-sm"
-                                                        v-model="form.items[index].expiry_date"
-                                                        placeholder="Expiry Date"
-                                                    />
-                                                    <small class="text-muted d-block mt-1">Qty &amp; cost taken from this line.</small>
-                                                </template>
-                                                <BatchPickerInput
-                                                    v-else
-                                                    v-model="form.items[index].batch_id"
-                                                    :product-variant-id="item.product_variant_id"
-                                                    :warehouse-id="form.warehouse_id"
-                                                />
-                                            </template>
+                                            <BatchLineInput
+                                                v-if="item.is_batch_tracked"
+                                                :line="form.items[index]"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="form.warehouse_id"
+                                                :show-mfg="false"
+                                            />
                                         </td>
                                         <td class="text-center ose-col-action">
                                             <button
@@ -197,7 +169,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useOpeningStockEntryStore} from '@/stores/admin/inventory/opening-stock-entry.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
-import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
+import BatchLineInput from '@/components/inventory/BatchLineInput.vue';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
 const openingStockEntryStore = useOpeningStockEntryStore();

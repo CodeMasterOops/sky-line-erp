@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Batch;
 use App\Models\Stock;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -70,7 +71,8 @@ class StockQuantityService
             ->lockForUpdate()
             ->first();
 
-        $available = $stock ? (int) $stock->quantity - (int) $stock->on_hold : 0;
+        $held = (int) Batch::heldQuantity($companyId, $productVariantId, $warehouseId);
+        $available = $stock ? (int) $stock->quantity - (int) $stock->on_hold - $held : 0;
 
         if ($available < $qty) {
             throw ValidationException::withMessages([

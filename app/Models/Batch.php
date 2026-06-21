@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use App\Enums\BatchStatusEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Batch extends Model
 {
-    use MultiTenant, SoftDeletes;
+    use Auditable, MultiTenant, SoftDeletes;
 
     protected $fillable = [
         'company_id',
@@ -70,6 +71,21 @@ class Batch extends Model
     {
         return $this->expiry_date !== null
             && $this->expiry_date->lt(now()->startOfDay());
+    }
+
+    /**
+     * Total remaining quantity held in non-issuable lots (quarantine, expired,
+     * recalled) for a variant at a warehouse. This stock is still on-hand and
+     * still owned, but must be excluded from "available to sell".
+     */
+    public static function heldQuantity(int $companyId, int $productVariantId, int $warehouseId): float
+    {
+        return (float) static::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('product_variant_id', $productVariantId)
+            ->where('warehouse_id', $warehouseId)
+            ->whereIn('status', BatchStatusEnum::heldValues())
+            ->sum('remaining_qty');
     }
 
     /**

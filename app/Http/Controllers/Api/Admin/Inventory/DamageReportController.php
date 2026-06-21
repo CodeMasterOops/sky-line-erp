@@ -218,6 +218,7 @@ class DamageReportController extends Controller
                 $user->id,
                 $report->remarks,
                 $item->batch_id,
+                allowHeldBatch: true,
             );
         }
     }

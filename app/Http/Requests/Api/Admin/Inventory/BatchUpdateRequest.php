@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\Api\Admin\Inventory;
 
+use App\Models\Batch;
 use App\Enums\BatchStatusEnum;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BatchUpdateRequest extends FormRequest
@@ -26,5 +28,32 @@ class BatchUpdateRequest extends FormRequest
             'status' => ['sometimes', Rule::in(array_column(BatchStatusEnum::cases(), 'value'))],
             'remarks' => ['nullable', 'string'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! $this->has('status')) {
+                return;
+            }
+
+            $batch = $this->route('batch');
+            $target = BatchStatusEnum::tryFrom((string) $this->input('status'));
+
+            if (! $batch instanceof Batch || $target === null) {
+                return;
+            }
+
+            $current = $batch->status instanceof BatchStatusEnum
+                ? $batch->status
+                : BatchStatusEnum::tryFrom((string) $batch->status);
+
+            if ($current !== null && ! $current->canTransitionTo($target)) {
+                $validator->errors()->add('status', __('Cannot change batch status from :from to :to.', [
+                    'from' => $current->label(),
+                    'to' => $target->label(),
+                ]));
+            }
+        });
     }
 }

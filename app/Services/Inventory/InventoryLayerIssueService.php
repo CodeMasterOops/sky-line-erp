@@ -29,6 +29,7 @@ class InventoryLayerIssueService
         ?int $userId,
         ?string $remarks,
         ?int $batchId = null,
+        bool $allowHeldBatch = false,
     ): StockMovement {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Issue quantity must be positive.');
@@ -45,7 +46,10 @@ class InventoryLayerIssueService
                 ]);
             }
 
-            if (! $batch->isIssuable()) {
+            // Quality-held lots (quarantine, expired, recalled) are not sellable, but
+            // disposal flows (damage write-off, negative stock adjustment) must still be
+            // able to remove them from stock — those callers pass $allowHeldBatch = true.
+            if (! $allowHeldBatch && ! $batch->isIssuable()) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
                     'batch_id' => __('Batch :no is :status and cannot be issued.', [
                         'no' => $batch->batch_no,

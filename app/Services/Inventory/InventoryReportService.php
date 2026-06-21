@@ -4,6 +4,7 @@ namespace App\Services\Inventory;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Enums\BatchStatusEnum;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 
@@ -196,12 +197,15 @@ class InventoryReportService
             ->whereNull('stocks.deleted_at')
             ->where('stocks.quantity', '>', 0)
             ->select([
+                'stocks.product_variant_id',
+                'stocks.warehouse_id',
                 'warehouses.name as warehouse_name',
                 'products.name as product_name',
                 'products.code as product_code',
                 'product_categories.name as category_name',
                 'product_variants.sku',
                 'stocks.quantity',
+                'stocks.on_hold',
             ])
             ->orderBy('warehouses.name')
             ->orderBy('products.name');
@@ -211,19 +215,33 @@ class InventoryReportService
         }
 
         $rows = $query->get();
+        $heldMap = $this->heldQuantityMap($companyId);
 
-        $grouped = $rows->groupBy('warehouse_name')->map(fn ($items, $warehouse) => [
-            'warehouse' => $warehouse ?? 'No Warehouse',
-            'item_count' => $items->count(),
-            'total_quantity' => round($items->sum('quantity'), 2),
-            'items' => $items->map(fn ($r) => [
-                'product_name' => $r->product_name,
-                'product_code' => $r->product_code,
-                'sku' => $r->sku,
-                'category' => $r->category_name,
-                'quantity' => (float) $r->quantity,
-            ])->values()->all(),
-        ])->values();
+        $grouped = $rows->groupBy('warehouse_name')->map(function ($items, $warehouse) use ($heldMap) {
+            $mapped = $items->map(function ($r) use ($heldMap) {
+                $held = (float) ($heldMap[$r->product_variant_id.'_'.$r->warehouse_id] ?? 0);
+                $available = max(0.0, (float) $r->quantity - (float) $r->on_hold - $held);
+
+                return [
+                    'product_name' => $r->product_name,
+                    'product_code' => $r->product_code,
+                    'sku' => $r->sku,
+                    'category' => $r->category_name,
+                    'quantity' => (float) $r->quantity,
+                    'held' => round($held, 2),
+                    'available' => round($available, 2),
+                ];
+            })->values();
+
+            return [
+                'warehouse' => $warehouse ?? 'No Warehouse',
+                'item_count' => $mapped->count(),
+                'total_quantity' => round($items->sum('quantity'), 2),
+                'total_held' => round($mapped->sum('held'), 2),
+                'total_available' => round($mapped->sum('available'), 2),
+                'items' => $mapped->all(),
+            ];
+        })->values();
 
         return [
             'rows' => $grouped->all(),
@@ -231,9 +249,31 @@ class InventoryReportService
                 'total_warehouses' => $grouped->count(),
                 'total_items' => $rows->count(),
                 'total_quantity' => round($rows->sum('quantity'), 2),
+                'total_held' => round($grouped->sum('total_held'), 2),
+                'total_available' => round($grouped->sum('total_available'), 2),
             ],
             'warehouse_options' => $this->warehouseOptions($companyId),
         ];
+    }
+
+    /**
+     * Held (non-issuable) remaining quantity per variant+warehouse, keyed
+     * "{variant_id}_{warehouse_id}". Held lots stay on-hand but are excluded
+     * from available-to-sell.
+     *
+     * @return array<string, float>
+     */
+    private function heldQuantityMap(int $companyId): array
+    {
+        return DB::table('batches')
+            ->where('company_id', $companyId)
+            ->whereNull('deleted_at')
+            ->whereIn('status', BatchStatusEnum::heldValues())
+            ->groupBy('product_variant_id', 'warehouse_id')
+            ->selectRaw('product_variant_id, warehouse_id, SUM(remaining_qty) as held_qty')
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->product_variant_id.'_'.$r->warehouse_id => (float) $r->held_qty])
+            ->all();
     }
 
     public function warehouseTransfer(Request $request): array
@@ -407,6 +447,7 @@ class InventoryReportService
                 'stocks.product_variant_id',
                 'stocks.warehouse_id',
                 'stocks.quantity',
+                'stocks.on_hold',
                 'products.name as product_name',
                 'products.code as product_code',
                 'product_categories.name as category_name',
@@ -433,9 +474,13 @@ class InventoryReportService
             ->get()
             ->keyBy(fn ($r) => $r->product_variant_id.'_'.$r->warehouse_id);
 
-        $rows = $activeStocks->map(function ($stock) use ($lastMovements, $cutoff) {
+        $heldMap = $this->heldQuantityMap($companyId);
+
+        $rows = $activeStocks->map(function ($stock) use ($lastMovements, $cutoff, $heldMap) {
             $key = $stock->product_variant_id.'_'.$stock->warehouse_id;
             $lastDate = $lastMovements->get($key)?->last_movement_date;
+            $held = (float) ($heldMap[$key] ?? 0);
+            $available = max(0.0, (float) $stock->quantity - (float) $stock->on_hold - $held);
 
             return [
                 'product_name' => $stock->product_name,
@@ -444,6 +489,8 @@ class InventoryReportService
                 'category' => $stock->category_name,
                 'warehouse' => $stock->warehouse_name ?? '-',
                 'quantity' => (float) $stock->quantity,
+                'held' => round($held, 2),
+                'available' => round($available, 2),
                 'last_movement_date' => $lastDate,
                 'days_since_movement' => $lastDate ? (int) Carbon::parse($lastDate)->diffInDays(now()) : null,
                 'is_dead' => ! $lastDate || $lastDate < $cutoff,

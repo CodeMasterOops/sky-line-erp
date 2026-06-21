@@ -90,6 +90,7 @@ Route::apiResource('delivery-challan', DeliveryChallanController::class)->parame
 // Batches / Lot tracking
 Route::get('batch/expiry-alerts', [BatchController::class, 'expiryAlerts'])->name('batch.expiry-alerts');
 Route::get('batch/fefo', [BatchController::class, 'fefoList'])->name('batch.fefo');
+Route::post('batch/{batch}/write-off', [BatchController::class, 'writeOff'])->name('batch.write-off');
 Route::apiResource('batch', BatchController::class)->except(['destroy']);
 
 // Bill of Materials

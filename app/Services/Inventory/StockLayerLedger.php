@@ -4,11 +4,30 @@ namespace App\Services\Inventory;
 
 use App\Models\Company;
 use App\Models\StockLayer;
+use App\Enums\BatchStatusEnum;
 use App\Enums\InventoryCostingMethodEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
 class StockLayerLedger
 {
+    /**
+     * Exclude cost layers that belong to a held lot (quarantine, expired, recalled).
+     * Applied only on the unbatched (FEFO/auto) consume path so that automatic issues
+     * and reconciliation never silently draw down quality-held stock. Layers with no
+     * batch (batch_id IS NULL) and layers on Active lots are kept.
+     */
+    private function excludeHeldLayers(Builder $query): Builder
+    {
+        return $query->whereNotExists(function ($sub): void {
+            $sub->selectRaw('1')
+                ->from('batches')
+                ->whereColumn('batches.id', 'stock_layers.batch_id')
+                ->whereNull('batches.deleted_at')
+                ->whereIn('batches.status', BatchStatusEnum::heldValues());
+        });
+    }
+
     /**
      * @return array<int, array{layer: StockLayer, quantity: int, unit_cost: float}>
      */
@@ -193,6 +212,7 @@ class StockLayerLedger
             ->where('warehouse_id', $warehouseId)
             ->where('qty_remaining', '>', 0)
             ->when($batchId !== null, fn ($q) => $q->where('batch_id', $batchId))
+            ->when($batchId === null, fn ($q) => $this->excludeHeldLayers($q))
             ->orderBy('received_at')
             ->orderBy('id')
             ->lockForUpdate()
@@ -248,6 +268,7 @@ class StockLayerLedger
             ->where('warehouse_id', $warehouseId)
             ->where('qty_remaining', '>', 0)
             ->when($batchId !== null, fn ($q) => $q->where('batch_id', $batchId))
+            ->when($batchId === null, fn ($q) => $this->excludeHeldLayers($q))
             ->lockForUpdate()
             ->orderBy('id')
             ->first();
