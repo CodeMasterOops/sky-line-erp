@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ItemRoleEnum;
 use App\Traits\MultiTenant;
 use App\Enums\ProductTypeEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,7 @@ class Product extends Model
         'import_batch_id',
         'product_category_id',
         'product_type',
+        'item_role',
         'name',
         'code',
         'hsn_code',
@@ -35,6 +37,7 @@ class Product extends Model
 
     protected $casts = [
         'product_type' => ProductTypeEnum::class,
+        'item_role' => ItemRoleEnum::class,
         'sales_price' => 'float',
         'purchase_price' => 'float',
         'reorder_quantity' => 'integer',
@@ -60,6 +63,16 @@ class Product extends Model
     public function scopePhysical($query)
     {
         return $query->where('product_type', ProductTypeEnum::PRODUCT->value);
+    }
+
+    public function scopeRawMaterial($query)
+    {
+        return $query->where('item_role', ItemRoleEnum::RawMaterial->value);
+    }
+
+    public function scopeFinishedGood($query)
+    {
+        return $query->where('item_role', ItemRoleEnum::FinishedGood->value);
     }
 
     /**
@@ -99,6 +112,10 @@ class Product extends Model
 
         if (! empty($param['product_type'])) {
             $query->where('product_type', $param['product_type']);
+        }
+
+        if (! empty($param['item_role'])) {
+            $query->where('item_role', $param['item_role']);
         }
 
         $warehouseIds = self::parseWarehouseIds($param['warehouse_ids'] ?? null);

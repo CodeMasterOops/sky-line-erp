@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Models\Tax;
 use App\Tenancy\TRule;
+use App\Enums\ItemRoleEnum;
 use App\Enums\ProductTypeEnum;
 use App\Models\ProductVariant;
 use App\Models\ProductCategory;
@@ -30,6 +31,7 @@ class ProductRequest extends FormRequest
                 'min_stock_level' => 0,
                 'reorder_quantity' => 0,
                 'has_variants' => false,
+                'item_role' => null,
             ]);
 
             $variants = $this->input('variants', []);
@@ -67,6 +69,8 @@ class ProductRequest extends FormRequest
                 },
             ],
             'product_type' => ['required', Rule::enum(ProductTypeEnum::class)],
+            // Stripped to null for services in prepareForValidation(), mirroring brand_id.
+            'item_role' => ['nullable', Rule::enum(ItemRoleEnum::class)],
             'image' => ['nullable', 'image'],
             'unit_id' => ['required', TRule::exists('units', 'id')->withoutTrashed()],
             'brand_id' => [

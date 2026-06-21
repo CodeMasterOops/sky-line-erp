@@ -77,6 +77,7 @@
                                 <span v-if="v.barcode" class="pvs__chip">{{ v.barcode }}</span>
                                 <span v-if="v.product_code" class="pvs__chip">{{ v.product_code }}</span>
                                 <span v-if="v.is_service" class="pvs__tag-service">Service</span>
+                                <span v-if="v.item_role_label" class="pvs__chip pvs__chip--role">{{ v.item_role_label }}</span>
                             </div>
                         </div>
                         <div v-if="v.sales_price" class="pvs__price">
@@ -535,6 +536,12 @@ defineExpose({
     border-radius: 4px;
     padding: 0 6px;
     line-height: 18px;
+}
+
+.pvs__chip--role {
+    font-weight: 600;
+    background: #e7f5ff;
+    color: #1971c2;
 }
 
 .pvs__price {

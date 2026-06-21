@@ -26,7 +26,7 @@ class ProductController extends Controller
         $limit = min((int) $request->get('limit', 500), 1000);
         $search = trim((string) $request->get('search', ''));
 
-        $query = ProductVariant::with(['product:id,name,unit_id,product_type', 'variantOptions']);
+        $query = ProductVariant::with(['product:id,name,unit_id,product_type,item_role', 'variantOptions']);
 
         if ($search !== '') {
             $like = '%'.$search.'%';
@@ -54,7 +54,7 @@ class ProductController extends Controller
 
         $query = ProductVariant::query()
             ->with([
-                'product:id,name,code,unit_id,product_type',
+                'product:id,name,code,unit_id,product_type,item_role',
                 'variantOptions.attribute',
             ]);
 
@@ -281,6 +281,7 @@ class ProductController extends Controller
             $data['min_stock_level'] = 0;
             $data['reorder_quantity'] = 0;
             $data['has_variants'] = false;
+            $data['item_role'] = null;
         }
 
         return $data;
@@ -294,6 +295,7 @@ class ProductController extends Controller
         return [
             'product_category_id',
             'product_type',
+            'item_role',
             'name',
             'code',
             'hsn_code',

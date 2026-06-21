@@ -126,6 +126,18 @@
                                 <VMultiselect id="brand_id" v-model="form.brand_id" :options="brands.data"
                                     @validate="validateField('brand_id')" :error="errors.brand_id" />
                             </div>
+                            <div v-if="isPhysicalProduct" class="col">
+                                <label class="form-label mb-1" for="item_role">Item role</label>
+                                <VSelect id="item_role" v-model="form.item_role"
+                                    placeholder="item role"
+                                    value-prop="value" name-prop="label"
+                                    :options="itemRoleOptions"
+                                    :error="errors.item_role" />
+                                <div class="form-text small">
+                                    Manufacturing classification (e.g. raw material). Used for reports
+                                    and BOM defaults — does not change stock behaviour.
+                                </div>
+                            </div>
                             <div class="col">
                                 <VInput id="hsn_code" v-model="form.hsn_code"
                                     :label="isPhysicalProduct ? 'HSN / HS Code' : 'SAC'"
@@ -591,9 +603,18 @@ const inventoryCostingMethodName = computed(() => {
     return 'FIFO (first in, first out)';
 });
 
+const itemRoleOptions = [
+    { value: 'raw_material', label: 'Raw Material' },
+    { value: 'semi_finished', label: 'Semi-Finished (Sub-assembly)' },
+    { value: 'finished_good', label: 'Finished Good' },
+    { value: 'consumable', label: 'Consumable' },
+    { value: 'trading_good', label: 'Trading Good' },
+];
+
 const initialState = {
     product_category_id: '',
     product_type: 'product',
+    item_role: '',
     name: '',
     code: '',
     image: '',
@@ -669,6 +690,7 @@ async function hydrateFromProduct(data) {
         Object.assign(form, {
             product_category_id: data.product_category_id ?? '',
             product_type: pt,
+            item_role: data.item_role ?? '',
             name: data.name ?? '',
             code: data.code ?? '',
             image: data.image ?? '',
@@ -960,6 +982,7 @@ watch(
         if (type === 'service') {
             form.has_variants = false;
             form.brand_id = '';
+            form.item_role = '';
             resetToSimplePricing();
         }
     }
@@ -1097,6 +1120,7 @@ function buildPayload() {
     return {
         ...form,
         variants,
+        item_role: isService ? null : (form.item_role || null),
         has_variants: form.product_type === 'product' ? !!form.has_variants : false,
     };
 }

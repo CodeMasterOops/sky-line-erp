@@ -39,6 +39,15 @@
                         placeholder="Type"
                     />
                 </div>
+                <!-- Item role filter -->
+                <div class="me-2" style="min-width: 160px;">
+                    <VMultiselect
+                        id="item_role"
+                        v-model="selectedItemRole"
+                        :options="itemRoleOptions"
+                        placeholder="Item role"
+                    />
+                </div>
                 <!-- Category filter -->
                 <div class="me-2" style="min-width: 200px;">
                     <VMultiselect
@@ -105,6 +114,9 @@
                             <span class="badge"
                                 :class="record.product_type === 'service' ? 'badge-soft-info' : 'badge-soft-primary'">
                                 {{ formatProductType(record.product_type) }}
+                            </span>
+                            <span v-if="record.item_role_label" class="badge badge-soft-secondary ms-1">
+                                {{ record.item_role_label }}
                             </span>
                         </template>
 
@@ -190,6 +202,14 @@ const typeOptions = [
     { id: 'service', name: 'Services' },
 ];
 
+const itemRoleOptions = [
+    { id: 'raw_material', name: 'Raw Material' },
+    { id: 'semi_finished', name: 'Semi-Finished' },
+    { id: 'finished_good', name: 'Finished Good' },
+    { id: 'consumable', name: 'Consumable' },
+    { id: 'trading_good', name: 'Trading Good' },
+];
+
 const stockDetailProduct = ref(null);
 
 const columns = computed(() => getProductColumns({
@@ -202,6 +222,7 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
     defaults: {
         search: '',
         product_type: '',
+        item_role: '',
         product_category_id: '',
         brand_id: '',
         warehouse_ids: '',
@@ -215,6 +236,11 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
 const selectedProductType = computed({
     get: () => filter.product_type || '',
     set: (val) => { filter.product_type = val ?? ''; },
+});
+
+const selectedItemRole = computed({
+    get: () => filter.item_role || '',
+    set: (val) => { filter.item_role = val ?? ''; },
 });
 
 const selectedCategoryId = computed({
@@ -259,6 +285,7 @@ const getProductExportFilters = () => ({
     product_category_id: filter.product_category_id,
     brand_id: filter.brand_id,
     product_type: filter.product_type,
+    item_role: filter.item_role,
     warehouse_ids: filter.warehouse_ids,
 });
 
