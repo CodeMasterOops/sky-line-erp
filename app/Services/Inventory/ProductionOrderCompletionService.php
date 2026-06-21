@@ -40,7 +40,7 @@ class ProductionOrderCompletionService
                 continue;
             }
 
-            $consumedQty = (int) $consumptionData['consumed_qty'];
+            $consumedQty = (float) $consumptionData['consumed_qty'];
             $isPhysical = ! $consumption->productVariant->isService();
 
             if ($consumedQty <= 0 || ! $isPhysical) {
@@ -54,9 +54,9 @@ class ProductionOrderCompletionService
 
             // Split: planned (required) qty goes to MANUFACTURING_ISSUE (enters WIP cost),
             // excess (wastage) goes to WASTAGE (expensed to variance account).
-            $requiredQty = (int) $consumption->required_qty;
+            $requiredQty = (float) $consumption->required_qty;
             $plannedQty = min($consumedQty, $requiredQty);
-            $wastageQty = max(0, $consumedQty - $requiredQty);
+            $wastageQty = max(0.0, $consumedQty - $requiredQty);
 
             $consumptionBatchId = $consumptionData['batch_id'] ?? $consumption->batch_id ?? null;
 
@@ -95,7 +95,7 @@ class ProductionOrderCompletionService
             ]);
         }
 
-        $producedQty = (int) $data['produced_qty'];
+        $producedQty = (float) $data['produced_qty'];
 
         if ($producedQty <= 0) {
             throw ValidationException::withMessages([

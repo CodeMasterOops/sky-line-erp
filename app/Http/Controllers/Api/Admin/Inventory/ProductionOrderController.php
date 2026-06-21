@@ -63,7 +63,7 @@ class ProductionOrderController extends Controller
             $ratio = $request->planned_qty / $bom->output_qty;
             $reservationItems = [];
             foreach ($bom->items as $item) {
-                $requiredQty = (int) round($item->quantity * (1 + $item->wastage_pct / 100) * $ratio);
+                $requiredQty = round($item->quantity * (1 + $item->wastage_pct / 100) * $ratio, 4);
                 $order->consumptions()->create([
                     'company_id' => $company->id,
                     'product_variant_id' => $item->product_variant_id,
