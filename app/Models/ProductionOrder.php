@@ -36,8 +36,8 @@ class ProductionOrder extends Model
     protected $casts = [
         'planned_qty' => 'float',
         'produced_qty' => 'float',
-        'planned_start' => 'date',
-        'planned_end' => 'date',
+        'planned_start' => 'date:Y-m-d',
+        'planned_end' => 'date:Y-m-d',
         'actual_start' => 'datetime',
         'actual_end' => 'datetime',
         'approved_at' => 'datetime',

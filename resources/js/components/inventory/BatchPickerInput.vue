@@ -234,9 +234,12 @@ const onDocClick = (e) => {
 
 watch(
     () => [props.productVariantId, props.warehouseId],
-    ([newVariant, newWarehouse], [oldVariant, oldWarehouse]) => {
+    ([newVariant, newWarehouse], [oldVariant, oldWarehouse] = []) => {
+        const isInitial = oldVariant === undefined && oldWarehouse === undefined;
         if (newVariant !== oldVariant || newWarehouse !== oldWarehouse) {
-            emit('update:modelValue', null);
+            if (!isInitial) {
+                emit('update:modelValue', null);
+            }
             loadBatches();
         }
     },

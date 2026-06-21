@@ -324,3 +324,18 @@ it('includes operations in the bom show endpoint', function () {
         ->assertOk()
         ->assertJsonCount(1, 'data.operations');
 });
+
+it('serializes planned dates as Y-m-d without a time component', function () {
+    p5pSeedStock($this, 10);
+
+    $order = p5pCreateOrder($this);
+    $order->forceFill([
+        'planned_start' => '2026-06-15',
+        'planned_end' => '2026-06-18',
+    ])->save();
+
+    $this->getJson("/api/admin/production-order/{$order->id}")
+        ->assertOk()
+        ->assertJsonPath('data.planned_start', '2026-06-15')
+        ->assertJsonPath('data.planned_end', '2026-06-18');
+});

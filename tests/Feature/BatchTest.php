@@ -113,6 +113,18 @@ it('variant search returns only batch-tracked variants when batch_tracked_only i
     expect($skus)->not->toContain('SKU-PLAIN-SEARCH');
 });
 
+it('serializes mfg and expiry dates as Y-m-d without a time component', function () {
+    $this->postJson('/api/admin/batch', batchPayload($this, [
+        'mfg_date' => '2026-06-15',
+        'expiry_date' => '2026-06-18',
+    ]))->assertCreated();
+
+    $this->getJson('/api/admin/batch')
+        ->assertOk()
+        ->assertJsonPath('data.0.mfg_date', '2026-06-15')
+        ->assertJsonPath('data.0.expiry_date', '2026-06-18');
+});
+
 it('rejects creating a batch for a non-batch-tracked variant', function () {
     $plainVariant = ProductVariant::create([
         'company_id' => $this->company->id,
