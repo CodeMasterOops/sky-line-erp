@@ -37,7 +37,7 @@ class CreditNoteItem extends Model
         'unit_id' => 'integer',
         'tax_id' => 'integer',
         'tax_group_id' => 'integer',
-        'quantity' => 'integer',
+        'quantity' => 'float',
         'rate' => 'float',
         'tax_amount' => 'float',
         'tax_line_type' => TaxLineTypeEnum::class,

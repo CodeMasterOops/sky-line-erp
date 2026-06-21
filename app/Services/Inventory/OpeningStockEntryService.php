@@ -59,7 +59,7 @@ class OpeningStockEntryService
             return;
         }
 
-        $quantity = (int) ($opening['quantity'] ?? 0);
+        $quantity = (float) ($opening['quantity'] ?? 0);
         if ($quantity <= 0) {
             return;
         }
@@ -102,7 +102,7 @@ class OpeningStockEntryService
         OpeningStockEntryItem $item,
         User $user,
     ): void {
-        $quantity = (int) $item->quantity;
+        $quantity = (float) $item->quantity;
         if ($quantity <= 0) {
             return;
         }
@@ -122,7 +122,7 @@ class OpeningStockEntryService
             ->lockForUpdate()
             ->first(['quantity']);
 
-        $existingQty = (int) ($existingStock?->quantity ?? 0);
+        $existingQty = (float) ($existingStock?->quantity ?? 0);
 
         if ($existingQty > 0) {
             throw ValidationException::withMessages([

@@ -40,7 +40,7 @@ class SalesOrderRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'items.*.line_discount_value' => ['nullable', 'numeric', 'min:0'],

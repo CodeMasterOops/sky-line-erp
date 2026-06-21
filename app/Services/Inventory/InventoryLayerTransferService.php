@@ -27,7 +27,7 @@ class InventoryLayerTransferService
         ?int $userId,
         ?string $remarks,
     ): void {
-        $qty = (int) $item->quantity;
+        $qty = (float) $item->quantity;
         if ($qty <= 0) {
             return;
         }
@@ -184,7 +184,7 @@ class InventoryLayerTransferService
         ?int $userId,
         ?string $remarks,
     ): void {
-        $qty = (int) $item->quantity;
+        $qty = (float) $item->quantity;
         if ($qty <= 0) {
             return;
         }
@@ -251,7 +251,7 @@ class InventoryLayerTransferService
         ?int $userId,
         ?string $remarks,
     ): void {
-        $qty = (int) $item->quantity;
+        $qty = (float) $item->quantity;
         if ($qty <= 0) {
             return;
         }

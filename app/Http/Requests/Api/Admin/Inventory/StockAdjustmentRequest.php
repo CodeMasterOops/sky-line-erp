@@ -33,7 +33,7 @@ class StockAdjustmentRequest extends FormRequest
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.direction' => ['required', Rule::in([StockDirectionEnum::IN->value, StockDirectionEnum::OUT->value])],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
             'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
         ];

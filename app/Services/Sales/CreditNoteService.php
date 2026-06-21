@@ -174,7 +174,7 @@ class CreditNoteService
         $creditNote->loadMissing('creditNoteItems.productVariant.product');
 
         foreach ($creditNote->creditNoteItems as $item) {
-            $qty = (int) $item->quantity;
+            $qty = (float) $item->quantity;
             if ($qty <= 0) {
                 continue;
             }

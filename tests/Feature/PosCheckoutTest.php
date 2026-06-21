@@ -380,7 +380,7 @@ it('reduces stock quantity after successful checkout', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(7);
+    expect((int) $stock->quantity)->toBe(7);
 });
 
 it('checkout supports multiple warehouses on one order', function () {
@@ -778,7 +778,7 @@ it('return restores stock to the warehouse', function () {
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
         ->value('quantity');
-    expect($stockBefore)->toBe(3);
+    expect((int) $stockBefore)->toBe(3);
 
     $receiptRes = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
     $item = $receiptRes->json('data.items.0');
@@ -802,7 +802,7 @@ it('return restores stock to the warehouse', function () {
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
         ->value('quantity');
-    expect($stockAfter)->toBe(4);
+    expect((int) $stockAfter)->toBe(4);
 });
 
 it('return rejects an invoice that belongs to a different company', function () {

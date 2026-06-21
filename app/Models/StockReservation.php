@@ -25,7 +25,7 @@ class StockReservation extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
+        'quantity' => 'float',
         'reserved_at' => 'datetime',
         'released_at' => 'datetime',
     ];

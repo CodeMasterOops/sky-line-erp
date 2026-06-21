@@ -121,7 +121,7 @@ test('fifo receipt creates stock and one layer', function () {
         ->first();
 
     expect($stock)->not->toBeNull();
-    expect($stock->quantity)->toBe(10);
+    expect((int) $stock->quantity)->toBe(10);
 
     expect(
         StockLayer::withoutGlobalScopes()
@@ -220,7 +220,7 @@ test('fifo issue consumes oldest layer first', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(3);
+    expect((int) $stock->quantity)->toBe(3);
 });
 
 test('issue without stock throws validation exception', function () {
@@ -318,7 +318,7 @@ test('weighted average merges layers on receipt', function () {
         ->get();
 
     expect($layers)->toHaveCount(1);
-    expect($layers->first()->qty_remaining)->toBe(20);
+    expect((int) $layers->first()->qty_remaining)->toBe(20);
     expect((float) $layers->first()->unit_cost)->toBe(15.0);
 });
 
@@ -481,7 +481,7 @@ test('switching company costing from fifo to weighted average consolidates open 
         ->get();
 
     expect($layers)->toHaveCount(1);
-    expect($layers->first()->qty_remaining)->toBe(10);
+    expect((int) $layers->first()->qty_remaining)->toBe(10);
     expect((float) $layers->first()->unit_cost)->toBe(3.0);
 });
 
@@ -553,7 +553,7 @@ test('void approved invoice restores stock and layer quantity', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(10);
+    expect((int) $stock->quantity)->toBe(10);
 
     $valuedQty = (int) StockLayer::withoutGlobalScopes()
         ->where('company_id', $this->company->id)
@@ -609,7 +609,7 @@ test('stock adjustment in and out updates valued quantity', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(3);
+    expect((int) $stock->quantity)->toBe(3);
 });
 
 test('stock transfer moves quantity between warehouses', function () {
@@ -685,8 +685,8 @@ test('stock transfer moves quantity between warehouses', function () {
         ->where('warehouse_id', $warehouseB->id)
         ->first();
 
-    expect($qtyFrom->quantity)->toBe(0);
-    expect($qtyTo->quantity)->toBe(10);
+    expect((int) $qtyFrom->quantity)->toBe(0);
+    expect((int) $qtyTo->quantity)->toBe(10);
 });
 
 test('product resource aggregates total_stock and stock_by_warehouse', function () {
@@ -724,8 +724,8 @@ test('product resource aggregates total_stock and stock_by_warehouse', function 
     expect($data['stock_by_warehouse'])->toHaveCount(2);
 
     $byId = collect($data['stock_by_warehouse'])->keyBy('warehouse_id');
-    expect($byId[$this->warehouse->id]['quantity'])->toBe(7);
-    expect($byId[$warehouseB->id]['quantity'])->toBe(3);
+    expect((int) $byId[$this->warehouse->id]['quantity'])->toBe(7);
+    expect((int) $byId[$warehouseB->id]['quantity'])->toBe(3);
     expect($byId[$this->warehouse->id]['warehouse_name'])->toBe('Main');
 });
 

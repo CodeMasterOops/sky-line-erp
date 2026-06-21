@@ -85,7 +85,7 @@ class InvoiceRequest extends FormRequest
             'items.*.delivery_challan_item_id' => ['nullable', Rule::exists('delivery_challan_items', 'id')],
             'items.*.warehouse_id' => ProductLineRules::warehouseId(),
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'items.*.line_discount_value' => ['nullable', 'numeric', 'min:0'],

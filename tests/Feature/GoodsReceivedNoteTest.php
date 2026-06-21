@@ -268,7 +268,7 @@ it('approves grn and increases stock without duplicate on re-approve attempt', f
         ->first();
 
     expect($stock)->not->toBeNull();
-    expect($stock->quantity)->toBe(5);
+    expect((int) $stock->quantity)->toBe(5);
 
     expect(
         StockMovement::withoutGlobalScopes()
@@ -577,7 +577,7 @@ it('keeps direct bill stock receipt when no grn link', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(3);
+    expect((int) $stock->quantity)->toBe(3);
 });
 
 it('capitalizes landed costs on direct purchase bill approval', function () {

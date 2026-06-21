@@ -50,7 +50,7 @@ class InventoryDocumentReversalService
                     ]);
                 }
 
-                $layer->qty_remaining = (int) $layer->qty_remaining + (int) $ml->quantity;
+                $layer->qty_remaining = (float) $layer->qty_remaining + (float) $ml->quantity;
                 $layer->save();
 
                 if ($layer->batch_id !== null) {
@@ -62,7 +62,7 @@ class InventoryDocumentReversalService
                 $invoice->company_id,
                 $movement->product_variant_id,
                 (int) $movement->warehouse_id,
-                (int) $movement->quantity,
+                (float) $movement->quantity,
             );
 
             $invoice->stockMovements()->create([
@@ -89,7 +89,7 @@ class InventoryDocumentReversalService
         $bill->loadMissing('billItems');
 
         foreach ($bill->billItems as $item) {
-            $qty = (int) $item->quantity;
+            $qty = (float) $item->quantity;
             if ($qty <= 0) {
                 continue;
             }
@@ -111,7 +111,7 @@ class InventoryDocumentReversalService
                 ->orderBy('id')
                 ->get();
 
-            $remainingValued = (int) $layers->sum('qty_remaining');
+            $remainingValued = (float) $layers->sum('qty_remaining');
             if ($remainingValued < $qty) {
                 throw ValidationException::withMessages([
                     'bill' => __('Cannot void bill: some purchased quantity was already sold or adjusted.'),
@@ -123,7 +123,7 @@ class InventoryDocumentReversalService
                 if ($toRemove <= 0) {
                     break;
                 }
-                $layerQty = (int) $layer->qty_remaining;
+                $layerQty = (float) $layer->qty_remaining;
                 $take = min($layerQty, $toRemove);
                 $layer->qty_remaining = $layerQty - $take;
                 $layer->save();
@@ -187,7 +187,7 @@ class InventoryDocumentReversalService
                     ]);
                 }
 
-                $layer->qty_remaining = (int) $layer->qty_remaining + (int) $ml->quantity;
+                $layer->qty_remaining = (float) $layer->qty_remaining + (float) $ml->quantity;
                 $layer->save();
 
                 if ($layer->batch_id !== null) {
@@ -199,7 +199,7 @@ class InventoryDocumentReversalService
                 $debitNote->company_id,
                 $movement->product_variant_id,
                 (int) $movement->warehouse_id,
-                (int) $movement->quantity,
+                (float) $movement->quantity,
             );
 
             $debitNote->stockMovements()->create([
@@ -241,7 +241,7 @@ class InventoryDocumentReversalService
                 $creditNote,
                 (int) $movement->product_variant_id,
                 (int) $movement->warehouse_id,
-                (int) $movement->quantity,
+                (float) $movement->quantity,
                 ChangeTypeEnum::SALE,
                 $userId,
                 $remarks,
@@ -287,19 +287,19 @@ class InventoryDocumentReversalService
                 ->orderBy('id')
                 ->get();
 
-            $remainingValued = (int) $layers->sum('qty_remaining');
-            if ($remainingValued < (int) $movement->quantity) {
+            $remainingValued = (float) $layers->sum('qty_remaining');
+            if ($remainingValued < (float) $movement->quantity) {
                 throw ValidationException::withMessages([
                     'grn' => __('Cannot reverse GRN: some received quantity was already sold or adjusted.'),
                 ]);
             }
 
-            $toRemove = (int) $movement->quantity;
+            $toRemove = (float) $movement->quantity;
             foreach ($layers as $layer) {
                 if ($toRemove <= 0) {
                     break;
                 }
-                $layerQty = (int) $layer->qty_remaining;
+                $layerQty = (float) $layer->qty_remaining;
                 $take = min($layerQty, $toRemove);
                 $layer->qty_remaining = $layerQty - $take;
                 $layer->save();
@@ -314,7 +314,7 @@ class InventoryDocumentReversalService
                 $grn->company_id,
                 $movement->product_variant_id,
                 (int) $movement->warehouse_id,
-                -(int) $movement->quantity,
+                -(float) $movement->quantity,
             );
 
             $grn->stockMovements()->create([
@@ -364,7 +364,7 @@ class InventoryDocumentReversalService
                     ]);
                 }
 
-                $layer->qty_remaining = (int) $layer->qty_remaining + (int) $ml->quantity;
+                $layer->qty_remaining = (float) $layer->qty_remaining + (float) $ml->quantity;
                 $layer->save();
 
                 if ($layer->batch_id !== null) {
@@ -376,7 +376,7 @@ class InventoryDocumentReversalService
                 $challan->company_id,
                 $movement->product_variant_id,
                 (int) $movement->warehouse_id,
-                (int) $movement->quantity,
+                (float) $movement->quantity,
             );
 
             $challan->stockMovements()->create([

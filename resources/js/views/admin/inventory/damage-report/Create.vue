@@ -212,7 +212,7 @@ const validations = object({
     items: array().of(
         object({
             product_variant_id: string().required(),
-            quantity: string().required('Quantity is required.'),
+            quantity: number().typeError('Quantity must be a number.').positive('Quantity must be greater than zero.').required('Quantity is required.'),
         })
     ).min(1, 'At least one item is required.'),
 });
@@ -257,7 +257,7 @@ const buildPayload = () => ({
     items: form.items.map((item) => ({
         product_variant_id: item.product_variant_id,
         unit_id: item.unit_id || null,
-        quantity: parseInt(item.quantity, 10) || 1,
+        quantity: Number(item.quantity) || 1,
         unit_cost: item.unit_cost || null,
         remarks: item.remarks || null,
         batch_id: item.batch_id || null,

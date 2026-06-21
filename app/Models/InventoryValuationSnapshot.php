@@ -21,7 +21,7 @@ class InventoryValuationSnapshot extends Model
     {
         return [
             'snapshot_date' => 'date:Y-m-d',
-            'qty_remaining' => 'integer',
+            'qty_remaining' => 'float',
             'unit_cost' => 'float',
             'total_value' => 'float',
         ];

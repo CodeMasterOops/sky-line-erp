@@ -29,7 +29,7 @@ class StockLayer extends Model
     ];
 
     protected $casts = [
-        'qty_remaining' => 'integer',
+        'qty_remaining' => 'float',
         'unit_cost' => 'float',
         'base_unit_cost' => 'float',
         'landed_unit_cost' => 'float',

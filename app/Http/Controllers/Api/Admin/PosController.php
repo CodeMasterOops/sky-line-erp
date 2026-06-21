@@ -330,7 +330,7 @@ class PosController extends Controller
                 // Deduct inventory
                 $invoice->loadMissing('invoiceItems.productVariant.product');
                 foreach ($invoice->invoiceItems as $item) {
-                    if ((int) $item->quantity <= 0) {
+                    if ((float) $item->quantity <= 0) {
                         continue;
                     }
 
@@ -343,7 +343,7 @@ class PosController extends Controller
                         $invoice,
                         $item->product_variant_id,
                         $item->warehouse_id,
-                        (int) $item->quantity,
+                        (float) $item->quantity,
                         ChangeTypeEnum::SALE,
                         $user->id,
                         $invoice->remarks,
@@ -924,7 +924,7 @@ class PosController extends Controller
                         'invoice_item_id' => $item['invoice_item_id'] ?? null,
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
-                        'quantity' => (int) $item['quantity'],
+                        'quantity' => (float) $item['quantity'],
                         'rate' => (float) $item['rate'],
                         'tax_amount' => (float) ($item['tax_amount'] ?? 0),
                         'discount_amount' => (float) ($item['discount_amount'] ?? 0),
@@ -934,7 +934,7 @@ class PosController extends Controller
                 $creditNote->load('creditNoteItems.productVariant.product');
 
                 foreach ($creditNote->creditNoteItems as $creditItem) {
-                    $qty = (int) $creditItem->quantity;
+                    $qty = (float) $creditItem->quantity;
                     if ($qty <= 0 || $creditItem->productVariant?->isService()) {
                         continue;
                     }

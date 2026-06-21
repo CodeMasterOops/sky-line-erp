@@ -28,7 +28,7 @@ class BatchWriteOffService
             Batch::reconcileRemaining($batch->id);
             $batch->refresh();
 
-            $remaining = (int) $batch->remaining_qty;
+            $remaining = (float) $batch->remaining_qty;
 
             if ($remaining <= 0) {
                 throw ValidationException::withMessages([

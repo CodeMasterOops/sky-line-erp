@@ -124,8 +124,8 @@
                                                 input-type="number"
                                                 input-class="form-control form-control-sm"
                                                 v-model="form.items[index].quantity"
-                                                min="1"
-                                                step="1"
+                                                min="0.001"
+                                                step="any"
                                                 @validate="validateField(`items[${index}].quantity`)"
                                                 :error="errors[`items[${index}].quantity`]"
                                             />

@@ -369,7 +369,7 @@ class DebitNoteController extends Controller
         $debitNote->loadMissing('debitNoteItems');
 
         foreach ($debitNote->debitNoteItems as $item) {
-            $qty = (int) $item->quantity;
+            $qty = (float) $item->quantity;
             if ($qty <= 0) {
                 continue;
             }

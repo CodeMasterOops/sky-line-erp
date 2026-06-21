@@ -325,7 +325,7 @@ class StockTransferController extends Controller
                 'product_variant_id' => $vid,
                 'unit_id' => $unitId,
                 'from_warehouse_id' => isset($item['from_warehouse_id']) ? (int) $item['from_warehouse_id'] : null,
-                'quantity' => (int) $item['quantity'],
+                'quantity' => (float) $item['quantity'],
                 'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
             ];
         })->all();

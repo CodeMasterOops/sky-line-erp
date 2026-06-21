@@ -49,7 +49,7 @@ class StockQuantityService
     /**
      * Adjust on-hand quantity for a variant at a warehouse (delta may be negative).
      */
-    public function adjust(int $companyId, int $productVariantId, int $warehouseId, int $delta): void
+    public function adjust(int $companyId, int $productVariantId, int $warehouseId, float $delta): void
     {
         try {
             $this->performAdjust($companyId, $productVariantId, $warehouseId, $delta);
@@ -62,7 +62,7 @@ class StockQuantityService
      * Increment on_hold for a reservation. Validates available (quantity - on_hold) >= qty.
      * Must be called inside a transaction with lockForUpdateOrCreate() already called.
      */
-    public function holdOnHand(int $companyId, int $productVariantId, int $warehouseId, int $qty): void
+    public function holdOnHand(int $companyId, int $productVariantId, int $warehouseId, float $qty): void
     {
         $stock = Stock::withoutGlobalScopes()
             ->where('company_id', $companyId)
@@ -71,8 +71,8 @@ class StockQuantityService
             ->lockForUpdate()
             ->first();
 
-        $held = (int) Batch::heldQuantity($companyId, $productVariantId, $warehouseId);
-        $available = $stock ? (int) $stock->quantity - (int) $stock->on_hold - $held : 0;
+        $held = (float) Batch::heldQuantity($companyId, $productVariantId, $warehouseId);
+        $available = $stock ? (float) $stock->quantity - (float) $stock->on_hold - $held : 0.0;
 
         if ($available < $qty) {
             throw ValidationException::withMessages([
@@ -89,7 +89,7 @@ class StockQuantityService
      * Decrement on_hold when a reservation is released or fulfilled.
      * Must be called inside a transaction.
      */
-    public function releaseOnHold(int $companyId, int $productVariantId, int $warehouseId, int $qty): void
+    public function releaseOnHold(int $companyId, int $productVariantId, int $warehouseId, float $qty): void
     {
         Stock::withoutGlobalScopes()
             ->where('company_id', $companyId)
@@ -100,7 +100,7 @@ class StockQuantityService
             ?->decrement('on_hold', $qty);
     }
 
-    private function performAdjust(int $companyId, int $productVariantId, int $warehouseId, int $delta): void
+    private function performAdjust(int $companyId, int $productVariantId, int $warehouseId, float $delta): void
     {
         $stock = Stock::withoutGlobalScopes()
             ->withTrashed()
@@ -114,7 +114,7 @@ class StockQuantityService
             if ($stock->trashed()) {
                 $stock->restore();
             }
-            $newQty = (int) $stock->quantity + $delta;
+            $newQty = (float) $stock->quantity + $delta;
             if ($newQty < 0) {
                 throw ValidationException::withMessages([
                     'quantity' => __('Insufficient on-hand stock for this product at the selected warehouse.'),

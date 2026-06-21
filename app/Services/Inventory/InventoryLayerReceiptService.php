@@ -24,7 +24,7 @@ class InventoryLayerReceiptService
         Model $reference,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         float $unitCost,
         ChangeTypeEnum $changeType,
         ?int $userId,

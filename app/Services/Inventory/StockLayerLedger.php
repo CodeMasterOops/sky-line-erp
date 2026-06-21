@@ -35,7 +35,7 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         ?int $batchId = null,
     ): array {
         $method = $company->inventory_costing_method ?? InventoryCostingMethodEnum::FIFO;
@@ -62,7 +62,7 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         float $unitCost,
         ?int $sourceBillItemId = null,
         ?\DateTimeInterface $receivedAt = null,
@@ -108,7 +108,7 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         float $unitCost,
         ?int $sourceBillItemId,
         \DateTimeInterface $receivedAt,
@@ -136,7 +136,7 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         float $unitCost,
         ?int $sourceBillItemId,
         \DateTimeInterface $receivedAt,
@@ -174,7 +174,7 @@ class StockLayerLedger
             return;
         }
 
-        $oldQty = (int) $layer->qty_remaining;
+        $oldQty = (float) $layer->qty_remaining;
         $oldCost = (float) $layer->unit_cost;
         $oldBaseCost = (float) ($layer->base_unit_cost ?: $layer->unit_cost);
         $oldLandedCost = (float) $layer->landed_unit_cost;
@@ -203,7 +203,7 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         ?int $batchId = null,
     ): array {
         $layers = StockLayer::withoutGlobalScopes()
@@ -218,7 +218,7 @@ class StockLayerLedger
             ->lockForUpdate()
             ->get();
 
-        $available = (int) $layers->sum('qty_remaining');
+        $available = (float) $layers->sum('qty_remaining');
         if ($available < $quantity) {
             throw ValidationException::withMessages([
                 'quantity' => __('Insufficient valued stock for this product at the selected warehouse.'),
@@ -233,7 +233,7 @@ class StockLayerLedger
                 break;
             }
 
-            $layerQty = (int) $layer->qty_remaining;
+            $layerQty = (float) $layer->qty_remaining;
             $take = min($remaining, $layerQty);
             $unitCost = (float) $layer->unit_cost;
 
@@ -259,7 +259,7 @@ class StockLayerLedger
         Company $company,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         ?int $batchId = null,
     ): array {
         $layer = StockLayer::withoutGlobalScopes()
@@ -273,14 +273,14 @@ class StockLayerLedger
             ->orderBy('id')
             ->first();
 
-        if (! $layer || (int) $layer->qty_remaining < $quantity) {
+        if (! $layer || (float) $layer->qty_remaining < $quantity) {
             throw ValidationException::withMessages([
                 'quantity' => __('Insufficient valued stock for this product at the selected warehouse.'),
             ]);
         }
 
         $unitCost = (float) $layer->unit_cost;
-        $layer->qty_remaining = (int) $layer->qty_remaining - $quantity;
+        $layer->qty_remaining = (float) $layer->qty_remaining - $quantity;
         $layer->save();
 
         return [[

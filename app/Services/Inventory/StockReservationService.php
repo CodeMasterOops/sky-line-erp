@@ -21,7 +21,7 @@ class StockReservationService
         foreach ($items as $item) {
             $variantId = (int) $item['product_variant_id'];
             $warehouseId = (int) $item['warehouse_id'];
-            $qty = (int) $item['quantity'];
+            $qty = (float) $item['quantity'];
 
             if ($qty <= 0) {
                 continue;

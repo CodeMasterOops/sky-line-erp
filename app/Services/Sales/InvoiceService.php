@@ -224,7 +224,7 @@ readonly class InvoiceService
         $invoice->loadMissing('invoiceItems.productVariant.product');
 
         foreach ($invoice->invoiceItems as $item) {
-            $qty = (int) $item->quantity;
+            $qty = (float) $item->quantity;
             if ($qty <= 0) {
                 continue;
             }

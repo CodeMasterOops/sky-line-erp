@@ -22,6 +22,13 @@ class StockTransferItem extends Model
         'batch_id',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'float',
+        ];
+    }
+
     public function stockTransfer(): BelongsTo
     {
         return $this->belongsTo(StockTransfer::class);

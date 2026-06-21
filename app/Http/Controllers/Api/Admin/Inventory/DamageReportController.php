@@ -203,7 +203,7 @@ class DamageReportController extends Controller
         $company = Company::findOrFail($report->company_id);
 
         foreach ($report->damageReportItems as $item) {
-            $quantity = (int) $item->quantity;
+            $quantity = (float) $item->quantity;
             if ($quantity <= 0) {
                 continue;
             }

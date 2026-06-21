@@ -152,7 +152,7 @@ test('approving opening stock entry updates stock layers and movement type', fun
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(10);
+    expect((int) $stock->quantity)->toBe(10);
 
     $movement = StockMovement::withoutGlobalScopes()
         ->where('company_id', $this->company->id)
@@ -285,7 +285,7 @@ test('product import opening stock uses inventory pipeline not direct stock upse
 
     expect($movement)->not->toBeNull()
         ->and($movement->type)->toBe(ChangeTypeEnum::OPENING_STOCK)
-        ->and($movement->quantity)->toBe(7);
+        ->and((int) $movement->quantity)->toBe(7);
 
     $entry = OpeningStockEntry::withoutGlobalScopes()
         ->where('company_id', $this->company->id)

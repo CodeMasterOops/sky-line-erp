@@ -27,7 +27,7 @@ class OpeningStockEntryItem extends Model
     protected function casts(): array
     {
         return [
-            'quantity' => 'integer',
+            'quantity' => 'float',
             'unit_cost' => 'float',
         ];
     }

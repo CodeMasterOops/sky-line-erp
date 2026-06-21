@@ -24,7 +24,7 @@ class InventoryLayerIssueService
         Model $reference,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         ChangeTypeEnum $changeType,
         ?int $userId,
         ?string $remarks,

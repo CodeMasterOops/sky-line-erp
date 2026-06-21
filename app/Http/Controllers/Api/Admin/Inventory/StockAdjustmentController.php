@@ -218,7 +218,7 @@ class StockAdjustmentController extends Controller
         $company = Company::findOrFail($adjustment->company_id);
 
         foreach ($adjustment->stockAdjustmentItems as $item) {
-            $quantity = (int) $item->quantity;
+            $quantity = (float) $item->quantity;
             if ($quantity <= 0) {
                 continue;
             }
