@@ -10,7 +10,10 @@ use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionOrderOperation;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Inventory\ProductionOrderFactory;
 use App\Services\Inventory\StockReservationService;
+use App\Services\Inventory\SubAssemblyOrderService;
+use App\Services\Accounting\ProductionOrderGlPostingService;
 use App\Services\Inventory\ProductionOrderCompletionService;
 use App\Http\Requests\Api\Admin\Inventory\ProductionOrderRequest;
 use App\Http\Requests\Api\Admin\Inventory\ProductionOrderCompleteRequest;
@@ -21,6 +24,9 @@ class ProductionOrderController extends Controller
         private DocumentNumberGenerator $documentNumberGenerator,
         private ProductionOrderCompletionService $completionService,
         private StockReservationService $reservationService,
+        private ProductionOrderFactory $orderFactory,
+        private SubAssemblyOrderService $subAssemblyService,
+        private ProductionOrderGlPostingService $glPostingService,
     ) {}
 
     #[Permissions('list_production_order', group: 'production_order', desc: 'List Production Orders')]
@@ -40,67 +46,50 @@ class ProductionOrderController extends Controller
     {
         return DB::transaction(function () use ($request) {
             $company = auth()->user()->company;
-            $fiscalYear = $company->fiscalYear;
             $bom = Bom::with('items')->findOrFail($request->bom_id);
 
-            $orderNo = $this->documentNumberGenerator->productionOrder($company->id);
-
-            $order = ProductionOrder::create([
-                'company_id' => $company->id,
-                'fiscal_year_id' => $fiscalYear->id,
-                'bom_id' => $request->bom_id,
-                'warehouse_id' => $request->warehouse_id,
-                'planned_qty' => $request->planned_qty,
-                'planned_start' => $request->planned_start,
-                'planned_end' => $request->planned_end,
-                'remarks' => $request->remarks,
-                'order_no' => $orderNo,
-                'status' => 'draft',
-                'create_user_id' => auth()->id(),
-            ]);
-
-            $bom->loadMissing('operations');
-            $ratio = $request->planned_qty / $bom->output_qty;
-            $reservationItems = [];
-            foreach ($bom->items as $item) {
-                $requiredQty = round($item->quantity * (1 + $item->wastage_pct / 100) * $ratio, 4);
-                $order->consumptions()->create([
-                    'company_id' => $company->id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'warehouse_id' => $request->warehouse_id,
-                    'required_qty' => $requiredQty,
-                    'unit_id' => $item->unit_id,
-                ]);
-
-                if ($item->item_type === 'material' && $requiredQty > 0) {
-                    $reservationItems[] = [
-                        'product_variant_id' => $item->product_variant_id,
-                        'warehouse_id' => (int) $request->warehouse_id,
-                        'quantity' => $requiredQty,
-                    ];
-                }
-            }
-
-            foreach ($bom->operations as $op) {
-                $order->operations()->create([
-                    'company_id' => $company->id,
-                    'bom_operation_id' => $op->id,
-                    'sequence' => $op->sequence,
-                    'name' => $op->name,
-                    'work_center' => $op->work_center,
-                    'status' => 'pending',
-                ]);
-            }
-
-            if (! empty($reservationItems)) {
-                $this->reservationService->reserve($company, $order, $reservationItems, auth()->id());
-            }
+            $order = $this->orderFactory->create(
+                $company,
+                $bom,
+                (int) $request->warehouse_id,
+                (float) $request->planned_qty,
+                auth()->id(),
+                [
+                    'planned_start' => $request->planned_start,
+                    'planned_end' => $request->planned_end,
+                    'remarks' => $request->remarks,
+                ],
+            );
 
             return response()->json([
                 'data' => $order->load(['bom.productVariant.product', 'consumptions.productVariant.product', 'operations']),
                 'message' => 'Production Order created successfully',
             ], 201);
         });
+    }
+
+    #[Permissions('create_production_order', group: 'production_order', desc: 'Plan Sub-Assembly Orders')]
+    public function planSubassemblies(Request $request, Bom $bom)
+    {
+        $data = $request->validate([
+            'planned_qty' => ['required', 'numeric', 'min:0.0001'],
+            'warehouse_id' => ['required', 'exists:warehouses,id'],
+        ]);
+
+        $orders = DB::transaction(fn () => $this->subAssemblyService->planFromBom(
+            $bom,
+            (float) $data['planned_qty'],
+            (int) $data['warehouse_id'],
+            auth()->user()->company,
+            auth()->id(),
+        ));
+
+        return response()->json([
+            'data' => $orders->map->load(['bom.productVariant.product', 'consumptions.productVariant.product']),
+            'message' => $orders->isEmpty()
+                ? 'No sub-assembly orders needed — components are in stock or not manufactured.'
+                : $orders->count().' sub-assembly order(s) created.',
+        ], 201);
     }
 
     #[Permissions('show_production_order', group: 'production_order', desc: 'Show Production Order')]
@@ -219,6 +208,29 @@ class ProductionOrderController extends Controller
 
             return response()->json(['message' => $message, 'data' => $order]);
         });
+    }
+
+    #[Permissions('edit_production_order', group: 'production_order', desc: 'Reconcile Subcontract Bill')]
+    public function reconcileSubcontract(Request $request, ProductionOrder $productionOrder)
+    {
+        $data = $request->validate([
+            'actual_amount' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        abort_if($productionOrder->status !== 'completed', 422, 'Only completed orders can be reconciled.');
+        abort_if($this->glPostingService->subcontractAbsorbed($productionOrder) <= 0, 422, 'This order has no absorbed subcontract charge to reconcile.');
+        abort_if($this->glPostingService->subcontractReconciled($productionOrder), 422, 'This order has already been reconciled.');
+
+        $journal = DB::transaction(fn () => $this->glPostingService->postSubcontractReconciliation(
+            $productionOrder,
+            (float) $data['actual_amount'],
+            auth()->id(),
+        ));
+
+        return response()->json([
+            'message' => 'Subcontract bill reconciled.',
+            'data' => ['journal_id' => $journal->id],
+        ]);
     }
 
     #[Permissions('delete_production_order', group: 'production_order', desc: 'Cancel Production Order')]

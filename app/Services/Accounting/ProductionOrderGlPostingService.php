@@ -8,7 +8,9 @@ use App\Models\JournalItem;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use App\Models\ProductionOrder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Posts production-order journals that have no backing stock movement:
@@ -123,6 +125,99 @@ class ProductionOrderGlPostingService
         $wipId = $settings?->wip_account_id ?? $settings?->cogs_account_id;
 
         return (bool) ($settings?->subcontract_account_id && $wipId);
+    }
+
+    /**
+     * Standard subcontract charge already absorbed (accrued) for this order — the running
+     * credit balance posted by postConversion/postSubcontract on the accrual account.
+     */
+    public function subcontractAbsorbed(ProductionOrder $order): float
+    {
+        $settings = $this->settings($order);
+        if (! $settings?->subcontract_account_id) {
+            return 0.0;
+        }
+
+        return (float) JournalItem::query()
+            ->where('account_id', $settings->subcontract_account_id)
+            ->whereIn('journal_id', function ($q) use ($order) {
+                $q->select('id')->from('journals')
+                    ->where('reference_type', $order->getMorphClass())
+                    ->where('reference_id', $order->id);
+            })
+            ->sum('cr_amount');
+    }
+
+    public function subcontractReconciled(ProductionOrder $order): bool
+    {
+        return DB::table('journals')
+            ->where('reference_type', $order->getMorphClass())
+            ->where('reference_id', $order->id)
+            ->where('voucher_no', 'like', 'INV-JV-POSR'.$order->id.'%')
+            ->exists();
+    }
+
+    /**
+     * Clears the accrued subcontract charge against the actual vendor bill:
+     *   Subcontract Accrued Dr (absorbed) · Manufacturing Variance Dr/Cr (difference) · AP Cr (actual).
+     * Books the difference between standard absorbed and actual billed as a variance.
+     */
+    public function postSubcontractReconciliation(ProductionOrder $order, float $actual, int $userId): Journal
+    {
+        $settings = $this->settings($order);
+        $accrualId = $settings?->subcontract_account_id;
+        $apId = $settings?->supplier_account_id;
+        $varianceId = $settings?->manufacturing_variance_account_id ?? $settings?->stock_adjustment_account_id;
+
+        if (! $accrualId || ! $apId || ! $varianceId) {
+            throw ValidationException::withMessages([
+                'actual_amount' => __('Subcontract, supplier, or variance account is not configured.'),
+            ]);
+        }
+
+        $absorbed = round($this->subcontractAbsorbed($order), 2);
+        $actual = round($actual, 2);
+        $variance = round($actual - $absorbed, 2);
+
+        $order->loadMissing('fiscalYear');
+        $date = now()->toDateString();
+        $this->periodGuard->assertPostable($order->company_id, $order->fiscal_year_id, $date);
+
+        $yearCode = $order->fiscalYear?->year_code ?? '';
+        $lines = [
+            ['account_id' => $accrualId, 'dr_amount' => $absorbed, 'cr_amount' => 0],
+            ['account_id' => $apId, 'dr_amount' => 0, 'cr_amount' => $actual],
+        ];
+
+        if ($variance > 0) {
+            $lines[] = ['account_id' => $varianceId, 'dr_amount' => $variance, 'cr_amount' => 0];
+        } elseif ($variance < 0) {
+            $lines[] = ['account_id' => $varianceId, 'dr_amount' => 0, 'cr_amount' => abs($variance)];
+        }
+
+        $journal = Journal::withoutGlobalScopes()->create([
+            'company_id' => $order->company_id,
+            'fiscal_year_id' => $order->fiscal_year_id,
+            'type' => JournalTypeEnum::JOURNAL_VOUCHER,
+            'reference_type' => $order->getMorphClass(),
+            'reference_id' => $order->id,
+            'voucher_no' => 'INV-JV-POSR'.$order->id.($yearCode ? '/'.$yearCode : ''),
+            'reference_no' => 'PO-'.$order->order_no,
+            'date' => $date,
+            'remarks' => __('Production Order :no — subcontract bill reconciliation', ['no' => $order->order_no]),
+            'create_user_id' => $userId,
+            'approve_user_id' => $userId,
+            'approved_at' => now(),
+            'status' => StatusEnum::APPROVED,
+        ]);
+
+        foreach ($lines as $line) {
+            JournalItem::create(['journal_id' => $journal->id, ...$line]);
+        }
+
+        $this->balanceGuard->assertBalanced($journal);
+
+        return $journal;
     }
 
     /**

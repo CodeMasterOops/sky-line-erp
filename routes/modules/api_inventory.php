@@ -116,9 +116,11 @@ Route::prefix('inventory-report')->as('inventory-report.')->controller(Inventory
 });
 
 // Production Orders
+Route::post('production-order/plan-subassemblies/{bom}', [ProductionOrderController::class, 'planSubassemblies'])->name('production-order.plan-subassemblies');
 Route::post('production-order/{productionOrder}/start', [ProductionOrderController::class, 'start'])->name('production-order.start');
 Route::post('production-order/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->name('production-order.complete');
 Route::post('production-order/{productionOrder}/cancel', [ProductionOrderController::class, 'cancel'])->name('production-order.cancel');
+Route::post('production-order/{productionOrder}/reconcile-subcontract', [ProductionOrderController::class, 'reconcileSubcontract'])->name('production-order.reconcile-subcontract');
 Route::post('production-order/{productionOrder}/operations/{operation}/start', [ProductionOrderController::class, 'startOperation'])->name('production-order.operation.start');
 Route::post('production-order/{productionOrder}/operations/{operation}/complete', [ProductionOrderController::class, 'completeOperation'])->name('production-order.operation.complete');
 Route::post('production-order/{productionOrder}/operations/{operation}/skip', [ProductionOrderController::class, 'skipOperation'])->name('production-order.operation.skip');

@@ -44,6 +44,10 @@ export const useBomStore = defineStore('bom', {
             return apiAdmin(`${apiUrl}/where-used/${variantId}`)
                 .then((res) => res.data.data);
         },
+        planSubassemblies(bomId, { planned_qty, warehouse_id }) {
+            return apiAdmin(`production-order/plan-subassemblies/${bomId}`, 'post', { planned_qty, warehouse_id })
+                .then((res) => res.data);
+        },
         storeBom(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)
                 .then((res) => {
