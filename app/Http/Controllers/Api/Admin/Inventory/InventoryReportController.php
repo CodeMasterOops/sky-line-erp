@@ -6,11 +6,23 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Services\Inventory\MrpPlanningService;
 use App\Services\Inventory\InventoryReportService;
 
 class InventoryReportController extends Controller
 {
-    public function __construct(private InventoryReportService $reportService) {}
+    public function __construct(
+        private InventoryReportService $reportService,
+        private MrpPlanningService $mrpService,
+    ) {}
+
+    #[Permissions('inventory_production_variance_report', group: 'inventory_report', desc: 'MRP Planning')]
+    public function mrpPlan(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->mrpService->plan(auth('admin')->user()->company_id),
+        ]);
+    }
 
     #[Permissions('inventory_stock_movement_report', group: 'inventory_report', desc: 'Stock Movement Report')]
     public function stockMovement(Request $request): JsonResponse

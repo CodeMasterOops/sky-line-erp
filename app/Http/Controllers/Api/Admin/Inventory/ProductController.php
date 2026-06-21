@@ -66,6 +66,10 @@ class ProductController extends Controller
             $query->where('is_batch_tracked', true);
         }
 
+        if ($request->boolean('with_stock')) {
+            $query->withSum('stocks as stock_qty', 'quantity');
+        }
+
         if ($barcode !== '') {
             $query->where(function ($sub) use ($barcode) {
                 $sub->where('barcode', $barcode)

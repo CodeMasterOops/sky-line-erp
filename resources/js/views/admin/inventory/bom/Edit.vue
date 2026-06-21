@@ -68,6 +68,48 @@
                         />
                         <label class="form-check-label" for="edit_bom_is_active">Active</label>
                     </div>
+                    <div class="form-check">
+                        <input
+                            v-model="form.is_backflush"
+                            type="checkbox"
+                            class="form-check-input"
+                            id="edit_bom_is_backflush"
+                        />
+                        <label class="form-check-label" for="edit_bom_is_backflush" title="Auto-consume materials at standard on completion">
+                            Backflush materials
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input
+                            v-model="form.is_subcontracted"
+                            type="checkbox"
+                            class="form-check-input"
+                            id="edit_bom_is_subcontracted"
+                        />
+                        <label class="form-check-label" for="edit_bom_is_subcontracted" title="Output is produced by an external vendor for a service charge">
+                            Subcontracted
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Subcontracting -->
+                <div v-if="form.is_subcontracted" class="col-12">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <VInput
+                                v-model="form.subcontract_charge"
+                                input-type="number"
+                                label="Subcontract charge / unit"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Subcontractor</label>
+                            <select v-model="form.subcontractor_party_id" class="form-select">
+                                <option :value="null">Select vendor…</option>
+                                <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Materials -->
@@ -175,6 +217,7 @@ import VModal from '@/components/base/VModal.vue';
 import VInput from '@/components/base/VInput.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import { useBomStore } from '@/stores/admin/inventory/bom.js';
+import { usePartyStore } from '@/stores/admin/party.js';
 import { useYup } from '@/helpers/yup.js';
 import { toast } from '@/helpers/toast.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -183,9 +226,21 @@ const bomId = defineModel('bomId');
 const emit = defineEmits(['saved']);
 
 const bomStore = useBomStore();
+const partyStore = usePartyStore();
 const { bom } = storeToRefs(bomStore);
 const isSubmitting = ref(false);
 const outputProductName = ref('');
+const suppliers = ref([]);
+
+async function loadSuppliers() {
+    if (suppliers.value.length) { return; }
+    try {
+        await partyStore.getParties({ filter: { type: 'supplier', limit: 200 } });
+        suppliers.value = partyStore.parties.data ?? [];
+    } catch {
+        suppliers.value = [];
+    }
+}
 
 const initialState = () => ({
     name: '',
@@ -193,6 +248,10 @@ const initialState = () => ({
     output_qty: 1,
     is_active: true,
     is_default: false,
+    is_backflush: false,
+    is_subcontracted: false,
+    subcontract_charge: 0,
+    subcontractor_party_id: null,
     remarks: '',
     items: [],
 });
@@ -209,6 +268,7 @@ const { errors, validateField, validateForm } = useYup(form, validations);
 
 watch(() => bomId.value, (id) => {
     if (!id) { return; }
+    loadSuppliers();
     bomStore.getBom(id).then(() => {
         populateForm(bom.value.data);
     });
@@ -224,6 +284,10 @@ function populateForm(data) {
         output_qty: data.output_qty ?? 1,
         is_active: data.is_active ?? true,
         is_default: data.is_default ?? false,
+        is_backflush: data.is_backflush ?? false,
+        is_subcontracted: data.is_subcontracted ?? false,
+        subcontract_charge: data.subcontract_charge ?? 0,
+        subcontractor_party_id: data.subcontractor_party_id ?? null,
         remarks: data.remarks ?? '',
         items: (data.items ?? []).map(i => ({
             product_variant_id: i.product_variant_id,

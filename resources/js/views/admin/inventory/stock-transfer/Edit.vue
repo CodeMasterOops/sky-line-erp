@@ -56,6 +56,7 @@
                                 label="Product"
                                 required
                                 physical-only
+                                show-stock
                                 :disabled="!form.to_warehouse_id"
                                 @select="onVariantSelected"
                             />

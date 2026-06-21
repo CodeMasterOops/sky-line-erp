@@ -7,9 +7,12 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Inventory\BomExplosionService;
 
 class BomController extends Controller
 {
+    public function __construct(private BomExplosionService $explosionService) {}
+
     #[Permissions('list_bom', group: 'bom', desc: 'List BOMs')]
     public function index(Request $request)
     {
@@ -44,6 +47,10 @@ class BomController extends Controller
             'output_unit_id' => 'nullable|exists:units,id',
             'is_active' => 'boolean',
             'is_default' => 'boolean',
+            'is_backflush' => 'boolean',
+            'is_subcontracted' => 'boolean',
+            'subcontract_charge' => 'nullable|numeric|min:0',
+            'subcontractor_party_id' => 'nullable|exists:parties,id',
             'remarks' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_variant_id' => 'required|exists:product_variants,id',
@@ -96,6 +103,10 @@ class BomController extends Controller
             'output_unit_id' => 'nullable|exists:units,id',
             'is_active' => 'boolean',
             'is_default' => 'boolean',
+            'is_backflush' => 'boolean',
+            'is_subcontracted' => 'boolean',
+            'subcontract_charge' => 'nullable|numeric|min:0',
+            'subcontractor_party_id' => 'nullable|exists:parties,id',
             'remarks' => 'nullable|string',
             'items' => 'sometimes|array|min:1',
             'items.*.product_variant_id' => 'required|exists:product_variants,id',
@@ -139,5 +150,23 @@ class BomController extends Controller
         $bom->delete();
 
         return response()->json(['message' => 'BOM deleted successfully']);
+    }
+
+    #[Permissions('show_bom', group: 'bom', desc: 'Explode BOM')]
+    public function explode(Request $request, Bom $bom)
+    {
+        $qty = max((float) $request->input('qty', $bom->output_qty), 0.0001);
+
+        return response()->json([
+            'data' => $this->explosionService->explode($bom, $qty),
+        ]);
+    }
+
+    #[Permissions('list_bom', group: 'bom', desc: 'Where-used inquiry')]
+    public function whereUsed(int $variant)
+    {
+        return response()->json([
+            'data' => $this->explosionService->whereUsed($variant),
+        ]);
     }
 }

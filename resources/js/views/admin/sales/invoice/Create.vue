@@ -60,6 +60,7 @@
                                 ref="productSearchRef"
                                 label="Product"
                                 required
+                                show-stock
                                 @select="onVariantSelected"
                             />
                         </div>

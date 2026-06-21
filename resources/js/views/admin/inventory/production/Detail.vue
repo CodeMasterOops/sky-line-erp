@@ -58,6 +58,7 @@
                                     <th style="width:50px">Seq</th>
                                     <th>Operation</th>
                                     <th style="width:140px">Work Center</th>
+                                    <th style="width:130px" class="text-end">Std / Actual (min)</th>
                                     <th style="width:100px">Status</th>
                                     <th style="width:150px">Actions</th>
                                 </tr>
@@ -67,6 +68,13 @@
                                     <td>{{ op.sequence }}</td>
                                     <td>{{ op.name }}</td>
                                     <td>{{ op.work_center || '—' }}</td>
+                                    <td class="text-end">
+                                        {{ op.standard_minutes ?? '—' }}
+                                        <span class="text-muted">/</span>
+                                        <span :class="overStandard(op) ? 'text-danger fw-semibold' : ''">
+                                            {{ op.actual_minutes ?? '—' }}
+                                        </span>
+                                    </td>
                                     <td>
                                         <span class="badge" :class="opBadge(op.status)">
                                             {{ op.status?.replace('_', ' ') }}
@@ -253,6 +261,12 @@ function opBadge(status) {
         skipped:     'bg-light text-muted border',
     };
     return map[status] ?? 'bg-info';
+}
+
+function overStandard(op) {
+    return op.standard_minutes != null
+        && op.actual_minutes != null
+        && op.actual_minutes > op.standard_minutes;
 }
 
 watch(() => orderId.value, (id) => {

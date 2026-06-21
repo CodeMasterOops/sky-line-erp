@@ -23,6 +23,10 @@ class Bom extends Model
         'output_unit_id',
         'is_active',
         'is_default',
+        'is_backflush',
+        'is_subcontracted',
+        'subcontract_charge',
+        'subcontractor_party_id',
         'remarks',
     ];
 
@@ -30,11 +34,19 @@ class Bom extends Model
         'output_qty' => 'float',
         'is_active' => 'boolean',
         'is_default' => 'boolean',
+        'is_backflush' => 'boolean',
+        'is_subcontracted' => 'boolean',
+        'subcontract_charge' => 'float',
     ];
 
     public function productVariant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class);
+    }
+
+    public function subcontractor(): BelongsTo
+    {
+        return $this->belongsTo(Party::class, 'subcontractor_party_id');
     }
 
     public function outputUnit(): BelongsTo

@@ -36,6 +36,14 @@ export const useBomStore = defineStore('bom', {
                 .catch((err) => { showErrors(err); })
                 .finally(() => { this.bom.loading = false; });
         },
+        explodeBom(id, qty = 1) {
+            return apiAdmin(`${apiUrl}/${id}/explode?qty=${qty}`)
+                .then((res) => res.data.data);
+        },
+        whereUsed(variantId) {
+            return apiAdmin(`${apiUrl}/where-used/${variantId}`)
+                .then((res) => res.data.data);
+        },
         storeBom(form) {
             return apiAdmin(`${apiUrl}`, 'post', form)
                 .then((res) => {

@@ -71,6 +71,7 @@
                                 label="Product"
                                 required
                                 physical-only
+                                show-stock
                                 @select="onVariantSelected"
                             />
                             <small class="text-muted">

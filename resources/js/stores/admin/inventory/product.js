@@ -39,7 +39,7 @@ export const useProductStore = defineStore('product', {
         /**
          * Paginated variant search (name, product code, SKU). Does not cache the full catalog.
          */
-        searchProductVariants({ q = '', barcode = '', page = 1, limit = 20, physical_only = 0, batch_tracked_only = 0, category_id = null } = {}) {
+        searchProductVariants({ q = '', barcode = '', page = 1, limit = 20, physical_only = 0, batch_tracked_only = 0, category_id = null, with_stock = 0 } = {}) {
             const params = new URLSearchParams();
             if (barcode) {
                 params.set('barcode', barcode);
@@ -52,6 +52,9 @@ export const useProductStore = defineStore('product', {
             }
             if (batch_tracked_only) {
                 params.set('batch_tracked_only', '1');
+            }
+            if (with_stock) {
+                params.set('with_stock', '1');
             }
             if (category_id) {
                 params.set('category_id', String(category_id));

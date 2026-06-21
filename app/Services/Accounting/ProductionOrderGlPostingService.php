@@ -87,6 +87,45 @@ class ProductionOrderGlPostingService
     }
 
     /**
+     * WIP Dr / Subcontract Charges Accrued Cr — absorbs the standard subcontract service
+     * charge into WIP. Returns null when the WIP or subcontract accounts are not configured.
+     */
+    public function postSubcontract(ProductionOrder $order, float $charge, int $userId): ?Journal
+    {
+        $settings = $this->settings($order);
+        $wipId = $settings?->wip_account_id ?? $settings?->cogs_account_id;
+        $subcontractId = $settings?->subcontract_account_id;
+
+        if (! $wipId || ! $subcontractId) {
+            Log::warning('Subcontract charge not absorbed: WIP or subcontract account missing.', [
+                'production_order_id' => $order->id,
+                'company_id' => $order->company_id,
+                'subcontract_charge' => round($charge, 2),
+            ]);
+
+            return null;
+        }
+
+        return $this->postTwoLine(
+            $order,
+            $charge,
+            $wipId,
+            $subcontractId,
+            'POSC',
+            __('Production Order :no — subcontract charge absorbed', ['no' => $order->order_no]),
+            $userId,
+        );
+    }
+
+    public function subcontractAccountConfigured(int $companyId): bool
+    {
+        $settings = AccountSetting::withoutGlobalScopes()->where('company_id', $companyId)->first();
+        $wipId = $settings?->wip_account_id ?? $settings?->cogs_account_id;
+
+        return (bool) ($settings?->subcontract_account_id && $wipId);
+    }
+
+    /**
      * Whether scrap can be expensed for this company — used by the caller to decide the
      * cost basis (good units only vs all units made) before posting.
      */

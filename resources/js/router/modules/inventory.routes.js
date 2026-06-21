@@ -218,6 +218,12 @@ export default [
         component: () => import("@/views/admin/inventory/reports/ProductionVarianceReport.vue"),
     },
     {
+        path: "mrp-plan-report",
+        name: "admin.mrp-plan-report",
+        meta: {pageTitle: "Material Requirements Plan"},
+        component: () => import("@/views/admin/inventory/reports/MrpPlanReport.vue"),
+    },
+    {
         path: "serial-numbers",
         name: "admin.serial-numbers",
         meta: {pageTitle: "Serial / Lot Numbers"},

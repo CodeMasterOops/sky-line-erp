@@ -43,6 +43,12 @@ class ProductionOrderCompletionService
         $bom = $productionOrder->bom()->with(['productVariant.product', 'items'])->firstOrFail();
         $consumptions = $productionOrder->consumptions()->with('productVariant.product')->get();
 
+        // Backflush: ignore any submitted consumptions and derive material usage from the
+        // BOM at standard, scaled from planned to the units actually made this batch.
+        if ($bom->is_backflush) {
+            $data['consumptions'] = $this->backflushConsumptions($productionOrder, $consumptions, $data);
+        }
+
         $totalMaterialCost = 0.0;
 
         foreach ($data['consumptions'] ?? [] as $consumptionData) {
@@ -130,7 +136,17 @@ class ProductionOrderCompletionService
         $conversionJournal = $this->glPostingService->postConversion($productionOrder, $conversionCost, $userId);
         $absorbedConversion = $conversionJournal !== null ? $conversionCost : 0.0;
 
-        $totalCost = $totalMaterialCost + $absorbedConversion;
+        // Absorb the standard subcontract service charge (charge per output × units made) into
+        // WIP, same accounting shape as conversion but credited to the subcontract accrual.
+        $subcontractCost = $bom->is_subcontracted
+            ? round((float) $bom->subcontract_charge * $costUnits, 4)
+            : 0.0;
+        $subcontractJournal = $subcontractCost > 0
+            ? $this->glPostingService->postSubcontract($productionOrder, $subcontractCost, $userId)
+            : null;
+        $absorbedSubcontract = $subcontractJournal !== null ? $subcontractCost : 0.0;
+
+        $totalCost = $totalMaterialCost + $absorbedConversion + $absorbedSubcontract;
         $finishedGoodsUnitCost = round($totalCost / $costUnits, 4);
 
         if ($expenseScrap) {
@@ -168,6 +184,31 @@ class ProductionOrderCompletionService
         ]);
 
         return $productionOrder->fresh();
+    }
+
+    /**
+     * Build the consumption payload for a backflush BOM: each physical material consumption
+     * is auto-consumed at its standard required quantity, scaled from the planned quantity to
+     * the units made this batch (good + scrap).
+     *
+     * @param  \Illuminate\Support\Collection<int, ProductionOrderConsumption>  $consumptions
+     * @param  array<string, mixed>  $data
+     * @return array<int, array{id: int, consumed_qty: float}>
+     */
+    private function backflushConsumptions(ProductionOrder $order, $consumptions, array $data): array
+    {
+        $plannedQty = (float) $order->planned_qty ?: 1.0;
+        $unitsMade = (float) $data['produced_qty'] + max(0.0, (float) ($data['scrap_qty'] ?? 0));
+        $ratio = $unitsMade / $plannedQty;
+
+        return $consumptions
+            ->filter(fn (ProductionOrderConsumption $c) => ! $c->productVariant->isService())
+            ->map(fn (ProductionOrderConsumption $c) => [
+                'id' => $c->id,
+                'consumed_qty' => round((float) $c->required_qty * $ratio, 4),
+            ])
+            ->values()
+            ->all();
     }
 
     /**

@@ -68,6 +68,46 @@
                     </table>
                 </div>
 
+                <!-- Multi-level material requirements -->
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="mb-0">Material Requirements</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="small text-muted mb-0">For qty</label>
+                        <input v-model.number="explodeQty" type="number" min="0.0001" step="1"
+                            class="form-control form-control-sm" style="width:90px"
+                            @change="loadExplosion" />
+                    </div>
+                </div>
+                <div class="table-responsive mb-4">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Raw Material (leaf)</th>
+                                <th style="width:120px">SKU</th>
+                                <th style="width:140px" class="text-end">Total Required</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="explosionLoading">
+                                <td colspan="3" class="text-center py-3">
+                                    <div class="spinner-border spinner-border-sm text-primary"></div>
+                                </td>
+                            </tr>
+                            <tr v-else-if="!explodedMaterials.length">
+                                <td colspan="3" class="text-center text-muted py-3">No materials.</td>
+                            </tr>
+                            <tr v-for="m in explodedMaterials" :key="m.variant_id">
+                                <td>{{ m.name }}</td>
+                                <td>{{ m.sku || '—' }}</td>
+                                <td class="text-end">{{ m.total_qty }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="small text-muted mb-0">
+                        Sub-assemblies are exploded to their leaf raw materials.
+                    </p>
+                </div>
+
                 <!-- Operations header -->
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <h6 class="mb-0">Operations</h6>
@@ -226,12 +266,33 @@ const sortedOperations = computed(() => {
     return [...ops].sort((a, b) => a.sequence - b.sequence);
 });
 
+const explodeQty = ref(1);
+const explodedMaterials = ref([]);
+const explosionLoading = ref(false);
+
+async function loadExplosion() {
+    if (!bomId.value || !explodeQty.value || explodeQty.value <= 0) {
+        return;
+    }
+    explosionLoading.value = true;
+    try {
+        const data = await bomStore.explodeBom(bomId.value, explodeQty.value);
+        explodedMaterials.value = data?.materials ?? [];
+    } catch {
+        explodedMaterials.value = [];
+    } finally {
+        explosionLoading.value = false;
+    }
+}
+
 watch(() => bomId.value, (id) => {
     if (!id) {
         cancelOperation();
+        explodedMaterials.value = [];
         return;
     }
-    bomStore.getBom(id);
+    explodeQty.value = 1;
+    bomStore.getBom(id).then(() => loadExplosion());
 });
 
 function openAddOperation() {

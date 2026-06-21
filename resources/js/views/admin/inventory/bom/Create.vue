@@ -80,6 +80,48 @@
                         />
                         <label class="form-check-label" for="bom_is_active">Active</label>
                     </div>
+                    <div class="form-check">
+                        <input
+                            v-model="form.is_backflush"
+                            type="checkbox"
+                            class="form-check-input"
+                            id="bom_is_backflush"
+                        />
+                        <label class="form-check-label" for="bom_is_backflush" title="Auto-consume materials at standard on completion">
+                            Backflush materials
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input
+                            v-model="form.is_subcontracted"
+                            type="checkbox"
+                            class="form-check-input"
+                            id="bom_is_subcontracted"
+                        />
+                        <label class="form-check-label" for="bom_is_subcontracted" title="Output is produced by an external vendor for a service charge">
+                            Subcontracted
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Subcontracting -->
+                <div v-if="form.is_subcontracted" class="col-12">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <VInput
+                                v-model="form.subcontract_charge"
+                                input-type="number"
+                                label="Subcontract charge / unit"
+                            />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Subcontractor</label>
+                            <select v-model="form.subcontractor_party_id" class="form-select">
+                                <option :value="null">Select vendor…</option>
+                                <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Materials -->
@@ -180,12 +222,13 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import { object, string, number, array } from 'yup';
 import VModal from '@/components/base/VModal.vue';
 import VInput from '@/components/base/VInput.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import { useBomStore } from '@/stores/admin/inventory/bom.js';
+import { usePartyStore } from '@/stores/admin/party.js';
 import { useYup } from '@/helpers/yup.js';
 import { toast } from '@/helpers/toast.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -194,8 +237,25 @@ const createModalOpened = defineModel('createModalOpened');
 const emit = defineEmits(['saved']);
 
 const bomStore = useBomStore();
+const partyStore = usePartyStore();
 const isSubmitting = ref(false);
 const selectedOutputVariant = ref(null);
+const suppliers = ref([]);
+
+async function loadSuppliers() {
+    try {
+        await partyStore.getParties({ filter: { type: 'supplier', limit: 200 } });
+        suppliers.value = partyStore.parties.data ?? [];
+    } catch {
+        suppliers.value = [];
+    }
+}
+
+watch(createModalOpened, (open) => {
+    if (open && !suppliers.value.length) {
+        loadSuppliers();
+    }
+});
 
 const initialState = () => ({
     product_variant_id: null,
@@ -204,6 +264,10 @@ const initialState = () => ({
     output_qty: 1,
     is_active: true,
     is_default: false,
+    is_backflush: false,
+    is_subcontracted: false,
+    subcontract_charge: 0,
+    subcontractor_party_id: null,
     remarks: '',
     items: [],
 });

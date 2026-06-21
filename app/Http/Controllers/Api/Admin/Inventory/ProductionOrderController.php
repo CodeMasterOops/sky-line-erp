@@ -113,7 +113,7 @@ class ProductionOrderController extends Controller
                 'consumptions.batch',
                 'consumptions.unit',
                 'warehouse',
-                'operations',
+                'operations.bomOperation:id,duration_minutes',
                 'createUser:id,name',
                 'approveUser:id,name',
             ]),

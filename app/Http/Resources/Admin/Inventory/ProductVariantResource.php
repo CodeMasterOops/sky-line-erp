@@ -36,6 +36,10 @@ class ProductVariantResource extends JsonResource
             'is_default' => $this->is_default ?? false,
             'is_serialized' => $this->is_serialized ?? false,
             'is_batch_tracked' => $this->is_batch_tracked ?? false,
+            'stock' => $this->when(
+                array_key_exists('stock_qty', $this->resource->getAttributes()),
+                fn () => (float) ($this->stock_qty ?? 0),
+            ),
             'variant_options' => $this->whenLoaded('variantOptions', function () {
                 return $this->formatVariantOptions();
             }),

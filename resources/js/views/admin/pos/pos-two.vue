@@ -61,6 +61,7 @@
                 <ProductVariantSearchInput
                   ref="productSearch"
                   physical-only
+                  show-stock
                   placeholder="Search product by name, SKU or scan barcode — Enter to add  [F2]"
                   :category-id="selectedCategoryId"
                   @select="onVariantSelected"

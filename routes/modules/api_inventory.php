@@ -94,6 +94,8 @@ Route::post('batch/{batch}/write-off', [BatchController::class, 'writeOff'])->na
 Route::apiResource('batch', BatchController::class)->except(['destroy']);
 
 // Bill of Materials
+Route::get('bom/where-used/{variant}', [BomController::class, 'whereUsed'])->name('bom.where-used');
+Route::get('bom/{bom}/explode', [BomController::class, 'explode'])->name('bom.explode');
 Route::apiResource('bom', BomController::class);
 
 // inventory reports
@@ -107,6 +109,7 @@ Route::prefix('inventory-report')->as('inventory-report.')->controller(Inventory
     Route::get('stock-opening', 'stockOpening')->name('stock-opening');
     Route::get('inventory-summary', 'inventorySummary')->name('inventory-summary');
     Route::get('production-variance', 'productionVariance')->name('production-variance');
+    Route::get('mrp-plan', 'mrpPlan')->name('mrp-plan');
     Route::get('batch-stock', 'batchStock')->name('batch-stock');
     Route::get('batch-traceability', 'batchTraceability')->name('batch-traceability');
 });
