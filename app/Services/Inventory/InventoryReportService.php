@@ -837,6 +837,45 @@ class InventoryReportService
         ];
     }
 
+    /**
+     * Pending/in-progress operation load per work centre across active production orders.
+     *
+     * @return array{rows: list<array<string, mixed>>, summary: array<string, mixed>}
+     */
+    public function workCenterLoad(Request $request): array
+    {
+        $companyId = auth('admin')->user()->company_id;
+
+        $rows = DB::table('production_order_operations as poo')
+            ->join('production_orders as po', 'po.id', '=', 'poo.production_order_id')
+            ->leftJoin('bom_operations as bo', 'bo.id', '=', 'poo.bom_operation_id')
+            ->where('poo.company_id', $companyId)
+            ->whereIn('poo.status', ['pending', 'in_progress'])
+            ->whereIn('po.status', ['draft', 'in_progress'])
+            ->whereNull('po.deleted_at')
+            ->groupBy('poo.work_center')
+            ->selectRaw("COALESCE(NULLIF(poo.work_center, ''), 'Unassigned') as work_center")
+            ->selectRaw('COUNT(*) as operation_count')
+            ->selectRaw('COALESCE(SUM(bo.duration_minutes), 0) as total_minutes')
+            ->orderByDesc('total_minutes')
+            ->get()
+            ->map(fn ($r) => [
+                'work_center' => $r->work_center,
+                'operation_count' => (int) $r->operation_count,
+                'total_minutes' => (int) $r->total_minutes,
+            ])
+            ->values();
+
+        return [
+            'rows' => $rows->all(),
+            'summary' => [
+                'work_centers' => $rows->count(),
+                'total_operations' => (int) $rows->sum('operation_count'),
+                'total_minutes' => (int) $rows->sum('total_minutes'),
+            ],
+        ];
+    }
+
     public function batchStock(Request $request): array
     {
         $companyId = auth('admin')->user()->company_id;

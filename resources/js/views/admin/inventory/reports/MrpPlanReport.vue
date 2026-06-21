@@ -1,4 +1,32 @@
 <template>
+    <div class="card mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0">Work Centre Load</h5>
+            <span class="text-muted small">Pending minutes on active production orders</span>
+        </div>
+        <div class="card-body">
+            <div v-if="loadRows.length" class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Work Centre</th>
+                            <th style="width:140px" class="text-end">Operations</th>
+                            <th style="width:160px" class="text-end">Load (minutes)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="w in loadRows" :key="w.work_center">
+                            <td>{{ w.work_center }}</td>
+                            <td class="text-end">{{ w.operation_count }}</td>
+                            <td class="text-end fw-semibold">{{ w.total_minutes }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p v-else class="text-muted small mb-0">No pending operations.</p>
+        </div>
+    </div>
+
     <div class="card">
         <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div>
@@ -90,13 +118,18 @@ import showErrors from '@/helpers/showErrors.js';
 const loading = ref(false);
 const suggestions = ref([]);
 const generatedAt = ref('');
+const loadRows = ref([]);
 
 const loadPlan = async () => {
     loading.value = true;
     try {
-        const res = await apiAdmin('inventory-report/mrp-plan', 'get');
-        suggestions.value = res.data.data?.suggestions ?? [];
-        generatedAt.value = res.data.data?.generated_at ?? '';
+        const [planRes, loadRes] = await Promise.all([
+            apiAdmin('inventory-report/mrp-plan', 'get'),
+            apiAdmin('inventory-report/work-center-load', 'get'),
+        ]);
+        suggestions.value = planRes.data.data?.suggestions ?? [];
+        generatedAt.value = planRes.data.data?.generated_at ?? '';
+        loadRows.value = loadRes.data.data?.rows ?? [];
     } catch (e) {
         showErrors(e);
     } finally {

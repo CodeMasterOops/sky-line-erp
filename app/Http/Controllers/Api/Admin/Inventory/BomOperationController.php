@@ -26,6 +26,7 @@ class BomOperationController extends Controller
             'name' => 'required|string|max:200',
             'work_center' => 'nullable|string|max:200',
             'duration_minutes' => 'nullable|integer|min:1',
+            'cost_per_hour' => 'nullable|numeric|min:0',
             'remarks' => 'nullable|string|max:500',
         ]);
 
@@ -54,6 +55,7 @@ class BomOperationController extends Controller
             'name' => 'sometimes|string|max:200',
             'work_center' => 'nullable|string|max:200',
             'duration_minutes' => 'nullable|integer|min:1',
+            'cost_per_hour' => 'nullable|numeric|min:0',
             'remarks' => 'nullable|string|max:500',
         ]);
 

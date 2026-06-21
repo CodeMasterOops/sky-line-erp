@@ -19,12 +19,14 @@ class BomOperation extends Model
         'name',
         'work_center',
         'duration_minutes',
+        'cost_per_hour',
         'remarks',
     ];
 
     protected $casts = [
         'sequence' => 'integer',
         'duration_minutes' => 'integer',
+        'cost_per_hour' => 'float',
     ];
 
     public function bom(): BelongsTo

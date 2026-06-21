@@ -2,15 +2,20 @@
 
 use App\Models\Bom;
 use App\Models\User;
+use App\Models\Party;
 use App\Models\Stock;
 use App\Models\BomItem;
 use App\Models\Company;
 use App\Models\Product;
+use App\Enums\StatusEnum;
 use App\Models\Warehouse;
 use App\Models\FiscalYear;
+use App\Models\SalesOrder;
 use App\Enums\UserTypeEnum;
+use App\Enums\PartyTypeEnum;
 use Laravel\Sanctum\Sanctum;
 use App\Models\ProductVariant;
+use App\Models\SalesOrderItem;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -137,6 +142,55 @@ it('excludes items at or above their minimum and items with no minimum', functio
     $ids = collect($response->json('data.suggestions'))->pluck('variant_id')->all();
     expect($ids)->not->toContain($healthy->id);
     expect($ids)->not->toContain($noMin->id);
+});
+
+function mrpSalesOrder(object $test, ProductVariant $variant, int $qty, string $status): void
+{
+    $party = Party::create([
+        'company_id' => $test->company->id, 'name' => 'Cust '.uniqid(),
+        'code' => 'C-'.uniqid(), 'type' => PartyTypeEnum::CUSTOMER,
+    ]);
+    $order = SalesOrder::create([
+        'company_id' => $test->company->id,
+        'fiscal_year_id' => $test->fiscalYear->id,
+        'party_id' => $party->id,
+        'order_no' => 'SO-'.uniqid(),
+        'order_date' => now()->toDateString(),
+        'create_user_id' => $test->user->id,
+        'status' => $status,
+    ]);
+    SalesOrderItem::create([
+        'sales_order_id' => $order->id,
+        'product_variant_id' => $variant->id,
+        'quantity' => $qty,
+    ]);
+}
+
+it('adds open sales-order demand on top of the minimum stock buffer', function () {
+    $gadget = mrpVariant($this, 'Gadget', 'GAD', 5);
+    mrpSetStock($this, $gadget, 8);              // above min on its own
+    mrpSalesOrder($this, $gadget, 10, StatusEnum::APPROVED->value); // demand 10
+
+    $response = $this->getJson('/api/admin/inventory-report/mrp-plan');
+    $suggestion = collect($response->json('data.suggestions'))->firstWhere('variant_id', $gadget->id);
+
+    // requirement = min 5 + demand 10 = 15; available 8 → shortfall 7
+    expect($suggestion)->not->toBeNull();
+    expect((float) $suggestion['open_demand'])->toBe(10.0);
+    expect((float) $suggestion['requirement'])->toBe(15.0);
+    expect((float) $suggestion['shortfall'])->toBe(7.0);
+});
+
+it('ignores draft sales orders as demand', function () {
+    $gizmo = mrpVariant($this, 'Gizmo', 'GIZ', 0);
+    mrpSetStock($this, $gizmo, 3);
+    mrpSalesOrder($this, $gizmo, 20, StatusEnum::DRAFT->value);
+
+    $response = $this->getJson('/api/admin/inventory-report/mrp-plan');
+    $ids = collect($response->json('data.suggestions'))->pluck('variant_id')->all();
+
+    // no min stock + only draft demand → not a candidate
+    expect($ids)->not->toContain($gizmo->id);
 });
 
 it('counts held stock as unavailable when measuring the shortfall', function () {

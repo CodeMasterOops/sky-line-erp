@@ -128,14 +128,15 @@
                                 <th style="width:60px">Seq</th>
                                 <th>Operation</th>
                                 <th style="width:150px">Work Center</th>
-                                <th style="width:130px">Duration (min)</th>
+                                <th style="width:120px">Duration (min)</th>
+                                <th style="width:110px">Rate / hr</th>
                                 <th>Remarks</th>
                                 <th style="width:80px">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="!sortedOperations.length">
-                                <td colspan="6" class="text-center text-muted py-3">
+                                <td colspan="7" class="text-center text-muted py-3">
                                     No operations defined.
                                 </td>
                             </tr>
@@ -144,6 +145,7 @@
                                 <td>{{ op.name }}</td>
                                 <td>{{ op.work_center || '—' }}</td>
                                 <td>{{ op.duration_minutes ?? '—' }}</td>
+                                <td>{{ op.cost_per_hour ? op.cost_per_hour : '—' }}</td>
                                 <td>{{ op.remarks || '—' }}</td>
                                 <td>
                                     <div class="d-flex gap-2">
@@ -207,7 +209,18 @@
                                     class="form-control form-control-sm"
                                 />
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Rate / hr</label>
+                                <input
+                                    v-model="opForm.cost_per_hour"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    class="form-control form-control-sm"
+                                    title="Work-centre labour rate; costed into finished goods"
+                                />
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Remarks</label>
                                 <input
                                     v-model="opForm.remarks"
@@ -256,6 +269,7 @@ const opInitialState = () => ({
     name: '',
     work_center: '',
     duration_minutes: null,
+    cost_per_hour: null,
     remarks: '',
 });
 
@@ -309,6 +323,7 @@ function openEditOperation(op) {
         name: op.name,
         work_center: op.work_center ?? '',
         duration_minutes: op.duration_minutes ?? null,
+        cost_per_hour: op.cost_per_hour ?? null,
         remarks: op.remarks ?? '',
     });
     showOperationForm.value = true;

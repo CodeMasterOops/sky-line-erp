@@ -24,6 +24,12 @@ class InventoryReportController extends Controller
         ]);
     }
 
+    #[Permissions('inventory_production_variance_report', group: 'inventory_report', desc: 'Work Centre Load')]
+    public function workCenterLoad(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->workCenterLoad($request)]);
+    }
+
     #[Permissions('inventory_stock_movement_report', group: 'inventory_report', desc: 'Stock Movement Report')]
     public function stockMovement(Request $request): JsonResponse
     {

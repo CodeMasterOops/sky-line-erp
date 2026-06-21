@@ -110,6 +110,7 @@ Route::prefix('inventory-report')->as('inventory-report.')->controller(Inventory
     Route::get('inventory-summary', 'inventorySummary')->name('inventory-summary');
     Route::get('production-variance', 'productionVariance')->name('production-variance');
     Route::get('mrp-plan', 'mrpPlan')->name('mrp-plan');
+    Route::get('work-center-load', 'workCenterLoad')->name('work-center-load');
     Route::get('batch-stock', 'batchStock')->name('batch-stock');
     Route::get('batch-traceability', 'batchTraceability')->name('batch-traceability');
 });

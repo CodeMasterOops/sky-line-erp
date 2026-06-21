@@ -40,7 +40,7 @@ class ProductionOrderCompletionService
         int $userId,
         bool $close = true,
     ): ProductionOrder {
-        $bom = $productionOrder->bom()->with(['productVariant.product', 'items'])->firstOrFail();
+        $bom = $productionOrder->bom()->with(['productVariant.product', 'items', 'operations'])->firstOrFail();
         $consumptions = $productionOrder->consumptions()->with('productVariant.product')->get();
 
         // Backflush: ignore any submitted consumptions and derive material usage from the
@@ -219,10 +219,18 @@ class ProductionOrderCompletionService
     private function standardConversionCost(Bom $bom, float $producedQty): float
     {
         $perOutput = 0.0;
+
         foreach ($bom->items as $item) {
             if (in_array($item->item_type, self::CONVERSION_ITEM_TYPES, true)) {
                 $perOutput += $item->effective_qty * (float) $item->standard_rate;
             }
+        }
+
+        // Routing labour: each operation's standard time × its work-centre rate, absorbed
+        // into WIP alongside the BOM-line labour/overhead above. Model labour in one place
+        // or the other to avoid double-counting.
+        foreach ($bom->operations as $operation) {
+            $perOutput += ((int) $operation->duration_minutes / 60) * (float) $operation->cost_per_hour;
         }
 
         $outputQty = (float) $bom->output_qty ?: 1.0;

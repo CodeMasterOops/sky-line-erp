@@ -2,16 +2,25 @@
 
 namespace App\Services\Inventory;
 
+use App\Enums\StatusEnum;
 use App\Enums\ProductTypeEnum;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Lightweight MRP: find items below their minimum stock level and propose how to
- * replenish each — a production order (with an exploded material-shortfall list) when
- * the item is manufactured, otherwise a purchase. Read-only; suggests, never commits.
+ * Lightweight MRP: for each physical item, net requirement = min-stock buffer + open sales
+ * demand, against available supply (on hand − held). Items short are proposed for production
+ * (with an exploded material-shortfall list) when manufactured, otherwise purchase. Read-only.
+ *
+ * Open sales demand = quantities on sales orders in 'approved' or 'in_transit' status (this
+ * codebase has no per-line fulfilment tracking, so committed-but-not-draft orders are "open").
  */
 class MrpPlanningService
 {
+    private const OPEN_SALES_STATUSES = [
+        StatusEnum::APPROVED->value,
+        StatusEnum::IN_TRANSIT->value,
+    ];
+
     public function __construct(private BomExplosionService $explosion) {}
 
     /**
@@ -20,22 +29,30 @@ class MrpPlanningService
     public function plan(int $companyId): array
     {
         $available = $this->availabilityMap($companyId);
+        $demand = $this->salesDemandMap($companyId);
         $suggestions = [];
 
-        foreach ($this->belowMinimum($companyId, $available) as $row) {
-            $variantId = (int) $row->variant_id;
+        foreach ($this->candidates($companyId, array_keys($demand)) as $variantId => $info) {
             $onHand = (float) ($available[$variantId] ?? 0);
-            $shortfall = round((float) $row->min_stock_level - $onHand, 4);
+            $openDemand = (float) ($demand[$variantId] ?? 0);
+            $requirement = round((float) $info['min_stock'] + $openDemand, 4);
+            $shortfall = round($requirement - $onHand, 4);
+
+            if ($shortfall <= 0) {
+                continue;
+            }
 
             $bom = $this->explosion->defaultBomFor($variantId);
 
             $suggestion = [
                 'variant_id' => $variantId,
-                'name' => $row->name,
-                'sku' => $row->sku ?? '',
-                'code' => $row->code ?? '',
+                'name' => $info['name'],
+                'sku' => $info['sku'],
+                'code' => $info['code'],
                 'on_hand' => $onHand,
-                'min_stock' => (float) $row->min_stock_level,
+                'min_stock' => (float) $info['min_stock'],
+                'open_demand' => $openDemand,
+                'requirement' => $requirement,
                 'shortfall' => $shortfall,
                 'action' => $bom ? 'produce' : 'purchase',
                 'bom_id' => $bom?->id,
@@ -87,12 +104,32 @@ class MrpPlanningService
     }
 
     /**
-     * Physical product variants whose available quantity is below the product's min stock level.
+     * Open sales-order demand per product variant.
      *
-     * @param  array<int, float>  $available
-     * @return \Illuminate\Support\Collection<int, object>
+     * @return array<int, float>
      */
-    private function belowMinimum(int $companyId, array $available)
+    private function salesDemandMap(int $companyId): array
+    {
+        return DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
+            ->where('so.company_id', $companyId)
+            ->whereIn('so.status', self::OPEN_SALES_STATUSES)
+            ->whereNull('so.deleted_at')
+            ->whereNull('soi.deleted_at')
+            ->groupBy('soi.product_variant_id')
+            ->selectRaw('soi.product_variant_id, SUM(soi.quantity) as demand')
+            ->pluck('demand', 'soi.product_variant_id')
+            ->map(fn ($v) => (float) $v)
+            ->all();
+    }
+
+    /**
+     * Physical variants that either carry a minimum stock level or have open sales demand.
+     *
+     * @param  array<int, int>  $demandVariantIds
+     * @return array<int, array{name: string, sku: string, code: string, min_stock: float}>
+     */
+    private function candidates(int $companyId, array $demandVariantIds): array
     {
         return DB::table('product_variants as pv')
             ->join('products as p', 'p.id', '=', 'pv.product_id')
@@ -100,10 +137,20 @@ class MrpPlanningService
             ->whereNull('pv.deleted_at')
             ->whereNull('p.deleted_at')
             ->where('p.product_type', ProductTypeEnum::PRODUCT->value)
-            ->where('p.min_stock_level', '>', 0)
+            ->where(function ($q) use ($demandVariantIds) {
+                $q->where('p.min_stock_level', '>', 0);
+                if ($demandVariantIds !== []) {
+                    $q->orWhereIn('pv.id', $demandVariantIds);
+                }
+            })
             ->select('pv.id as variant_id', 'pv.sku', 'p.name', 'p.code', 'p.min_stock_level')
             ->get()
-            ->filter(fn ($row) => ((float) ($available[(int) $row->variant_id] ?? 0)) < (float) $row->min_stock_level)
-            ->values();
+            ->mapWithKeys(fn ($row) => [(int) $row->variant_id => [
+                'name' => $row->name,
+                'sku' => $row->sku ?? '',
+                'code' => $row->code ?? '',
+                'min_stock' => (float) $row->min_stock_level,
+            ]])
+            ->all();
     }
 }
