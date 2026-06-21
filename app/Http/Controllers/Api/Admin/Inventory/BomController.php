@@ -50,6 +50,7 @@ class BomController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.0001',
             'items.*.unit_id' => 'nullable|exists:units,id',
             'items.*.item_type' => 'nullable|in:material,labour,overhead',
+            'items.*.standard_rate' => 'nullable|numeric|min:0',
             'items.*.wastage_pct' => 'nullable|numeric|min:0|max:100',
             'items.*.remarks' => 'nullable|string',
         ]);
@@ -101,6 +102,7 @@ class BomController extends Controller
             'items.*.quantity' => 'required|numeric|min:0.0001',
             'items.*.unit_id' => 'nullable|exists:units,id',
             'items.*.item_type' => 'nullable|in:material,labour,overhead',
+            'items.*.standard_rate' => 'nullable|numeric|min:0',
             'items.*.wastage_pct' => 'nullable|numeric|min:0|max:100',
             'items.*.remarks' => 'nullable|string',
         ]);

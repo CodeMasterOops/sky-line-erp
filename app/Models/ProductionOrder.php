@@ -21,6 +21,7 @@ class ProductionOrder extends Model
         'order_no',
         'planned_qty',
         'produced_qty',
+        'scrapped_qty',
         'status',
         'planned_start',
         'planned_end',
@@ -36,6 +37,7 @@ class ProductionOrder extends Model
     protected $casts = [
         'planned_qty' => 'float',
         'produced_qty' => 'float',
+        'scrapped_qty' => 'float',
         'planned_start' => 'date:Y-m-d',
         'planned_end' => 'date:Y-m-d',
         'actual_start' => 'datetime',

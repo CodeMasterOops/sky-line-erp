@@ -45,6 +45,7 @@ class AccountSetting extends Model
         'stock_adjustment_account_id',
         'wip_account_id',
         'manufacturing_variance_account_id',
+        'production_overhead_account_id',
         'damage_account_id',
         'pos_cash_account_id',
         'pos_float_account_id',

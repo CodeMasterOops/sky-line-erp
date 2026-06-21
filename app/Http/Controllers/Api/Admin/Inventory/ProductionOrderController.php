@@ -195,7 +195,9 @@ class ProductionOrderController extends Controller
             abort_unless($submittedIds->diff($validIds)->isEmpty(), 403, 'Invalid consumption IDs.');
         }
 
-        return DB::transaction(function () use ($data, $productionOrder) {
+        $close = $data['close'] ?? true;
+
+        return DB::transaction(function () use ($data, $productionOrder, $close) {
             $company = auth()->user()->company;
 
             $order = $this->completionService->complete(
@@ -203,11 +205,19 @@ class ProductionOrderController extends Controller
                 $data,
                 $company,
                 auth()->id(),
+                $close,
             );
 
-            $this->reservationService->release($company, $productionOrder);
+            // Hold material reservations until the order is fully closed.
+            if ($order->status === 'completed') {
+                $this->reservationService->release($company, $productionOrder);
+            }
 
-            return response()->json(['message' => 'Production order completed.', 'data' => $order]);
+            $message = $order->status === 'completed'
+                ? 'Production order completed.'
+                : 'Production batch recorded.';
+
+            return response()->json(['message' => $message, 'data' => $order]);
         });
     }
 

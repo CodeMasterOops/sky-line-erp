@@ -729,6 +729,7 @@ class InventoryReportService
                 'po.order_no',
                 'po.planned_qty',
                 'po.produced_qty',
+                'po.scrapped_qty',
                 'po.approved_at as completed_at',
                 'fp.name as finished_product',
                 'fv.sku as finished_sku',
@@ -753,6 +754,8 @@ class InventoryReportService
                     'total_standard_cost' => 0.0,
                     'total_actual_cost' => 0.0,
                     'total_variance' => 0.0,
+                    'total_produced' => 0.0,
+                    'total_scrapped' => 0.0,
                 ],
                 'warehouse_options' => $this->warehouseOptions($companyId),
             ];
@@ -797,6 +800,10 @@ class InventoryReportService
             $totalStandard = round(collect($componentRows)->sum('standard_cost'), 2);
             $totalActual = round(collect($componentRows)->sum('actual_cost'), 2);
 
+            $producedQty = (float) $order->produced_qty;
+            $scrappedQty = (float) $order->scrapped_qty;
+            $unitsMade = $producedQty + $scrappedQty;
+
             return [
                 'id' => $order->id,
                 'order_no' => $order->order_no,
@@ -804,7 +811,9 @@ class InventoryReportService
                 'finished_sku' => $order->finished_sku,
                 'warehouse' => $order->warehouse_name ?? '-',
                 'planned_qty' => (float) $order->planned_qty,
-                'produced_qty' => (float) $order->produced_qty,
+                'produced_qty' => $producedQty,
+                'scrapped_qty' => $scrappedQty,
+                'yield_pct' => $unitsMade > 0 ? round($producedQty / $unitsMade * 100, 2) : 100.0,
                 'completed_at' => $order->completed_at ? Carbon::parse($order->completed_at)->toDateString() : null,
                 'components' => $componentRows,
                 'total_standard_cost' => $totalStandard,
@@ -821,6 +830,8 @@ class InventoryReportService
                 'total_standard_cost' => round($rows->sum('total_standard_cost'), 2),
                 'total_actual_cost' => round($rows->sum('total_actual_cost'), 2),
                 'total_variance' => round($rows->sum('total_variance'), 2),
+                'total_produced' => round($rows->sum('produced_qty'), 4),
+                'total_scrapped' => round($rows->sum('scrapped_qty'), 4),
             ],
             'warehouse_options' => $this->warehouseOptions($companyId),
         ];

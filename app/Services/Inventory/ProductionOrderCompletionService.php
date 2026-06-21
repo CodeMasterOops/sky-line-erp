@@ -2,23 +2,34 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Bom;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\ProductionOrder;
 use App\Models\ProductionOrderConsumption;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\ProductionOrderGlPostingService;
 
 class ProductionOrderCompletionService
 {
+    /** BOM line types whose standard cost is absorbed into WIP rather than issued from stock. */
+    private const CONVERSION_ITEM_TYPES = ['labour', 'overhead'];
+
     public function __construct(
         private InventoryLayerIssueService $issueService,
         private InventoryLayerReceiptService $receiptService,
+        private ProductionOrderGlPostingService $glPostingService,
     ) {}
 
     /**
      * Atomically issue all consumed raw materials and receipt finished goods
      * through the stock ledger (layers + movements + GL). Must be called inside
      * a DB::transaction().
+     *
+     * Supports partial completion: when $close is false the produced and consumed
+     * quantities for this batch are added to the running totals and the order stays
+     * open ('in_progress') for further completions. Each call posts its own incremental
+     * stock movements and GL.
      *
      * @param  array{produced_qty: float, consumptions?: array<int, array{id: int, consumed_qty: float, batch_id?: int|null}>}  $data
      */
@@ -27,8 +38,9 @@ class ProductionOrderCompletionService
         array $data,
         Company $company,
         int $userId,
+        bool $close = true,
     ): ProductionOrder {
-        $bom = $productionOrder->bom()->with('productVariant.product')->firstOrFail();
+        $bom = $productionOrder->bom()->with(['productVariant.product', 'items'])->firstOrFail();
         $consumptions = $productionOrder->consumptions()->with('productVariant.product')->get();
 
         $totalMaterialCost = 0.0;
@@ -45,7 +57,7 @@ class ProductionOrderCompletionService
 
             if ($consumedQty <= 0 || ! $isPhysical) {
                 $consumption->update([
-                    'consumed_qty' => $consumedQty,
+                    'consumed_qty' => round((float) $consumption->consumed_qty + $consumedQty, 4),
                     'batch_id' => $consumptionData['batch_id'] ?? $consumption->batch_id,
                 ]);
 
@@ -89,7 +101,7 @@ class ProductionOrderCompletionService
             }
 
             $consumption->update([
-                'consumed_qty' => $consumedQty,
+                'consumed_qty' => round((float) $consumption->consumed_qty + $consumedQty, 4),
                 'unit_cost' => $movement->unit_cost,
                 'batch_id' => $consumptionData['batch_id'] ?? $consumption->batch_id,
             ]);
@@ -103,7 +115,31 @@ class ProductionOrderCompletionService
             ]);
         }
 
-        $finishedGoodsUnitCost = round($totalMaterialCost / $producedQty, 4);
+        // Scrap = defective units made this batch. When the variance/WIP accounts exist the
+        // scrap cost is expensed out of WIP, so good and scrapped units share one unit cost
+        // over all units made. Otherwise scrap is reported only and its cost stays capitalised
+        // in good output (still balanced) — the cost basis collapses to good units.
+        $scrapQty = max(0.0, (float) ($data['scrap_qty'] ?? 0));
+        $expenseScrap = $scrapQty > 0 && $this->glPostingService->scrapAccountsConfigured($company->id);
+        $costUnits = $expenseScrap ? $producedQty + $scrapQty : $producedQty;
+
+        // Absorb standard labour/overhead conversion cost (BOM lines × units made) into WIP.
+        // Only counted toward valuation when the absorption journal actually posts, so WIP
+        // stays balanced when the production-overhead account is not configured.
+        $conversionCost = $this->standardConversionCost($bom, $costUnits);
+        $conversionJournal = $this->glPostingService->postConversion($productionOrder, $conversionCost, $userId);
+        $absorbedConversion = $conversionJournal !== null ? $conversionCost : 0.0;
+
+        $totalCost = $totalMaterialCost + $absorbedConversion;
+        $finishedGoodsUnitCost = round($totalCost / $costUnits, 4);
+
+        if ($expenseScrap) {
+            $this->glPostingService->postScrap(
+                $productionOrder,
+                round($scrapQty * $finishedGoodsUnitCost, 2),
+                $userId,
+            );
+        }
 
         $this->receiptService->receive(
             $company,
@@ -118,14 +154,38 @@ class ProductionOrderCompletionService
             sourceProductionOrderId: $productionOrder->id,
         );
 
+        $newProducedQty = round((float) $productionOrder->produced_qty + $producedQty, 4);
+        $newScrappedQty = round((float) $productionOrder->scrapped_qty + $scrapQty, 4);
+
         $productionOrder->update([
-            'status' => 'completed',
-            'produced_qty' => $data['produced_qty'],
-            'actual_end' => now(),
-            'approve_user_id' => $userId,
-            'approved_at' => now(),
+            'status' => $close ? 'completed' : 'in_progress',
+            'produced_qty' => $newProducedQty,
+            'scrapped_qty' => $newScrappedQty,
+            'actual_end' => $close ? now() : $productionOrder->actual_end,
+            'approve_user_id' => $close ? $userId : $productionOrder->approve_user_id,
+            'approved_at' => $close ? now() : $productionOrder->approved_at,
+            'gl_journal_id' => $conversionJournal?->id ?? $productionOrder->gl_journal_id,
         ]);
 
         return $productionOrder->fresh();
+    }
+
+    /**
+     * Standard labour + overhead cost for the produced quantity, derived from the BOM's
+     * non-material lines (effective qty including wastage × standard rate) scaled from the
+     * BOM output quantity to the quantity actually produced.
+     */
+    private function standardConversionCost(Bom $bom, float $producedQty): float
+    {
+        $perOutput = 0.0;
+        foreach ($bom->items as $item) {
+            if (in_array($item->item_type, self::CONVERSION_ITEM_TYPES, true)) {
+                $perOutput += $item->effective_qty * (float) $item->standard_rate;
+            }
+        }
+
+        $outputQty = (float) $bom->output_qty ?: 1.0;
+
+        return round($producedQty * $perOutput / $outputQty, 4);
     }
 }

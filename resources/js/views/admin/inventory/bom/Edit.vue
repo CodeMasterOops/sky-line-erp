@@ -90,13 +90,14 @@
                                     <th>Material</th>
                                     <th style="width:110px">Qty <span class="text-danger">*</span></th>
                                     <th style="width:130px">Type</th>
+                                    <th style="width:120px">Rate</th>
                                     <th style="width:110px">Wastage %</th>
                                     <th style="width:44px"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-if="!form.items.length">
-                                    <td colspan="6" class="text-center text-muted py-3">
+                                    <td colspan="7" class="text-center text-muted py-3">
                                         Search and select a material above to add lines.
                                     </td>
                                 </tr>
@@ -118,6 +119,18 @@
                                             <option value="labour">Labour</option>
                                             <option value="overhead">Overhead</option>
                                         </select>
+                                    </td>
+                                    <td>
+                                        <input
+                                            v-if="item.item_type !== 'material'"
+                                            v-model="item.standard_rate"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            class="form-control form-control-sm"
+                                            title="Standard cost rate per unit (absorbed into finished goods)"
+                                        />
+                                        <span v-else class="text-muted small">—</span>
                                     </td>
                                     <td>
                                         <input
@@ -216,6 +229,7 @@ function populateForm(data) {
             product_variant_id: i.product_variant_id,
             quantity: i.quantity,
             item_type: i.item_type ?? 'material',
+            standard_rate: i.standard_rate ?? 0,
             wastage_pct: i.wastage_pct ?? 0,
             _label: i.product_variant?.product?.name ?? `Variant #${i.product_variant_id}`,
         })),
@@ -227,6 +241,7 @@ function onMaterialSelected(variant) {
         product_variant_id: variant.id,
         quantity: 1,
         item_type: 'material',
+        standard_rate: 0,
         wastage_pct: 0,
         _label: variant.name,
     });

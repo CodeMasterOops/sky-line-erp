@@ -100,6 +100,8 @@
                                 <th>Completed</th>
                                 <th class="text-end">Planned Qty</th>
                                 <th class="text-end">Produced Qty</th>
+                                <th class="text-end">Scrap Qty</th>
+                                <th class="text-end">Yield %</th>
                                 <th class="text-end">Std Cost</th>
                                 <th class="text-end">Actual Cost</th>
                                 <th class="text-end">Variance</th>
@@ -108,12 +110,12 @@
                         </thead>
                         <tbody>
                             <tr v-if="!rows.length && !loading">
-                                <td colspan="10" class="text-center text-muted py-4">
+                                <td colspan="12" class="text-center text-muted py-4">
                                     Set filters and click Generate to load data.
                                 </td>
                             </tr>
                             <tr v-if="loading">
-                                <td colspan="10" class="text-center py-4">
+                                <td colspan="12" class="text-center py-4">
                                     <div class="spinner-border text-primary spinner-border-sm"></div>
                                 </td>
                             </tr>
@@ -128,6 +130,12 @@
                                     <td class="text-nowrap">{{ row.completed_at }}</td>
                                     <td class="text-end">{{ row.planned_qty }}</td>
                                     <td class="text-end">{{ row.produced_qty }}</td>
+                                    <td class="text-end" :class="row.scrapped_qty > 0 ? 'text-danger' : ''">
+                                        {{ row.scrapped_qty }}
+                                    </td>
+                                    <td class="text-end" :class="row.yield_pct < 100 ? 'text-warning' : 'text-success'">
+                                        {{ row.yield_pct }}%
+                                    </td>
                                     <td class="text-end">{{ formatMoney(row.total_standard_cost) }}</td>
                                     <td class="text-end">{{ formatMoney(row.total_actual_cost) }}</td>
                                     <td class="text-end fw-semibold"
@@ -140,7 +148,7 @@
                                     </td>
                                 </tr>
                                 <tr v-if="expandedRows.has(row.id) && row.components?.length">
-                                    <td colspan="10" class="p-0 bg-light">
+                                    <td colspan="12" class="p-0 bg-light">
                                         <table class="table table-sm mb-0 border-0">
                                             <thead>
                                                 <tr class="bg-light">

@@ -163,9 +163,9 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3 align-items-end">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label fw-semibold">
-                                    Actual Produced Qty <span class="text-danger">*</span>
+                                    Good Qty <span class="text-danger">*</span>
                                 </label>
                                 <input
                                     v-model="completeForm.produced_qty"
@@ -176,12 +176,33 @@
                                     placeholder="Qty produced"
                                 />
                             </div>
-                            <div class="col-md-8 d-flex justify-content-end">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Scrap Qty</label>
+                                <input
+                                    v-model="completeForm.scrap_qty"
+                                    type="number"
+                                    min="0"
+                                    step="0.001"
+                                    class="form-control"
+                                    placeholder="Defective"
+                                    title="Defective units — cost expensed to manufacturing variance, not stocked"
+                                />
+                            </div>
+                            <div class="col-md-6 d-flex justify-content-end align-items-end gap-2">
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary"
+                                    :disabled="completing || !completeForm.produced_qty"
+                                    title="Record this batch and keep the order open for more production"
+                                    @click="handleCompleteOrder(false)">
+                                    <i class="ti ti-player-track-next me-1"></i>
+                                    Record Batch
+                                </button>
                                 <button
                                     type="button"
                                     class="btn btn-success"
                                     :disabled="completing || !completeForm.produced_qty"
-                                    @click="handleCompleteOrder">
+                                    @click="handleCompleteOrder(true)">
                                     <span v-if="completing" class="spinner-border spinner-border-sm me-1"></span>
                                     <i v-else class="ti ti-circle-check me-1"></i>
                                     Mark Complete
@@ -213,7 +234,7 @@ const { confirmAction, confirmDelete } = useConfirmAction();
 const actionLoading = ref(null);
 const completing = ref(false);
 
-const completeForm = reactive({ produced_qty: null, consumptions: [] });
+const completeForm = reactive({ produced_qty: null, scrap_qty: null, consumptions: [] });
 
 const isInProgress = computed(
     () => productionStore.order.data?.status === 'in_progress',
@@ -246,12 +267,19 @@ watch(() => productionStore.order.data?.consumptions, syncCompleteForm);
 function syncCompleteForm() {
     const order = productionStore.order.data;
     if (!order?.id) { return; }
-    completeForm.produced_qty = order.planned_qty ?? null;
-    completeForm.consumptions = (order.consumptions ?? []).map(c => ({
-        ...c,
-        consumed_qty: c.consumed_qty ?? c.required_qty,
-        batch_id: c.batch_id ?? null,
-    }));
+    // Prefill this batch with the quantities still outstanding so repeated partial
+    // completions don't double-count already-recorded production.
+    const remainingPlanned = Number(order.planned_qty ?? 0) - Number(order.produced_qty ?? 0);
+    completeForm.produced_qty = remainingPlanned > 0 ? remainingPlanned : (order.planned_qty ?? null);
+    completeForm.scrap_qty = null;
+    completeForm.consumptions = (order.consumptions ?? []).map(c => {
+        const remainingRequired = Number(c.required_qty ?? 0) - Number(c.consumed_qty ?? 0);
+        return {
+            ...c,
+            consumed_qty: remainingRequired > 0 ? remainingRequired : 0,
+            batch_id: c.batch_id ?? null,
+        };
+    });
 }
 
 async function handleStartOperation(operationId) {
@@ -290,9 +318,11 @@ async function handleSkipOperation(operationId) {
     }
 }
 
-async function handleCompleteOrder() {
+async function handleCompleteOrder(close = true) {
     const payload = {
         produced_qty: completeForm.produced_qty,
+        scrap_qty: Number(completeForm.scrap_qty) || 0,
+        close,
         consumptions: completeForm.consumptions.map(c => ({
             id: c.id,
             consumed_qty: Number(c.consumed_qty),
@@ -303,9 +333,13 @@ async function handleCompleteOrder() {
     completing.value = true;
     try {
         await productionStore.completeOrder(orderId.value, payload);
-        toast('Production order completed');
-        orderId.value = null;
         emit('completed');
+        if (close) {
+            toast('Production order completed');
+            orderId.value = null;
+        } else {
+            toast('Production batch recorded');
+        }
     } catch (e) {
         showErrors(e);
     } finally {
