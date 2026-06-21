@@ -164,6 +164,7 @@
                                                 <template v-if="item.create_batch">
                                                     <VInput
                                                         input-class="form-control form-control-sm mb-1"
+                                                        :class="{ 'is-invalid': !item.batch_no }"
                                                         v-model="form.items[index].batch_no"
                                                         placeholder="Batch No *"
                                                     />
@@ -179,6 +180,10 @@
                                                         v-model="form.items[index].expiry_date"
                                                         title="Expiry Date"
                                                     />
+                                                    <small v-if="batchDateWarning(item)" class="text-warning d-block mt-1">
+                                                        <i class="ti ti-alert-triangle me-1"></i>{{ batchDateWarning(item) }}
+                                                    </small>
+                                                    <small class="text-muted d-block mt-1">Qty &amp; cost taken from this line.</small>
                                                 </template>
                                                 <BatchPickerInput
                                                     v-else
@@ -462,6 +467,16 @@ const landedCostSummary = computed(() =>
 
 const lineTotal = (item) =>
     Number(item.received_qty || 0) * Number(item.unit_cost || 0);
+
+const batchDateWarning = (item) => {
+    if (!item.create_batch) {
+        return null;
+    }
+    if (item.mfg_date && item.expiry_date && item.expiry_date <= item.mfg_date) {
+        return 'Expiry is on or before the manufacture date.';
+    }
+    return null;
+};
 
 
 const variantLabel = (variant) => {

@@ -27,6 +27,9 @@ class BillItem extends Model
         'discount_amount',
         'tax_line_type',
         'batch_id',
+        'batch_no',
+        'mfg_date',
+        'expiry_date',
     ];
 
     protected $casts = [
@@ -41,6 +44,8 @@ class BillItem extends Model
         'tax_amount' => 'float',
         'discount_amount' => 'float',
         'tax_line_type' => TaxLineTypeEnum::class,
+        'mfg_date' => 'date:Y-m-d',
+        'expiry_date' => 'date:Y-m-d',
     ];
 
     public function bill(): BelongsTo

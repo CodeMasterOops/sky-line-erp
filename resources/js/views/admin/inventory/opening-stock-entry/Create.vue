@@ -116,6 +116,7 @@
                                                 <template v-if="form.items[index].create_batch">
                                                     <VInput
                                                         input-class="form-control form-control-sm mb-1"
+                                                        :class="{ 'is-invalid': !item.batch_no }"
                                                         v-model="form.items[index].batch_no"
                                                         placeholder="Batch No *"
                                                     />
@@ -125,6 +126,7 @@
                                                         v-model="form.items[index].expiry_date"
                                                         placeholder="Expiry Date"
                                                     />
+                                                    <small class="text-muted d-block mt-1">Qty &amp; cost taken from this line.</small>
                                                 </template>
                                                 <BatchPickerInput
                                                     v-else

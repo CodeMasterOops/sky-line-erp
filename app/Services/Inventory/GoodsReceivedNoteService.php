@@ -2,12 +2,10 @@
 
 namespace App\Services\Inventory;
 
-use App\Models\Batch;
 use App\Models\Company;
 use App\Models\GrnItem;
 use App\Enums\StatusEnum;
 use App\Enums\ChangeTypeEnum;
-use App\Enums\BatchStatusEnum;
 use App\Models\GoodsReceivedNote;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +20,7 @@ class GoodsReceivedNoteService
         private InventoryDocumentReversalService $documentReversal,
         private LandedCostService $landedCosts,
         private DocumentNumberGenerator $documentNumberGenerator,
+        private BatchResolver $batchResolver,
     ) {}
 
     /**
@@ -251,7 +250,7 @@ class GoodsReceivedNoteService
             }
 
             $unitCost = InventoryCostCalculator::unitCostFromGrnItem($item);
-            $batchId = $item->batch_id ?? $this->findOrCreateBatch($item, $grn, $company->id, $unitCost);
+            $batchId = $item->batch_id ?? $this->batchResolver->resolve($item, $company->id, (int) $grn->warehouse_id, $unitCost);
 
             $this->inventoryReceipt->receive(
                 $company,
@@ -269,39 +268,6 @@ class GoodsReceivedNoteService
                 $batchId,
             );
         }
-    }
-
-    private function findOrCreateBatch(GrnItem $item, GoodsReceivedNote $grn, int $companyId, float $unitCost): ?int
-    {
-        if (empty($item->batch_no)) {
-            return null;
-        }
-
-        $batch = Batch::withoutGlobalScopes()
-            ->where('company_id', $companyId)
-            ->where('product_variant_id', $item->product_variant_id)
-            ->where('warehouse_id', $grn->warehouse_id)
-            ->where('batch_no', $item->batch_no)
-            ->first();
-
-        if (! $batch) {
-            $batch = Batch::create([
-                'company_id' => $companyId,
-                'product_variant_id' => $item->product_variant_id,
-                'warehouse_id' => $grn->warehouse_id,
-                'batch_no' => $item->batch_no,
-                'lot_no' => $item->batch_no,
-                'expiry_date' => $item->expiry_date,
-                'initial_qty' => 0,
-                'remaining_qty' => 0,
-                'unit_cost' => $unitCost,
-                'status' => BatchStatusEnum::Active,
-            ]);
-        }
-
-        $item->update(['batch_id' => $batch->id]);
-
-        return $batch->id;
     }
 
     /**

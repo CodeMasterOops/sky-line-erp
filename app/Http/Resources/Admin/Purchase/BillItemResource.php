@@ -42,6 +42,9 @@ class BillItemResource extends JsonResource
             'discount_amount' => $this->discount_amount ?? 0,
             'tax_line_type' => $this->tax_line_type?->value ?? 'taxable',
             'batch_id' => $this->batch_id,
+            'batch_no' => $this->batch_no ?? '',
+            'mfg_date' => $this->mfg_date?->format('Y-m-d'),
+            'expiry_date' => $this->expiry_date?->format('Y-m-d'),
             'batch' => $this->whenLoaded('batch', fn () => [
                 'id' => $this->batch->id,
                 'batch_no' => $this->batch->batch_no,

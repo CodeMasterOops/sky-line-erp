@@ -117,12 +117,13 @@
                                         <th class="po-col-disc">Discount</th>
                                         <th class="po-col-tax">Tax</th>
                                         <th class="text-end po-col-total">Total</th>
+                                        <th class="po-col-batch">Batch</th>
                                         <th v-if="isDraft" class="text-center po-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 9 : 8" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 10 : 9" class="text-center text-muted py-4">
                                             No line items.
                                         </td>
                                     </tr>
@@ -136,6 +137,12 @@
                                             item.line_discount_type,
                                             item.line_discount_value,
                                             item.tax_id,
+                                            item.create_batch,
+                                            item.batch_id,
+                                            item.batch_no,
+                                            item.mfg_date,
+                                            item.expiry_date,
+                                            form.warehouse_id,
                                             isDraft,
                                         ]">
                                         <td>{{ index + 1 }}</td>
@@ -199,6 +206,59 @@
                                         </td>
                                         <td class="text-end po-col-total">
                                             <span class="po-line-total">{{ formatMoney(calcLineTotal(item, index)) }}</span>
+                                        </td>
+                                        <td class="po-col-batch">
+                                            <template v-if="item.grn_item_id">
+                                                <span class="text-muted small">From GRN</span>
+                                            </template>
+                                            <template v-else-if="!isDraft">
+                                                <span class="text-muted small">{{ item.batch_no || item.batch?.batch_no || '—' }}</span>
+                                            </template>
+                                            <template v-else-if="item.is_batch_tracked">
+                                                <div class="d-flex align-items-center gap-1 mb-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        class="form-check-input mt-0"
+                                                        v-model="form.items[index].create_batch"
+                                                        :id="`bill-edit-cb-batch-${index}`"
+                                                        @change="form.items[index].batch_id = null"
+                                                    />
+                                                    <label :for="`bill-edit-cb-batch-${index}`" class="form-label mb-0 small text-nowrap">
+                                                        New batch
+                                                    </label>
+                                                </div>
+                                                <template v-if="item.create_batch">
+                                                    <VInput
+                                                        input-class="form-control form-control-sm mb-1"
+                                                        :class="{ 'is-invalid': !item.batch_no }"
+                                                        v-model="form.items[index].batch_no"
+                                                        placeholder="Batch No *"
+                                                    />
+                                                    <input
+                                                        type="date"
+                                                        class="form-control form-control-sm mb-1"
+                                                        v-model="form.items[index].mfg_date"
+                                                        title="Mfg Date"
+                                                    />
+                                                    <input
+                                                        type="date"
+                                                        class="form-control form-control-sm"
+                                                        v-model="form.items[index].expiry_date"
+                                                        title="Expiry Date"
+                                                    />
+                                                    <small v-if="batchDateWarning(item)" class="text-warning d-block mt-1">
+                                                        <i class="ti ti-alert-triangle me-1"></i>{{ batchDateWarning(item) }}
+                                                    </small>
+                                                    <small class="text-muted d-block mt-1">Qty &amp; cost taken from this line.</small>
+                                                </template>
+                                                <BatchPickerInput
+                                                    v-else
+                                                    v-model="form.items[index].batch_id"
+                                                    :product-variant-id="item.product_variant_id"
+                                                    :warehouse-id="form.warehouse_id"
+                                                />
+                                            </template>
+                                            <span v-else class="text-muted small">—</span>
                                         </td>
                                         <td v-if="isDraft" class="text-center">
                                             <button
@@ -533,6 +593,7 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
@@ -668,7 +729,27 @@ const onVariantSelected = (variant) => {
         tax_line_type: 'taxable',
         line_discount_type: 'fixed',
         line_discount_value: '0',
+        is_batch_tracked: !!variant.is_batch_tracked,
+        ...batchLineDefaults(),
     });
+};
+
+const batchLineDefaults = () => ({
+    create_batch: false,
+    batch_id: null,
+    batch_no: '',
+    mfg_date: null,
+    expiry_date: null,
+});
+
+const batchDateWarning = (item) => {
+    if (!item.create_batch) {
+        return null;
+    }
+    if (item.mfg_date && item.expiry_date && item.expiry_date <= item.mfg_date) {
+        return 'Expiry is on or before the manufacture date.';
+    }
+    return null;
 };
 
 const removeItem = (index) => {
@@ -728,6 +809,13 @@ watch(
                             ? item.line_discount_value
                             : (item.discount_amount ?? 0)
                     ),
+                    is_batch_tracked: !!item.product_variant?.is_batch_tracked,
+                    create_batch: false,
+                    batch_id: item.batch_id || null,
+                    batch_no: item.batch_no || '',
+                    batch: item.batch || null,
+                    mfg_date: item.mfg_date || null,
+                    expiry_date: item.expiry_date || null,
                 }));
             } else if (key === 'warehouse_id') {
                 form.warehouse_id = whId || '';
@@ -913,6 +1001,10 @@ const buildBillPayload = () => {
             tax_amount: item.tax_amount ?? 0,
             discount_amount: String(lineDiscountMoneyFromItem(item)),
             tax_line_type: item.tax_line_type || 'taxable',
+            batch_id: item.grn_item_id || item.create_batch ? null : (item.batch_id || null),
+            batch_no: !item.grn_item_id && item.create_batch ? (item.batch_no || null) : null,
+            mfg_date: !item.grn_item_id && item.create_batch ? (item.mfg_date || null) : null,
+            expiry_date: !item.grn_item_id && item.create_batch ? (item.expiry_date || null) : null,
         })),
         landed_costs: canEnterLandedCosts.value
             ? form.landed_costs
@@ -991,6 +1083,10 @@ function resetForm() {
 
 .order-lines-table .po-col-action {
     width: 3rem;
+}
+
+.order-lines-table .po-col-batch {
+    min-width: 10rem;
 }
 
 .po-line-total {

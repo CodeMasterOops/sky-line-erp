@@ -3,7 +3,6 @@
 namespace App\Services\Purchase;
 
 use App\Models\Bill;
-use App\Models\Batch;
 use App\Models\GrnItem;
 use App\Models\Journal;
 use App\Enums\StatusEnum;
@@ -13,6 +12,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Inventory\BatchResolver;
 use App\Services\Accounting\PeriodLockGuard;
 use App\Services\Inventory\LandedCostService;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
@@ -38,6 +38,7 @@ readonly class PurchaseBillService
         private JournalVoidService $journalVoid,
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
+        private BatchResolver $batchResolver,
     ) {}
 
     /**
@@ -136,6 +137,9 @@ readonly class PurchaseBillService
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
                     'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    'batch_no' => ! empty($item['grn_item_id']) ? null : ($item['batch_no'] ?? null),
+                    'mfg_date' => ! empty($item['grn_item_id']) ? null : ($item['mfg_date'] ?? null),
+                    'expiry_date' => ! empty($item['grn_item_id']) ? null : ($item['expiry_date'] ?? null),
                 ],
             );
 
@@ -193,6 +197,9 @@ readonly class PurchaseBillService
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
                     'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    'batch_no' => ! empty($item['grn_item_id']) ? null : ($item['batch_no'] ?? null),
+                    'mfg_date' => ! empty($item['grn_item_id']) ? null : ($item['mfg_date'] ?? null),
+                    'expiry_date' => ! empty($item['grn_item_id']) ? null : ($item['expiry_date'] ?? null),
                 ],
             );
 
@@ -427,6 +434,7 @@ readonly class PurchaseBillService
             }
 
             $unitCost = InventoryCostCalculator::unitCostFromBillItem($item);
+            $batchId = $item->batch_id ?? $this->batchResolver->resolve($item, (int) $company->id, (int) $item->warehouse_id, $unitCost);
 
             $this->inventoryReceipt->receive(
                 $company,
@@ -439,13 +447,8 @@ readonly class PurchaseBillService
                 $user->id,
                 $bill->remarks,
                 $item->id,
-                batchId: $item->batch_id,
+                batchId: $batchId,
             );
-
-            if ($item->batch_id) {
-                Batch::where('id', $item->batch_id)->increment('initial_qty', $qty);
-                Batch::where('id', $item->batch_id)->increment('remaining_qty', $qty);
-            }
         }
     }
 
