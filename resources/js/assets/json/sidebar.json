@@ -37,6 +37,18 @@
                         "route": { "name": "admin.crm-contacts" },
                         "permission": "list_party",
                         "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Follow-ups",
+                        "route": { "name": "admin.crm-follow-ups" },
+                        "permission": "list_crm_follow_up",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Tasks",
+                        "route": { "name": "admin.crm-tasks" },
+                        "permission": "list_crm_task",
+                        "hasSubRoute": false
                     }
                 ]
             },

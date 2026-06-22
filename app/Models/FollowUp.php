@@ -52,6 +52,14 @@ class FollowUp extends Model
      */
     public function scopeFilter(Builder $query, array $param = []): Builder
     {
+        if (! empty($param['search'])) {
+            $key = '%'.trim($param['search']).'%';
+            $query->where(function (Builder $q) use ($key) {
+                $q->where('note', 'like', $key)
+                    ->orWhere('outcome', 'like', $key);
+            });
+        }
+
         if (! empty($param['party_id'])) {
             $query->where('party_id', $param['party_id']);
         }

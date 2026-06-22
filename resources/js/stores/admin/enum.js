@@ -8,6 +8,10 @@ export const useEnumStore = defineStore('enum', {
         tdsCategories: [],
         partyTypes: [],
         crmLeadStatuses: [],
+        taskStatuses: [],
+        taskPriorities: [],
+        followUpChannels: [],
+        followUpStatuses: [],
     }),
 
     actions: {
@@ -27,6 +31,50 @@ export const useEnumStore = defineStore('enum', {
                 return apiFront(`enum/crm-lead-statuses`)
                     .then((res) => {
                         this.crmLeadStatuses = res.data.data;
+                    }).catch((err) => {
+                        showErrors(err);
+                    });
+            }
+        },
+
+        getTaskStatuses() {
+            if (!this.taskStatuses.length) {
+                return apiFront(`enum/task-statuses`)
+                    .then((res) => {
+                        this.taskStatuses = res.data.data;
+                    }).catch((err) => {
+                        showErrors(err);
+                    });
+            }
+        },
+
+        getTaskPriorities() {
+            if (!this.taskPriorities.length) {
+                return apiFront(`enum/task-priorities`)
+                    .then((res) => {
+                        this.taskPriorities = res.data.data;
+                    }).catch((err) => {
+                        showErrors(err);
+                    });
+            }
+        },
+
+        getFollowUpChannels() {
+            if (!this.followUpChannels.length) {
+                return apiFront(`enum/follow-up-channels`)
+                    .then((res) => {
+                        this.followUpChannels = res.data.data;
+                    }).catch((err) => {
+                        showErrors(err);
+                    });
+            }
+        },
+
+        getFollowUpStatuses() {
+            if (!this.followUpStatuses.length) {
+                return apiFront(`enum/follow-up-statuses`)
+                    .then((res) => {
+                        this.followUpStatuses = res.data.data;
                     }).catch((err) => {
                         showErrors(err);
                     });

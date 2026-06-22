@@ -57,6 +57,14 @@ class Task extends Model
      */
     public function scopeFilter(Builder $query, array $param = []): Builder
     {
+        if (! empty($param['search'])) {
+            $key = '%'.trim($param['search']).'%';
+            $query->where(function (Builder $q) use ($key) {
+                $q->where('title', 'like', $key)
+                    ->orWhere('description', 'like', $key);
+            });
+        }
+
         if (! empty($param['status'])) {
             $query->where('status', $param['status']);
         }
