@@ -19,6 +19,8 @@ class ProductResource extends JsonResource
             'product_type' => $this->product_type ?? '',
             'item_role' => $this->item_role?->value ?? '',
             'item_role_label' => $this->item_role?->label() ?? '',
+            'is_saleable' => (bool) ($this->is_saleable ?? true),
+            'is_purchasable' => (bool) ($this->is_purchasable ?? true),
             'name' => $this->name ?? '',
             'code' => $this->code ?? '',
             'hsn_code' => $this->hsn_code ?? '',

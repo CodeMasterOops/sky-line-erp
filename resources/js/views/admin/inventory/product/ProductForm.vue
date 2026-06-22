@@ -354,7 +354,23 @@
                                         {{ form.variants.length }} variant{{ form.variants.length === 1 ? '' : 's' }}
                                         {{ isEdit ? 'will be saved' : 'will be created' }}
                                     </p>
-                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <div class="d-flex flex-wrap gap-3 align-items-center">
+                                        <div class="form-check form-switch mb-0">
+                                            <input v-model="form.is_saleable" type="checkbox"
+                                                class="form-check-input" id="is_saleable_variable" />
+                                            <label class="form-check-label small" for="is_saleable_variable"
+                                                title="Show this product on sales documents (quotation, invoice, POS)">
+                                                For sale
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch mb-0">
+                                            <input v-model="form.is_purchasable" type="checkbox"
+                                                class="form-check-input" id="is_purchasable_variable" />
+                                            <label class="form-check-label small" for="is_purchasable_variable"
+                                                title="Show this product on purchase documents (purchase order, bill)">
+                                                For purchase
+                                            </label>
+                                        </div>
                                         <button type="button" class="btn btn-sm btn-outline-secondary"
                                             :disabled="!form.code?.trim()" @click="applySkuPrefixFromCode">
                                             Fill SKU from code
@@ -488,17 +504,35 @@
                                         @validate="validateField(`variants[0].sales_price`)"
                                         :error="errors[`variants[0].sales_price`]" />
                                 </div>
-                                <div v-if="isPhysicalProduct" class="col-auto d-flex align-items-end pb-1">
-                                    <div class="form-check form-switch">
-                                        <input
-                                            type="checkbox"
-                                            class="form-check-input"
-                                            id="is_batch_tracked_0"
-                                            v-model="form.variants[0].is_batch_tracked"
-                                        />
-                                        <label class="form-check-label" for="is_batch_tracked_0">
-                                            Batch Tracked
-                                        </label>
+                                <div class="col-auto d-flex align-items-end pb-1">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div v-if="isPhysicalProduct" class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                class="form-check-input"
+                                                id="is_batch_tracked_0"
+                                                v-model="form.variants[0].is_batch_tracked"
+                                            />
+                                            <label class="form-check-label" for="is_batch_tracked_0">
+                                                Batch Tracked
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input v-model="form.is_saleable" type="checkbox"
+                                                class="form-check-input" id="is_saleable" />
+                                            <label class="form-check-label" for="is_saleable"
+                                                title="Show this product on sales documents (quotation, invoice, POS)">
+                                                For sale
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input v-model="form.is_purchasable" type="checkbox"
+                                                class="form-check-input" id="is_purchasable" />
+                                            <label class="form-check-label" for="is_purchasable"
+                                                title="Show this product on purchase documents (purchase order, bill)">
+                                                For purchase
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -611,10 +645,20 @@ const itemRoleOptions = [
     { value: 'trading_good', label: 'Trading Good' },
 ];
 
+const roleSaleDefaults = {
+    raw_material: { is_saleable: false, is_purchasable: true },
+    semi_finished: { is_saleable: false, is_purchasable: false },
+    finished_good: { is_saleable: true, is_purchasable: false },
+    consumable: { is_saleable: false, is_purchasable: true },
+    trading_good: { is_saleable: true, is_purchasable: true },
+};
+
 const initialState = {
     product_category_id: '',
     product_type: 'product',
     item_role: '',
+    is_saleable: true,
+    is_purchasable: true,
     name: '',
     code: '',
     image: '',
@@ -691,6 +735,8 @@ async function hydrateFromProduct(data) {
             product_category_id: data.product_category_id ?? '',
             product_type: pt,
             item_role: data.item_role ?? '',
+            is_saleable: data.is_saleable ?? true,
+            is_purchasable: data.is_purchasable ?? true,
             name: data.name ?? '',
             code: data.code ?? '',
             image: data.image ?? '',
@@ -984,6 +1030,20 @@ watch(
             form.brand_id = '';
             form.item_role = '';
             resetToSimplePricing();
+        }
+    }
+);
+
+watch(
+    () => form.item_role,
+    (role) => {
+        if (isHydrating.value) {
+            return;
+        }
+        const defaults = roleSaleDefaults[role];
+        if (defaults) {
+            form.is_saleable = defaults.is_saleable;
+            form.is_purchasable = defaults.is_purchasable;
         }
     }
 );

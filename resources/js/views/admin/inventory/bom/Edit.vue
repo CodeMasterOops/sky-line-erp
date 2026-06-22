@@ -112,6 +112,29 @@
                     </div>
                 </div>
 
+                <!-- Item role advisory -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <small class="text-muted">
+                            <i class="ti ti-filter me-1"></i>Component search is filtered by item role
+                            (raw / sub-assembly / consumable).
+                        </small>
+                        <div class="form-check form-switch mb-0">
+                            <input
+                                v-model="showAllRoles"
+                                type="checkbox"
+                                class="form-check-input"
+                                id="edit_bom_show_all_roles"
+                            />
+                            <label class="form-check-label small" for="edit_bom_show_all_roles">Show all item roles</label>
+                        </div>
+                    </div>
+                    <div v-if="roleWarnings.length" class="alert alert-warning py-2 px-3 mb-0 mt-2 small">
+                        <i class="ti ti-alert-triangle me-1"></i>
+                        <span v-for="(w, wi) in roleWarnings" :key="wi" class="d-block">{{ w }}</span>
+                    </div>
+                </div>
+
                 <!-- Materials -->
                 <div class="col-12">
                     <label class="form-label">
@@ -121,6 +144,7 @@
                         label=""
                         placeholder="Search and add a material..."
                         physical-only
+                        :item-roles="componentRoleFilter"
                         @select="onMaterialSelected"
                     />
                     <div v-if="errors.items" class="text-danger small mt-1">{{ errors.items }}</div>
@@ -210,7 +234,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { object, string, number, array } from 'yup';
 import { storeToRefs } from 'pinia';
 import VModal from '@/components/base/VModal.vue';
@@ -230,7 +254,27 @@ const partyStore = usePartyStore();
 const { bom } = storeToRefs(bomStore);
 const isSubmitting = ref(false);
 const outputProductName = ref('');
+const outputRole = ref(null);
 const suppliers = ref([]);
+const showAllRoles = ref(false);
+
+const OUTPUT_ROLES = ['finished_good', 'semi_finished'];
+const COMPONENT_ROLES = ['raw_material', 'semi_finished', 'consumable'];
+
+const componentRoleFilter = computed(() => (showAllRoles.value ? [] : COMPONENT_ROLES));
+
+const roleWarnings = computed(() => {
+    const warnings = [];
+    if (outputRole.value && !OUTPUT_ROLES.includes(outputRole.value)) {
+        warnings.push('Output product is not classified as a finished good or sub-assembly.');
+    }
+    form.items.forEach((item) => {
+        if (item._item_role === 'finished_good') {
+            warnings.push(`Component "${item._label}" is a Finished Good — unusual as a BOM component.`);
+        }
+    });
+    return warnings;
+});
 
 async function loadSuppliers() {
     if (suppliers.value.length) { return; }
@@ -277,6 +321,7 @@ watch(() => bomId.value, (id) => {
 function populateForm(data) {
     outputProductName.value = data.product_variant?.product?.name
         ?? `Variant #${data.product_variant_id}`;
+    outputRole.value = data.product_variant?.product?.item_role ?? null;
 
     Object.assign(form, {
         name: data.name ?? '',
@@ -296,6 +341,7 @@ function populateForm(data) {
             standard_rate: i.standard_rate ?? 0,
             wastage_pct: i.wastage_pct ?? 0,
             _label: i.product_variant?.product?.name ?? `Variant #${i.product_variant_id}`,
+            _item_role: i.product_variant?.product?.item_role ?? null,
         })),
     });
 }
@@ -308,6 +354,7 @@ function onMaterialSelected(variant) {
         standard_rate: 0,
         wastage_pct: 0,
         _label: variant.name,
+        _item_role: variant.item_role || null,
     });
 }
 
@@ -323,7 +370,13 @@ async function handleSubmit() {
     try {
         const payload = {
             ...form,
-            items: form.items.map(({ _label, ...item }) => item),
+            items: form.items.map((item) => ({
+                product_variant_id: item.product_variant_id,
+                quantity: item.quantity,
+                item_type: item.item_type,
+                standard_rate: item.standard_rate,
+                wastage_pct: item.wastage_pct,
+            })),
         };
         await bomStore.updateBom(bomId.value, payload);
         toast('BOM updated successfully');

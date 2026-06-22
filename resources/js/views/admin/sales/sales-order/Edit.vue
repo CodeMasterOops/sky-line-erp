@@ -39,7 +39,7 @@
                         </div>
 
                         <div v-if="isDraft" class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput saleable-only
                                 label="Product name / code / SKU"
                                 required
                                 @select="onVariantSelected"

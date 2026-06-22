@@ -111,13 +111,21 @@
                         </template>
 
                         <template v-else-if="column.key === 'product_type'">
-                            <span class="badge"
-                                :class="record.product_type === 'service' ? 'badge-soft-info' : 'badge-soft-primary'">
-                                {{ formatProductType(record.product_type) }}
-                            </span>
-                            <span v-if="record.item_role_label" class="badge badge-soft-secondary ms-1">
-                                {{ record.item_role_label }}
-                            </span>
+                            <div class="d-flex flex-wrap gap-1">
+                                <span class="badge"
+                                    :class="record.product_type === 'service' ? 'badge-soft-info' : 'badge-soft-primary'">
+                                    {{ formatProductType(record.product_type) }}
+                                </span>
+                                <span v-if="record.item_role_label" class="badge badge-soft-secondary">
+                                    {{ record.item_role_label }}
+                                </span>
+                                <span v-if="record.is_saleable === false" class="badge badge-soft-warning" title="Hidden from sales documents">
+                                    No sale
+                                </span>
+                                <span v-if="record.is_purchasable === false" class="badge badge-soft-warning" title="Hidden from purchase documents">
+                                    No purchase
+                                </span>
+                            </div>
                         </template>
 
                         <template v-else-if="column.key === 'total_stock'">

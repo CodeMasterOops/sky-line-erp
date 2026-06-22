@@ -27,6 +27,8 @@ class ProductVariantResource extends JsonResource
                     'product_code' => $this->product->code ?? '',
                     'item_role' => $this->product->item_role?->value ?? '',
                     'item_role_label' => $this->product->item_role?->label() ?? '',
+                    'is_saleable' => (bool) ($this->product->is_saleable ?? true),
+                    'is_purchasable' => (bool) ($this->product->is_purchasable ?? true),
                 ];
             }),
             'sku' => $this->sku ?? '',

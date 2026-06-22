@@ -25,10 +25,34 @@
                         label=""
                         placeholder="Search output product..."
                         physical-only
+                        :item-roles="outputRoleFilter"
                         @select="onOutputVariantSelected"
                     />
                     <div v-if="errors.product_variant_id" class="text-danger small mt-1">
                         {{ errors.product_variant_id }}
+                    </div>
+                </div>
+
+                <!-- Item role advisory -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <small class="text-muted">
+                            <i class="ti ti-filter me-1"></i>Searches are filtered by item role
+                            (finished / sub-assembly for output, raw / consumable for components).
+                        </small>
+                        <div class="form-check form-switch mb-0">
+                            <input
+                                v-model="showAllRoles"
+                                type="checkbox"
+                                class="form-check-input"
+                                id="bom_show_all_roles"
+                            />
+                            <label class="form-check-label small" for="bom_show_all_roles">Show all item roles</label>
+                        </div>
+                    </div>
+                    <div v-if="roleWarnings.length" class="alert alert-warning py-2 px-3 mb-0 mt-2 small">
+                        <i class="ti ti-alert-triangle me-1"></i>
+                        <span v-for="(w, wi) in roleWarnings" :key="wi" class="d-block">{{ w }}</span>
                     </div>
                 </div>
 
@@ -133,6 +157,7 @@
                         label=""
                         placeholder="Search and add a material..."
                         physical-only
+                        :item-roles="componentRoleFilter"
                         @select="onMaterialSelected"
                     />
                     <div v-if="errors.items" class="text-danger small mt-1">{{ errors.items }}</div>
@@ -222,7 +247,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { object, string, number, array } from 'yup';
 import VModal from '@/components/base/VModal.vue';
 import VInput from '@/components/base/VInput.vue';
@@ -241,6 +266,29 @@ const partyStore = usePartyStore();
 const isSubmitting = ref(false);
 const selectedOutputVariant = ref(null);
 const suppliers = ref([]);
+const showAllRoles = ref(false);
+
+const OUTPUT_ROLES = ['finished_good', 'semi_finished'];
+const COMPONENT_ROLES = ['raw_material', 'semi_finished', 'consumable'];
+
+const outputRoleFilter = computed(() => (showAllRoles.value ? [] : OUTPUT_ROLES));
+const componentRoleFilter = computed(() => (showAllRoles.value ? [] : COMPONENT_ROLES));
+
+const roleWarnings = computed(() => {
+    const warnings = [];
+    const outputRole = selectedOutputVariant.value?.item_role;
+    if (outputRole && !OUTPUT_ROLES.includes(outputRole)) {
+        warnings.push(
+            `Output product is classified as "${selectedOutputVariant.value.item_role_label}". A finished good or sub-assembly is usually expected.`,
+        );
+    }
+    form.items.forEach((item) => {
+        if (item._item_role === 'finished_good') {
+            warnings.push(`Component "${item._label}" is a Finished Good — unusual as a BOM component.`);
+        }
+    });
+    return warnings;
+});
 
 async function loadSuppliers() {
     try {
@@ -301,6 +349,7 @@ function onMaterialSelected(variant) {
         standard_rate: 0,
         wastage_pct: 0,
         _label: variant.name,
+        _item_role: variant.item_role || null,
     });
 }
 
@@ -321,7 +370,13 @@ async function handleSubmit() {
     try {
         const payload = {
             ...form,
-            items: form.items.map(({ _label, ...item }) => item),
+            items: form.items.map((item) => ({
+                product_variant_id: item.product_variant_id,
+                quantity: item.quantity,
+                item_type: item.item_type,
+                standard_rate: item.standard_rate,
+                wastage_pct: item.wastage_pct,
+            })),
         };
         await bomStore.storeBom(payload);
         toast('BOM created successfully');

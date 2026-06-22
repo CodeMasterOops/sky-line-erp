@@ -152,6 +152,151 @@ it('filters the product list by item_role', function () {
     expect($roles)->toBe(['raw_material']);
 });
 
+function createVariantWithRole(object $test, ?ItemRoleEnum $role, string $sku): ProductVariant
+{
+    $product = Product::create([
+        'company_id' => $test->company->id,
+        'product_category_id' => $test->category->id,
+        'product_type' => ProductTypeEnum::PRODUCT,
+        'item_role' => $role,
+        'name' => 'Roled '.$sku,
+        'code' => 'CODE-'.$sku,
+        'unit_id' => $test->unit->id,
+    ]);
+
+    return ProductVariant::create([
+        'company_id' => $test->company->id,
+        'product_id' => $product->id,
+        'sku' => $sku,
+        'sales_price' => 10,
+        'purchase_price' => 8,
+        'is_default' => true,
+    ]);
+}
+
+function createVariantWithFlags(object $test, bool $saleable, bool $purchasable, string $sku): ProductVariant
+{
+    $product = Product::create([
+        'company_id' => $test->company->id,
+        'product_category_id' => $test->category->id,
+        'product_type' => ProductTypeEnum::PRODUCT,
+        'is_saleable' => $saleable,
+        'is_purchasable' => $purchasable,
+        'name' => 'Flagged '.$sku,
+        'code' => 'FLAG-'.$sku,
+        'unit_id' => $test->unit->id,
+    ]);
+
+    return ProductVariant::create([
+        'company_id' => $test->company->id,
+        'product_id' => $product->id,
+        'sku' => $sku,
+        'sales_price' => 10,
+        'purchase_price' => 8,
+        'is_default' => true,
+    ]);
+}
+
+it('defaults is_saleable and is_purchasable to true', function () {
+    $response = $this->postJson('/api/admin/product', productPayload($this));
+
+    $response->assertCreated();
+    expect($response->json('data.is_saleable'))->toBeTrue();
+    expect($response->json('data.is_purchasable'))->toBeTrue();
+});
+
+it('persists is_saleable and is_purchasable flags', function () {
+    $response = $this->postJson('/api/admin/product', productPayload($this, [
+        'item_role' => ItemRoleEnum::RawMaterial->value,
+        'is_saleable' => false,
+        'is_purchasable' => true,
+    ]));
+
+    $response->assertCreated();
+    $product = Product::find($response->json('data.id'));
+    expect($product->is_saleable)->toBeFalse();
+    expect($product->is_purchasable)->toBeTrue();
+});
+
+it('hides non-saleable products from the saleable variant search', function () {
+    createVariantWithFlags($this, saleable: true, purchasable: true, sku: 'SALE-YES');
+    createVariantWithFlags($this, saleable: false, purchasable: true, sku: 'SALE-NO');
+
+    $response = $this->getJson('/api/admin/product/variant/search?saleable_only=1');
+
+    $response->assertSuccessful();
+    $skus = collect($response->json('data'))->pluck('sku')->all();
+    expect($skus)->toContain('SALE-YES');
+    expect($skus)->not->toContain('SALE-NO');
+});
+
+it('hides non-purchasable products from the purchasable variant search', function () {
+    createVariantWithFlags($this, saleable: true, purchasable: true, sku: 'BUY-YES');
+    createVariantWithFlags($this, saleable: true, purchasable: false, sku: 'BUY-NO');
+
+    $response = $this->getJson('/api/admin/product/variant/search?purchasable_only=1');
+
+    $response->assertSuccessful();
+    $skus = collect($response->json('data'))->pluck('sku')->all();
+    expect($skus)->toContain('BUY-YES');
+    expect($skus)->not->toContain('BUY-NO');
+});
+
+it('returns all products when no availability filter is applied', function () {
+    createVariantWithFlags($this, saleable: false, purchasable: false, sku: 'NONE');
+
+    $response = $this->getJson('/api/admin/product/variant/search');
+
+    $response->assertSuccessful();
+    $skus = collect($response->json('data'))->pluck('sku')->all();
+    expect($skus)->toContain('NONE');
+});
+
+it('exposes availability flags in the variant search picker', function () {
+    createVariantWithFlags($this, saleable: false, purchasable: true, sku: 'FLAGS-CHK');
+
+    $response = $this->getJson('/api/admin/product/variant/search?q=FLAGS');
+
+    $response->assertSuccessful();
+    $row = collect($response->json('data'))->firstWhere('sku', 'FLAGS-CHK');
+    expect($row['is_saleable'])->toBeFalse();
+    expect($row['is_purchasable'])->toBeTrue();
+});
+
+it('filters the variant search by item_roles', function () {
+    createVariantWithRole($this, ItemRoleEnum::RawMaterial, 'RAW-SKU');
+    createVariantWithRole($this, ItemRoleEnum::FinishedGood, 'FIN-SKU');
+    createVariantWithRole($this, ItemRoleEnum::Consumable, 'CON-SKU');
+
+    $response = $this->getJson('/api/admin/product/variant/search?item_roles=raw_material,consumable');
+
+    $response->assertSuccessful();
+    $skus = collect($response->json('data'))->pluck('sku')->all();
+    expect($skus)->toContain('RAW-SKU', 'CON-SKU');
+    expect($skus)->not->toContain('FIN-SKU');
+});
+
+it('returns all roles when item_roles is omitted', function () {
+    createVariantWithRole($this, ItemRoleEnum::RawMaterial, 'RAW-2');
+    createVariantWithRole($this, ItemRoleEnum::FinishedGood, 'FIN-2');
+
+    $response = $this->getJson('/api/admin/product/variant/search');
+
+    $response->assertSuccessful();
+    $skus = collect($response->json('data'))->pluck('sku')->all();
+    expect($skus)->toContain('RAW-2', 'FIN-2');
+});
+
+it('ignores invalid item_roles values in the variant search', function () {
+    createVariantWithRole($this, ItemRoleEnum::RawMaterial, 'RAW-3');
+
+    $response = $this->getJson('/api/admin/product/variant/search?item_roles=not_a_role');
+
+    $response->assertSuccessful();
+    $skus = collect($response->json('data'))->pluck('sku')->all();
+    expect($skus)->toContain('RAW-3');
+});
+
 it('exposes item_role_label in the variant search picker', function () {
     $product = Product::create([
         'company_id' => $this->company->id,

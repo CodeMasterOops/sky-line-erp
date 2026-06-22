@@ -99,7 +99,7 @@
                             />
                         </div>
                         <div v-if="isDraft" class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput purchasable-only
                                 label="Product (manual)"
                                 required
                                 physical-only

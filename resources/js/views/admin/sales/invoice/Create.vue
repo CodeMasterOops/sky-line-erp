@@ -56,7 +56,7 @@
                         </div>
 
                         <div class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput saleable-only
                                 ref="productSearchRef"
                                 label="Product"
                                 required

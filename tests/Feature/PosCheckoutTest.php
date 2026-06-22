@@ -314,6 +314,52 @@ it('completes checkout and persists order discount on invoice', function () {
     expect((float) $invoice->discount->amount)->toBe(10.0);
 });
 
+it('returns null from last-receipt when no sale exists', function () {
+    $response = $this->getJson('/api/admin/pos/last-receipt');
+
+    $response->assertSuccessful();
+    expect($response->json('data'))->toBeNull();
+});
+
+it('returns the most recent completed sale from last-receipt', function () {
+    seedVariantStock($this, $this->warehouse->id, 10);
+
+    $cashAccount = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash Sales',
+        'code' => 'CASH-POS',
+    ]);
+
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
+    ]);
+
+    $checkout = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'items' => [
+            [
+                'product_variant_id' => $this->variant->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 2,
+                'rate' => 100,
+                'tax_amount' => 0,
+                'discount_amount' => 0,
+            ],
+        ],
+    ]));
+    $checkout->assertCreated();
+
+    $response = $this->getJson('/api/admin/pos/last-receipt');
+
+    $response->assertSuccessful();
+    expect($response->json('data.invoice_no'))->toBe($checkout->json('data.invoice_no'));
+    expect((float) $response->json('data.grand_total'))->toBe(200.0);
+    expect($response->json('data.items'))->toHaveCount(1);
+});
+
 it('stores held order json including order discount fields', function () {
     $response = $this->postJson('/api/admin/pos/hold', [
         'label' => 'Table 1',

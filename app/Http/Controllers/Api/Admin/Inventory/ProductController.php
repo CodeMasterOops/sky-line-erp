@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Product;
+use App\Enums\ItemRoleEnum;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
@@ -54,7 +55,7 @@ class ProductController extends Controller
 
         $query = ProductVariant::query()
             ->with([
-                'product:id,name,code,unit_id,product_type,item_role',
+                'product:id,name,code,unit_id,product_type,item_role,is_saleable,is_purchasable',
                 'variantOptions.attribute',
             ]);
 
@@ -64,6 +65,20 @@ class ProductController extends Controller
 
         if ($request->boolean('batch_tracked_only')) {
             $query->where('is_batch_tracked', true);
+        }
+
+        if ($request->boolean('saleable_only')) {
+            $query->whereHas('product', fn ($q) => $q->where('is_saleable', true));
+        }
+
+        if ($request->boolean('purchasable_only')) {
+            $query->whereHas('product', fn ($q) => $q->where('is_purchasable', true));
+        }
+
+        $itemRoles = $this->parseItemRoles($request->get('item_roles'));
+
+        if ($itemRoles !== []) {
+            $query->whereHas('product', fn ($q) => $q->whereIn('item_role', $itemRoles));
         }
 
         if ($request->boolean('with_stock')) {
@@ -93,6 +108,27 @@ class ProductController extends Controller
         $variants = $query->latest('product_variants.id')->paginate($perPage);
 
         return ProductVariantResource::collection($variants);
+    }
+
+    /**
+     * Normalise the advisory item_role filter (array or CSV) to a list of valid enum values.
+     *
+     * @return list<string>
+     */
+    private function parseItemRoles(mixed $value): array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return [];
+        }
+
+        $raw = is_array($value) ? $value : explode(',', (string) $value);
+
+        $valid = array_column(ItemRoleEnum::cases(), 'value');
+
+        return array_values(array_unique(array_filter(
+            array_map(static fn (mixed $role): string => trim((string) $role), $raw),
+            static fn (string $role): bool => in_array($role, $valid, true),
+        )));
     }
 
     #[Permissions('list_product', group: 'product', desc: 'List Product')]
@@ -300,6 +336,8 @@ class ProductController extends Controller
             'product_category_id',
             'product_type',
             'item_role',
+            'is_saleable',
+            'is_purchasable',
             'name',
             'code',
             'hsn_code',

@@ -1014,6 +1014,36 @@ class PosController extends Controller
             403,
         );
 
+        return response()->json(['data' => $this->buildReceiptResponse($invoice)]);
+    }
+
+    /**
+     * The most recently completed POS sale for the company, ready to reprint.
+     * Sourced from the database so it survives page reloads and is available on
+     * any terminal — not just the one that made the sale.
+     */
+    public function lastReceipt(): JsonResponse
+    {
+        $invoice = Invoice::query()
+            ->where('company_id', auth('admin')->user()->company_id)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('deleted_at')
+            ->orderByDesc('invoice_date')
+            ->orderByDesc('id')
+            ->first();
+
+        return response()->json([
+            'data' => $invoice ? $this->buildReceiptResponse($invoice) : null,
+        ]);
+    }
+
+    /**
+     * Build the full printable receipt payload for an invoice.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildReceiptResponse(Invoice $invoice): array
+    {
         $invoice->load([
             'party',
             'discount',
@@ -1040,7 +1070,7 @@ class PosController extends Controller
             'receipt_no' => $r->receipt_no,
         ])->values()->all();
 
-        return response()->json(['data' => $data]);
+        return $data;
     }
 
     // -----------------------------------------------------------------------

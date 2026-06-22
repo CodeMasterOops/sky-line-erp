@@ -71,6 +71,8 @@ class ProductRequest extends FormRequest
             'product_type' => ['required', Rule::enum(ProductTypeEnum::class)],
             // Stripped to null for services in prepareForValidation(), mirroring brand_id.
             'item_role' => ['nullable', Rule::enum(ItemRoleEnum::class)],
+            'is_saleable' => ['nullable', 'boolean'],
+            'is_purchasable' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image'],
             'unit_id' => ['required', TRule::exists('units', 'id')->withoutTrashed()],
             'brand_id' => [

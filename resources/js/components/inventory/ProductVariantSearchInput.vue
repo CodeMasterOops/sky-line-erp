@@ -148,10 +148,26 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    itemRoles: {
+        type: Array,
+        default: () => [],
+    },
+    saleableOnly: {
+        type: Boolean,
+        default: false,
+    },
+    purchasableOnly: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const emit = defineEmits(['select']);
 const productStore = useProductStore();
+
+const itemRolesParam = computed(() =>
+    Array.isArray(props.itemRoles) && props.itemRoles.length ? props.itemRoles.join(',') : null,
+);
 
 const query = ref('');
 const searchResults = ref([]);
@@ -211,9 +227,14 @@ const loadDefaults = async () => {
             physical_only: props.physicalOnly ? 1 : 0,
             batch_tracked_only: props.batchTrackedOnly ? 1 : 0,
             with_stock: props.showStock ? 1 : 0,
+            saleable_only: props.saleableOnly ? 1 : 0,
+            purchasable_only: props.purchasableOnly ? 1 : 0,
         };
         if (props.categoryId) {
             params.category_id = props.categoryId;
+        }
+        if (itemRolesParam.value) {
+            params.item_roles = itemRolesParam.value;
         }
         const res = await productStore.searchProductVariants(params);
         defaultResults.value = res.data ?? [];
@@ -234,8 +255,8 @@ const runSearch = async (q, { barcode = false } = {}) => {
     try {
         const res = await productStore.searchProductVariants(
             barcode
-                ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0, with_stock: props.showStock ? 1 : 0 }
-                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0, category_id: props.categoryId, with_stock: props.showStock ? 1 : 0 },
+                ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0, with_stock: props.showStock ? 1 : 0, saleable_only: props.saleableOnly ? 1 : 0, purchasable_only: props.purchasableOnly ? 1 : 0, item_roles: itemRolesParam.value ?? undefined }
+                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0, category_id: props.categoryId, with_stock: props.showStock ? 1 : 0, saleable_only: props.saleableOnly ? 1 : 0, purchasable_only: props.purchasableOnly ? 1 : 0, item_roles: itemRolesParam.value ?? undefined },
         );
         searchResults.value = res.data ?? [];
     } catch {

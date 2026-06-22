@@ -3,6 +3,7 @@
 use App\Http\Middleware\SetTenantContext;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\PosController;
+use App\Http\Controllers\Api\Admin\QzTrayController;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\OnboardingController;
 use App\Http\Controllers\Api\Admin\EnumController;
@@ -154,6 +155,7 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         Route::get('warehouses', 'warehouses')->name('warehouses');
         Route::get('today-summary', 'todaySummary')->name('today-summary');
         Route::get('transactions', 'transactions')->name('transactions');
+        Route::get('last-receipt', 'lastReceipt')->name('last-receipt');
         Route::get('receipt/{invoice}', 'receiptData')->name('receipt');
         // Till management
         Route::get('till/current', 'currentSession')->name('till.current');
@@ -166,6 +168,10 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         Route::post('hold', 'holdOrder')->name('hold');
         Route::get('held-orders', 'heldOrders')->name('held-orders');
         Route::delete('held-orders/{posHeldOrder}', 'deleteHeldOrder')->name('held-orders.destroy');
+
+        // QZ Tray thermal printing — certificate + request signing.
+        Route::get('qz/certificate', [QzTrayController::class, 'certificate'])->name('qz.certificate');
+        Route::post('qz/sign', [QzTrayController::class, 'sign'])->name('qz.sign');
     });
 
     // global settings
