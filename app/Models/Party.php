@@ -2,15 +2,22 @@
 
 namespace App\Models;
 
+use App\Traits\HasTags;
+use App\Traits\HasNotes;
 use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use App\Enums\PartyTypeEnum;
+use App\Traits\HasActivities;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Party extends Model
 {
+    use HasActivities;
     use HasDiscount;
+    use HasNotes;
+    use HasTags;
     use MultiTenant;
     use SoftDeletes;
 
@@ -56,5 +63,35 @@ class Party extends Model
     public function setCreditLimitAttribute($value): void
     {
         $this->attributes['credit_limit'] = floatval($value);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function salesOrders(): HasMany
+    {
+        return $this->hasMany(SalesOrder::class);
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
+    }
+
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(Receipt::class);
+    }
+
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(CreditNote::class);
     }
 }
