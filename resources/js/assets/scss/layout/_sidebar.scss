@@ -907,7 +907,7 @@ body.mini-sidebar{
         min-height: 65px;
         max-height: 65px;
         flex-shrink: 0;
-        overflow: hidden;
+        overflow: visible;
         border-bottom: 1px solid variables.$border-color;
         .logo {
             line-height: 0;

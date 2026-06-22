@@ -118,7 +118,6 @@ export default {
   display: flex !important;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden !important;
 }
 
 .admin-sidebar-shell__main {
@@ -126,6 +125,7 @@ export default {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .admin-sidebar-shell__scroll {
