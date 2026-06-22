@@ -47,6 +47,11 @@ class ValidateFileJob implements ShouldQueue
 
         $mapping = $job->mapping ?? [];
         $headers = $job->stats['detected_headers'] ?? [];
+
+        if ($job->entity_type === DataTransferEntityTypeEnum::Product) {
+            \App\Services\DataTransfer\ProductImportLookupCache::forget($job->company_id);
+        }
+
         $lookups = $importFactory->lookups($job->entity_type, $job->company_id);
         $validator = $importFactory->validator($job->entity_type);
         $context = $this->buildContext($job);
@@ -82,18 +87,53 @@ class ValidateFileJob implements ShouldQueue
 
         $valid = 0;
         $invalid = 0;
+        $skipped = 0;
+
+        /** @var array<string, int> $seenCodes */
+        $seenCodes = [];
+        /** @var array<string, array{value: string, count: int, suggestions: list<array{id: int, label: string}>}> $unresolved */
+        $unresolved = [];
 
         foreach ($mappedRows as $index => $mapped) {
             $result = $validator->validate($mapped, $lookups, $context);
 
-            $status = $result['errors'] === []
-                ? DataTransferRowStatusEnum::Valid
-                : DataTransferRowStatusEnum::Invalid;
+            $errors = $result['errors'];
+            $fieldErrors = $result['field_errors'] ?? [];
+            $rowSkip = $result['skip'] ?? false;
 
-            if ($status === DataTransferRowStatusEnum::Valid) {
+            $code = trim((string) ($mapped['code'] ?? ''));
+            if ($code !== '') {
+                $codeKey = strtolower($code);
+                if (isset($seenCodes[$codeKey])) {
+                    $errors[] = "Duplicate code '{$code}' within file (first seen at row {$seenCodes[$codeKey]}).";
+                } else {
+                    $seenCodes[$codeKey] = $index + 1;
+                }
+            }
+
+            if ($rowSkip && $errors === []) {
+                $status = DataTransferRowStatusEnum::Skipped;
+                $skipped++;
+            } elseif ($errors === []) {
+                $status = DataTransferRowStatusEnum::Valid;
                 $valid++;
             } else {
+                $status = DataTransferRowStatusEnum::Invalid;
                 $invalid++;
+            }
+
+            foreach ($fieldErrors as $fieldError) {
+                $key = $fieldError['field'].'|'.strtolower($fieldError['value']);
+                if (isset($unresolved[$key])) {
+                    $unresolved[$key]['count']++;
+                } else {
+                    $unresolved[$key] = [
+                        'field' => $fieldError['field'],
+                        'value' => $fieldError['value'],
+                        'count' => 1,
+                        'suggestions' => $fieldError['suggestions'],
+                    ];
+                }
             }
 
             DataTransferRow::query()->create([
@@ -102,7 +142,8 @@ class ValidateFileJob implements ShouldQueue
                 'status' => $status,
                 'raw_payload' => $mapped,
                 'normalized_payload' => $result['normalized'],
-                'errors' => $result['errors'],
+                'errors' => $errors,
+                'field_errors' => $fieldErrors,
             ]);
         }
 
@@ -111,7 +152,9 @@ class ValidateFileJob implements ShouldQueue
             'stats' => array_merge($job->stats ?? [], [
                 'valid' => $valid,
                 'invalid' => $invalid,
+                'skipped' => $skipped,
                 'total_rows' => count($mappedRows),
+                'unresolved' => array_values($unresolved),
             ]),
         ]);
     }

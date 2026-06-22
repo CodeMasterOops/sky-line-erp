@@ -22,8 +22,11 @@ const store = useDataTransferStore();
 const wizardRef = ref(null);
 
 const productFields = [
-    'name', 'code', 'product_type', 'category', 'unit', 'brand', 'tax', 'sku',
-    'sales_price', 'purchase_price', 'warehouse', 'quantity',
+    'name', 'code', 'product_type', 'hsn_code', 'description', 'category', 'unit',
+    'brand', 'tax', 'has_variants', 'reorder_quantity', 'min_stock_level', 'sku',
+    'barcode', 'sales_price', 'purchase_price', 'is_default',
+    'attribute_1_name', 'attribute_1_value', 'attribute_2_name', 'attribute_2_value',
+    'warehouse', 'quantity',
 ];
 
 const show = () => wizardRef.value?.show();

@@ -15,6 +15,7 @@ class DataTransferRow extends Model
         'raw_payload',
         'normalized_payload',
         'errors',
+        'field_errors',
         'target_type',
         'target_id',
     ];
@@ -26,6 +27,7 @@ class DataTransferRow extends Model
             'raw_payload' => 'array',
             'normalized_payload' => 'array',
             'errors' => 'array',
+            'field_errors' => 'array',
         ];
     }
 

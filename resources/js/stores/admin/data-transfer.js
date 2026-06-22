@@ -91,6 +91,21 @@ export const useDataTransferStore = defineStore('dataTransfer', {
             return apiAdmin(`${apiUrl}/${uuid}/validate`, 'post').catch(showErrors);
         },
 
+        getUnresolved(uuid) {
+            return apiAdmin(`${apiUrl}/${uuid}/unresolved`)
+                .then((res) => res.data.data)
+                .catch(showErrors);
+        },
+
+        submitResolutions(uuid, resolutions) {
+            return apiAdmin(`${apiUrl}/${uuid}/resolutions`, 'post', { resolutions })
+                .then((res) => res.data)
+                .catch((err) => {
+                    showErrors(err);
+                    throw err;
+                });
+        },
+
         commit(uuid) {
             return apiAdmin(`${apiUrl}/${uuid}/commit`, 'post').catch(showErrors);
         },

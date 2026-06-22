@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Api\Admin\DataTransfer;
 
+use App\Models\Unit;
+use App\Models\Brand;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Models\DataTransferJob;
+use App\Models\ProductCategory;
 use App\Services\TenantService;
 use Illuminate\Validation\Rule;
+use App\Models\ImportValueAlias;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Models\DataTransferSchedule;
@@ -22,6 +26,7 @@ use App\Enums\DataTransfer\DataTransferStatusEnum;
 use App\Services\DataTransfer\ImportTemplateService;
 use App\Enums\DataTransfer\DataTransferDirectionEnum;
 use App\Enums\DataTransfer\DataTransferEntityTypeEnum;
+use App\Services\DataTransfer\ProductImportLookupCache;
 use App\Services\DataTransfer\Import\ImportHandlerFactory;
 use App\Http\Resources\Admin\DataTransfer\DataTransferJobResource;
 use App\Http\Resources\Admin\DataTransfer\DataTransferRowResource;
@@ -189,6 +194,101 @@ class DataTransferController extends Controller
         return response()->json([
             'message' => 'Validation started.',
         ]);
+    }
+
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
+    public function unresolved(string $uuid): JsonResponse
+    {
+        $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
+
+        return response()->json([
+            'data' => array_values($job->stats['unresolved'] ?? []),
+        ]);
+    }
+
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
+    public function resolutions(string $uuid, Request $request): JsonResponse
+    {
+        $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
+
+        if ($job->direction !== DataTransferDirectionEnum::Import) {
+            return response()->json(['message' => 'Not an import job.'], 422);
+        }
+
+        $validated = $request->validate([
+            'resolutions' => ['required', 'array', 'min:1'],
+            'resolutions.*.field' => ['required', 'string', Rule::in(['category', 'unit', 'brand', 'tax', 'product_type'])],
+            'resolutions.*.source_value' => ['required', 'string'],
+            'resolutions.*.action' => ['required', Rule::in(['map', 'create', 'skip'])],
+            'resolutions.*.target_id' => ['nullable', 'integer'],
+            'resolutions.*.target_value' => ['nullable', 'string'],
+        ]);
+
+        $companyId = auth('admin')->user()->company_id;
+        $userId = auth('admin')->id();
+
+        foreach ($validated['resolutions'] as $resolution) {
+            $this->applyResolution($job, $resolution, $companyId, $userId);
+        }
+
+        ProductImportLookupCache::forget($companyId);
+        ValidateFileJob::dispatch($job);
+
+        return response()->json(['message' => 'Resolutions saved. Re-validation started.']);
+    }
+
+    /**
+     * @param  array{field: string, source_value: string, action: string, target_id?: int|null, target_value?: string|null}  $resolution
+     */
+    private function applyResolution(DataTransferJob $job, array $resolution, int $companyId, ?int $userId): void
+    {
+        $field = $resolution['field'];
+        $source = trim($resolution['source_value']);
+        $action = $resolution['action'];
+
+        $targetId = null;
+        $targetValue = null;
+
+        if ($action === 'skip') {
+            // target stays null — rows carrying this value are dropped on re-validation.
+        } elseif ($field === 'product_type') {
+            $targetValue = in_array($resolution['target_value'] ?? null, ['product', 'service'], true)
+                ? $resolution['target_value']
+                : 'product';
+        } elseif ($action === 'create') {
+            $targetId = $this->createLookupRecord($field, $source, $companyId);
+        } else {
+            $targetId = $resolution['target_id'] ?? null;
+            if ($targetId === null) {
+                return;
+            }
+        }
+
+        ImportValueAlias::query()->updateOrCreate(
+            [
+                'company_id' => $companyId,
+                'entity_type' => $job->entity_type->value,
+                'field' => $field,
+                'source_value' => mb_strtolower($source),
+            ],
+            [
+                'target_id' => $targetId,
+                'target_value' => $targetValue,
+                'created_by' => $userId,
+            ],
+        );
+    }
+
+    private function createLookupRecord(string $field, string $name, int $companyId): int
+    {
+        return match ($field) {
+            'category' => ProductCategory::query()->create(['company_id' => $companyId, 'name' => $name])->id,
+            'brand' => Brand::query()->create(['company_id' => $companyId, 'name' => $name])->id,
+            'unit' => Unit::query()->create(['company_id' => $companyId, 'name' => $name])->id,
+            default => throw new \InvalidArgumentException("Cannot create a record for field '{$field}'."),
+        };
     }
 
     #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
