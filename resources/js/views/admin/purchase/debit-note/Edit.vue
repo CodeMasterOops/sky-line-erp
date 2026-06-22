@@ -294,8 +294,8 @@
                             />
                         </div>
 
-                        <div class="col-12 text-end border-top pt-3 mt-1">
-                            <button @click="closeEditModal" class="btn btn-cancel me-2" type="button">
+                        <div class="col-12 d-flex justify-content-end gap-2 border-top pt-3 mt-1">
+                            <button @click="closeEditModal" class="btn btn-cancel" type="button">
                                 Cancel
                             </button>
                             <VButton

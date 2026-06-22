@@ -259,16 +259,16 @@
                             </div>
                         </div>
 
-                        <div class="col-12 text-end">
-                            <button @click="closeCreateModal" class="btn btn-cancel add-cancel me-2" type="button">
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button @click="closeCreateModal" class="btn btn-cancel" type="button">
                                 Cancel
                             </button>
                             <button
                                 type="button"
-                                class="btn btn-outline-primary me-2"
+                                class="btn btn-outline-primary"
                                 :disabled="isSubmitting"
                                 @click="storeInvoiceWithStatus('draft')">
-                                Create
+                                Save as Draft
                             </button>
                             <button
                                 type="button"

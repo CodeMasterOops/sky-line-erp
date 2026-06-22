@@ -295,8 +295,8 @@
                             </div>
                         </div>
 
-                        <div class="col-12 text-end">
-                            <button class="btn btn-cancel add-cancel me-2" type="button" @click="closeCreateModal">
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button class="btn btn-cancel" type="button" @click="closeCreateModal">
                                 Cancel
                             </button>
                             <button class="btn btn-primary" type="submit" :disabled="saving">

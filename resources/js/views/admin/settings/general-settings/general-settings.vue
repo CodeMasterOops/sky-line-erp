@@ -136,8 +136,8 @@
                                                       </div>
                                                 </div>
                                           </div>
-                                          <div class="text-end settings-bottom-btn mt-0">
-                                                <button type="button" class="btn btn-secondary me-2">Cancel</button>
+                                          <div class="d-flex justify-content-end gap-2 settings-bottom-btn mt-0">
+                                                <button type="button" class="btn btn-cancel">Cancel</button>
                                                 <button type="submit" class="btn btn-primary">Save Changes</button>
                                           </div>
                                     </form>

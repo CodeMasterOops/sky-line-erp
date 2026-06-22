@@ -165,8 +165,8 @@
                             />
                         </div>
 
-                        <div v-if="isDraft" class="col-12 text-end">
-                            <button @click="closeEditModal" class="btn btn-cancel add-cancel me-2" type="button">
+                        <div v-if="isDraft" class="col-12 d-flex justify-content-end gap-2">
+                            <button @click="closeEditModal" class="btn btn-cancel" type="button">
                                 Cancel
                             </button>
                             <button

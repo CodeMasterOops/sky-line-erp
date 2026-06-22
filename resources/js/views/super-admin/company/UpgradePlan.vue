@@ -78,8 +78,8 @@
                         The current active subscription will be cancelled and replaced with the selected plan.
                     </p>
                 </div>
-                <div class="col-12 text-end">
-                    <button class="btn btn-secondary me-1" type="button" @click="closeModal">
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button class="btn btn-cancel" type="button" @click="closeModal">
                         Cancel
                     </button>
                     <VButton :loading="isSubmitting" btn-label="Upgrade Plan" />

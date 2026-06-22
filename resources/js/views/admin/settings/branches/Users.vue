@@ -109,8 +109,8 @@
                         <label class="form-check-label" for="assignmentActive">Active</label>
                     </div>
                 </div>
-                <div class="col-12 text-end">
-                    <button type="button" class="btn btn-danger me-2" @click="closeModal">Cancel</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="closeModal">Cancel</button>
                     <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         {{ editingUser ? 'Update' : 'Assign' }}

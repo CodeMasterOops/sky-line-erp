@@ -75,8 +75,8 @@
                         <label class="form-check-label" for="edit_is_recommended">Recommended</label>
                     </div>
                 </div>
-                <div class="col-12 text-end">
-                    <button @click="closeEditModal" class="btn btn-danger me-1" type="button">Close</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button @click="closeEditModal" class="btn btn-cancel" type="button">Cancel</button>
                     <VButton :loading="isSubmitting"/>
                 </div>
             </form>

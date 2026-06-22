@@ -33,9 +33,9 @@
                         <label class="form-check-label">Active</label>
                     </div>
                 </div>
-                <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger me-2" type="button">
-                        Close
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button @click="closeCreateModal" class="btn btn-cancel" type="button">
+                        Cancel
                     </button>
                     <VButton :loading="isSubmitting"/>
                 </div>

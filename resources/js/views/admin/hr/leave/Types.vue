@@ -54,8 +54,8 @@
                         <label class="form-check-label">Paid</label>
                     </div>
                 </div>
-                <div class="col-12 text-end">
-                    <button type="button" @click="createModalOpened = false" class="btn btn-danger me-2">Close</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" @click="createModalOpened = false" class="btn btn-cancel">Cancel</button>
                     <VButton :loading="cSubmitting" />
                 </div>
             </form>
@@ -78,8 +78,8 @@
                         <label class="form-check-label">Active</label>
                     </div>
                 </div>
-                <div class="col-12 text-end">
-                    <button type="button" @click="editItem = null" class="btn btn-danger me-2">Close</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" @click="editItem = null" class="btn btn-cancel">Cancel</button>
                     <VButton :loading="eSubmitting" />
                 </div>
             </form>

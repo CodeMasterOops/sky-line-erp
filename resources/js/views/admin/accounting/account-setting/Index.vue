@@ -209,7 +209,7 @@
                                         label="Retained Earnings Account (Year-End Closing)"
                                     />
                                 </div>
-                                <div class="col-12 text-end">
+                                <div class="col-12 d-flex justify-content-end">
                                     <VButton :loading="isSubmitting" />
                                 </div>
                             </div>

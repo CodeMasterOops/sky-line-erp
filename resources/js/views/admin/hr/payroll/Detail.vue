@@ -108,8 +108,8 @@
                     </select>
                     <div v-if="confirmError" class="text-danger small mt-1">{{ confirmError }}</div>
                 </div>
-                <div class="col-12 text-end">
-                    <button type="button" @click="showConfirmModal = false" class="btn btn-danger me-2">Cancel</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" @click="showConfirmModal = false" class="btn btn-cancel">Cancel</button>
                     <button type="button" @click="confirmRun" :disabled="isConfirming" class="btn btn-success">
                         <span v-if="isConfirming" class="spinner-border spinner-border-sm me-1"></span>
                         Confirm & Post to Ledger

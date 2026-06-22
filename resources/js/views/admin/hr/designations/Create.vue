@@ -9,8 +9,8 @@
                     <label class="form-label">Description</label>
                     <textarea class="form-control" v-model="form.description" rows="2"></textarea>
                 </div>
-                <div class="col-12 text-end">
-                    <button type="button" @click="closeModal" class="btn btn-danger me-2">Close</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" @click="closeModal" class="btn btn-cancel">Cancel</button>
                     <VButton :loading="isSubmitting" />
                 </div>
             </form>

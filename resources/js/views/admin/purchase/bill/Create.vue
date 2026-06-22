@@ -398,13 +398,13 @@
                             />
                         </div>
 
-                        <div class="col-12 text-end">
-                            <button @click="closeCreateModal" class="btn btn-cancel add-cancel me-2" type="button">
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button @click="closeCreateModal" class="btn btn-cancel" type="button">
                                 Cancel
                             </button>
                             <button
                                 type="button"
-                                class="btn btn-outline-primary me-2"
+                                class="btn btn-outline-primary"
                                 :disabled="isSubmitting"
                                 @click="storeBillWithStatus('draft')">
                                 Save as Draft
@@ -450,8 +450,8 @@
                     </tbody>
                 </table>
             </div>
-            <div class="text-end mt-3">
-                <button type="button" class="btn btn-cancel me-2" @click="grnImportOpen = false">Cancel</button>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-cancel" @click="grnImportOpen = false">Cancel</button>
                 <button type="button" class="btn btn-primary" :disabled="!selectedGrnItemIds.length" @click="importSelectedGrnLines">Import selected</button>
             </div>
         </template>
