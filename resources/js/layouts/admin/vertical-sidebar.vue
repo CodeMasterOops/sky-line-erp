@@ -228,9 +228,7 @@ export default {
             const anyChildActive = menu.subMenus.some(
               (s) => s.route && this.isRouteTargetActive(s.route)
             );
-            if (anyChildActive) {
-              this.submenuExpanded = { ...this.submenuExpanded, [key]: true };
-            }
+            this.submenuExpanded = { ...this.submenuExpanded, [key]: anyChildActive };
           }
           if (menu.hasSubRouteTwo && menu.subMenus) {
             const key = this.menuKey(section, menu);
@@ -251,6 +249,9 @@ export default {
                   }
                 }
               });
+            } else if (this.openMenuKey === key) {
+              this.openMenuKey = null;
+              this.openSubMenuKey = null;
             }
           }
         });
