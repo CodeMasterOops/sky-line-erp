@@ -1,16 +1,5 @@
 <template>
-  <div class="sidebar-menu-search pb-2 pt-0">
-    <input
-      type="search"
-      class="form-control form-control-sm"
-      placeholder="Search menu…"
-      v-model="searchQuery"
-      autocomplete="off"
-      aria-label="Search menu"
-      @keydown.stop
-    />
-  </div>
-  <ul>
+  <ul class="pt-2">
     <li
       class="submenu-open"
       v-for="(section, sectionIdx) in displaySections"
@@ -59,9 +48,9 @@
           <li v-else-if="menu.hasSubRouteTwo" class="submenu">
             <a
               href="javascript:void(0);"
-              @click="OpenMenu(menu)"
+              @click="openMenu(menu, section)"
               :class="{
-                subdrop: openMenuItem === menu,
+                subdrop: openMenuKey === menuKey(section, menu),
                 active: isActive(menu),
               }"
             >
@@ -69,7 +58,7 @@
               <span>{{ menu.menuValue }}</span>
               <span class="menu-arrow"></span>
             </a>
-            <ul :class="{ 'd-block': openMenuItem === menu || isActive(menu), 'd-none': openMenuItem !== menu && !isActive(menu) }">
+            <ul :class="openMenuKey === menuKey(section, menu) || isActive(menu) ? 'd-block' : 'd-none'">
               <li v-for="subMenus in menu.subMenus" :key="subMenus.menuValue">
                 <template v-if="!subMenus.customSubmenuTwo">
                   <router-link
@@ -85,15 +74,15 @@
                   <li class="submenu submenu-two">
                     <a
                       href="javascript:void(0);"
-                      @click="openSubmenuOne(subMenus)"
+                      @click="openSubMenu(subMenus)"
                       :class="{
-                        subdrop: openSubmenuOneItem === subMenus,
+                        subdrop: openSubMenuKey === subMenus.menuValue,
                         active: isSubActive(subMenus),
                       }"
                     >
                       {{ subMenus.menuValue }}<span class="menu-arrow inside-submenu"></span>
                     </a>
-                    <ul :class="{ 'd-block': openSubmenuOneItem === subMenus, 'd-none': openSubmenuOneItem !== subMenus }">
+                    <ul :class="openSubMenuKey === subMenus.menuValue || isSubActive(subMenus) ? 'd-block' : 'd-none'">
                       <li v-for="subMenuTwo in subMenus.subMenusTwo" :key="subMenuTwo.menuValue">
                         <router-link
                           v-if="subMenuTwo.route"
@@ -118,16 +107,17 @@
 <script>
 import rawSidebar from "@/assets/json/sidebar.json";
 import { hasPermission } from "@/helpers/checkPermission";
-import { filterSidebarSections, filterSidebarBySearch } from "@/helpers/sidebarMenu";
+import { filterSidebarSections } from "@/helpers/sidebarMenu";
 
 export default {
   data() {
     return {
-      searchQuery: "",
       /** @type {Record<string, boolean>} */
       submenuExpanded: {},
-      openMenuItem: null,
-      openSubmenuOneItem: null,
+      /** Key of the open hasSubRouteTwo module, e.g. "Modules::Inventory" */
+      openMenuKey: null,
+      /** menuValue of the open customSubmenuTwo group, e.g. "Operations" */
+      openSubMenuKey: null,
     };
   },
   computed: {
@@ -135,7 +125,7 @@ export default {
       return filterSidebarSections(rawSidebar, (p) => hasPermission(p));
     },
     displaySections() {
-      return filterSidebarBySearch(this.permissionFiltered, this.searchQuery);
+      return this.permissionFiltered;
     },
     isMenuActive() {
       return (menu) => {
@@ -152,9 +142,13 @@ export default {
       return (menu) => {
         if (menu.subMenus && Array.isArray(menu.subMenus)) {
           if (
-            menu.subMenus.some(
-              (s) => s.route && this.isRouteTargetActive(s.route)
-            )
+            menu.subMenus.some((s) => {
+              if (s.route && this.isRouteTargetActive(s.route)) return true;
+              if (s.customSubmenuTwo && Array.isArray(s.subMenusTwo)) {
+                return s.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route));
+              }
+              return false;
+            })
           ) {
             return true;
           }
@@ -170,6 +164,11 @@ export default {
     },
     isSubActive() {
       return (menu) => {
+        if (menu.subMenusTwo && Array.isArray(menu.subMenusTwo)) {
+          if (menu.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route))) {
+            return true;
+          }
+        }
         const parts = this.$route.path.split("/").filter(Boolean);
         const base = parts[0];
         return base === menu.active_link || base === menu.active_link2;
@@ -188,25 +187,15 @@ export default {
     this.syncSubmenuFromRoute();
   },
   methods: {
-    /**
-     * True when the current route matches a sidebar link target, including
-     * `query` (e.g. same route name, different `?type=` for customers vs suppliers).
-     */
     isRouteTargetActive(to) {
-      if (!to) {
-        return false;
-      }
+      if (!to) return false;
       if (to.name) {
-        if (this.$route.name !== to.name) {
-          return false;
-        }
+        if (this.$route.name !== to.name) return false;
         if (to.query && typeof to.query === "object" && Object.keys(to.query).length) {
           for (const [k, v] of Object.entries(to.query)) {
             const cur = this.$route.query[k];
             const cur0 = Array.isArray(cur) ? cur[0] : cur;
-            if (String(cur0 ?? "") !== String(v)) {
-              return false;
-            }
+            if (String(cur0 ?? "") !== String(v)) return false;
           }
         }
         return true;
@@ -222,23 +211,47 @@ export default {
     submenuKey(section, menu) {
       return `${this.sectionTitle(section)}::${menu.menuValue}`;
     },
+    menuKey(section, menu) {
+      return `${this.sectionTitle(section)}::${menu.menuValue}`;
+    },
     isSubmenuDropped(menu, section) {
       const key = this.submenuKey(section, menu);
-      if (Object.prototype.hasOwnProperty.call(this.submenuExpanded, key)) {
-        return this.submenuExpanded[key];
-      }
-      return false;
+      return Object.prototype.hasOwnProperty.call(this.submenuExpanded, key)
+        ? this.submenuExpanded[key]
+        : false;
     },
     syncSubmenuFromRoute() {
       this.permissionFiltered.forEach((section) => {
         (section.menu || []).forEach((menu) => {
-          if (!menu.hasSubRoute || !menu.subMenus) return;
-          const key = this.submenuKey(section, menu);
-          const anyChildActive = menu.subMenus.some(
-            (s) => s.route && this.isRouteTargetActive(s.route)
-          );
-          if (anyChildActive) {
-            this.submenuExpanded = { ...this.submenuExpanded, [key]: true };
+          if (menu.hasSubRoute && menu.subMenus) {
+            const key = this.submenuKey(section, menu);
+            const anyChildActive = menu.subMenus.some(
+              (s) => s.route && this.isRouteTargetActive(s.route)
+            );
+            if (anyChildActive) {
+              this.submenuExpanded = { ...this.submenuExpanded, [key]: true };
+            }
+          }
+          if (menu.hasSubRouteTwo && menu.subMenus) {
+            const key = this.menuKey(section, menu);
+            const anyChildActive = menu.subMenus.some((s) => {
+              if (s.route && this.isRouteTargetActive(s.route)) return true;
+              if (s.customSubmenuTwo && Array.isArray(s.subMenusTwo)) {
+                return s.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route));
+              }
+              return false;
+            });
+            if (anyChildActive) {
+              this.openMenuKey = key;
+              menu.subMenus.forEach((s) => {
+                if (s.customSubmenuTwo && Array.isArray(s.subMenusTwo)) {
+                  const groupActive = s.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route));
+                  if (groupActive) {
+                    this.openSubMenuKey = s.menuValue;
+                  }
+                }
+              });
+            }
           }
         });
       });
@@ -257,26 +270,16 @@ export default {
       const nextOpen = isMiniSidebar ? true : !this.isSubmenuDropped(menu, section);
       this.submenuExpanded = { ...this.submenuExpanded, [key]: nextOpen };
     },
-    OpenMenu(menu) {
-      const isMiniSidebar = document.body.classList.contains("mini-sidebar");
-
-      if (this.openMenuItem !== menu) {
-        this.openSubmenuOneItem = null;
+    openMenu(menu, section) {
+      const key = this.menuKey(section, menu);
+      if (this.openMenuKey !== key) {
+        this.openSubMenuKey = null;
       }
-
-      if (isMiniSidebar) {
-        this.openMenuItem = menu;
-      } else {
-        this.openMenuItem = this.openMenuItem === menu ? null : menu;
-      }
+      this.openMenuKey = this.openMenuKey === key ? null : key;
     },
-    openSubmenuOne(subMenus) {
-      const isMiniSidebar = document.body.classList.contains("mini-sidebar");
-      if (isMiniSidebar) {
-        this.openSubmenuOneItem = subMenus;
-      } else {
-        this.openSubmenuOneItem = this.openSubmenuOneItem === subMenus ? null : subMenus;
-      }
+    openSubMenu(subMenus) {
+      const key = subMenus.menuValue;
+      this.openSubMenuKey = this.openSubMenuKey === key ? null : key;
     },
   },
 };

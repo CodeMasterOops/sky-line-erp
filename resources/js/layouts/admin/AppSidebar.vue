@@ -28,11 +28,38 @@
                 </div>
             </simplebar>
         </div>
+
+        <div class="admin-sidebar-shell__footer">
+            <div class="sidebar-plan-card">
+                <div class="sidebar-plan-card__body">
+                    <div class="sidebar-plan-card__icon">
+                        <i class="ti ti-crown"></i>
+                    </div>
+                    <div class="sidebar-plan-card__info">
+                        <p class="sidebar-plan-card__label">Current Plan</p>
+                        <p class="sidebar-plan-card__name">{{ planName }}</p>
+                    </div>
+                    <router-link
+                        :to="{ name: 'admin.billing-pricing' }"
+                        class="sidebar-plan-card__action"
+                        title="Manage plan"
+                    >
+                        <i class="ti ti-arrow-right"></i>
+                    </router-link>
+                </div>
+            </div>
+
+            <router-link :to="{ name: 'admin.support' }" class="sidebar-support-link">
+                <i class="ti ti-headset fs-16 me-2"></i>
+                <span>Support</span>
+            </router-link>
+        </div>
     </div>
 </template>
 <script>
 import simplebar from "simplebar-vue";
 import "simplebar-vue/dist/simplebar.min.css";
+import { useBillingStore } from "@/stores/admin/billing";
 
 export default {
   components: {
@@ -42,6 +69,12 @@ export default {
     return {
       sidebarClass: "",
     };
+  },
+  computed: {
+    planName() {
+      const billing = useBillingStore();
+      return billing.subscription.data?.plan?.name ?? "Free";
+    },
   },
   watch: {
     "$route.path"(newPath) {
@@ -59,12 +92,12 @@ export default {
       document.body.classList.add("mini-sidebar");
     }
     document.body.classList.remove("expand-menu");
-    // Run once when the component is mounted
     if (
       this.$route.path.startsWith("/pos")
     ) {
       this.sidebarClass = "d-none";
     }
+    useBillingStore().getSubscription();
   },
   methods: {
     toggleSidebar() {
@@ -85,6 +118,7 @@ export default {
   display: flex !important;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden !important;
 }
 
 .admin-sidebar-shell__main {
@@ -98,5 +132,122 @@ export default {
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
+}
+
+.admin-sidebar-shell__footer {
+  flex: 0 0 auto;
+  padding: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* Plan card */
+.sidebar-plan-card {
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1358f1 0%, #40abe6 100%);
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.sidebar-plan-card__body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.sidebar-plan-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.sidebar-plan-card__info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sidebar-plan-card__label {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.sidebar-plan-card__name {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.sidebar-plan-card__action {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 14px;
+  transition: background 0.2s;
+  text-decoration: none;
+}
+
+.sidebar-plan-card__action:hover {
+  background: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+/* Support link */
+.sidebar-support-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--sidebar-text-color, #6e7c91);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-support-link:hover,
+.sidebar-support-link.router-link-active {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--sidebar-text-hover-color, #333);
+}
+
+/* Hide footer text/card in mini-sidebar mode */
+:global(.mini-sidebar) .sidebar-plan-card__info,
+:global(.mini-sidebar) .sidebar-plan-card__action,
+:global(.mini-sidebar) .sidebar-plan-card__label,
+:global(.mini-sidebar) .sidebar-support-link span {
+  display: none;
+}
+
+:global(.mini-sidebar) .sidebar-plan-card__body {
+  justify-content: center;
+  padding: 8px;
+}
+
+:global(.mini-sidebar) .sidebar-support-link {
+  justify-content: center;
 }
 </style>
