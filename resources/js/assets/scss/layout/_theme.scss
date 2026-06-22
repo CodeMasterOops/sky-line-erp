@@ -2119,14 +2119,286 @@ body.data-layout-transparent {
     .header .header-left {
         border-color: #E6EAED1A;
     }
-    .mini-sidebar {
-        .header .header-left .logo-white {
+    &.mini-sidebar .header .header-left .logo-white {
+        display: none !important;
+    }
+    &.mini-sidebar.expand-menu .header .header-left .logo-white {
+        display: flex !important;
+    }
+    // ── Dark-sidebar overrides for primary-blue background ──
+    .sidebar {
+        .sidebar-logo {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .sidebar-menu {
+            // Top-level section links: text + icons
+            > ul > li {
+                svg {
+                    color: rgba(255, 255, 255, 0.6);
+                }
+                > a {
+                    color: rgba(255, 255, 255, 0.85);
+                    svg {
+                        color: rgba(255, 255, 255, 0.6);
+                    }
+                    img {
+                        filter: brightness(0) invert(1);
+                        opacity: 0.8;
+                    }
+                    span {
+                        color: rgba(255, 255, 255, 0.85);
+                    }
+                    &:hover {
+                        background: rgba(255, 255, 255, 0.1);
+                        color: variables.$white;
+                        svg, span {
+                            color: variables.$white;
+                        }
+                        img {
+                            opacity: 1;
+                        }
+                    }
+                    &.active,
+                    &.router-link-exact-active,
+                    &.router-link-active {
+                        background: rgba(255, 255, 255, 0.18);
+                        color: variables.$white;
+                        svg, span {
+                            color: variables.$white;
+                        }
+                        img {
+                            opacity: 1;
+                        }
+                        .menu-arrow {
+                            background: rgba(255, 255, 255, 0.25);
+                            &::before {
+                                border-color: variables.$white;
+                            }
+                        }
+                    }
+                }
+                &.active {
+                    > a {
+                        background: rgba(255, 255, 255, 0.18);
+                        svg, span {
+                            color: variables.$white;
+                        }
+                    }
+                    svg {
+                        color: variables.$white;
+                    }
+                }
+            }
+            // .submenu parent toggle: subdrop + active state
+            li {
+                .submenu > a.subdrop,
+                .submenu > a.active {
+                    background: rgba(255, 255, 255, 0.12);
+                    color: variables.$white;
+                    span, i {
+                        color: variables.$white;
+                    }
+                    .menu-arrow {
+                        background: rgba(255, 255, 255, 0.25);
+                        &::before {
+                            border-color: variables.$white;
+                        }
+                    }
+                }
+            }
+            // Level 1 flat items + level 2 item base text
+            // Specificity: (0,5,x) — beats the old (0,4,5) rule in this block
+            .submenu-open {
+                ul {
+                    border-color: rgba(255, 255, 255, 0.1);
+                    li a {
+                        color: rgba(255, 255, 255, 0.75);
+                        span {
+                            color: rgba(255, 255, 255, 0.75);
+                        }
+                        i {
+                            color: rgba(255, 255, 255, 0.6);
+                        }
+                        &:hover {
+                            background: rgba(255, 255, 255, 0.08);
+                            color: variables.$white;
+                            span, i {
+                                color: variables.$white;
+                            }
+                        }
+                        &.active,
+                        &.router-link-exact-active,
+                        &.router-link-active {
+                            background: rgba(255, 255, 255, 0.14);
+                            color: variables.$white;
+                            span, i {
+                                color: variables.$white;
+                            }
+                            &::after {
+                                background: variables.$white;
+                                border-color: rgba(255, 255, 255, 0.35);
+                            }
+                        }
+                    }
+                    > li {
+                        &.active a,
+                        & > a.router-link-exact-active,
+                        & > a.router-link-active {
+                            background: rgba(255, 255, 255, 0.14);
+                            color: variables.$white;
+                            span, i {
+                                color: variables.$white;
+                            }
+                        }
+                    }
+                }
+            }
+            // Level 2: direct router-link children of an open .submenu
+            // Specificity: (0,6,x) — beats the old (0,4,5) rule and covers ::after bullet
+            .submenu-open .submenu > ul > li > a {
+                color: rgba(255, 255, 255, 0.75);
+                &::after {
+                    background: rgba(255, 255, 255, 0.3);
+                    border-color: rgba(255, 255, 255, 0.15);
+                }
+                &:hover {
+                    background: rgba(255, 255, 255, 0.08);
+                    color: variables.$white;
+                    &::after {
+                        background: variables.$white;
+                        border-color: rgba(255, 255, 255, 0.35);
+                    }
+                }
+                &.active,
+                &.router-link-exact-active,
+                &.router-link-active {
+                    background: rgba(255, 255, 255, 0.14);
+                    color: variables.$white;
+                    &::after {
+                        background: variables.$white;
+                        border-color: rgba(255, 255, 255, 0.35);
+                    }
+                }
+            }
+            // Level 3: submenu-two toggle + its items
+            // Specificity: (0,7,x) — beats the old (0,5,7) rule in this block
+            .submenu-open .submenu .submenu-two {
+                > a {
+                    color: rgba(255, 255, 255, 0.8);
+                    i {
+                        color: rgba(255, 255, 255, 0.65);
+                    }
+                    span {
+                        color: rgba(255, 255, 255, 0.8);
+                    }
+                    &:hover {
+                        color: variables.$white;
+                        i, span {
+                            color: variables.$white;
+                        }
+                    }
+                    &.subdrop,
+                    &.active {
+                        color: variables.$white;
+                        i, span {
+                            color: variables.$white;
+                        }
+                        .menu-arrow {
+                            background: rgba(255, 255, 255, 0.2);
+                            &::before {
+                                border-color: variables.$white;
+                            }
+                        }
+                    }
+                }
+                ul li a {
+                    color: rgba(255, 255, 255, 0.65);
+                    &::after {
+                        background: rgba(255, 255, 255, 0.3);
+                        border-color: rgba(255, 255, 255, 0.15);
+                    }
+                    &:hover,
+                    &.active,
+                    &.router-link-exact-active,
+                    &.router-link-active {
+                        color: variables.$white;
+                        &::after {
+                            background: variables.$white;
+                            border-color: rgba(255, 255, 255, 0.4);
+                        }
+                    }
+                }
+            }
+            // Menu arrow
+            .menu-arrow {
+                background: rgba(255, 255, 255, 0.2);
+                &::before {
+                    border-color: rgba(255, 255, 255, 0.8);
+                }
+            }
+        }
+        // Toggle collapse button: light blue on dark sidebar
+        .sidebar-logo #toggle_btn {
+            background: variables.$info;
+            color: variables.$white;
+            &:hover {
+                background: variables.$info-hover;
+            }
+        }
+        // Regular mode: hide small-white icon (only full white logo is shown)
+        .sidebar-logo .logo-small-white {
+            display: none;
+        }
+    }
+    // Mini-sidebar: & compounds with [data-sidebar] on <body> so both attrs match the same element
+    &.mini-sidebar .sidebar .sidebar-logo {
+        .logo-white {
             display: none !important;
         }
-        &.expand-menu {
-            .header .header-left .logo-white {
-                display: flex !important;
-            }
+        .logo-small {
+            display: block;
+        }
+        .logo-small img {
+            filter: brightness(0) invert(1);
+        }
+        .logo-small-white {
+            display: none;
+        }
+    }
+    // Expand-menu (hover over mini): restore full white logo, hide small icon
+    &.mini-sidebar.expand-menu .sidebar .sidebar-logo {
+        .logo-white {
+            display: block !important;
+        }
+        .logo-small {
+            display: none;
+        }
+    }
+    // POS header: white background with normal colored logo (not dark-sidebar style)
+    .pos-header .header-left {
+        background: variables.$white !important;
+        border-color: variables.$border-color !important;
+        .logo-normal {
+            display: block !important;
+        }
+        .logo-white {
+            display: none !important;
+        }
+    }
+    // Plan card — matches active sidebar item style
+    #sidebar .sidebar-plan-card {
+        background: rgba(255, 255, 255, 0.18);
+    }
+    // Footer border and support link
+    #sidebar .admin-sidebar-shell__footer {
+        border-top-color: rgba(255, 255, 255, 0.12);
+    }
+    #sidebar .sidebar-support-link {
+        color: rgba(255, 255, 255, 0.7);
+        &:hover,
+        &.router-link-active {
+            background: rgba(255, 255, 255, 0.1);
+            color: variables.$white;
         }
     }
 }
@@ -7078,7 +7350,7 @@ body.data-layout-transparent {
     }    
 }
 [data-color="primary"]{
-    $primary: #1358f1;
+    $primary: #0339a7;
     .sidebar {
         .sidebar-menu > ul {
             &  > li {

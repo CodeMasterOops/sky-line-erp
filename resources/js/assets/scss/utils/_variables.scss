@@ -16,8 +16,8 @@ $font-family-primary: 'Nunito', sans-serif;
 $font-family-secondary: "Poppins", sans-serif;
 $font-awesome: "Fontawesome";
 	
-// Theme Colors Variables (brand: primary #1358f1, navy #001440, accent #0ad4eb, sky #40abe6)
-$primary: #1358f1;
+// Theme Colors Variables (brand: primary #0339a7, navy #021059, accent #0ad4eb, sky #40abe6)
+$primary: #0339a7;
 $primary-hover: color.adjust($primary, $lightness: -10%);
 $secondary: #001440;
 $secondary-hover: color.adjust($secondary, $lightness: -10%);
@@ -299,7 +299,7 @@ $cyan-transparent: #e5fafd;
 $indigo-transparent: #EDEDFB;
 $orange-transparent: #FCEFEA;
 $primary-gradient: linear-gradient(to right, $primary 0%, #40abe6 100%);
-$secondary-gradient: linear-gradient(to right, $secondary 0%, #1358f1 100%);
+$secondary-gradient: linear-gradient(to right, $secondary 0%, #0339a7 100%);
 $success-gradient: linear-gradient(to right,$success 0%, #5cf9e2 100%);
 $warning-gradient: linear-gradient(to right, $warning 0%, #fbc434 100%);
 $danger-gradient: linear-gradient(to right,$danger 0%, #fd4a68  100%);
@@ -339,7 +339,7 @@ $rounded-pill: 1.5rem;
 $box-shadow: 0px 4px 60px 0px rgba(231, 231, 231, 0.47);
 $box-shadow-sm: 0px 4px 60px 0px rgba(190, 190, 190, 0.27);
 $box-shadow-lg: 0 5px 10px rgba(30, 32, 37, 0.12);
-$box-shadow-primary: 0px 4px 10px 0px rgba(19, 88, 241, 0.3);
+$box-shadow-primary: 0px 4px 10px 0px rgba(3, 57, 167, 0.3);
 
 // Font Size
 $font-size-8: 8px;
@@ -449,7 +449,7 @@ $dark-transparent: #E8E9EA;
 $sidebar-color-1: #FBFBFB;
 $sidebar-color-2: #505969;
 $sidebar-color-3: #2C2C2C;
-$sidebar-color-4: #1D51B6;
+$sidebar-color-4: #021059;
 $sidebar-color-5: #6C0BA9;
 $sidebar-color-6: #0B897D;
 $sidebar-color-7: linear-gradient(180deg, #4B749F 0%, #243748 100%);

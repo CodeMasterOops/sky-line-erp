@@ -220,6 +220,12 @@ watch(() => branchStore.selectedBranchId, (newId) => {
     }
 });
 
+watch(route, () => {
+    document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(el => {
+        window.bootstrap?.Dropdown?.getInstance(el)?.hide();
+    });
+});
+
 const {profile} = storeToRefs(profileStore);
 const {unreadNotifications: notifications} = storeToRefs(notificationStore);
 const {currentFiscalYear} = storeToRefs(adminSettingStore);

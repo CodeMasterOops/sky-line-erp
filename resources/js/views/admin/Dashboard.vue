@@ -26,44 +26,6 @@
     </div>
 
     <template v-else>
-      <!-- Financial overview -->
-      <section class="dashboard-section">
-        <div class="row g-2">
-          <div class="col-xxl-4 col-lg-6 col-12 d-flex">
-            <div class="card stat-card stat-card--featured flex-fill">
-              <div class="card-body d-flex align-items-center gap-2">
-                <span class="stat-card__icon">
-                  <i class="ti ti-report-money"></i>
-                </span>
-                <div class="min-w-0 flex-fill">
-                  <p class="stat-card__label mb-0">Estimated Profit</p>
-                  <h4 class="stat-card__value mb-0">{{ formatMoney(profit) }}</h4>
-                </div>
-                <router-link :to="{ name: 'admin.profit-and-loss' }" class="stat-card__link flex-shrink-0">P&amp;L</router-link>
-              </div>
-            </div>
-          </div>
-
-          <div
-            v-for="card in summaryCards"
-            :key="card.label"
-            class="col-xxl-2 col-lg-6 col-12 d-flex"
-          >
-            <div class="card stat-card flex-fill">
-              <div class="card-body d-flex align-items-center gap-2">
-                <span :class="`stat-card__icon bg-soft-${card.color} text-${card.color}`">
-                  <i :class="`ti ${card.icon}`"></i>
-                </span>
-                <div class="min-w-0">
-                  <p class="stat-card__label mb-0">{{ card.label }}</p>
-                  <h4 class="stat-card__value mb-0">{{ formatMoney(card.value) }}</h4>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <!-- Business snapshot -->
       <section class="dashboard-section">
         <div class="row g-2">
@@ -72,17 +34,17 @@
             :key="metric.label"
             class="col-xl-3 col-sm-6 col-12 d-flex"
           >
-            <div class="card stat-card flex-fill">
-              <div class="card-body d-flex align-items-center gap-2">
-                <span :class="`stat-card__icon stat-card__icon--sm ${metric.iconBg} ${metric.iconColor}`">
-                  <i :class="`ti ${metric.icon}`"></i>
-                </span>
-                <div class="min-w-0 flex-fill">
-                  <p class="stat-card__label mb-0">{{ metric.label }}</p>
-                  <h4 class="stat-card__value mb-0">{{ metric.displayValue }}</h4>
+            <div :class="`card metric-card metric-card--${metric.cardColor} flex-fill`">
+              <div class="metric-card__body">
+                <div class="metric-card__info">
+                  <h3 class="metric-card__count">{{ metric.displayValue }}</h3>
+                  <p class="metric-card__label mb-0">{{ metric.label }}</p>
                 </div>
-                <router-link :to="metric.route" class="stat-card__link flex-shrink-0">View</router-link>
+                <i :class="`ti ${metric.icon} metric-card__bg-icon`"></i>
               </div>
+              <router-link :to="metric.route" class="metric-card__footer">
+                {{ metric.label }}
+              </router-link>
             </div>
           </div>
         </div>
@@ -141,6 +103,44 @@
                   :options="expensesChartOptions"
                   :series="expensesChartSeries"
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Financial overview -->
+      <section class="dashboard-section">
+        <div class="row g-2">
+          <div class="col-xxl-4 col-lg-6 col-12 d-flex">
+            <div class="card stat-card stat-card--featured flex-fill">
+              <div class="card-body d-flex align-items-center gap-2">
+                <span class="stat-card__icon">
+                  <i class="ti ti-report-money"></i>
+                </span>
+                <div class="min-w-0 flex-fill">
+                  <p class="stat-card__label mb-0">Estimated Profit</p>
+                  <h4 class="stat-card__value mb-0">{{ formatMoney(profit) }}</h4>
+                </div>
+                <router-link :to="{ name: 'admin.profit-and-loss' }" class="stat-card__link flex-shrink-0">P&amp;L</router-link>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-for="card in summaryCards"
+            :key="card.label"
+            class="col-xxl-2 col-lg-6 col-12 d-flex"
+          >
+            <div class="card stat-card flex-fill">
+              <div class="card-body d-flex align-items-center gap-2">
+                <span :class="`stat-card__icon bg-soft-${card.color} text-${card.color}`">
+                  <i :class="`ti ${card.icon}`"></i>
+                </span>
+                <div class="min-w-0">
+                  <p class="stat-card__label mb-0">{{ card.label }}</p>
+                  <h4 class="stat-card__value mb-0">{{ formatMoney(card.value) }}</h4>
+                </div>
               </div>
             </div>
           </div>
@@ -415,35 +415,31 @@ const businessMetrics = computed(() => {
 
     return [
         {
-            label: 'Suppliers',
-            displayValue: d.suppliers_count,
-            icon: 'ti-truck',
-            iconBg: 'bg-teal-transparent',
-            iconColor: 'text-teal',
-            route: {name: 'admin.party-list', query: {type: 'supplier'}},
-        },
-        {
             label: 'Customers',
             displayValue: d.customers_count,
             icon: 'ti-users',
-            iconBg: 'bg-soft-orange',
-            iconColor: 'text-orange',
+            cardColor: 'green',
             route: {name: 'admin.party-list', query: {type: 'customer'}},
         },
         {
             label: 'Products',
             displayValue: d.products_count,
-            icon: 'ti-box',
-            iconBg: 'bg-soft-indigo',
-            iconColor: 'text-indigo',
+            icon: 'ti-shopping-bag',
+            cardColor: 'teal',
             route: {name: 'admin.product-list'},
         },
         {
-            label: "Today's Invoices",
+            label: 'Suppliers',
+            displayValue: d.suppliers_count,
+            icon: 'ti-truck',
+            cardColor: 'purple',
+            route: {name: 'admin.party-list', query: {type: 'supplier'}},
+        },
+        {
+            label: "Today's Sales",
             displayValue: d.orders_today,
-            icon: 'ti-file-invoice',
-            iconBg: 'bg-soft-primary',
-            iconColor: 'text-primary',
+            icon: 'ti-cash',
+            cardColor: 'olive',
             route: {name: 'admin.invoice-list', query: {date_from: todayStr, date_to: todayStr}},
         },
     ];
