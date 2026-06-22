@@ -21,6 +21,9 @@ Schedule::command('inventory:valuation-snapshot --replace')->monthlyOn(1, '01:00
 
 Schedule::command('app:check-orphan-rows')->dailyAt('02:00');
 
+// CRM follow-up & task reminders
+Schedule::command('crm:dispatch-reminders')->everyFiveMinutes()->withoutOverlapping();
+
 Schedule::call(function () {
     DataTransferSchedule::query()
         ->where('is_active', true)
