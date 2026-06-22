@@ -4,8 +4,6 @@ use App\Models\Tag;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Party;
-use App\Models\Company;
-use App\Models\FiscalYear;
 use App\Enums\UserTypeEnum;
 use App\Models\CrmActivity;
 use App\Enums\PartyTypeEnum;
@@ -13,37 +11,6 @@ use Laravel\Sanctum\Sanctum;
 use App\Services\TenantService;
 use App\Enums\CrmActivityTypeEnum;
 use App\Services\Crm\ActivityLogger;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
-use App\Enums\InventoryCostingMethodEnum;
-
-function warmAllTablesCache(): void
-{
-    $tables = [];
-    foreach (Schema::getTableListing() as $table) {
-        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
-        $tables[$table] = Schema::getColumnListing($plainName);
-    }
-    Cache::forget(allTablesCacheKey());
-    Cache::forever(allTablesCacheKey(), $tables);
-}
-
-function makeCompany(string $name, string $code): Company
-{
-    $fiscalYear = FiscalYear::create([
-        'year_name' => '2026',
-        'year_code' => '26',
-        'start_date' => '2026-01-01',
-        'end_date' => '2026-12-31',
-    ]);
-
-    return Company::create([
-        'fiscal_year_id' => $fiscalYear->id,
-        'company_name' => $name,
-        'code' => $code,
-        'inventory_costing_method' => InventoryCostingMethodEnum::FIFO,
-    ]);
-}
 
 beforeEach(function () {
     warmAllTablesCache();

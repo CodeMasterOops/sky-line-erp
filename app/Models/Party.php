@@ -10,6 +10,7 @@ use App\Enums\PartyTypeEnum;
 use App\Traits\HasActivities;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Party extends Model
@@ -63,6 +64,16 @@ class Party extends Model
     public function setCreditLimitAttribute($value): void
     {
         $this->attributes['credit_limit'] = floatval($value);
+    }
+
+    public function leadProfile(): HasOne
+    {
+        return $this->hasOne(CrmLeadProfile::class);
+    }
+
+    public function contactPersons(): HasMany
+    {
+        return $this->hasMany(ContactPerson::class);
     }
 
     public function invoices(): HasMany
