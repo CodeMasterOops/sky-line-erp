@@ -22,7 +22,15 @@ return [
 
     'certificate_path' => env('QZ_CERTIFICATE_PATH'),
 
+    // Base64-encoded certificate — preferred for container deployments (Coolify, Docker, etc.)
+    // where the filesystem is ephemeral. Generate with: base64 -w 0 qz-cert.pem
+    'certificate_base64' => env('QZ_CERTIFICATE_BASE64'),
+
     'private_key_path' => env('QZ_PRIVATE_KEY_PATH'),
+
+    // Base64-encoded private key — preferred for container deployments.
+    // Generate with: base64 -w 0 qz-private.pem
+    'private_key_base64' => env('QZ_PRIVATE_KEY_BASE64'),
 
     'private_key_passphrase' => env('QZ_PRIVATE_KEY_PASSPHRASE'),
 

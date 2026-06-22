@@ -17,18 +17,28 @@ class QzTrayService
     /**
      * The public digital certificate handed to the browser, or null when
      * signing is not configured.
+     *
+     * Resolves in order: file path → base64 env var.
      */
     public function certificate(): ?string
     {
         $path = config('qz.certificate_path');
 
-        if (! $path || ! is_readable($path)) {
-            return null;
+        if ($path && is_readable($path)) {
+            $contents = file_get_contents($path);
+
+            return $contents !== false ? trim($contents) : null;
         }
 
-        $contents = file_get_contents($path);
+        $b64 = config('qz.certificate_base64');
 
-        return $contents !== false ? trim($contents) : null;
+        if ($b64) {
+            $decoded = base64_decode($b64, strict: true);
+
+            return $decoded !== false ? trim($decoded) : null;
+        }
+
+        return null;
     }
 
     /**
@@ -61,18 +71,28 @@ class QzTrayService
 
     /**
      * The PEM-encoded private key contents, or null when not configured.
+     *
+     * Resolves in order: file path → base64 env var.
      */
     protected function privateKey(): ?string
     {
         $path = config('qz.private_key_path');
 
-        if (! $path || ! is_readable($path)) {
-            return null;
+        if ($path && is_readable($path)) {
+            $contents = file_get_contents($path);
+
+            return $contents !== false ? $contents : null;
         }
 
-        $contents = file_get_contents($path);
+        $b64 = config('qz.private_key_base64');
 
-        return $contents !== false ? $contents : null;
+        if ($b64) {
+            $decoded = base64_decode($b64, strict: true);
+
+            return $decoded !== false ? $decoded : null;
+        }
+
+        return null;
     }
 
     /**

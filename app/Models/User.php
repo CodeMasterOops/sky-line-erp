@@ -49,14 +49,14 @@ class User extends Authenticatable
     public function getProfilePhotoUrlAttribute(): string
     {
         return ! empty($this->profile_photo)
-            ? url(Storage::url($this->profile_photo))
+            ? Storage::disk('public')->url($this->profile_photo)
             : asset('images/user-icon.png');
     }
 
     public function setProfilePhotoAttribute($value): void
     {
         if (! empty($value) && $value instanceof UploadedFile) {
-            $this->attributes['profile_photo'] = $value->store('company_user/photo');
+            $this->attributes['profile_photo'] = $value->store('company_user/photo', 'public');
         }
     }
 

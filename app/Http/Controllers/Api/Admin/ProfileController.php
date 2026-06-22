@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\TenantService;
 use App\Http\Controllers\Controller;
 use App\Services\BranchAccessService;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\Admin\ProfileResource;
 use App\Http\Requests\Api\Admin\UpdateProfileRequest;
 use App\Http\Requests\Api\Admin\ChangePasswordRequest;
@@ -51,7 +52,7 @@ class ProfileController extends Controller
     {
         if ($request->hasFile('profile_photo')) {
             if ($photo = auth('admin')->user()->getRawOriginal('profile_photo')) {
-                deleteFile($photo);
+                Storage::disk('public')->delete($photo);
             }
         }
         auth('admin')->user()->update($request->validated());
