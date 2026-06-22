@@ -686,22 +686,31 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
         }
         .sidebar {
             .sidebar-menu{
+                @include mixins.margin-padding(null, 8px 6px 16px);
                ul{
                     li{
                         a {
+                            justify-content: center;
+                            @include mixins.margin-padding(null, 10px);
+                            i {
+                                margin: 0 !important;
+                            }
                             span{
                                 display:none;
                             }
                         }
                         .submenu-hdr {
                             display:none;
-                        }                                                       
+                        }
                         svg {
                             margin-right:0;
                         }
+                        &.submenu > ul {
+                            display: none !important;
+                        }
                     }
                 }
-            } 
+            }
         }
         .sidebar{
             width: 86px;
@@ -715,14 +724,22 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
         .sidebar {
             width: 252px;
             .sidebar-menu{
+                @include mixins.margin-padding(null, 8px 24px 24px);
                ul{
                    > li{
                         > a {
+                            justify-content: flex-start;
                             @include mixins.margin-padding(null, 10px 15px);
+                            i {
+                                margin-right: 8px !important;
+                            }
                             span{
                                 display:inline-block;
                             }
-                        }                        
+                        }
+                        &.submenu > ul {
+                            display: block;
+                        }
                         svg {
                             margin-right:10px;
                         }
