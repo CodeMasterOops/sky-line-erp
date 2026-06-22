@@ -67,6 +67,7 @@ class InvoiceGlPostingService
         $receivableAccountId = $settings->customer_account_id;
         $salesAccountId = $settings->sales_account_id;
         $vatAccountId = $settings->vat_account_id;
+        $roundingAccountId = $settings->rounding_account_id;
 
         $vatTaxableBase = round((float) $invoice->invoiceItems
             ->where('tax_line_type', TaxLineTypeEnum::TAXABLE->value)
@@ -118,7 +119,7 @@ class InvoiceGlPostingService
 
         DB::transaction(function () use (
             $invoice, $grandTotal, $salesBase, $vatAmount,
-            $receivableAccountId, $salesAccountId, $vatAccountId,
+            $receivableAccountId, $salesAccountId, $vatAccountId, $roundingAccountId,
             $user, $company, $voucherNo, $taxGroupLines
         ) {
             $journal = Journal::withoutGlobalScopes()->create([
@@ -177,12 +178,32 @@ class InvoiceGlPostingService
                     'cr_amount' => $vatAmount,
                     'remarks' => 'Output VAT – '.$invoice->invoice_no,
                 ]);
-            } elseif ($vatAmount > 0) {
-                // Fold residual VAT rounding into sales line to keep journal balanced.
-                JournalItem::withoutGlobalScopes()
-                    ->where('journal_id', $journal->id)
-                    ->where('account_id', $salesAccountId)
-                    ->increment('cr_amount', $vatAmount);
+            }
+
+            // Reconcile any residual between the AR debit and the credit legs (most
+            // often sub-rupee tax-group rounding) to the dedicated rounding account,
+            // keeping revenue and VAT lines clean. Falls back to folding into sales
+            // when no rounding account is configured.
+            $actualVat = ! empty($taxGroupLines)
+                ? round(array_sum(array_column($taxGroupLines, 'amount')), 2)
+                : (($vatAmount > 0 && $vatAccountId) ? $vatAmount : 0.0);
+            $rounding = round($grandTotal - ($salesBase + $actualVat), 2);
+
+            if (abs($rounding) >= 0.01) {
+                if ($roundingAccountId) {
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $roundingAccountId,
+                        'dr_amount' => $rounding < 0 ? abs($rounding) : 0,
+                        'cr_amount' => $rounding > 0 ? $rounding : 0,
+                        'remarks' => 'Rounding – '.$invoice->invoice_no,
+                    ]);
+                } else {
+                    JournalItem::withoutGlobalScopes()
+                        ->where('journal_id', $journal->id)
+                        ->where('account_id', $salesAccountId)
+                        ->increment('cr_amount', $rounding);
+                }
             }
 
             $this->balanceGuard->assertBalanced($journal);

@@ -210,6 +210,7 @@ class DeliveryChallanService
                 'quantity' => (float) $item['quantity'],
                 'rate' => (float) $item['rate'],
                 'remarks' => $item['remarks'] ?? null,
+                'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
             ];
         })->all();
     }
@@ -238,6 +239,7 @@ class DeliveryChallanService
                 ChangeTypeEnum::DELIVERY,
                 $userId,
                 $challan->remarks,
+                $item->batch_id,
             );
         }
     }

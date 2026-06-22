@@ -33,7 +33,7 @@
                         </div>
 
                         <div class="col-12">
-                            <ProductVariantSearchInput label="Product" required physical-only @select="onVariantSelected" />
+                            <ProductVariantSearchInput purchasable-only label="Product" required physical-only @select="onVariantSelected" />
                         </div>
 
                         <div class="col-12">

@@ -4,7 +4,9 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Tenancy\TRule;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use App\Enums\LandedCostTreatmentEnum;
+use App\Services\Inventory\BatchGuard;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\LandedCostAllocationMethodEnum;
 
@@ -31,8 +33,11 @@ class GoodsReceivedNoteRequest extends FormRequest
             'items.*.ordered_qty' => ['nullable', 'numeric', 'min:0'],
             'items.*.received_qty' => ['required', 'numeric', 'min:0.001'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
+            'items.*.batch_id' => ['nullable', TRule::exists('batches', 'id')->withoutTrashed()],
             'items.*.batch_no' => ['nullable', 'string'],
             'items.*.expiry_date' => ['nullable', 'date'],
+            'items.*.serial_nos' => ['nullable', 'array'],
+            'items.*.serial_nos.*' => ['string', 'max:100'],
             'landed_costs' => ['nullable', 'array'],
             'landed_costs.*.cost_type' => ['required_with:landed_costs', 'string', 'max:100'],
             'landed_costs.*.description' => ['nullable', 'string', 'max:255'],
@@ -43,5 +48,17 @@ class GoodsReceivedNoteRequest extends FormRequest
             'landed_costs.*.vat_claimable_amount' => ['nullable', 'numeric', 'min:0'],
             'landed_costs.*.account_id' => ['nullable', TRule::exists('accounts', 'id')->withoutTrashed()],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn () => $this->input('warehouse_id'),
+            );
+        });
     }
 }

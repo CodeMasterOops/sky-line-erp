@@ -99,7 +99,7 @@
                             />
                         </div>
                         <div v-if="isDraft" class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput purchasable-only
                                 label="Product (manual)"
                                 required
                                 physical-only
@@ -167,8 +167,8 @@
                                                 input-type="number"
                                                 input-class="form-control form-control-sm"
                                                 v-model="form.items[index].quantity"
-                                                min="1"
-                                                step="1"
+                                                min="0.001"
+                                                step="any"
                                                 :max="isDraft ? (maxQtyForLine(item) ?? undefined) : undefined"
                                                 :disabled="!isDraft"
                                                 @validate="validateField(`items[${index}].quantity`)"

@@ -69,9 +69,9 @@ class InventoryStockReconciliationController extends Controller
             'product_name' => $r->product_name,
             'warehouse_id' => (int) $r->warehouse_id,
             'warehouse_name' => $r->warehouse_name,
-            'stock_quantity' => (int) $r->stock_quantity,
-            'valued_quantity' => (int) $r->valued_quantity,
-            'difference' => (int) $r->difference,
+            'stock_quantity' => (float) $r->stock_quantity,
+            'valued_quantity' => (float) $r->valued_quantity,
+            'difference' => (float) $r->difference,
         ]);
 
         return response()->json([

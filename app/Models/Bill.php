@@ -30,6 +30,7 @@ class Bill extends Model
         'supplier_pan',
         'purchase_order_id',
         'bill_no',
+        'supplier_invoice_no',
         'bill_date',
         'due_date',
         'remarks',

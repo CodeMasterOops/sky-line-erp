@@ -18,7 +18,7 @@ class StockMovementLayer extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
+        'quantity' => 'float',
         'unit_cost' => 'float',
     ];
 

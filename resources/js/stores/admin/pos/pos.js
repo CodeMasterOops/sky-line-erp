@@ -154,8 +154,24 @@ export const usePosStore = defineStore('pos', {
                 this.fetchTodaySummary(),
                 this.fetchTillSession(),
                 this.fetchCategories(),
+                this.fetchLastSale(),
             ]);
             this.initialized = true;
+        },
+
+        /**
+         * Load the most recent completed sale from the server so the header
+         * "Print Last Receipt" works after a reload or on a fresh terminal.
+         */
+        async fetchLastSale() {
+            try {
+                const res = await apiAdmin('pos/last-receipt');
+                if (res.data.data) {
+                    this.lastSale = res.data.data;
+                }
+            } catch {
+                /* Non-fatal — header print simply stays empty until a sale is made. */
+            }
         },
 
         findCartLine(lineKey) {

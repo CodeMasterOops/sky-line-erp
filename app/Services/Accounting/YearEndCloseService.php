@@ -40,13 +40,14 @@ class YearEndCloseService
             ->where('status', AccountingPeriodStatusEnum::OPEN->value)
             ->count();
 
-        $emptyRequest = new Request;
+        $fyRequest = Request::create('/', 'GET', ['fiscal_year_id' => $fiscalYearId]);
         $plRequest = Request::create('/', 'GET', ['fiscal_year_id' => $fiscalYearId]);
+        $companyRequest = Request::create('/', 'GET');
 
-        $unbalanced = $this->accountReportService->unbalancedJournals($emptyRequest);
-        $unposted = $this->accountReportService->unpostedDocuments($emptyRequest);
-        $arAp = $this->accountReportService->arApReconciliation($emptyRequest);
-        $inventory = $this->accountReportService->inventoryGlReconciliation($emptyRequest);
+        $unbalanced = $this->accountReportService->unbalancedJournals($fyRequest);
+        $unposted = $this->accountReportService->unpostedDocuments($fyRequest);
+        $arAp = $this->accountReportService->arApReconciliation($companyRequest);
+        $inventory = $this->accountReportService->inventoryGlReconciliation($companyRequest);
         $profitLoss = $this->accountReportService->profitLoss($plRequest);
 
         $unbalancedCount = (int) ($unbalanced['summary']['count'] ?? 0);

@@ -46,7 +46,7 @@
                     <span class="pvs__hint ms-auto">↑↓ navigate · Enter select</span>
                 </div>
 
-                <template v-if="searching">
+                <template v-if="isLoading">
                     <div v-for="n in 4" :key="n" class="pvs__skeleton-row">
                         <div class="pvs__skeleton-dot"></div>
                         <div class="pvs__skeleton-body">
@@ -62,7 +62,7 @@
                         v-for="(v, i) in displayResults"
                         :key="v.id"
                         :ref="el => setItemRef(el, i)"
-                        :class="['pvs__item', { 'pvs__item--active': activeIndex === i }]"
+                        :class="['pvs__item', { 'pvs__item--active': activeIndex === i, 'pvs__item--out': showStock && !v.is_service && Number(v.stock) <= 0 }]"
                         @mouseenter="activeIndex = i"
                         @mouseleave="activeIndex = -1"
                         @mousedown.prevent="selectVariant(v)"
@@ -77,6 +77,13 @@
                                 <span v-if="v.barcode" class="pvs__chip">{{ v.barcode }}</span>
                                 <span v-if="v.product_code" class="pvs__chip">{{ v.product_code }}</span>
                                 <span v-if="v.is_service" class="pvs__tag-service">Service</span>
+                                <span v-if="v.item_role_label" class="pvs__chip pvs__chip--role">{{ v.item_role_label }}</span>
+                                <span
+                                    v-if="showStock && !v.is_service"
+                                    :class="['pvs__stock', stockClass(v.stock)]"
+                                >
+                                    {{ stockLabel(v.stock) }}
+                                </span>
                             </div>
                         </div>
                         <div v-if="v.sales_price" class="pvs__price">
@@ -86,10 +93,16 @@
                     </li>
                 </ul>
 
-                <div v-else-if="isTyping && !searching" class="pvs__empty">
+                <div v-else-if="isTyping" class="pvs__empty">
                     <i class="ti ti-search-off pvs__empty-icon"></i>
                     <p class="pvs__empty-title">No products found</p>
                     <p class="pvs__empty-sub">Try a different name, SKU, or barcode</p>
+                </div>
+
+                <div v-else class="pvs__empty">
+                    <i class="ti ti-package-off pvs__empty-icon"></i>
+                    <p class="pvs__empty-title">No products available</p>
+                    <p class="pvs__empty-sub">{{ categoryId ? 'No products in this category yet — type to search all.' : 'Start typing to search by name, SKU, code or barcode.' }}</p>
                 </div>
             </div>
         </Transition>
@@ -123,7 +136,27 @@ const props = defineProps({
         type: Number,
         default: null,
     },
+    batchTrackedOnly: {
+        type: Boolean,
+        default: false,
+    },
+    showStock: {
+        type: Boolean,
+        default: false,
+    },
     disabled: {
+        type: Boolean,
+        default: false,
+    },
+    itemRoles: {
+        type: Array,
+        default: () => [],
+    },
+    saleableOnly: {
+        type: Boolean,
+        default: false,
+    },
+    purchasableOnly: {
         type: Boolean,
         default: false,
     },
@@ -132,10 +165,15 @@ const props = defineProps({
 const emit = defineEmits(['select']);
 const productStore = useProductStore();
 
+const itemRolesParam = computed(() =>
+    Array.isArray(props.itemRoles) && props.itemRoles.length ? props.itemRoles.join(',') : null,
+);
+
 const query = ref('');
 const searchResults = ref([]);
 const defaultResults = ref([]);
 const searching = ref(false);
+const loadingDefaults = ref(false);
 const open = ref(false);
 const activeIndex = ref(-1);
 const inputRef = ref(null);
@@ -145,11 +183,8 @@ const _suppressNextOpen = ref(false);
 
 const isTyping = computed(() => query.value.trim().length >= 2);
 const displayResults = computed(() => (isTyping.value ? searchResults.value : defaultResults.value));
-const isOpen = computed(() => {
-    if (!open.value) return false;
-    if (!isTyping.value) return defaultResults.value.length > 0;
-    return true;
-});
+const isLoading = computed(() => (isTyping.value ? searching.value : loadingDefaults.value));
+const isOpen = computed(() => open.value);
 
 const setItemRef = (el, i) => {
     if (el) itemRefs.value[i] = el;
@@ -157,24 +192,56 @@ const setItemRef = (el, i) => {
 
 const formatPrice = (price) => Number(price).toLocaleString();
 
+const stockLabel = (stock) => {
+    const qty = Number(stock ?? 0);
+    if (qty <= 0) {
+        return 'Out of stock';
+    }
+    if (qty <= 5) {
+        return `Low: ${qty}`;
+    }
+    return `${qty} in stock`;
+};
+
+const stockClass = (stock) => {
+    const qty = Number(stock ?? 0);
+    if (qty <= 0) {
+        return 'pvs__stock--out';
+    }
+    if (qty <= 5) {
+        return 'pvs__stock--low';
+    }
+    return 'pvs__stock--ok';
+};
+
 watch(displayResults, () => {
     itemRefs.value = [];
     activeIndex.value = -1;
 });
 
 const loadDefaults = async () => {
+    loadingDefaults.value = true;
     try {
         const params = {
             limit: 20,
             physical_only: props.physicalOnly ? 1 : 0,
+            batch_tracked_only: props.batchTrackedOnly ? 1 : 0,
+            with_stock: props.showStock ? 1 : 0,
+            saleable_only: props.saleableOnly ? 1 : 0,
+            purchasable_only: props.purchasableOnly ? 1 : 0,
         };
         if (props.categoryId) {
             params.category_id = props.categoryId;
+        }
+        if (itemRolesParam.value) {
+            params.item_roles = itemRolesParam.value;
         }
         const res = await productStore.searchProductVariants(params);
         defaultResults.value = res.data ?? [];
     } catch {
         defaultResults.value = [];
+    } finally {
+        loadingDefaults.value = false;
     }
 };
 
@@ -188,8 +255,8 @@ const runSearch = async (q, { barcode = false } = {}) => {
     try {
         const res = await productStore.searchProductVariants(
             barcode
-                ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0 }
-                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, category_id: props.categoryId },
+                ? { barcode: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0, with_stock: props.showStock ? 1 : 0, saleable_only: props.saleableOnly ? 1 : 0, purchasable_only: props.purchasableOnly ? 1 : 0, item_roles: itemRolesParam.value ?? undefined }
+                : { q: trimmed, limit: 20, physical_only: props.physicalOnly ? 1 : 0, batch_tracked_only: props.batchTrackedOnly ? 1 : 0, category_id: props.categoryId, with_stock: props.showStock ? 1 : 0, saleable_only: props.saleableOnly ? 1 : 0, purchasable_only: props.purchasableOnly ? 1 : 0, item_roles: itemRolesParam.value ?? undefined },
         );
         searchResults.value = res.data ?? [];
     } catch {
@@ -530,6 +597,44 @@ defineExpose({
     border-radius: 4px;
     padding: 0 6px;
     line-height: 18px;
+}
+
+.pvs__chip--role {
+    font-weight: 600;
+    background: #e7f5ff;
+    color: #1971c2;
+}
+
+/* ── Stock badge ── */
+.pvs__stock {
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 4px;
+    padding: 0 6px;
+    line-height: 18px;
+}
+
+.pvs__stock--ok {
+    background: #d3f9d8;
+    color: #1d7a3f;
+}
+
+.pvs__stock--low {
+    background: #fff3bf;
+    color: #b08900;
+}
+
+.pvs__stock--out {
+    background: #ffe3e3;
+    color: #c92a2a;
+}
+
+.pvs__item--out {
+    opacity: 0.7;
+}
+
+.pvs__item--out .pvs__name {
+    color: #868e96;
 }
 
 .pvs__price {

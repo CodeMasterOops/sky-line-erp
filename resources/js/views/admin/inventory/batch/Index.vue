@@ -1,241 +1,226 @@
 <template>
-    <PageHeader title="Batch / Lot Tracking" subtitle="FEFO inventory — expiry management" @refresh="fetchBatches(true)">
+    <PageHeader title="Batch / Lot Tracking" subtitle="FEFO inventory — expiry management" @refresh="fetchBatches">
         <template #actions>
             <button type="button" class="btn btn-warning me-2" @click="showExpiryAlerts">
                 <i class="ti ti-alert-triangle me-1"></i> Expiry Alerts
             </button>
-            <button v-can="'create_batch'" type="button" class="btn btn-primary" @click="showForm = true">
+            <button v-can="'create_batch'" type="button" class="btn btn-primary d-flex align-items-center" @click="createModalOpened = true">
                 <i class="ti ti-circle-plus me-2"></i> Add Batch
             </button>
         </template>
     </PageHeader>
 
-    <!-- Filters -->
-    <section class="section">
-        <div class="card mb-3">
-            <div class="card-body py-2">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-3">
-                        <label class="form-label small">Status</label>
-                        <select class="form-select form-select-sm" v-model="filter.status" @change="fetchBatches(true)">
-                            <option value="">All</option>
-                            <option value="active">Active</option>
-                            <option value="expired">Expired</option>
-                            <option value="depleted">Depleted</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small">Expiring within (days)</label>
-                        <input type="number" class="form-control form-control-sm" v-model="filter.expiring_days"
-                               placeholder="e.g. 30" @change="fetchBatches(true)" />
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-sm btn-secondary w-100" @click="clearFilters">Clear</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="card table-list-card">
+        <VTableToolbar
+            v-model="filter.search"
+            placeholder="Search batch no, lot no..."
+            :is-filtered="isFiltered"
+            @search="onSearchInput"
+            @reset="resetFilters">
+            <template #filters>
+                <select class="form-select form-select-sm" v-model="filter.status">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="quarantine">Quarantine</option>
+                    <option value="expired">Expired</option>
+                    <option value="depleted">Depleted</option>
+                    <option value="recalled">Recalled</option>
+                </select>
+                <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    v-model="filter.expiring_days"
+                    placeholder="Expiring in (days)"
+                    style="width: 160px;"
+                />
+            </template>
+        </VTableToolbar>
 
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <a-table :columns="columns" :data-source="batches" :loading="loading" :pagination="false"
-                             row-key="id">
-                        <template #bodyCell="{ column, record, index }">
-                            <template v-if="column.key === 'sn'">
-                                {{ (listMeta.from || ((filter.page - 1) * filter.per_page + 1)) + index }}
-                            </template>
-                            <template v-if="column.key === 'product'">
-                                {{ record.product_variant?.product?.name }}
-                            </template>
-                            <template v-if="column.key === 'expiry_date'">
-                                <span :class="expiryClass(record.expiry_date)">
-                                    {{ record.expiry_date ?? '—' }}
-                                </span>
-                            </template>
-                            <template v-if="column.key === 'status'">
-                                <span :class="statusBadge(record.status)" class="badge">
-                                    {{ record.status }}
-                                </span>
-                            </template>
-                            <template v-if="column.key === 'remaining_qty'">
-                                {{ record.remaining_qty }} / {{ record.initial_qty }}
-                            </template>
+        <div class="card-body">
+            <div class="custom-datatable-filter table-responsive">
+                <a-table
+                    class="table datanew table-hover table-center mb-0"
+                    :columns="columns"
+                    :data-source="batches.data"
+                    :loading="batches.loading"
+                    :pagination="false">
+                    <template #bodyCell="{ column, record, index }">
+                        <template v-if="column.key === 'sn'">
+                            {{ (batches.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
-                    </a-table>
-                    <VPagination v-model:page="filter.page" v-model:limit="filter.per_page" :meta="listMeta" />
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Add Batch Modal -->
-    <div v-if="showForm" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Record New Batch</h5>
-                    <button type="button" class="btn-close" @click="showForm = false"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Product Variant <span class="text-danger">*</span></label>
-                            <input v-model="form.product_variant_id" type="number" class="form-control" placeholder="Variant ID" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Warehouse <span class="text-danger">*</span></label>
-                            <VMultiselect
-                                id="batch_warehouse_id"
-                                v-model="form.warehouse_id"
-                                :options="warehouseStore.optionsTree"
-                                :loading="warehouseStore.warehouses.loading"
-                                placeholder="Select warehouse"
-                            />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Batch No <span class="text-danger">*</span></label>
-                            <input v-model="form.batch_no" class="form-control" placeholder="B-001" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Lot No</label>
-                            <input v-model="form.lot_no" class="form-control" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Initial Qty <span class="text-danger">*</span></label>
-                            <input v-model="form.initial_qty" type="number" class="form-control" />
-                        </div>
-                        <div class="col-md-4">
-                            <VDatepicker id="mfg_date" label="Mfg Date" v-model="form.mfg_date" />
-                        </div>
-                        <div class="col-md-4">
-                            <VDatepicker id="expiry_date" label="Expiry Date" v-model="form.expiry_date" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Unit Cost</label>
-                            <input v-model="form.unit_cost" type="number" class="form-control" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Remarks</label>
-                            <textarea v-model="form.remarks" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showForm = false">Cancel</button>
-                    <button class="btn btn-primary" :disabled="saving" @click="saveBatch">
-                        <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-                        Save Batch
-                    </button>
-                </div>
+                        <template v-else-if="column.key === 'product'">
+                            {{ record.product_variant?.product?.name }}
+                        </template>
+                        <template v-else-if="column.key === 'expiry_date'">
+                            <span :class="expiryClass(record.expiry_date)">
+                                {{ record.expiry_date ?? '—' }}
+                            </span>
+                        </template>
+                        <template v-else-if="column.key === 'status'">
+                            <span :class="statusBadge(record.status)" class="badge text-capitalize">
+                                {{ record.status_label ?? record.status }}
+                            </span>
+                        </template>
+                        <template v-else-if="column.key === 'remaining_qty'">
+                            {{ record.remaining_qty }} / {{ record.initial_qty }}
+                        </template>
+                        <template v-else-if="column.key === 'action'">
+                            <VTableActions :actions="rowActions" :record="record" />
+                        </template>
+                    </template>
+                </a-table>
+                <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="batches.meta" />
             </div>
         </div>
     </div>
 
-    <!-- Expiry Alerts Modal -->
-    <div v-if="alertModal" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.4)">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title"><i class="ti ti-alert-triangle me-2"></i>Expiry Alerts (next {{ alertDays }} days)</h5>
-                    <button type="button" class="btn-close" @click="alertModal = false"></button>
-                </div>
-                <div class="modal-body">
-                    <div v-if="alerts.length === 0" class="text-muted text-center py-3">No batches expiring soon.</div>
-                    <table v-else class="table table-sm">
-                        <thead><tr><th>Product</th><th>Batch</th><th>Expiry</th><th>Remaining Qty</th><th>Warehouse</th></tr></thead>
-                        <tbody>
-                            <tr v-for="b in alerts" :key="b.id">
-                                <td>{{ b.product_variant?.product?.name }}</td>
-                                <td>{{ b.batch_no }}</td>
-                                <td class="text-danger fw-bold">{{ b.expiry_date }}</td>
-                                <td>{{ b.remaining_qty }}</td>
-                                <td>{{ b.warehouse?.name }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+    <VModal :show-modal="alertModal" @close-click="alertModal = false" title="Expiry Alerts">
+        <template #modal-body>
+            <p class="text-muted small mb-3">Batches expiring within the next {{ alertDays }} days.</p>
+            <div v-if="alerts.length === 0" class="text-muted text-center py-3">No batches expiring soon.</div>
+            <table v-else class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Batch</th>
+                        <th>Expiry</th>
+                        <th>Remaining Qty</th>
+                        <th>Warehouse</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="b in alerts" :key="b.id">
+                        <td>{{ b.product_variant?.product?.name }}</td>
+                        <td>{{ b.batch_no }}</td>
+                        <td class="text-danger fw-bold">{{ b.expiry_date }}</td>
+                        <td>{{ b.remaining_qty }}</td>
+                        <td>{{ b.warehouse?.name }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </template>
+    </VModal>
+
+    <CreateBatch v-model:create-modal-opened="createModalOpened" />
+    <EditBatch v-model:batch_id="editBatchId" />
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch } from 'vue';
+import { ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import VPagination from '@/components/base/VPagination.vue';
-import VDatepicker from '@/components/base/VDatepicker.vue';
-import VMultiselect from '@/components/base/VMultiselect.vue';
+import VTableToolbar from '@/components/base/VTableToolbar.vue';
+import VTableActions from '@/components/base/VTableActions.vue';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
+import { useUrlFilter } from '@/composables/useUrlFilter.js';
+import { useBatchStore } from '@/stores/admin/inventory/batch.js';
+import CreateBatch from './Create.vue';
+import EditBatch from './Edit.vue';
 
-const warehouseStore = useWarehouseStore();
+const batchStore = useBatchStore();
+const { batches } = storeToRefs(batchStore);
 
-const loading = ref(false);
-const saving = ref(false);
-const batches = ref([]);
-const showForm = ref(false);
+const createModalOpened = ref(false);
+const editBatchId = ref('');
 const alertModal = ref(false);
 const alerts = ref([]);
 const alertDays = ref(30);
-const listMeta = ref({ total: 0, current_page: 1, per_page: 25, from: null, to: null, last_page: 1 });
 
-const filter = reactive({ status: '', expiring_days: '', page: 1, per_page: 25 });
-
-const form = ref({
-    product_variant_id: '', warehouse_id: '', batch_no: '', lot_no: '',
-    initial_qty: '', mfg_date: '', expiry_date: '', unit_cost: '', remarks: '',
+const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
+    defaults: { search: '', status: '', expiring_days: '', page: 1, limit: 25 },
+    onFilter: (f) => batchStore.getBatches({ filter: f }),
 });
 
 const columns = [
     { title: 'SN', key: 'sn', width: 60 },
-    { title: 'Product', key: 'product', dataIndex: 'product_variant' },
-    { title: 'Batch No', key: 'batch_no', dataIndex: 'batch_no' },
-    { title: 'Lot No', key: 'lot_no', dataIndex: 'lot_no' },
-    { title: 'Warehouse', key: 'warehouse', dataIndex: ['warehouse', 'name'] },
-    { title: 'Mfg Date', key: 'mfg_date', dataIndex: 'mfg_date' },
-    { title: 'Expiry Date', key: 'expiry_date', dataIndex: 'expiry_date' },
+    { title: 'Product', key: 'product' },
+    { title: 'Batch No', dataIndex: 'batch_no' },
+    { title: 'Lot No', dataIndex: 'lot_no' },
+    { title: 'Warehouse', dataIndex: ['warehouse', 'name'] },
+    { title: 'Mfg Date', dataIndex: 'mfg_date' },
+    { title: 'Expiry Date', key: 'expiry_date' },
     { title: 'Qty (Rem/Init)', key: 'remaining_qty' },
-    { title: 'Status', key: 'status', dataIndex: 'status' },
+    { title: 'Status', key: 'status' },
+    { title: 'Action', key: 'action', align: 'center' },
 ];
 
-onMounted(() => {
-    fetchBatches();
-    warehouseStore.getWarehouses();
-});
+const rowActions = [
+    {
+        key: 'quarantine',
+        icon: 'ti-shield-lock',
+        title: 'Put on quarantine hold',
+        class: 'text-warning',
+        condition: (record) => record.status === 'active',
+        handler: (record) => updateStatus(record, 'quarantine'),
+    },
+    {
+        key: 'release',
+        icon: 'ti-shield-check',
+        title: 'Release hold (set active)',
+        class: 'text-success',
+        condition: (record) => record.status === 'quarantine',
+        handler: (record) => updateStatus(record, 'active'),
+    },
+    {
+        key: 'recall',
+        icon: 'ti-alert-octagon',
+        title: 'Recall batch',
+        class: 'text-danger',
+        condition: (record) => ['active', 'quarantine'].includes(record.status),
+        handler: (record) => recall(record),
+    },
+    {
+        key: 'write-off',
+        icon: 'ti-trash-x',
+        title: 'Write off remaining stock',
+        class: 'text-danger',
+        condition: (record) => ['recalled', 'quarantine', 'expired'].includes(record.status) && Number(record.remaining_qty) > 0,
+        handler: (record) => writeOff(record),
+    },
+    {
+        key: 'edit',
+        icon: 'ti-edit',
+        title: 'Edit',
+        class: 'edit-icon',
+        handler: (record) => { editBatchId.value = record.id; },
+    },
+];
 
-async function fetchBatches(reset = false) {
-    if (reset) {
-        filter.page = 1;
-    }
-    loading.value = true;
+async function updateStatus(record, status, extra = {}) {
     try {
-        const params = new URLSearchParams({
-            page: String(filter.page),
-            per_page: String(filter.per_page),
-            ...(filter.status && { status: filter.status }),
-            ...(filter.expiring_days && { expiring_days: filter.expiring_days }),
-        });
-        const { data } = await apiAdmin(`batch?${params}`);
-        batches.value = data.data;
-        listMeta.value = {
-            total: data.meta?.total ?? data.total ?? 0,
-            current_page: data.meta?.current_page ?? data.current_page ?? filter.page,
-            per_page: data.meta?.per_page ?? data.per_page ?? filter.per_page,
-            from: data.meta?.from ?? data.from ?? null,
-            to: data.meta?.to ?? data.to ?? null,
-            last_page: data.meta?.last_page ?? data.last_page ?? 1,
-        };
-    } finally {
-        loading.value = false;
+        const res = await batchStore.updateBatch(record.id, { status, ...extra });
+        toast(res.status, res.data.message);
+    } catch (e) {
+        showErrors(e);
     }
 }
 
-watch(() => [filter.page, filter.per_page], () => {
-    fetchBatches();
-});
+async function recall(record) {
+    const reason = window.prompt(`Recall batch ${record.batch_no}? Optionally note the reason (recorded in the audit trail):`, '');
+    if (reason === null) {
+        return;
+    }
+    await updateStatus(record, 'recalled', reason.trim() ? { remarks: reason.trim() } : {});
+}
 
+async function writeOff(record) {
+    if (!window.confirm(`Write off the remaining ${record.remaining_qty} unit(s) of batch ${record.batch_no}? This removes the stock and posts the loss to the GL.`)) {
+        return;
+    }
+    try {
+        const res = await apiAdmin(`batch/${record.id}/write-off`, 'post', {});
+        toast(res.status, res.data.message);
+        fetchBatches();
+    } catch (e) {
+        showErrors(e);
+    }
+}
+
+function fetchBatches() {
+    batchStore.getBatches({ filter });
+}
 
 async function showExpiryAlerts() {
     const { data } = await apiAdmin(`batch/expiry-alerts?days=${alertDays.value}`);
@@ -243,41 +228,21 @@ async function showExpiryAlerts() {
     alertModal.value = true;
 }
 
-async function saveBatch() {
-    saving.value = true;
-    try {
-        await apiAdmin('batch', 'post', form.value);
-        toast('Batch saved successfully');
-        showForm.value = false;
-        fetchBatches(true);
-        resetForm();
-    } catch (e) {
-        showErrors(e);
-    } finally {
-        saving.value = false;
-    }
-}
-
-function resetForm() {
-    form.value = { product_variant_id: '', warehouse_id: '', batch_no: '', lot_no: '',
-        initial_qty: '', mfg_date: '', expiry_date: '', unit_cost: '', remarks: '' };
-}
-
-function clearFilters() {
-    filter.status = '';
-    filter.expiring_days = '';
-    fetchBatches(true);
-}
-
 function expiryClass(date) {
-    if (!date) return '';
+    if (!date) { return ''; }
     const diff = Math.ceil((new Date(date) - new Date()) / 86400000);
-    if (diff < 0) return 'text-danger fw-bold';
-    if (diff <= 30) return 'text-warning fw-bold';
+    if (diff < 0) { return 'text-danger fw-bold'; }
+    if (diff <= 30) { return 'text-warning fw-bold'; }
     return '';
 }
 
 function statusBadge(status) {
-    return { active: 'bg-success', expired: 'bg-danger', depleted: 'bg-secondary' }[status] ?? 'bg-info';
+    return {
+        active: 'bg-success',
+        quarantine: 'bg-warning',
+        expired: 'bg-danger',
+        depleted: 'bg-secondary',
+        recalled: 'bg-dark',
+    }[status] ?? 'bg-info';
 }
 </script>

@@ -81,7 +81,7 @@
                         </div>
 
                         <div v-if="isDraft" class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput saleable-only
                                 label="Product"
                                 required
                                 @select="onVariantSelected"
@@ -131,8 +131,8 @@
                                                 input-type="number"
                                                 input-class="form-control form-control-sm"
                                                 v-model="form.items[index].quantity"
-                                                min="1"
-                                                step="1"
+                                                min="0.001"
+                                                step="any"
                                                 @validate="validateField(`items[${index}].quantity`)"
                                                 :error="errors[`items[${index}].quantity`]"
                                             />

@@ -101,6 +101,7 @@ readonly class InvoiceService
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ],
                 fn ($item) => $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null),
             );
@@ -173,6 +174,7 @@ readonly class InvoiceService
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => $item['tax_line_type'] ?? 'taxable',
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ],
                 fn ($item) => $this->resolveItemTax($item, $invoice->party_id, $formData['invoice_date'] ?? null),
             );
@@ -222,7 +224,7 @@ readonly class InvoiceService
         $invoice->loadMissing('invoiceItems.productVariant.product');
 
         foreach ($invoice->invoiceItems as $item) {
-            $qty = (int) $item->quantity;
+            $qty = (float) $item->quantity;
             if ($qty <= 0) {
                 continue;
             }
@@ -245,6 +247,7 @@ readonly class InvoiceService
                 ChangeTypeEnum::SALE,
                 $user->id,
                 $invoice->remarks,
+                $item->batch_id,
             );
         }
     }

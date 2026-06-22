@@ -7,6 +7,8 @@ use App\Enums\StatusEnum;
 use App\Models\CreditNote;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Validator;
+use App\Services\Inventory\BatchGuard;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -105,6 +107,7 @@ class CreditNoteRequest extends FormRequest
             'items.*.tax_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
             'items.*.invoice_item_id' => [
                 'nullable',
                 'integer',
@@ -129,5 +132,17 @@ class CreditNoteRequest extends FormRequest
                 },
             ],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn (array $item) => $item['warehouse_id'] ?? null,
+            );
+        });
     }
 }

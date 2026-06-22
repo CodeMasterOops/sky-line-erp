@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\AccountingPeriodStatusEnum;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AccountingPeriod extends Model
 {
+    use Auditable;
     use MultiTenant;
 
     protected $fillable = [

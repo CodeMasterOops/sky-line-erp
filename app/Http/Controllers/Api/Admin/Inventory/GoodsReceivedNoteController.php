@@ -28,7 +28,7 @@ class GoodsReceivedNoteController extends Controller
             ->filter($request->all())
             ->orderByDesc('received_date')
             ->orderByDesc('id')
-            ->paginate($request->input('per_page', 15));
+            ->paginate($request->limit ?? 25);
 
         return GoodsReceivedNoteResource::collection($grns);
     }

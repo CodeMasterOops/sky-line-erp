@@ -58,9 +58,10 @@
             <!-- Product Search + grid toggle -->
             <div class="mb-2 d-flex gap-2 align-items-center">
               <div class="flex-grow-1 position-relative">
-                <ProductVariantSearchInput
+                <ProductVariantSearchInput saleable-only
                   ref="productSearch"
                   physical-only
+                  show-stock
                   placeholder="Search product by name, SKU or scan barcode — Enter to add  [F2]"
                   :category-id="selectedCategoryId"
                   @select="onVariantSelected"

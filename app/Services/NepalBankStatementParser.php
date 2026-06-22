@@ -77,7 +77,7 @@ class NepalBankStatementParser
             $bal = $this->toFloat($row[5] ?? 0);
 
             if ($date) {
-                $results->push(compact('date', 'description', 'ref', 'debit', 'credit', 'bal') + ['description' => $desc, 'reference' => $ref, 'balance' => $bal]);
+                $results->push(['date' => $date, 'description' => $desc, 'reference' => $ref, 'debit' => $debit, 'credit' => $credit, 'balance' => $bal]);
             }
         }
 

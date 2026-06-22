@@ -20,10 +20,11 @@ class StockAdjustmentItem extends Model
         'direction',
         'quantity',
         'unit_cost',
+        'batch_id',
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
+        'quantity' => 'float',
         'unit_cost' => 'float',
     ];
 
@@ -45,5 +46,10 @@ class StockAdjustmentItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

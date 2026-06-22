@@ -28,6 +28,10 @@ class StockTransfer extends Model
         'create_user_id',
         'approve_user_id',
         'approved_at',
+        'dispatched_at',
+        'received_at',
+        'dispatch_user_id',
+        'receive_user_id',
         'status',
     ];
 
@@ -35,6 +39,8 @@ class StockTransfer extends Model
         'from_warehouse_id' => 'integer',
         'to_warehouse_id' => 'integer',
         'approved_at' => 'datetime',
+        'dispatched_at' => 'datetime',
+        'received_at' => 'datetime',
         'status' => StatusEnum::class,
     ];
 

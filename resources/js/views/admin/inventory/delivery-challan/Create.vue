@@ -69,6 +69,7 @@
                                 label="Product"
                                 required
                                 physical-only
+                                show-stock
                                 @select="onVariantSelected"
                             />
                             <small class="text-muted">
@@ -93,13 +94,14 @@
                                         <th class="dc-col-qty">Qty <VRequiredMark /></th>
                                         <th class="dc-col-rate">Rate</th>
                                         <th class="text-end dc-col-total">Total</th>
+                                        <th class="dc-col-batch">Batch</th>
                                         <th>Remarks</th>
                                         <th class="text-center dc-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="7" class="text-center text-muted py-4">
+                                        <td colspan="8" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
@@ -140,6 +142,16 @@
                                             />
                                         </td>
                                         <td class="text-end fw-semibold">{{ formatMoney(lineTotalMoney(item)) }}</td>
+                                        <td class="dc-col-batch">
+                                            <BatchPickerInput
+                                                v-if="item.is_batch_tracked"
+                                                v-model="form.items[index].batch_id"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="form.warehouse_id"
+                                                :required="true"
+                                            />
+                                            <span v-else class="text-muted small">—</span>
+                                        </td>
                                         <td>
                                             <VInput
                                                 input-class="form-control form-control-sm"
@@ -160,7 +172,7 @@
                                     <tr>
                                         <td colspan="4" class="text-end">Grand Total</td>
                                         <td class="text-end">{{ formatMoney(grandTotal) }}</td>
-                                        <td colspan="2"></td>
+                                        <td colspan="3"></td>
                                     </tr>
                                     </tfoot>
                                 </table>
@@ -217,6 +229,7 @@ import {useDeliveryChallanStore} from '@/stores/admin/inventory/delivery-challan
 import {useDeliveryChallanForm} from '@/composables/useDeliveryChallanForm.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';

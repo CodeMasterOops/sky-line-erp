@@ -19,6 +19,8 @@ class GrnItem extends Model
         'unit_cost',
         'batch_no',
         'expiry_date',
+        'batch_id',
+        'serial_nos',
     ];
 
     protected $casts = [
@@ -27,6 +29,7 @@ class GrnItem extends Model
         'billed_qty' => 'float',
         'unit_cost' => 'float',
         'expiry_date' => 'date',
+        'serial_nos' => 'array',
     ];
 
     public function goodsReceivedNote(): BelongsTo
@@ -57,5 +60,10 @@ class GrnItem extends Model
     public function stockLayers(): HasMany
     {
         return $this->hasMany(StockLayer::class, 'source_grn_item_id');
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

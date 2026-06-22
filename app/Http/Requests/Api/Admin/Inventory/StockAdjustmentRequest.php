@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use App\Enums\StockDirectionEnum;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
+use App\Services\Inventory\BatchGuard;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockAdjustmentRequest extends FormRequest
@@ -28,12 +29,13 @@ class StockAdjustmentRequest extends FormRequest
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.warehouse_id' => ['required', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'items.*.warehouse_id' => ['required_without:warehouse_id', 'nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.direction' => ['required', Rule::in([StockDirectionEnum::IN->value, StockDirectionEnum::OUT->value])],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
         ];
 
         return match ($this->method()) {
@@ -50,8 +52,8 @@ class StockAdjustmentRequest extends FormRequest
                 $variantId = $item['product_variant_id'] ?? null;
                 $warehouseId = $item['warehouse_id'] ?? null;
 
-                if ($variantId !== null && $warehouseId !== null) {
-                    $key = $variantId.':'.$warehouseId;
+                if ($variantId !== null) {
+                    $key = $variantId.':'.($warehouseId ?? 'null');
                     if (in_array($key, $seen, true)) {
                         $validator->errors()->add("items.$i.product_variant_id", __('Duplicate product and warehouse combination in the same adjustment.'));
                     } else {
@@ -81,6 +83,13 @@ class StockAdjustmentRequest extends FormRequest
                     }
                 }
             }
+
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn (array $item) => $item['warehouse_id'] ?? $this->input('warehouse_id'),
+            );
         });
     }
 }

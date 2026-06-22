@@ -60,12 +60,13 @@
                                             <VRequiredMark v-if="isDraft" />
                                         </th>
                                         <th class="sa-col-cost">Unit cost</th>
+                                        <th class="sa-col-batch">Batch</th>
                                         <th v-if="isDraft" class="text-center sa-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 8 : 7" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 9 : 8" class="text-center text-muted py-4">
                                             {{ isDraft ? 'Search and select a product to add lines.' : 'No line items.' }}
                                         </td>
                                     </tr>
@@ -121,6 +122,16 @@
                                                 @validate="validateField(`items[${index}].unit_cost`)"
                                                 :error="errors[`items[${index}].unit_cost`]"
                                             />
+                                            <span v-else class="text-muted small">—</span>
+                                        </td>
+                                        <td class="sa-col-batch">
+                                            <BatchPickerInput
+                                                v-if="item.is_batch_tracked && isDraft && item.direction === 'out'"
+                                                v-model="form.items[index].batch_id"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="item.warehouse_id"
+                                            />
+                                            <span v-else-if="item.batch_no && !isDraft" class="small text-muted">{{ item.batch_no }}</span>
                                             <span v-else class="text-muted small">—</span>
                                         </td>
                                         <td v-if="isDraft" class="text-center sa-col-action">
@@ -186,6 +197,7 @@ import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useStockAdjustmentStore} from '@/stores/admin/inventory/stock-adjustment.js';
 import {fetchVariantWarehouses} from '@/composables/useVariantWarehousePicker.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import VRequiredMark from '@/components/base/VRequiredMark.vue';
 
@@ -354,6 +366,8 @@ const onVariantSelected = async (variant) => {
         quantity: '1',
         unit_cost: defaultCost,
         default_unit_cost: defaultCost,
+        is_batch_tracked: variant.is_batch_tracked ?? false,
+        batch_id: null,
     });
 };
 
@@ -379,6 +393,7 @@ const buildAdjustmentPayload = () => {
             base.unit_cost = item.unit_cost === '' || item.unit_cost == null ? null : item.unit_cost;
         } else {
             base.unit_cost = null;
+            base.batch_id = item.batch_id || null;
         }
         return base;
     });
@@ -418,6 +433,9 @@ watch(
                             ? String(item.unit_cost)
                             : '',
                     default_unit_cost: defaultCost,
+                    is_batch_tracked: item.product_variant?.is_batch_tracked ?? false,
+                    batch_id: item.batch_id ?? null,
+                    batch_no: item.batch?.batch_no ?? null,
                 };
             });
             form.reference_no = d.reference_no ?? '';

@@ -5,6 +5,7 @@ namespace App\Services\Accounting;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\Journal;
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Models\CreditNote;
 use App\Models\JournalItem;
@@ -12,6 +13,7 @@ use App\Enums\JournalTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use App\Services\Tax\TaxCalculationEngine;
 
 /**
  * Posts a balanced sales-return journal when a credit note is approved,
@@ -31,6 +33,7 @@ class CreditNoteGlPostingService
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
         private BooksHealthService $booksHealth,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     public function isPosted(CreditNote $creditNote): bool
@@ -102,10 +105,12 @@ class CreditNoteGlPostingService
         $yearCode = $company->fiscalYear?->year_code ?? '';
         $voucherNo = 'SRET-JV-'.$creditNote->id.($yearCode ? '/'.$yearCode : '');
 
+        $taxGroupLines = $this->buildTaxGroupGlLines($creditNote, $vatAccountId);
+
         DB::transaction(function () use (
             $creditNote, $grandTotal, $salesBase, $vatAmount,
             $receivableAccountId, $salesAccountId, $vatAccountId,
-            $user, $company, $voucherNo
+            $user, $company, $voucherNo, $taxGroupLines
         ) {
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $creditNote->company_id,
@@ -132,8 +137,18 @@ class CreditNoteGlPostingService
                 'remarks' => 'Sales return – '.$creditNote->credit_note_no,
             ]);
 
-            // DR VAT Output — reverse the output VAT charged on the sale
-            if ($vatAmount > 0 && $vatAccountId) {
+            // DR VAT Output — reverse per-tax-group GL accounts (mirrors original invoice posting)
+            if (! empty($taxGroupLines)) {
+                foreach ($taxGroupLines as $line) {
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $line['account_id'],
+                        'dr_amount' => $line['amount'],
+                        'cr_amount' => 0,
+                        'remarks' => $line['remarks'],
+                    ]);
+                }
+            } elseif ($vatAmount > 0 && $vatAccountId) {
                 JournalItem::create([
                     'journal_id' => $journal->id,
                     'account_id' => $vatAccountId,
@@ -160,5 +175,57 @@ class CreditNoteGlPostingService
             $this->balanceGuard->assertBalanced($journal);
             $this->booksHealth->invalidateCache($creditNote->company_id);
         });
+    }
+
+    /**
+     * @return array<int, array{account_id: int, amount: float, remarks: string}>
+     */
+    private function buildTaxGroupGlLines(CreditNote $creditNote, ?int $fallbackVatAccountId): array
+    {
+        $groupItems = $creditNote->creditNoteItems->filter(fn ($item) => $item->tax_group_id !== null);
+
+        if ($groupItems->isEmpty()) {
+            return [];
+        }
+
+        $accountTotals = [];
+
+        foreach ($groupItems as $item) {
+            $group = TaxGroup::withoutGlobalScopes()->find($item->tax_group_id);
+            if (! $group) {
+                continue;
+            }
+
+            $baseAmount = round(
+                ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount,
+                2,
+            );
+
+            $result = $this->taxEngine->calculateForGroup($baseAmount, $group);
+
+            foreach ($result->lines as $taxLine) {
+                $accountId = $taxLine['gl_account_id'] ?? $fallbackVatAccountId;
+                if (! $accountId) {
+                    continue;
+                }
+                $accountTotals[$accountId] = round(
+                    ($accountTotals[$accountId] ?? 0.0) + $taxLine['amount'],
+                    2,
+                );
+            }
+        }
+
+        $lines = [];
+        foreach ($accountTotals as $accountId => $amount) {
+            if ($amount > 0) {
+                $lines[] = [
+                    'account_id' => $accountId,
+                    'amount' => $amount,
+                    'remarks' => 'Output VAT reversed (tax group) – '.$creditNote->credit_note_no,
+                ];
+            }
+        }
+
+        return $lines;
     }
 }

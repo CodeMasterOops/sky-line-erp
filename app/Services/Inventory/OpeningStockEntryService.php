@@ -17,6 +17,7 @@ class OpeningStockEntryService
 {
     public function __construct(
         private InventoryLayerReceiptService $inventoryReceipt,
+        private BatchResolver $batchResolver,
     ) {}
 
     public function approve(OpeningStockEntry $entry, User $user): void
@@ -58,7 +59,7 @@ class OpeningStockEntryService
             return;
         }
 
-        $quantity = (int) ($opening['quantity'] ?? 0);
+        $quantity = (float) ($opening['quantity'] ?? 0);
         if ($quantity <= 0) {
             return;
         }
@@ -101,7 +102,7 @@ class OpeningStockEntryService
         OpeningStockEntryItem $item,
         User $user,
     ): void {
-        $quantity = (int) $item->quantity;
+        $quantity = (float) $item->quantity;
         if ($quantity <= 0) {
             return;
         }
@@ -121,7 +122,7 @@ class OpeningStockEntryService
             ->lockForUpdate()
             ->first(['quantity']);
 
-        $existingQty = (int) ($existingStock?->quantity ?? 0);
+        $existingQty = (float) ($existingStock?->quantity ?? 0);
 
         if ($existingQty > 0) {
             throw ValidationException::withMessages([
@@ -135,6 +136,8 @@ class OpeningStockEntryService
 
         $unitCost = max(0, (float) $item->unit_cost);
 
+        $batchId = $item->batch_id ?? $this->batchResolver->resolve($item, (int) $company->id, (int) $entry->warehouse_id, $unitCost);
+
         $this->inventoryReceipt->receive(
             $company,
             $entry,
@@ -145,6 +148,7 @@ class OpeningStockEntryService
             ChangeTypeEnum::OPENING_STOCK,
             $user->id,
             $entry->remarks,
+            batchId: $batchId,
         );
     }
 }

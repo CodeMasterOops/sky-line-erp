@@ -6,6 +6,10 @@ use App\Models\Batch;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\Inventory\BatchWriteOffService;
+use App\Http\Resources\Admin\Inventory\BatchResource;
+use App\Http\Requests\Api\Admin\Inventory\BatchStoreRequest;
+use App\Http\Requests\Api\Admin\Inventory\BatchUpdateRequest;
 
 class BatchController extends Controller
 {
@@ -22,51 +26,36 @@ class BatchController extends Controller
             ->orderBy('expiry_date')
             ->paginate($request->per_page ?? 25);
 
-        return response()->json($batches);
+        return BatchResource::collection($batches);
     }
 
     #[Permissions('create_batch', group: 'batch', desc: 'Create Batch')]
-    public function store(Request $request)
+    public function store(BatchStoreRequest $request)
     {
-        $data = $request->validate([
-            'product_variant_id' => 'required|exists:product_variants,id',
-            'warehouse_id' => 'required|exists:warehouses,id',
-            'batch_no' => 'required|string|max:100',
-            'lot_no' => 'nullable|string|max:100',
-            'mfg_date' => 'nullable|date',
-            'expiry_date' => 'nullable|date|after_or_equal:mfg_date',
-            'initial_qty' => 'required|numeric|min:0',
-            'unit_cost' => 'nullable|numeric|min:0',
-            'remarks' => 'nullable|string',
-        ]);
+        $data = $request->validated();
 
         $data['remaining_qty'] = $data['initial_qty'];
         $batch = Batch::create($data);
+        $batch->load(['productVariant.product', 'warehouse']);
 
-        return response()->json(['data' => $batch, 'message' => 'Batch created successfully'], 201);
+        return response()->json(['data' => BatchResource::make($batch), 'message' => 'Batch created successfully'], 201);
     }
 
     #[Permissions('show_batch', group: 'batch', desc: 'Show Batch')]
     public function show(Batch $batch)
     {
-        return response()->json(['data' => $batch->load(['productVariant.product', 'warehouse'])]);
+        $batch->load(['productVariant.product', 'warehouse']);
+
+        return response()->json(['data' => BatchResource::make($batch)]);
     }
 
     #[Permissions('edit_batch', group: 'batch', desc: 'Edit Batch')]
-    public function update(Request $request, Batch $batch)
+    public function update(BatchUpdateRequest $request, Batch $batch)
     {
-        $data = $request->validate([
-            'batch_no' => 'sometimes|string|max:100',
-            'lot_no' => 'nullable|string|max:100',
-            'mfg_date' => 'nullable|date',
-            'expiry_date' => 'nullable|date',
-            'status' => 'sometimes|in:active,expired,depleted',
-            'remarks' => 'nullable|string',
-        ]);
+        $batch->update($request->validated());
+        $batch->load(['productVariant.product', 'warehouse']);
 
-        $batch->update($data);
-
-        return response()->json(['data' => $batch, 'message' => 'Batch updated successfully']);
+        return response()->json(['data' => BatchResource::make($batch), 'message' => 'Batch updated successfully']);
     }
 
     #[Permissions('list_batch', group: 'batch', desc: 'Expiry Alerts')]
@@ -80,13 +69,28 @@ class BatchController extends Controller
             ->with(['productVariant.product:id,name', 'warehouse:id,name,code'])
             ->get();
 
-        // Also mark expired batches
-        Batch::where('company_id', $company->id)
-            ->expired()
-            ->where('status', 'active')
-            ->update(['status' => 'expired']);
+        // Expiring lots are flagged Expired by the scheduled `batch:expire` command, not
+        // as a side effect of reading this alert list. This endpoint is read-only.
 
         return response()->json(['data' => $batches, 'days' => $days]);
+    }
+
+    #[Permissions('write_off_batch', group: 'batch', desc: 'Write off remaining batch stock')]
+    public function writeOff(Request $request, Batch $batch, BatchWriteOffService $service)
+    {
+        $request->validate([
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $report = $service->writeOffRemaining($batch, auth('admin')->user(), $request->input('reason'));
+
+        $batch->refresh()->load(['productVariant.product', 'warehouse']);
+
+        return response()->json([
+            'data' => BatchResource::make($batch),
+            'damage_report_id' => $report->id,
+            'message' => 'Batch written off successfully',
+        ]);
     }
 
     #[Permissions('list_batch', group: 'batch', desc: 'Available batches for FEFO picking')]

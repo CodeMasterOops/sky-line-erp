@@ -61,7 +61,19 @@ class StockAdjustmentController extends Controller
                     'status' => $status,
                 ]);
 
-                $adjustment->stockAdjustmentItems()->createMany($formData['items']);
+                $adjustmentItems = collect($formData['items'] ?? [])->map(function ($item) {
+                    return [
+                        'warehouse_id' => $item['warehouse_id'] ?? null,
+                        'product_variant_id' => $item['product_variant_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'direction' => $item['direction'],
+                        'quantity' => $item['quantity'],
+                        'unit_cost' => $item['unit_cost'] ?? null,
+                        'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    ];
+                })->all();
+
+                $adjustment->stockAdjustmentItems()->createMany($adjustmentItems);
 
                 if ($status === StatusEnum::APPROVED->value) {
                     $this->applyApprovalEffects($adjustment, $user);
@@ -76,7 +88,7 @@ class StockAdjustmentController extends Controller
             ], 422);
         }
 
-        $adjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
+        $adjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit', 'stockAdjustmentItems.batch']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($adjustment),
@@ -92,6 +104,7 @@ class StockAdjustmentController extends Controller
             'stockAdjustmentItems.warehouse',
             'stockAdjustmentItems.productVariant.product',
             'stockAdjustmentItems.unit',
+            'stockAdjustmentItems.batch',
         ]);
 
         return StockAdjustmentResource::make($stockAdjustment);
@@ -126,6 +139,7 @@ class StockAdjustmentController extends Controller
                     'direction' => $item['direction'],
                     'quantity' => $item['quantity'],
                     'unit_cost' => $item['unit_cost'] ?? null,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
                 ];
             })->all();
 
@@ -134,7 +148,7 @@ class StockAdjustmentController extends Controller
             return $stockAdjustment;
         });
 
-        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
+        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit', 'stockAdjustmentItems.batch']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($stockAdjustment),
@@ -190,7 +204,7 @@ class StockAdjustmentController extends Controller
             ], 422);
         }
 
-        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit']);
+        $stockAdjustment->load(['warehouse', 'stockAdjustmentItems.warehouse', 'stockAdjustmentItems.productVariant.product', 'stockAdjustmentItems.unit', 'stockAdjustmentItems.batch']);
 
         return response()->json([
             'data' => StockAdjustmentResource::make($stockAdjustment),
@@ -204,7 +218,7 @@ class StockAdjustmentController extends Controller
         $company = Company::findOrFail($adjustment->company_id);
 
         foreach ($adjustment->stockAdjustmentItems as $item) {
-            $quantity = (int) $item->quantity;
+            $quantity = (float) $item->quantity;
             if ($quantity <= 0) {
                 continue;
             }
@@ -236,6 +250,8 @@ class StockAdjustmentController extends Controller
                     ChangeTypeEnum::ADJUSTMENT_OUT,
                     $user->id,
                     $adjustment->remarks,
+                    $item->batch_id,
+                    allowHeldBatch: true,
                 );
             }
         }

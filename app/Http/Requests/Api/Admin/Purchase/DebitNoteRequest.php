@@ -36,7 +36,7 @@ class DebitNoteRequest extends FormRequest
             ],
             'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.tax_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],

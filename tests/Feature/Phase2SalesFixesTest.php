@@ -28,7 +28,7 @@ use App\Enums\InventoryCostingMethodEnum;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-function p2WarmCache(): void
+function p2sfWarmCache(): void
 {
     $tables = [];
     foreach (Schema::getTableListing() as $table) {
@@ -60,7 +60,7 @@ function p2AccountSetting(object $test): Account
 }
 
 beforeEach(function () {
-    p2WarmCache();
+    p2sfWarmCache();
     TenantService::setCompanyId(null);
     TenantService::setBranchId(null);
 

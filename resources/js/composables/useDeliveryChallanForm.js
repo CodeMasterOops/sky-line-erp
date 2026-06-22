@@ -203,6 +203,8 @@ export function useDeliveryChallanForm(form, {partyStore} = {}) {
             rate: String(Number(variant.sales_price ?? 0)),
             remarks: '',
             stock_qty: warehouse.quantity ?? null,
+            is_batch_tracked: variant.is_batch_tracked ?? false,
+            batch_id: null,
             ...extra,
         };
     }
@@ -252,6 +254,7 @@ export function useDeliveryChallanForm(form, {partyStore} = {}) {
             quantity: Number(item.quantity),
             rate: Number(item.rate),
             remarks: item.remarks || null,
+            batch_id: item.batch_id || null,
         }));
     }
 

@@ -88,6 +88,7 @@ class PosController extends Controller
 
         $query = Product::query()
             ->physical()
+            ->saleable()
             ->with([
                 'productCategory.parent:id,name',
                 'variants' => function ($q) use ($warehouseId) {
@@ -330,7 +331,7 @@ class PosController extends Controller
                 // Deduct inventory
                 $invoice->loadMissing('invoiceItems.productVariant.product');
                 foreach ($invoice->invoiceItems as $item) {
-                    if ((int) $item->quantity <= 0) {
+                    if ((float) $item->quantity <= 0) {
                         continue;
                     }
 
@@ -343,7 +344,7 @@ class PosController extends Controller
                         $invoice,
                         $item->product_variant_id,
                         $item->warehouse_id,
-                        (int) $item->quantity,
+                        (float) $item->quantity,
                         ChangeTypeEnum::SALE,
                         $user->id,
                         $invoice->remarks,
@@ -924,7 +925,7 @@ class PosController extends Controller
                         'invoice_item_id' => $item['invoice_item_id'] ?? null,
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
-                        'quantity' => (int) $item['quantity'],
+                        'quantity' => (float) $item['quantity'],
                         'rate' => (float) $item['rate'],
                         'tax_amount' => (float) ($item['tax_amount'] ?? 0),
                         'discount_amount' => (float) ($item['discount_amount'] ?? 0),
@@ -934,7 +935,7 @@ class PosController extends Controller
                 $creditNote->load('creditNoteItems.productVariant.product');
 
                 foreach ($creditNote->creditNoteItems as $creditItem) {
-                    $qty = (int) $creditItem->quantity;
+                    $qty = (float) $creditItem->quantity;
                     if ($qty <= 0 || $creditItem->productVariant?->isService()) {
                         continue;
                     }
@@ -1014,6 +1015,36 @@ class PosController extends Controller
             403,
         );
 
+        return response()->json(['data' => $this->buildReceiptResponse($invoice)]);
+    }
+
+    /**
+     * The most recently completed POS sale for the company, ready to reprint.
+     * Sourced from the database so it survives page reloads and is available on
+     * any terminal — not just the one that made the sale.
+     */
+    public function lastReceipt(): JsonResponse
+    {
+        $invoice = Invoice::query()
+            ->where('company_id', auth('admin')->user()->company_id)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('deleted_at')
+            ->orderByDesc('invoice_date')
+            ->orderByDesc('id')
+            ->first();
+
+        return response()->json([
+            'data' => $invoice ? $this->buildReceiptResponse($invoice) : null,
+        ]);
+    }
+
+    /**
+     * Build the full printable receipt payload for an invoice.
+     *
+     * @return array<string, mixed>
+     */
+    private function buildReceiptResponse(Invoice $invoice): array
+    {
         $invoice->load([
             'party',
             'discount',
@@ -1040,7 +1071,7 @@ class PosController extends Controller
             'receipt_no' => $r->receipt_no,
         ])->values()->all();
 
-        return response()->json(['data' => $data]);
+        return $data;
     }
 
     // -----------------------------------------------------------------------

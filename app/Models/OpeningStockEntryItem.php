@@ -19,12 +19,15 @@ class OpeningStockEntryItem extends Model
         'unit_id',
         'quantity',
         'unit_cost',
+        'batch_id',
+        'batch_no',
+        'expiry_date',
     ];
 
     protected function casts(): array
     {
         return [
-            'quantity' => 'integer',
+            'quantity' => 'float',
             'unit_cost' => 'float',
         ];
     }
@@ -42,5 +45,10 @@ class OpeningStockEntryItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

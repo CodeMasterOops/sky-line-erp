@@ -24,8 +24,8 @@ class Stock extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
-        'on_hold' => 'integer',
+        'quantity' => 'float',
+        'on_hold' => 'float',
     ];
 
     public function warehouse(): BelongsTo

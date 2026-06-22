@@ -15,20 +15,21 @@ export const useProfileStore = defineStore('admin-profile', {
     },
     actions: {
         getProfile() {
-            if (!Object.keys(this.profile.data).length || !this.profile.data.company?.name) {
-                this.profile.loading = true;
-                return apiAdmin(`profile`)
-                    .then((res) => {
-                        this.profile.data = res.data.data;
-                        this.setAuthUser(res.data.data);
-                        useAdminAuthStore().setPermissions(res.data.data.user_type, res.data.permissions)
-                    })
-                    .catch((err) => {
-                        showErrors(err);
-                    }).finally(() => {
-                        this.profile.loading = false;
-                    });
+            if (this.profile.loading) {
+                return Promise.resolve();
             }
+            this.profile.loading = true;
+            return apiAdmin(`profile`)
+                .then((res) => {
+                    this.profile.data = res.data.data;
+                    this.setAuthUser(res.data.data);
+                    useAdminAuthStore().setPermissions(res.data.data.user_type, res.data.permissions)
+                })
+                .catch((err) => {
+                    showErrors(err);
+                }).finally(() => {
+                    this.profile.loading = false;
+                });
         },
         updateProfile(form) {
             return apiAdmin(`profile/update`, 'post', form)

@@ -20,6 +20,7 @@ class GoodsReceivedNoteService
         private InventoryDocumentReversalService $documentReversal,
         private LandedCostService $landedCosts,
         private DocumentNumberGenerator $documentNumberGenerator,
+        private BatchResolver $batchResolver,
     ) {}
 
     /**
@@ -227,6 +228,7 @@ class GoodsReceivedNoteService
                 'ordered_qty' => $item['ordered_qty'] ?? 0,
                 'received_qty' => $item['received_qty'],
                 'unit_cost' => $item['unit_cost'],
+                'batch_id' => $item['batch_id'] ?? null,
                 'batch_no' => $item['batch_no'] ?? null,
                 'expiry_date' => $item['expiry_date'] ?? null,
                 'billed_qty' => 0,
@@ -247,18 +249,23 @@ class GoodsReceivedNoteService
                 continue;
             }
 
+            $unitCost = InventoryCostCalculator::unitCostFromGrnItem($item);
+            $batchId = $item->batch_id ?? $this->batchResolver->resolve($item, $company->id, (int) $grn->warehouse_id, $unitCost);
+
             $this->inventoryReceipt->receive(
                 $company,
                 $grn,
                 $item->product_variant_id,
                 (int) $grn->warehouse_id,
                 $qty,
-                InventoryCostCalculator::unitCostFromGrnItem($item),
+                $unitCost,
                 ChangeTypeEnum::GRN_RECEIPT,
                 $userId,
                 $grn->remarks,
                 null,
                 $item->id,
+                null,
+                $batchId,
             );
         }
     }

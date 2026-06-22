@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 
 use App\Models\Tax;
 use App\Tenancy\TRule;
+use App\Enums\ItemRoleEnum;
 use App\Enums\ProductTypeEnum;
 use App\Models\ProductVariant;
 use App\Models\ProductCategory;
@@ -30,6 +31,7 @@ class ProductRequest extends FormRequest
                 'min_stock_level' => 0,
                 'reorder_quantity' => 0,
                 'has_variants' => false,
+                'item_role' => null,
             ]);
 
             $variants = $this->input('variants', []);
@@ -67,6 +69,10 @@ class ProductRequest extends FormRequest
                 },
             ],
             'product_type' => ['required', Rule::enum(ProductTypeEnum::class)],
+            // Stripped to null for services in prepareForValidation(), mirroring brand_id.
+            'item_role' => ['nullable', Rule::enum(ItemRoleEnum::class)],
+            'is_saleable' => ['nullable', 'boolean'],
+            'is_purchasable' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image'],
             'unit_id' => ['required', TRule::exists('units', 'id')->withoutTrashed()],
             'brand_id' => [
@@ -189,6 +195,8 @@ class ProductRequest extends FormRequest
                 'min:0',
             ],
             'variants.*.is_default' => ['nullable', 'boolean'],
+            'variants.*.is_serialized' => ['nullable', 'boolean'],
+            'variants.*.is_batch_tracked' => ['nullable', 'boolean'],
             'variants.*.attribute_values' => ['nullable', 'array'],
             'attribute_values' => ['nullable', 'array'],
             'attribute_values.*' => [Rule::exists('attribute_values', 'id')->withoutTrashed()],

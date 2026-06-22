@@ -16,6 +16,8 @@ Route::prefix('data-transfers')->as('data-transfers.')->controller(DataTransferC
     Route::get('{uuid}/rows', 'previewRows')->name('rows');
     Route::put('{uuid}/mapping', 'updateMapping')->name('mapping');
     Route::post('{uuid}/validate', 'validateJob')->name('validate');
+    Route::get('{uuid}/unresolved', 'unresolved')->name('unresolved');
+    Route::post('{uuid}/resolutions', 'resolutions')->name('resolutions');
     Route::post('{uuid}/commit', 'commit')->name('commit');
     Route::post('{uuid}/cancel', 'cancel')->name('cancel');
     Route::post('{uuid}/rollback', 'rollback')->name('rollback');

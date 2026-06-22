@@ -7,6 +7,7 @@ use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
+use App\Services\Inventory\BatchGuard;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OpeningStockEntryRequest extends FormRequest
@@ -27,8 +28,11 @@ class OpeningStockEntryRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
+            'items.*.batch_no' => ['nullable', 'string', 'max:100'],
+            'items.*.expiry_date' => ['nullable', 'date', 'after:today'],
         ];
     }
 
@@ -47,6 +51,13 @@ class OpeningStockEntryRequest extends FormRequest
                     $seenVariantIds[] = $variantId;
                 }
             }
+
+            BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn () => $this->input('warehouse_id'),
+            );
         });
     }
 }

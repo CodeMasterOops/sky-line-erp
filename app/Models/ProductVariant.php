@@ -23,12 +23,16 @@ class ProductVariant extends Model
         'sales_price',
         'purchase_price',
         'is_default',
+        'is_serialized',
+        'is_batch_tracked',
     ];
 
     protected $casts = [
         'purchase_price' => 'double',
         'sales_price' => 'double',
         'is_default' => 'boolean',
+        'is_serialized' => 'boolean',
+        'is_batch_tracked' => 'boolean',
     ];
 
     public function getVariantLabelAttribute(): ?string

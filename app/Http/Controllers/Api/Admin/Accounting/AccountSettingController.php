@@ -13,7 +13,8 @@ class AccountSettingController extends Controller
     #[Permissions('list_account_setting', group: 'account_setting', desc: 'List Account Setting')]
     public function index()
     {
-        $accountSetting = AccountSetting::first();
+        $companyId = auth('admin')->user()->company_id;
+        $accountSetting = AccountSetting::where('company_id', $companyId)->first();
 
         return AccountSettingResource::make($accountSetting);
     }

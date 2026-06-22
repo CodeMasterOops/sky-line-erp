@@ -12,6 +12,7 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Inventory\BatchResolver;
 use App\Services\Accounting\PeriodLockGuard;
 use App\Services\Inventory\LandedCostService;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
@@ -37,6 +38,7 @@ readonly class PurchaseBillService
         private JournalVoidService $journalVoid,
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
+        private BatchResolver $batchResolver,
     ) {}
 
     /**
@@ -104,6 +106,7 @@ readonly class PurchaseBillService
                 'supplier_pan' => $partyPan,
                 'purchase_order_id' => $formData['purchase_order_id'] ?? null,
                 'bill_no' => $billNo,
+                'supplier_invoice_no' => $formData['supplier_invoice_no'] ?? null,
                 'bill_date' => $formData['bill_date'],
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
@@ -133,6 +136,10 @@ readonly class PurchaseBillService
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    'batch_no' => ! empty($item['grn_item_id']) ? null : ($item['batch_no'] ?? null),
+                    'mfg_date' => ! empty($item['grn_item_id']) ? null : ($item['mfg_date'] ?? null),
+                    'expiry_date' => ! empty($item['grn_item_id']) ? null : ($item['expiry_date'] ?? null),
                 ],
             );
 
@@ -161,6 +168,7 @@ readonly class PurchaseBillService
                 'party_id' => $formData['party_id'] ?? null,
                 'purchase_order_id' => $formData['purchase_order_id'] ?? null,
                 'bill_no' => $formData['bill_no'] ?? $bill->bill_no,
+                'supplier_invoice_no' => $formData['supplier_invoice_no'] ?? $bill->supplier_invoice_no,
                 'bill_date' => $formData['bill_date'],
                 'due_date' => $formData['due_date'] ?? null,
                 'remarks' => $formData['remarks'] ?? null,
@@ -188,6 +196,10 @@ readonly class PurchaseBillService
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
+                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                    'batch_no' => ! empty($item['grn_item_id']) ? null : ($item['batch_no'] ?? null),
+                    'mfg_date' => ! empty($item['grn_item_id']) ? null : ($item['mfg_date'] ?? null),
+                    'expiry_date' => ! empty($item['grn_item_id']) ? null : ($item['expiry_date'] ?? null),
                 ],
             );
 
@@ -422,6 +434,7 @@ readonly class PurchaseBillService
             }
 
             $unitCost = InventoryCostCalculator::unitCostFromBillItem($item);
+            $batchId = $item->batch_id ?? $this->batchResolver->resolve($item, (int) $company->id, (int) $item->warehouse_id, $unitCost);
 
             $this->inventoryReceipt->receive(
                 $company,
@@ -434,6 +447,7 @@ readonly class PurchaseBillService
                 $user->id,
                 $bill->remarks,
                 $item->id,
+                batchId: $batchId,
             );
         }
     }

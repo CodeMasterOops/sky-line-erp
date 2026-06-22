@@ -8,6 +8,7 @@ use App\Models\Account;
 use App\Models\Expense;
 use App\Models\Invoice;
 use App\Models\Journal;
+use App\Rules\NepaliPan;
 use App\Enums\StatusEnum;
 use App\Models\DebitNote;
 use App\Models\CreditNote;
@@ -20,6 +21,8 @@ use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Enums\AccountGroupTypeEnum;
+use Illuminate\Support\Facades\Cache;
+use App\Services\Nepal\NepaliDateService;
 
 class AccountReportService
 {
@@ -55,7 +58,7 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $compareFiscalYear = $this->resolveCompareFiscalYear($request, $period['fiscal_year']);
         $rootGroups = $this->loadSortedRootGroups()
-            ->filter(fn (AccountGroup $group) => in_array($group->account_type, [
+            ->filter(fn (AccountGroup $group) => in_array($group->resolvedAccountType(), [
                 AccountGroupTypeEnum::Asset,
                 AccountGroupTypeEnum::Liability,
                 AccountGroupTypeEnum::Equity,
@@ -68,7 +71,7 @@ class AccountReportService
             : collect();
 
         $rows = $rootGroups
-            ->map(fn (AccountGroup $group) => $this->transformBalanceSheetGroup($group, $currentAmounts, $previousAmounts))
+            ->map(fn (AccountGroup $group) => $this->transformAmountTreeGroup($group, $currentAmounts, $previousAmounts))
             ->values()
             ->all();
 
@@ -101,7 +104,7 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $compareFiscalYear = $this->resolveCompareFiscalYear($request, $period['fiscal_year']);
         $rootGroups = $this->loadSortedRootGroups()
-            ->filter(fn (AccountGroup $group) => in_array($group->account_type, [
+            ->filter(fn (AccountGroup $group) => in_array($group->resolvedAccountType(), [
                 AccountGroupTypeEnum::Income,
                 AccountGroupTypeEnum::Expense,
             ]))
@@ -117,13 +120,30 @@ class AccountReportService
             ->values()
             ->all();
 
-        $incomeRow = collect($rows)->first(fn ($row) => strtolower($row['name']) === 'income');
-        $expenseRow = collect($rows)->first(fn ($row) => strtolower($row['name']) === 'expenses');
+        $incomeAmount = 0.0;
+        $expenseAmount = 0.0;
+        $incomePrevAmount = 0.0;
+        $expensePrevAmount = 0.0;
 
-        $incomeAmount = (float) ($incomeRow['amount'] ?? 0);
-        $expenseAmount = (float) ($expenseRow['amount'] ?? 0);
-        $incomePrevAmount = (float) ($incomeRow['prev_amount'] ?? 0);
-        $expensePrevAmount = (float) ($expenseRow['prev_amount'] ?? 0);
+        foreach ($rootGroups as $group) {
+            $row = collect($rows)->firstWhere('id', $group->id);
+            if (! $row) {
+                continue;
+            }
+
+            if ($group->resolvedAccountType() === AccountGroupTypeEnum::Income) {
+                $incomeAmount += (float) ($row['amount'] ?? 0);
+                $incomePrevAmount += (float) ($row['prev_amount'] ?? 0);
+            } elseif ($group->resolvedAccountType() === AccountGroupTypeEnum::Expense) {
+                $expenseAmount += (float) ($row['amount'] ?? 0);
+                $expensePrevAmount += (float) ($row['prev_amount'] ?? 0);
+            }
+        }
+
+        $incomeAmount = round($incomeAmount, 2);
+        $expenseAmount = round($expenseAmount, 2);
+        $incomePrevAmount = round($incomePrevAmount, 2);
+        $expensePrevAmount = round($expensePrevAmount, 2);
 
         return [
             'period' => [
@@ -350,11 +370,19 @@ class AccountReportService
                 'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
                 'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
                 'total_amount' => round(collect($rows)->sum('total_amount'), 2),
+                'invalid_pan_count' => collect($rows)->where('buyer_pan_valid', false)->count(),
             ],
         ];
     }
 
     private function fetchVatSalesRows(int $companyId, string $start, string $end): array
+    {
+        $key = $this->vatRegisterCacheKey('sales', $companyId, $start, $end);
+
+        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatSalesRows($companyId, $start, $end));
+    }
+
+    private function computeVatSalesRows(int $companyId, string $start, string $end): array
     {
         $dbRows = DB::table('invoices')
             ->leftJoin('parties', 'parties.id', '=', 'invoices.party_id')
@@ -385,9 +413,11 @@ class AccountReportService
 
         return $dbRows->map(fn ($row) => [
             'date' => $row->invoice_date,
+            'date_bs' => $this->toBsDate($row->invoice_date),
             'bijak_no' => $row->bijak_no ?: $row->invoice_no,
             'buyer_name' => $row->buyer_name,
             'buyer_pan' => $row->buyer_pan,
+            'buyer_pan_valid' => $this->isPanValid($row->buyer_pan),
             'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
             'vat_amount' => round((float) ($row->vat_amount ?? 0), 2),
             'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
@@ -417,11 +447,19 @@ class AccountReportService
                 'exempt_amount' => round(collect($rows)->sum('exempt_amount'), 2),
                 'zero_rated_amount' => round(collect($rows)->sum('zero_rated_amount'), 2),
                 'total_amount' => round(collect($rows)->sum('total_amount'), 2),
+                'invalid_pan_count' => collect($rows)->where('supplier_pan_valid', false)->count(),
             ],
         ];
     }
 
     private function fetchVatPurchaseRows(int $companyId, string $start, string $end): array
+    {
+        $key = $this->vatRegisterCacheKey('purchase', $companyId, $start, $end);
+
+        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatPurchaseRows($companyId, $start, $end));
+    }
+
+    private function computeVatPurchaseRows(int $companyId, string $start, string $end): array
     {
         $dbRows = DB::table('bills')
             ->leftJoin('parties', 'parties.id', '=', 'bills.party_id')
@@ -433,11 +471,12 @@ class AccountReportService
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.deleted_at')
             ->whereBetween('bills.bill_date', [$start, $end])
-            ->groupBy('bills.id', 'bills.bill_no', 'bills.bill_date', 'parties.pan', 'parties.name')
+            ->groupBy('bills.id', 'bills.bill_no', 'bills.supplier_invoice_no', 'bills.bill_date', 'parties.pan', 'parties.name')
             ->orderBy('bills.bill_date')
             ->orderBy('bills.bill_no')
             ->select([
                 'bills.bill_no',
+                'bills.supplier_invoice_no',
                 'bills.bill_date',
                 DB::raw("COALESCE(parties.name, '-') as supplier_name"),
                 DB::raw("COALESCE(parties.pan, '-') as supplier_pan"),
@@ -450,15 +489,79 @@ class AccountReportService
 
         return $dbRows->map(fn ($row) => [
             'date' => $row->bill_date,
+            'date_bs' => $this->toBsDate($row->bill_date),
             'bill_no' => $row->bill_no,
+            'supplier_invoice_no' => $row->supplier_invoice_no ?? '-',
             'supplier_name' => $row->supplier_name,
             'supplier_pan' => $row->supplier_pan,
+            'supplier_pan_valid' => $this->isPanValid($row->supplier_pan),
             'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
             'input_vat' => round((float) ($row->input_vat ?? 0), 2),
             'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
             'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
             'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
         ])->values()->all();
+    }
+
+    /**
+     * Bikram Sambat string for a register row, or null when the AD date falls
+     * outside the supported BS conversion range.
+     */
+    private function toBsDate(?string $adDate): ?string
+    {
+        if ($adDate === null || $adDate === '') {
+            return null;
+        }
+
+        try {
+            return app(NepaliDateService::class)->adToBsString($adDate);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function isPanValid(?string $pan): bool
+    {
+        return $pan !== null && $pan !== '-' && NepaliPan::isValid($pan);
+    }
+
+    /**
+     * Cache key for a VAT register window. A fingerprint of the source documents
+     * (row count + latest mutation) is baked into the key, so any new/edited/voided
+     * invoice or bill in the range yields a fresh key — the cache self-invalidates
+     * without needing posting services to clear it.
+     */
+    private function vatRegisterCacheKey(string $kind, int $companyId, string $start, string $end): string
+    {
+        $table = $kind === 'sales' ? 'invoices' : 'bills';
+        $dateColumn = $kind === 'sales' ? 'invoice_date' : 'bill_date';
+
+        $fingerprint = DB::table($table)
+            ->where('company_id', $companyId)
+            ->where('status', StatusEnum::APPROVED->value)
+            ->whereNull('deleted_at')
+            ->when($kind === 'sales', fn ($q) => $q->whereNull('voided_at'))
+            ->whereBetween($dateColumn, [$start, $end])
+            ->selectRaw('COUNT(*) as row_count, COALESCE(MAX(updated_at), 0) as last_change')
+            ->first();
+
+        return sprintf(
+            'vat_register:%s:%d:%s:%s:%d:%s',
+            $kind, $companyId, $start, $end,
+            (int) ($fingerprint->row_count ?? 0),
+            (string) ($fingerprint->last_change ?? '0'),
+        );
+    }
+
+    /**
+     * Optional branch filter for the financial statements, read from the current
+     * request. Returns null (company-wide) when no branch is selected.
+     */
+    private function branchIdFilter(): ?int
+    {
+        $branchId = request()->input('branch_id');
+
+        return ($branchId === null || $branchId === '') ? null : (int) $branchId;
     }
 
     public function vatReturn(Request $request): array
@@ -807,17 +910,30 @@ class AccountReportService
             ->selectRaw('payable_id, COALESCE(SUM(amount), 0) as paid')
             ->pluck('paid', 'payable_id');
 
-        $bills = $bills->filter(function (Bill $bill) use ($paidByBill) {
+        $debitNoteOffsetByBill = DB::table('debit_note_items')
+            ->join('debit_notes', 'debit_notes.id', '=', 'debit_note_items.debit_note_id')
+            ->whereIn('debit_notes.bill_id', $billIds)
+            ->where('debit_notes.status', StatusEnum::APPROVED->value)
+            ->whereNull('debit_notes.voided_at')
+            ->whereNull('debit_notes.deleted_at')
+            ->whereNull('debit_note_items.deleted_at')
+            ->groupBy('debit_notes.bill_id')
+            ->selectRaw('debit_notes.bill_id, COALESCE(SUM((debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount + debit_note_items.tax_amount), 0) as offset_amount')
+            ->pluck('offset_amount', 'bill_id');
+
+        $bills = $bills->filter(function (Bill $bill) use ($paidByBill, $debitNoteOffsetByBill) {
             $paid = (float) ($paidByBill->get($bill->id, 0));
+            $debitNoteOffset = (float) ($debitNoteOffsetByBill->get($bill->id, 0));
             $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
 
-            return round($total - $paid, 2) > 0;
+            return round($total - $paid - $debitNoteOffset, 2) > 0;
         });
 
-        $rows = $bills->map(function (Bill $bill) use ($asOf, $paidByBill) {
+        $rows = $bills->map(function (Bill $bill) use ($asOf, $paidByBill, $debitNoteOffsetByBill) {
             $paid = (float) ($paidByBill->get($bill->id, 0));
+            $debitNoteOffset = (float) ($debitNoteOffsetByBill->get($bill->id, 0));
             $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
-            $outstanding = round($total - $paid, 2);
+            $outstanding = round($total - $paid - $debitNoteOffset, 2);
             $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date)->addDays(30);
             $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);
 
@@ -1050,10 +1166,12 @@ class AccountReportService
         $expenseMorph = (new Expense)->getMorphClass();
         $creditNoteMorph = (new CreditNote)->getMorphClass();
         $debitNoteMorph = (new DebitNote)->getMorphClass();
+        $fiscalYearId = $request->integer('fiscal_year_id') ?: null;
 
         $invoices = Invoice::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($invoiceMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1068,6 +1186,7 @@ class AccountReportService
         $bills = Bill::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($billMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1083,6 +1202,7 @@ class AccountReportService
         $expenses = Expense::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($expenseMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1097,6 +1217,7 @@ class AccountReportService
         $creditNotes = CreditNote::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($creditNoteMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1111,6 +1232,7 @@ class AccountReportService
         $debitNotes = DebitNote::query()
             ->where('status', StatusEnum::APPROVED)
             ->whereNull('voided_at')
+            ->when($fiscalYearId, fn ($q) => $q->where('fiscal_year_id', $fiscalYearId))
             ->whereNotExists(function ($query) use ($debitNoteMorph) {
                 $query->select(DB::raw(1))
                     ->from('journals')
@@ -1199,6 +1321,7 @@ class AccountReportService
     public function unbalancedJournals(Request $request): array
     {
         $companyId = auth('admin')->user()->company_id;
+        $fiscalYearId = $request->integer('fiscal_year_id') ?: null;
 
         // Pull totals per journal then filter in PHP — portable across MySQL
         // and SQLite without having-clause-on-alias differences, and the result
@@ -1209,6 +1332,7 @@ class AccountReportService
                     ->whereNull('journal_items.deleted_at');
             })
             ->where('journals.company_id', $companyId)
+            ->when($fiscalYearId, fn ($q) => $q->where('journals.fiscal_year_id', $fiscalYearId))
             ->whereNull('journals.deleted_at')
             ->groupBy(
                 'journals.id', 'journals.voucher_no', 'journals.type',
@@ -1519,6 +1643,7 @@ class AccountReportService
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'fiscal_year_id' => ['nullable', 'integer', 'exists:fiscal_years,id'],
             'compare_fiscal_year_id' => ['nullable', 'integer', 'exists:fiscal_years,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
         ]);
 
         $company = auth('admin')->user()?->company?->loadMissing('fiscalYear');
@@ -1661,6 +1786,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '<=', $endDate->toDateString())
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1697,6 +1823,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '<=', $endDate->toDateString())
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1722,6 +1849,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereBetween('journals.date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1747,6 +1875,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->where('journals.fiscal_year_id', $fiscalYear->id)
             ->whereNull('journals.deleted_at')
+            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1848,11 +1977,6 @@ class AccountReportService
         ];
     }
 
-    private function transformBalanceSheetGroup(AccountGroup $group, Collection $currentAmounts, Collection $previousAmounts): array
-    {
-        return $this->transformAmountTreeGroup($group, $currentAmounts, $previousAmounts);
-    }
-
     private function transformAmountTreeGroup(AccountGroup $group, Collection $currentAmounts, Collection $previousAmounts): array
     {
         $children = [];
@@ -1876,11 +2000,6 @@ class AccountReportService
             'prev_amount' => round(collect($children)->sum('prev_amount'), 2),
             'children' => $children,
         ];
-    }
-
-    private function transformBalanceSheetAccount($account, Collection $currentAmounts, Collection $previousAmounts): array
-    {
-        return $this->transformAmountTreeAccount($account, $currentAmounts, $previousAmounts);
     }
 
     private function transformAmountTreeAccount($account, Collection $currentAmounts, Collection $previousAmounts): array

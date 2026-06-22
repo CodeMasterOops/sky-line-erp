@@ -2,21 +2,22 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SuperAdmin\AuthController;
+use App\Http\Controllers\Api\SuperAdmin\LeadController;
+use App\Http\Controllers\Api\SuperAdmin\PlanController;
+use App\Http\Controllers\Api\SuperAdmin\WardController;
+use App\Http\Controllers\Api\SuperAdmin\PalikaController;
 use App\Http\Controllers\Api\SuperAdmin\CompanyController;
 use App\Http\Controllers\Api\SuperAdmin\ProfileController;
 use App\Http\Controllers\Api\SuperAdmin\SettingController;
+use App\Http\Controllers\Api\SuperAdmin\SupportController;
+use App\Http\Controllers\Api\SuperAdmin\CurrencyController;
+use App\Http\Controllers\Api\SuperAdmin\DistrictController;
+use App\Http\Controllers\Api\SuperAdmin\ProvinceController;
 use App\Http\Controllers\Api\SuperAdmin\DashboardController;
 use App\Http\Controllers\Api\SuperAdmin\FiscalYearController;
-use App\Http\Controllers\Api\SuperAdmin\CurrencyController;
 use App\Http\Controllers\Api\SuperAdmin\TaxTemplateController;
-use App\Http\Controllers\Api\SuperAdmin\ProvinceController;
-use App\Http\Controllers\Api\SuperAdmin\DistrictController;
-use App\Http\Controllers\Api\SuperAdmin\PalikaController;
-use App\Http\Controllers\Api\SuperAdmin\WardController;
-use App\Http\Controllers\Api\SuperAdmin\LeadController;
-use App\Http\Controllers\Api\SuperAdmin\PlanController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionController;
-use App\Http\Controllers\Api\SuperAdmin\SupportController;
+use App\Http\Controllers\Api\SuperAdmin\CompanyBranchController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->middleware('throttle:auth')->name('login');
@@ -56,6 +57,7 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::post('company/{company}/login', [CompanyController::class, 'companyLogin'])->name('company.login');
     Route::put('company/{company}/update-status', [CompanyController::class, 'updateStatus'])->name('company.update-status');
     Route::put('company/{company}/reset-password', [CompanyController::class, 'resetPassword'])->name('company.reset-password');
+    Route::apiResource('company.branch', CompanyBranchController::class)->only('index', 'store', 'update', 'destroy');
     Route::apiResource('company', CompanyController::class);
 
     // plans (packages)

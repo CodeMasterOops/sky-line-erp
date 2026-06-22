@@ -22,9 +22,11 @@ class CreditNoteItem extends Model
         'unit_id',
         'rate',
         'tax_id',
+        'tax_group_id',
         'tax_amount',
         'tax_line_type',
         'discount_amount',
+        'batch_id',
     ];
 
     protected $casts = [
@@ -34,7 +36,8 @@ class CreditNoteItem extends Model
         'warehouse_id' => 'integer',
         'unit_id' => 'integer',
         'tax_id' => 'integer',
-        'quantity' => 'integer',
+        'tax_group_id' => 'integer',
+        'quantity' => 'float',
         'rate' => 'float',
         'tax_amount' => 'float',
         'tax_line_type' => TaxLineTypeEnum::class,
@@ -69,5 +72,10 @@ class CreditNoteItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

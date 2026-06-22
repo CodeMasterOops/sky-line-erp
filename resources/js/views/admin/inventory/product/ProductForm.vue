@@ -126,6 +126,18 @@
                                 <VMultiselect id="brand_id" v-model="form.brand_id" :options="brands.data"
                                     @validate="validateField('brand_id')" :error="errors.brand_id" />
                             </div>
+                            <div v-if="isPhysicalProduct" class="col">
+                                <label class="form-label mb-1" for="item_role">Item role</label>
+                                <VSelect id="item_role" v-model="form.item_role"
+                                    placeholder="item role"
+                                    value-prop="value" name-prop="label"
+                                    :options="itemRoleOptions"
+                                    :error="errors.item_role" />
+                                <div class="form-text small">
+                                    Manufacturing classification (e.g. raw material). Used for reports
+                                    and BOM defaults — does not change stock behaviour.
+                                </div>
+                            </div>
                             <div class="col">
                                 <VInput id="hsn_code" v-model="form.hsn_code"
                                     :label="isPhysicalProduct ? 'HSN / HS Code' : 'SAC'"
@@ -342,7 +354,23 @@
                                         {{ form.variants.length }} variant{{ form.variants.length === 1 ? '' : 's' }}
                                         {{ isEdit ? 'will be saved' : 'will be created' }}
                                     </p>
-                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <div class="d-flex flex-wrap gap-3 align-items-center">
+                                        <div class="form-check form-switch mb-0">
+                                            <input v-model="form.is_saleable" type="checkbox"
+                                                class="form-check-input" id="is_saleable_variable" />
+                                            <label class="form-check-label small" for="is_saleable_variable"
+                                                title="Show this product on sales documents (quotation, invoice, POS)">
+                                                For sale
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch mb-0">
+                                            <input v-model="form.is_purchasable" type="checkbox"
+                                                class="form-check-input" id="is_purchasable_variable" />
+                                            <label class="form-check-label small" for="is_purchasable_variable"
+                                                title="Show this product on purchase documents (purchase order, bill)">
+                                                For purchase
+                                            </label>
+                                        </div>
                                         <button type="button" class="btn btn-sm btn-outline-secondary"
                                             :disabled="!form.code?.trim()" @click="applySkuPrefixFromCode">
                                             Fill SKU from code
@@ -368,6 +396,7 @@
                                                         Purchase Price (Default) <VRequiredMark /></th>
                                                     <th class="text-end" title="Default selling price for sales and purchase screens">
                                                         Selling Price <VRequiredMark /></th>
+                                                    <th class="text-center" title="Enable lot/batch tracking for this variant">Batch Tracked</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -417,6 +446,16 @@
                                                             @validate="validateField(`variants[${index}].sales_price`)"
                                                             :error="errors[`variants[${index}].sales_price`]" />
                                                     </td>
+                                                    <td class="text-center">
+                                                        <div class="form-check form-switch d-flex justify-content-center">
+                                                            <input
+                                                                type="checkbox"
+                                                                class="form-check-input"
+                                                                :id="`is_batch_tracked_${index}`"
+                                                                v-model="form.variants[index].is_batch_tracked"
+                                                            />
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -464,6 +503,37 @@
                                         label="Selling Price" required
                                         @validate="validateField(`variants[0].sales_price`)"
                                         :error="errors[`variants[0].sales_price`]" />
+                                </div>
+                                <div class="col-auto d-flex align-items-end pb-1">
+                                    <div class="d-flex flex-column gap-1">
+                                        <div v-if="isPhysicalProduct" class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                class="form-check-input"
+                                                id="is_batch_tracked_0"
+                                                v-model="form.variants[0].is_batch_tracked"
+                                            />
+                                            <label class="form-check-label" for="is_batch_tracked_0">
+                                                Batch Tracked
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input v-model="form.is_saleable" type="checkbox"
+                                                class="form-check-input" id="is_saleable" />
+                                            <label class="form-check-label" for="is_saleable"
+                                                title="Show this product on sales documents (quotation, invoice, POS)">
+                                                For sale
+                                            </label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input v-model="form.is_purchasable" type="checkbox"
+                                                class="form-check-input" id="is_purchasable" />
+                                            <label class="form-check-label" for="is_purchasable"
+                                                title="Show this product on purchase documents (purchase order, bill)">
+                                                For purchase
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -567,9 +637,28 @@ const inventoryCostingMethodName = computed(() => {
     return 'FIFO (first in, first out)';
 });
 
+const itemRoleOptions = [
+    { value: 'raw_material', label: 'Raw Material' },
+    { value: 'semi_finished', label: 'Semi-Finished (Sub-assembly)' },
+    { value: 'finished_good', label: 'Finished Good' },
+    { value: 'consumable', label: 'Consumable' },
+    { value: 'trading_good', label: 'Trading Good' },
+];
+
+const roleSaleDefaults = {
+    raw_material: { is_saleable: false, is_purchasable: true },
+    semi_finished: { is_saleable: false, is_purchasable: false },
+    finished_good: { is_saleable: true, is_purchasable: false },
+    consumable: { is_saleable: false, is_purchasable: true },
+    trading_good: { is_saleable: true, is_purchasable: true },
+};
+
 const initialState = {
     product_category_id: '',
     product_type: 'product',
+    item_role: '',
+    is_saleable: true,
+    is_purchasable: true,
     name: '',
     code: '',
     image: '',
@@ -631,6 +720,7 @@ function mergeHydratedVariantIds(idMap) {
             row.sales_price = hit.sales_price != null ? String(hit.sales_price) : '';
             row.purchase_price = hit.purchase_price != null ? String(hit.purchase_price) : '';
             row.is_default = !!hit.is_default;
+            row.is_batch_tracked = !!hit.is_batch_tracked;
         }
     });
 }
@@ -644,6 +734,9 @@ async function hydrateFromProduct(data) {
         Object.assign(form, {
             product_category_id: data.product_category_id ?? '',
             product_type: pt,
+            item_role: data.item_role ?? '',
+            is_saleable: data.is_saleable ?? true,
+            is_purchasable: data.is_purchasable ?? true,
             name: data.name ?? '',
             code: data.code ?? '',
             image: data.image ?? '',
@@ -673,6 +766,7 @@ async function hydrateFromProduct(data) {
                 sales_price: v.sales_price,
                 purchase_price: v.purchase_price,
                 is_default: v.is_default,
+                is_batch_tracked: v.is_batch_tracked ?? false,
             });
         }
 
@@ -715,6 +809,7 @@ async function hydrateFromProduct(data) {
                     sales_price: src.sales_price != null ? String(src.sales_price) : '',
                     purchase_price: src.purchase_price != null ? String(src.purchase_price) : '',
                     is_default: src.is_default ?? true,
+                    is_batch_tracked: src.is_batch_tracked ?? false,
                     value_labels: [],
                     attribute_values: [],
                 }];
@@ -739,6 +834,7 @@ const addVariants = () => {
         sales_price: '',
         purchase_price: '',
         is_default: false,
+        is_batch_tracked: false,
     });
 };
 
@@ -884,6 +980,7 @@ watch(() => selectedVariants.value, () => {
             sales_price: '',
             purchase_price: '',
             is_default: index === 0,
+            is_batch_tracked: false,
             attribute_values: cmb.map(a => a.value_id)
         });
     });
@@ -931,7 +1028,22 @@ watch(
         if (type === 'service') {
             form.has_variants = false;
             form.brand_id = '';
+            form.item_role = '';
             resetToSimplePricing();
+        }
+    }
+);
+
+watch(
+    () => form.item_role,
+    (role) => {
+        if (isHydrating.value) {
+            return;
+        }
+        const defaults = roleSaleDefaults[role];
+        if (defaults) {
+            form.is_saleable = defaults.is_saleable;
+            form.is_purchasable = defaults.is_purchasable;
         }
     }
 );
@@ -1057,6 +1169,7 @@ function buildPayload() {
             sales_price: v.sales_price,
             purchase_price: isService && !String(v.purchase_price ?? '').trim() ? 0 : v.purchase_price,
             is_default: v.is_default,
+            is_batch_tracked: !!v.is_batch_tracked,
             attribute_values: Array.isArray(v.attribute_values) ? v.attribute_values : [],
         };
         if (v.id != null && v.id !== '') {
@@ -1067,6 +1180,7 @@ function buildPayload() {
     return {
         ...form,
         variants,
+        item_role: isService ? null : (form.item_role || null),
         has_variants: form.product_type === 'product' ? !!form.has_variants : false,
     };
 }

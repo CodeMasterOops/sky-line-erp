@@ -26,6 +26,10 @@ class BillItem extends Model
         'tax_amount',
         'discount_amount',
         'tax_line_type',
+        'batch_id',
+        'batch_no',
+        'mfg_date',
+        'expiry_date',
     ];
 
     protected $casts = [
@@ -35,11 +39,13 @@ class BillItem extends Model
         'warehouse_id' => 'integer',
         'unit_id' => 'integer',
         'tax_id' => 'integer',
-        'quantity' => 'integer',
+        'quantity' => 'float',
         'rate' => 'float',
         'tax_amount' => 'float',
         'discount_amount' => 'float',
         'tax_line_type' => TaxLineTypeEnum::class,
+        'mfg_date' => 'date:Y-m-d',
+        'expiry_date' => 'date:Y-m-d',
     ];
 
     public function bill(): BelongsTo
@@ -75,5 +81,10 @@ class BillItem extends Model
     public function stockLayers(): HasMany
     {
         return $this->hasMany(StockLayer::class, 'source_bill_item_id');
+    }
+
+    public function batch(): BelongsTo
+    {
+        return $this->belongsTo(Batch::class);
     }
 }

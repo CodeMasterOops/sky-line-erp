@@ -10,6 +10,7 @@ use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Services\Accounting\PeriodLockGuard;
 use Illuminate\Validation\ValidationException;
+use App\Services\Accounting\JournalBalanceGuard;
 use App\Services\Accounting\JournalVoucherService;
 use App\Http\Resources\Admin\Accounting\JournalVoucherResource;
 use App\Http\Requests\Api\Admin\Accounting\JournalVoucherRequest;
@@ -19,6 +20,7 @@ class JournalVoucherController extends Controller
     public function __construct(
         private readonly JournalVoucherService $journalVoucherService,
         private readonly PeriodLockGuard $periodGuard,
+        private readonly JournalBalanceGuard $balanceGuard,
     ) {}
 
     #[Permissions('list_journal_voucher', group: 'journal_voucher', desc: 'List Journal Voucher')]
@@ -38,12 +40,6 @@ class JournalVoucherController extends Controller
     public function store(JournalVoucherRequest $request)
     {
         $formData = $request->validated();
-
-        if (collect($formData['items'])->sum('dr_amount') !== collect($formData['items'])->sum('cr_amount')) {
-            return response()->json([
-                'message' => 'Dr Amount & Cr Amount must be equal',
-            ], 400);
-        }
 
         $journal = $this->journalVoucherService->create($formData, auth('admin')->user());
 
@@ -132,6 +128,8 @@ class JournalVoucherController extends Controller
             $journalVoucher->fiscal_year_id,
             $journalVoucher->date,
         );
+
+        $this->balanceGuard->assertBalanced($journalVoucher);
 
         $journalVoucher->update([
             'approve_user_id' => $user->id,

@@ -85,7 +85,7 @@ class InvoiceRequest extends FormRequest
             'items.*.delivery_challan_item_id' => ['nullable', Rule::exists('delivery_challan_items', 'id')],
             'items.*.warehouse_id' => ProductLineRules::warehouseId(),
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'items.*.line_discount_value' => ['nullable', 'numeric', 'min:0'],
@@ -109,11 +109,21 @@ class InvoiceRequest extends FormRequest
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
         ];
     }
 
     public function withValidator($validator): void
     {
+        $validator->after(function ($validator) {
+            \App\Services\Inventory\BatchGuard::validateItems(
+                $validator,
+                $this->input('items', []),
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn (array $item) => $item['warehouse_id'] ?? null,
+            );
+        });
+
         $validator->after(function ($validator) {
             // IRD: bijak_no is mandatory for B2B taxable transactions above Rs 50,000.
             if ($this->filled('bijak_no')) {

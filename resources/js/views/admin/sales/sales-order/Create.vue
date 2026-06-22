@@ -33,7 +33,7 @@
                         </div>
 
                         <div class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput saleable-only
                                 label="Product"
                                 required
                                 @select="onVariantSelected"

@@ -314,6 +314,52 @@ it('completes checkout and persists order discount on invoice', function () {
     expect((float) $invoice->discount->amount)->toBe(10.0);
 });
 
+it('returns null from last-receipt when no sale exists', function () {
+    $response = $this->getJson('/api/admin/pos/last-receipt');
+
+    $response->assertSuccessful();
+    expect($response->json('data'))->toBeNull();
+});
+
+it('returns the most recent completed sale from last-receipt', function () {
+    seedVariantStock($this, $this->warehouse->id, 10);
+
+    $cashAccount = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Cash Sales',
+        'code' => 'CASH-POS',
+    ]);
+
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'cash_sales_account_id' => $cashAccount->id,
+        'customer_account_id' => $cashAccount->id,
+        'sales_account_id' => $cashAccount->id,
+    ]);
+
+    $checkout = $this->postJson('/api/admin/pos/checkout', posCheckoutPayload($this, [
+        'items' => [
+            [
+                'product_variant_id' => $this->variant->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 2,
+                'rate' => 100,
+                'tax_amount' => 0,
+                'discount_amount' => 0,
+            ],
+        ],
+    ]));
+    $checkout->assertCreated();
+
+    $response = $this->getJson('/api/admin/pos/last-receipt');
+
+    $response->assertSuccessful();
+    expect($response->json('data.invoice_no'))->toBe($checkout->json('data.invoice_no'));
+    expect((float) $response->json('data.grand_total'))->toBe(200.0);
+    expect($response->json('data.items'))->toHaveCount(1);
+});
+
 it('stores held order json including order discount fields', function () {
     $response = $this->postJson('/api/admin/pos/hold', [
         'label' => 'Table 1',
@@ -380,7 +426,7 @@ it('reduces stock quantity after successful checkout', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(7);
+    expect((int) $stock->quantity)->toBe(7);
 });
 
 it('checkout supports multiple warehouses on one order', function () {
@@ -778,7 +824,7 @@ it('return restores stock to the warehouse', function () {
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
         ->value('quantity');
-    expect($stockBefore)->toBe(3);
+    expect((int) $stockBefore)->toBe(3);
 
     $receiptRes = $this->getJson("/api/admin/pos/receipt/{$invoiceId}");
     $item = $receiptRes->json('data.items.0');
@@ -802,7 +848,7 @@ it('return restores stock to the warehouse', function () {
         ->where('product_variant_id', $this->variant->id)
         ->where('warehouse_id', $this->warehouse->id)
         ->value('quantity');
-    expect($stockAfter)->toBe(4);
+    expect((int) $stockAfter)->toBe(4);
 });
 
 it('return rejects an invoice that belongs to a different company', function () {
@@ -1277,4 +1323,39 @@ it('routes each split payment line to its own bank account GL', function () {
 
     expect($cashReceipt->account_id)->toBe($cashGl->id);
     expect($esewaReceipt->account_id)->toBe($esewaGl->id);
+});
+
+it('excludes non-saleable products (raw materials) from the POS grid', function () {
+    ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $this->product->id,
+        'sku' => 'SKU-POS-1B',
+        'sales_price' => 100,
+        'is_default' => false,
+    ]);
+
+    $rawMaterial = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Steel Sheet',
+        'code' => 'RAW-STEEL',
+        'product_type' => ProductTypeEnum::PRODUCT,
+        'is_saleable' => false,
+    ]);
+
+    ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $rawMaterial->id,
+        'sku' => 'SKU-RAW-1',
+        'sales_price' => 50,
+        'is_default' => true,
+    ]);
+
+    $response = $this->getJson('/api/admin/pos/products');
+
+    $response->assertOk();
+
+    $productIds = collect($response->json('data'))->pluck('product_id')->unique();
+
+    expect($productIds)->toContain($this->product->id)
+        ->not->toContain($rawMaterial->id);
 });

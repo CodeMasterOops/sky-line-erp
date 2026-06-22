@@ -76,13 +76,14 @@
                                 <th>Category</th>
                                 <th>Warehouse</th>
                                 <th class="text-end">Current Qty</th>
+                                <th class="text-end">Held</th>
                                 <th>Last Movement</th>
                                 <th class="text-end">Days Idle</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="!rows.length && !loading">
-                                <td colspan="8" class="text-center text-muted py-4">Click Generate to load data.</td>
+                                <td colspan="9" class="text-center text-muted py-4">Click Generate to load data.</td>
                             </tr>
                             <tr v-for="(row, idx) in rows" :key="idx">
                                 <td>{{ row.product_name }}</td>
@@ -91,6 +92,7 @@
                                 <td>{{ row.category }}</td>
                                 <td>{{ row.warehouse }}</td>
                                 <td class="text-end fw-semibold">{{ formatMoneyPlain(row.quantity) }}</td>
+                                <td class="text-end" :class="row.held > 0 ? 'text-warning fw-semibold' : 'text-muted'">{{ formatMoneyPlain(row.held) }}</td>
                                 <td class="text-muted">{{ row.last_movement_date ?? 'Never' }}</td>
                                 <td class="text-end">
                                     <span class="badge" :class="idleBadge(row.days_since_movement)">
@@ -130,10 +132,10 @@ const idleBadge = (days) => {
 
 const exportCsv = () => {
     if (!rows.value.length) { return; }
-    const headers = ['Product', 'Code', 'SKU', 'Category', 'Warehouse', 'Current Qty', 'Last Movement', 'Days Idle'];
+    const headers = ['Product', 'Code', 'SKU', 'Category', 'Warehouse', 'Current Qty', 'Held', 'Last Movement', 'Days Idle'];
     const csvRows = rows.value.map(r => [
         r.product_name, r.product_code, r.sku, r.category, r.warehouse,
-        r.quantity, r.last_movement_date ?? 'Never', r.days_since_movement ?? 'Never moved',
+        r.quantity, r.held, r.last_movement_date ?? 'Never', r.days_since_movement ?? 'Never moved',
     ].map(v => `"${v ?? ''}"`).join(','));
     const csv = [headers.join(','), ...csvRows].join('\n');
     const a = document.createElement('a');

@@ -93,7 +93,7 @@
                         </div>
 
                         <div v-if="isDraft" class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput purchasable-only
                                 label="Product name / code / SKU"
                                 required
                                 physical-only
@@ -117,12 +117,13 @@
                                         <th class="po-col-disc">Discount</th>
                                         <th class="po-col-tax">Tax</th>
                                         <th class="text-end po-col-total">Total</th>
+                                        <th class="po-col-batch">Batch</th>
                                         <th v-if="isDraft" class="text-center po-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td :colspan="isDraft ? 9 : 8" class="text-center text-muted py-4">
+                                        <td :colspan="isDraft ? 10 : 9" class="text-center text-muted py-4">
                                             No line items.
                                         </td>
                                     </tr>
@@ -136,6 +137,12 @@
                                             item.line_discount_type,
                                             item.line_discount_value,
                                             item.tax_id,
+                                            item.create_batch,
+                                            item.batch_id,
+                                            item.batch_no,
+                                            item.mfg_date,
+                                            item.expiry_date,
+                                            form.warehouse_id,
                                             isDraft,
                                         ]">
                                         <td>{{ index + 1 }}</td>
@@ -199,6 +206,17 @@
                                         </td>
                                         <td class="text-end po-col-total">
                                             <span class="po-line-total">{{ formatMoney(calcLineTotal(item, index)) }}</span>
+                                        </td>
+                                        <td class="po-col-batch">
+                                            <span v-if="item.grn_item_id" class="text-muted small">From GRN</span>
+                                            <span v-else-if="!isDraft" class="text-muted small">{{ item.batch_no || item.batch?.batch_no || '—' }}</span>
+                                            <BatchLineInput
+                                                v-else-if="item.is_batch_tracked"
+                                                :line="form.items[index]"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="form.warehouse_id"
+                                            />
+                                            <span v-else class="text-muted small">—</span>
                                         </td>
                                         <td v-if="isDraft" class="text-center">
                                             <button
@@ -533,6 +551,7 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchLineInput from '@/components/inventory/BatchLineInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import CreateSupplier from '@/views/admin/party/Create.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
@@ -668,8 +687,18 @@ const onVariantSelected = (variant) => {
         tax_line_type: 'taxable',
         line_discount_type: 'fixed',
         line_discount_value: '0',
+        is_batch_tracked: !!variant.is_batch_tracked,
+        ...batchLineDefaults(),
     });
 };
+
+const batchLineDefaults = () => ({
+    create_batch: false,
+    batch_id: null,
+    batch_no: '',
+    mfg_date: null,
+    expiry_date: null,
+});
 
 const removeItem = (index) => {
     form.items.splice(index, 1);
@@ -728,6 +757,13 @@ watch(
                             ? item.line_discount_value
                             : (item.discount_amount ?? 0)
                     ),
+                    is_batch_tracked: !!item.product_variant?.is_batch_tracked,
+                    create_batch: false,
+                    batch_id: item.batch_id || null,
+                    batch_no: item.batch_no || '',
+                    batch: item.batch || null,
+                    mfg_date: item.mfg_date || null,
+                    expiry_date: item.expiry_date || null,
                 }));
             } else if (key === 'warehouse_id') {
                 form.warehouse_id = whId || '';
@@ -913,6 +949,10 @@ const buildBillPayload = () => {
             tax_amount: item.tax_amount ?? 0,
             discount_amount: String(lineDiscountMoneyFromItem(item)),
             tax_line_type: item.tax_line_type || 'taxable',
+            batch_id: item.grn_item_id || item.create_batch ? null : (item.batch_id || null),
+            batch_no: !item.grn_item_id && item.create_batch ? (item.batch_no || null) : null,
+            mfg_date: !item.grn_item_id && item.create_batch ? (item.mfg_date || null) : null,
+            expiry_date: !item.grn_item_id && item.create_batch ? (item.expiry_date || null) : null,
         })),
         landed_costs: canEnterLandedCosts.value
             ? form.landed_costs
@@ -991,6 +1031,10 @@ function resetForm() {
 
 .order-lines-table .po-col-action {
     width: 3rem;
+}
+
+.order-lines-table .po-col-batch {
+    min-width: 10rem;
 }
 
 .po-line-total {

@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Batch;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
@@ -23,18 +24,48 @@ class InventoryLayerIssueService
         Model $reference,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         ChangeTypeEnum $changeType,
         ?int $userId,
         ?string $remarks,
+        ?int $batchId = null,
+        bool $allowHeldBatch = false,
     ): StockMovement {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Issue quantity must be positive.');
         }
 
+        if ($batchId !== null) {
+            $batch = Batch::lockForUpdate()->findOrFail($batchId);
+
+            if ((int) $batch->company_id !== $company->id
+                || (int) $batch->product_variant_id !== $productVariantId
+                || (int) $batch->warehouse_id !== $warehouseId) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'batch_id' => __('Selected batch does not belong to this product and warehouse.'),
+                ]);
+            }
+
+            // Quality-held lots (quarantine, expired, recalled) are not sellable, but
+            // disposal flows (damage write-off, negative stock adjustment) must still be
+            // able to remove them from stock — those callers pass $allowHeldBatch = true.
+            if (! $allowHeldBatch && ! $batch->isIssuable()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'batch_id' => __('Batch :no is :status and cannot be issued.', [
+                        'no' => $batch->batch_no,
+                        'status' => $batch->status->label(),
+                    ]),
+                ]);
+            }
+        }
+
         $this->quantities->lockForUpdateOrCreate($company->id, $productVariantId, $warehouseId);
 
-        $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $quantity);
+        $lines = $this->ledger->consume($company, $productVariantId, $warehouseId, $quantity, $batchId);
+
+        if ($batchId !== null) {
+            Batch::reconcileRemaining($batchId);
+        }
 
         $this->quantities->adjust($company->id, $productVariantId, $warehouseId, -$quantity);
 

@@ -113,7 +113,7 @@ it('builds correct notification payload', function () {
         ->and($payload['product_name'])->toBe('Test Widget')
         ->and($payload['sku'])->toBe($this->variant->sku)
         ->and($payload['warehouse_name'])->toBe('Main Warehouse')
-        ->and($payload['quantity'])->toBe(20)
+        ->and((int) $payload['quantity'])->toBe(20)
         ->and((float) $payload['min_stock_level'])->toBe(10.0)
         ->and($payload['reorder_quantity'])->toBe(50)
         ->and($payload['message'])->toContain('Test Widget')

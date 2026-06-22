@@ -20,7 +20,7 @@ class ErrorReportGenerator
 
         $stream = fopen('php://temp', 'r+');
         $writer = Writer::createFromStream($stream);
-        $writer->insertOne(['row_number', 'status', 'errors', 'name', 'code', 'sku']);
+        $writer->insertOne(['row_number', 'status', 'errors', 'bad_fields', 'bad_values', 'name', 'code', 'sku']);
 
         DataTransferRow::query()
             ->where('data_transfer_job_id', $job->id)
@@ -29,10 +29,13 @@ class ErrorReportGenerator
             ->chunk(500, function ($rows) use ($writer) {
                 foreach ($rows as $row) {
                     $payload = $row->raw_payload ?? [];
+                    $fieldErrors = $row->field_errors ?? [];
                     $writer->insertOne([
                         $row->row_number,
                         $row->status->value ?? $row->status,
                         implode('; ', $row->errors ?? []),
+                        implode('; ', array_column($fieldErrors, 'field')),
+                        implode('; ', array_column($fieldErrors, 'value')),
                         $payload['name'] ?? '',
                         $payload['code'] ?? '',
                         $payload['sku'] ?? '',

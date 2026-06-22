@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ItemRoleEnum;
 use App\Traits\MultiTenant;
 use App\Enums\ProductTypeEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -20,6 +21,9 @@ class Product extends Model
         'import_batch_id',
         'product_category_id',
         'product_type',
+        'item_role',
+        'is_saleable',
+        'is_purchasable',
         'name',
         'code',
         'hsn_code',
@@ -35,11 +39,14 @@ class Product extends Model
 
     protected $casts = [
         'product_type' => ProductTypeEnum::class,
+        'item_role' => ItemRoleEnum::class,
         'sales_price' => 'float',
         'purchase_price' => 'float',
         'reorder_quantity' => 'integer',
         'min_stock_level' => 'float',
         'has_variants' => 'boolean',
+        'is_saleable' => 'boolean',
+        'is_purchasable' => 'boolean',
     ];
 
     public function isService(): bool
@@ -60,6 +67,16 @@ class Product extends Model
     public function scopePhysical($query)
     {
         return $query->where('product_type', ProductTypeEnum::PRODUCT->value);
+    }
+
+    public function scopeSaleable($query)
+    {
+        return $query->where('is_saleable', true);
+    }
+
+    public function scopePurchasable($query)
+    {
+        return $query->where('is_purchasable', true);
     }
 
     /**
@@ -99,6 +116,18 @@ class Product extends Model
 
         if (! empty($param['product_type'])) {
             $query->where('product_type', $param['product_type']);
+        }
+
+        if (! empty($param['item_role'])) {
+            $query->where('item_role', $param['item_role']);
+        }
+
+        if (isset($param['is_saleable']) && $param['is_saleable'] !== '') {
+            $query->where('is_saleable', filter_var($param['is_saleable'], FILTER_VALIDATE_BOOLEAN));
+        }
+
+        if (isset($param['is_purchasable']) && $param['is_purchasable'] !== '') {
+            $query->where('is_purchasable', filter_var($param['is_purchasable'], FILTER_VALIDATE_BOOLEAN));
         }
 
         $warehouseIds = self::parseWarehouseIds($param['warehouse_ids'] ?? null);

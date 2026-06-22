@@ -17,6 +17,7 @@ class DataTransferRowResource extends JsonResource
             'status' => $this->status?->value,
             'raw_payload' => $this->raw_payload,
             'errors' => $this->errors,
+            'field_errors' => $this->field_errors ?? [],
             'target_type' => $this->target_type,
             'target_id' => $this->target_id,
         ];

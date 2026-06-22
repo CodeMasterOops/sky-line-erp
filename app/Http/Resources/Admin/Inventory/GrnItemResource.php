@@ -22,6 +22,7 @@ class GrnItemResource extends JsonResource
             'unit_cost' => (float) ($this->unit_cost ?? 0),
             'batch_no' => $this->batch_no ?? '',
             'expiry_date' => $this->expiry_date ?? null,
+            'serial_nos' => $this->serial_nos ?? [],
             'product_variant' => $this->whenLoaded('productVariant', fn () => ProductVariantResource::make($this->productVariant)),
             'unit' => $this->whenLoaded('unit', fn () => UnitResource::make($this->unit)),
         ];

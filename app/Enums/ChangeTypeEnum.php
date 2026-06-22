@@ -17,6 +17,10 @@ enum ChangeTypeEnum: string
     case RETURN_IN = 'return-in';
     case RETURN_OUT = 'return-out';
     case OPENING_STOCK = 'opening-stock';
+    case MANUFACTURING_ISSUE = 'manufacturing-issue';
+    case FINISHED_GOODS = 'finished-goods';
+    case WASTAGE = 'wastage';
+    case BY_PRODUCT = 'by-product';
 
     public function label(): string
     {
@@ -39,6 +43,10 @@ enum ChangeTypeEnum: string
             self::RETURN_IN => 'Return In',
             self::RETURN_OUT => 'Return Out',
             self::OPENING_STOCK => 'Opening Stock',
+            self::MANUFACTURING_ISSUE => 'Manufacturing Issue',
+            self::FINISHED_GOODS => 'Finished Goods',
+            self::WASTAGE => 'Wastage',
+            self::BY_PRODUCT => 'By-Product',
         };
     }
 

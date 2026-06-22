@@ -3,21 +3,22 @@
 .badge {
     &.badge-primary {
         background: rgba(variables.$primary, 0.1);
-        box-shadow: 0 1px 1px rgba(variables.$primary, 0.5);
+        box-shadow: none;
         color: variables.$primary;
-        
+
     }
 }
 @each $color, $value in variables.$theme-colors {
     .badge {
         &.badge-#{$color} {
             background: #{$value};
-            box-shadow: 0 1px 1px rgba($value, 0.5);
+            box-shadow: none;
             color: variables.$white;
         }
         &.badge-soft-#{$color} {
             background: rgba($value, 0.1);
-            box-shadow: 0 1px 1px rgba($value, 0.5);
+            box-shadow: none;
+            border: 1px solid rgba($value, 0.2);
             color: $value;
         }
         &.badge-soft-primary {
@@ -53,8 +54,8 @@
     padding: .35rem .45rem;
     text-transform:capitalize;
     font-weight: variables.$font-weight-medium;
-    letter-spacing: 0.5px;
-    border-radius: variables.$border-radius-lg;
+    letter-spacing: 0.2px;
+    border-radius: 6px;
     &.badge-xs {
         font-size: 10px;
         padding: 0px 5px;

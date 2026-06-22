@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use App\Models\Product;
+use App\Enums\ItemRoleEnum;
 use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
@@ -26,7 +27,7 @@ class ProductController extends Controller
         $limit = min((int) $request->get('limit', 500), 1000);
         $search = trim((string) $request->get('search', ''));
 
-        $query = ProductVariant::with(['product:id,name,unit_id,product_type', 'variantOptions']);
+        $query = ProductVariant::with(['product:id,name,unit_id,product_type,item_role', 'variantOptions']);
 
         if ($search !== '') {
             $like = '%'.$search.'%';
@@ -54,12 +55,34 @@ class ProductController extends Controller
 
         $query = ProductVariant::query()
             ->with([
-                'product:id,name,code,unit_id,product_type',
+                'product:id,name,code,unit_id,product_type,item_role,is_saleable,is_purchasable',
                 'variantOptions.attribute',
             ]);
 
         if ($request->boolean('physical_only')) {
             $query->whereHas('product', fn ($q) => $q->where('product_type', ProductTypeEnum::PRODUCT->value));
+        }
+
+        if ($request->boolean('batch_tracked_only')) {
+            $query->where('is_batch_tracked', true);
+        }
+
+        if ($request->boolean('saleable_only')) {
+            $query->whereHas('product', fn ($q) => $q->where('is_saleable', true));
+        }
+
+        if ($request->boolean('purchasable_only')) {
+            $query->whereHas('product', fn ($q) => $q->where('is_purchasable', true));
+        }
+
+        $itemRoles = $this->parseItemRoles($request->get('item_roles'));
+
+        if ($itemRoles !== []) {
+            $query->whereHas('product', fn ($q) => $q->whereIn('item_role', $itemRoles));
+        }
+
+        if ($request->boolean('with_stock')) {
+            $query->withSum('stocks as stock_qty', 'quantity');
         }
 
         if ($barcode !== '') {
@@ -85,6 +108,27 @@ class ProductController extends Controller
         $variants = $query->latest('product_variants.id')->paginate($perPage);
 
         return ProductVariantResource::collection($variants);
+    }
+
+    /**
+     * Normalise the advisory item_role filter (array or CSV) to a list of valid enum values.
+     *
+     * @return list<string>
+     */
+    private function parseItemRoles(mixed $value): array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return [];
+        }
+
+        $raw = is_array($value) ? $value : explode(',', (string) $value);
+
+        $valid = array_column(ItemRoleEnum::cases(), 'value');
+
+        return array_values(array_unique(array_filter(
+            array_map(static fn (mixed $role): string => trim((string) $role), $raw),
+            static fn (string $role): bool => in_array($role, $valid, true),
+        )));
     }
 
     #[Permissions('list_product', group: 'product', desc: 'List Product')]
@@ -149,6 +193,8 @@ class ProductController extends Controller
                     'sales_price' => $variant['sales_price'] ?? 0,
                     'purchase_price' => $variant['purchase_price'] ?? 0,
                     'is_default' => $hasVariants ? $variant['is_default'] : true,
+                    'is_serialized' => (bool) ($variant['is_serialized'] ?? false),
+                    'is_batch_tracked' => (bool) ($variant['is_batch_tracked'] ?? false),
                 ]);
 
                 $productVariant->variantOptions()->attach($variant['attribute_values'] ?? []);
@@ -207,6 +253,8 @@ class ProductController extends Controller
                             'sales_price' => $variant['sales_price'] ?? 0,
                             'purchase_price' => $variant['purchase_price'] ?? 0,
                             'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
+                            'is_serialized' => (bool) ($variant['is_serialized'] ?? false),
+                            'is_batch_tracked' => (bool) ($variant['is_batch_tracked'] ?? false),
                         ]);
                         $productVariant->variantOptions()->sync($attrValues);
                     }
@@ -218,6 +266,8 @@ class ProductController extends Controller
                         'sales_price' => $variant['sales_price'] ?? 0,
                         'purchase_price' => $variant['purchase_price'] ?? 0,
                         'is_default' => $hasVariants ? (bool) ($variant['is_default'] ?? false) : true,
+                        'is_serialized' => (bool) ($variant['is_serialized'] ?? false),
+                        'is_batch_tracked' => (bool) ($variant['is_batch_tracked'] ?? false),
                     ]);
 
                     $productVariant->variantOptions()->attach($attrValues);
@@ -271,6 +321,7 @@ class ProductController extends Controller
             $data['min_stock_level'] = 0;
             $data['reorder_quantity'] = 0;
             $data['has_variants'] = false;
+            $data['item_role'] = null;
         }
 
         return $data;
@@ -284,6 +335,9 @@ class ProductController extends Controller
         return [
             'product_category_id',
             'product_type',
+            'item_role',
+            'is_saleable',
+            'is_purchasable',
             'name',
             'code',
             'hsn_code',

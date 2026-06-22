@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\SuperAdmin;
 
 use Carbon\Carbon;
+use App\Models\FiscalYear;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -46,7 +47,9 @@ class FiscalYearRequest extends FormRequest
                 return;
             }
 
-            $days = Carbon::parse($start)->diffInDays(Carbon::parse($end));
+            $startDate = Carbon::parse($start);
+            $endDate = Carbon::parse($end);
+            $days = $startDate->diffInDays($endDate);
 
             if ($days < self::MIN_DAYS || $days > self::MAX_DAYS) {
                 $v->errors()->add(
@@ -55,6 +58,32 @@ class FiscalYearRequest extends FormRequest
                     ."(Shrawan 1 to Ashadh end ≈ 365 days). The entered range is {$days} days."
                 );
             }
+
+            $this->assertNoOverlap($v, $startDate, $endDate);
         });
+    }
+
+    private function assertNoOverlap($v, Carbon $start, Carbon $end): void
+    {
+        $excludeId = $this->fiscal_year?->id;
+
+        $overlap = FiscalYear::withoutTrashed()
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->where(function ($q) use ($start, $end) {
+                $q->whereBetween('start_date', [$start->toDateString(), $end->toDateString()])
+                    ->orWhereBetween('end_date', [$start->toDateString(), $end->toDateString()])
+                    ->orWhere(function ($q) use ($start, $end) {
+                        $q->where('start_date', '<=', $start->toDateString())
+                            ->where('end_date', '>=', $end->toDateString());
+                    });
+            })
+            ->first(['id', 'year_name']);
+
+        if ($overlap) {
+            $v->errors()->add(
+                'start_date',
+                "This date range overlaps with fiscal year \"{$overlap->year_name}\". Fiscal years must not overlap."
+            );
+        }
     }
 }

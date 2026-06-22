@@ -25,7 +25,7 @@ class DeliveryChallanController extends Controller
             ->filter($request->all())
             ->orderByDesc('challan_date')
             ->orderByDesc('id')
-            ->paginate($request->input('per_page', 15));
+            ->paginate($request->limit ?? 25);
 
         return DeliveryChallanResource::collection($challans);
     }
@@ -35,7 +35,7 @@ class DeliveryChallanController extends Controller
     {
         $deliveryChallan->load([
             'party', 'warehouse', 'reference', 'challanItems.productVariant.product', 'challanItems.unit',
-            'challanItems.salesOrderItem', 'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
+            'challanItems.salesOrderItem', 'challanItems.batch', 'fiscalYear', 'createUser', 'approveUser', 'stockMovements',
         ]);
 
         return DeliveryChallanResource::make($deliveryChallan);

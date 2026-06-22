@@ -41,6 +41,11 @@ class CreditNoteItemResource extends JsonResource
             'tax' => TaxResource::make($this->whenLoaded('tax')),
             'tax_amount' => $this->tax_amount ?? 0,
             'discount_amount' => $this->discount_amount ?? 0,
+            'batch_id' => $this->batch_id,
+            'batch' => $this->whenLoaded('batch', fn () => [
+                'id' => $this->batch->id,
+                'batch_no' => $this->batch->batch_no,
+            ]),
         ];
     }
 }

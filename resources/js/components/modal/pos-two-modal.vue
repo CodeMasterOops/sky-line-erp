@@ -313,6 +313,23 @@
               placeholder="Enter customer PAN number"
               maxlength="15"
             />
+
+            <!-- Thermal printer (QZ Tray) — only shown when QZ Tray is reachable -->
+            <div v-if="thermal.connected" class="mt-2">
+              <label class="form-label small mb-1 text-muted d-flex align-items-center justify-content-between">
+                <span><i class="ti ti-printer me-1"></i>Thermal printer (direct)</span>
+                <span class="badge bg-success-subtle text-success">QZ Tray connected</span>
+              </label>
+              <div class="input-group input-group-sm">
+                <select class="form-select" v-model="thermalPrinter">
+                  <option value="">Use browser printing</option>
+                  <option v-for="p in thermal.printers" :key="p" :value="p">{{ p }}</option>
+                </select>
+                <button type="button" class="btn btn-outline-secondary" @click="refreshThermalPrinters" title="Refresh printer list">
+                  <i class="ti ti-refresh"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Receipt preview (this is what gets printed) -->
@@ -461,8 +478,10 @@
 
         <div class="modal-footer d-flex justify-content-end gap-2">
           <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-md btn-primary" @click="printReceipt">
-            <i class="ti ti-printer me-1"></i>Print
+          <button type="button" class="btn btn-md btn-primary" :disabled="printing" @click="printReceipt">
+            <span v-if="printing" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="ti ti-printer me-1"></i>
+            {{ useThermalPrint ? 'Print (Thermal)' : 'Print' }}
           </button>
         </div>
       </div>
@@ -1387,6 +1406,7 @@ import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { useToast } from 'vue-toastification';
+import { useThermalPrinter } from '@/composables/useThermalPrinter.js';
 
 // ─── Amount-in-words helper (Nepali Rupees, lakh/crore system) ───────────────
 function numberToWords(n) {
@@ -1537,10 +1557,10 @@ const RECEIPT_PRINT_STYLES = `
   .pos-receipt__footer-note { font-weight: 600; color: #333 !important; }
   /* PAN input area is outside print area — never shown in print */
   .pos-receipt-pan-bar { display: none; }
-  @page { margin: 4mm; size: 80mm auto; }
+  @page { margin: 0; size: 80mm auto; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .pos-receipt { max-width: 100%; padding: 0; }
+    .pos-receipt { max-width: 100%; padding: 3mm 2mm 5mm; }
   }
 `;
 
@@ -1560,6 +1580,15 @@ export default {
   },
 
   emits: ['checkout', 'clear-cart', 'hold', 'restore-held-order', 'delete-held-order', 'customer-created', 'till-opened', 'till-closed', 'vat-toggle', 'return-processed'],
+
+  setup() {
+    const thermalPrinter = useThermalPrinter();
+
+    return {
+      thermalCtl: thermalPrinter,
+      thermal: thermalPrinter.state,
+    };
+  },
 
   data() {
     return {
@@ -1584,6 +1613,7 @@ export default {
       ],
       reprintSale: null,
       reprintLoading: null,
+      printing: false,
       newCustomer: { name: '', phone: '', email: '', address: '' },
       // company info for receipt
       companyName: '',
@@ -1634,6 +1664,34 @@ export default {
       return this.reprintSale ?? this.lastSale;
     },
 
+    /** Two-way bound to the terminal's selected QZ Tray printer. */
+    thermalPrinter: {
+      get() {
+        return this.thermal.selectedPrinter;
+      },
+      set(value) {
+        this.thermalCtl.setPrinter(value);
+      },
+    },
+
+    /** True when a thermal printer is connected and selected for direct printing. */
+    useThermalPrint() {
+      return this.thermal.connected && !!this.thermal.selectedPrinter;
+    },
+
+    /** Company identity fields passed to the ESC/POS builder. */
+    receiptCompany() {
+      return {
+        companyName: this.companyName,
+        companyLegalName: this.companyLegalName,
+        companyPhone: this.companyPhone,
+        companyPan: this.companyPan,
+        companyAddress: this.companyAddress,
+        companyLocation: this.companyLocation,
+        companyInvoiceNote: this.companyInvoiceNote,
+      };
+    },
+
     /** "TAX INVOICE" when VAT is present, otherwise "CASH MEMO". */
     receiptTitle() {
       return Number(this.activeReceipt?.tax_total) > 0 ? 'TAX INVOICE' : 'CASH MEMO';
@@ -1674,6 +1732,10 @@ export default {
     const cashRegisterEl = document.getElementById('cash-register');
     if (cashRegisterEl) {
       cashRegisterEl.addEventListener('show.bs.modal', () => this.loadTillSummary());
+    }
+    const receiptEl = document.getElementById('print-receipt');
+    if (receiptEl) {
+      receiptEl.addEventListener('show.bs.modal', () => this.probeThermalPrinter());
     }
     this.loadCompanyInfo();
   },
@@ -1740,27 +1802,110 @@ export default {
       this.holdLabel = '';
     },
 
-    printReceipt() {
-      const area = document.getElementById('receipt-print-area');
-      if (!area) { return; }
+    /** Detect QZ Tray and load printers when the receipt modal opens. */
+    async probeThermalPrinter() {
+      try {
+        if (await this.thermalCtl.isAvailable()) {
+          await this.thermalCtl.refreshPrinters();
+        }
+      } catch {
+        /* QZ Tray unreachable — silently fall back to browser printing. */
+      }
+    },
 
-      const printWindow = window.open('', '_blank', 'width=420,height=720');
+    async refreshThermalPrinters() {
+      try {
+        await this.thermalCtl.refreshPrinters();
+      } catch {
+        useToast().warning('Could not refresh printers from QZ Tray.');
+      }
+    },
+
+    /** Print dispatcher — direct ESC/POS when a thermal printer is selected, else browser. */
+    async printReceipt() {
+      if (!this.activeReceipt) {
+        useToast().error('Nothing to print — open a completed sale first.');
+
+        return;
+      }
+
+      if (this.useThermalPrint) {
+        this.printing = true;
+        try {
+          await this.thermalCtl.printReceipt(this.activeReceipt, this.receiptCompany, {
+            customerPan: this.customerPan,
+          });
+          useToast().success('Receipt sent to thermal printer.');
+
+          return;
+        } catch (error) {
+          useToast().warning(`${error.message || 'Thermal print failed.'} Falling back to browser print.`);
+        } finally {
+          this.printing = false;
+        }
+      }
+
+      this.printReceiptBrowser();
+    },
+
+    printReceiptBrowser() {
+      const area = document.getElementById('receipt-print-area');
+      if (!area) {
+        useToast().error('Nothing to print — open a completed sale first.');
+
+        return;
+      }
+
+      // Use the live element's rendered height as the initial popup size.
+      // 60px accounts for the browser's title bar / chrome.
+      const initialH = area.scrollHeight + 60;
+      const printWindow = window.open('', '_blank', `width=420,height=${initialH}`);
       if (!printWindow) {
-        useToast().warning('Allow pop-ups to print the receipt');
+        useToast().warning('Allow pop-ups for this site so receipts can print.');
 
         return;
       }
 
       const doc = printWindow.document;
-      doc.head.innerHTML = `<meta charset="utf-8"><title>Receipt ${this.activeReceipt?.invoice_no ?? ''}</title><style>${RECEIPT_PRINT_STYLES}</style>`;
-      doc.body.innerHTML = area.outerHTML;
+      doc.open();
+      doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${this.activeReceipt?.invoice_no ?? ''}</title><style>${RECEIPT_PRINT_STYLES}</style></head><body>${area.outerHTML}</body></html>`);
+      doc.close();
+
+      // Guarantees the popup is torn down exactly once, regardless of which
+      // signal fires first (afterprint, or the safety timeout for browsers /
+      // thermal drivers that never emit afterprint).
+      let closed = false;
+      const closeOnce = () => {
+        if (closed) { return; }
+        closed = true;
+        try { printWindow.close(); } catch { /* already gone */ }
+      };
+
+      const doActualPrint = () => {
+        // Resize to the popup's own rendered height now that print CSS has been applied.
+        try {
+          const h = printWindow.document.body.scrollHeight;
+          if (h > 0) { printWindow.resizeTo(420, h + 60); }
+        } catch { /* resizeTo blocked by some browser configs — no-op */ }
+
+        // Close only AFTER the OS has accepted the job. Closing immediately
+        // after print() (the old behaviour) tears the document down before the
+        // spooler reads it, which silently cancels the job on many thermal
+        // drivers — the #1 cause of "I click print and nothing comes out".
+        printWindow.onafterprint = closeOnce;
+
+        printWindow.focus();
+        printWindow.print();
+
+        // Fallback: some browsers never fire afterprint. Keep the window alive
+        // long enough for the spooler, then clean it up.
+        setTimeout(closeOnce, 2000);
+      };
 
       const runPrint = () => {
         const images = Array.from(printWindow.document.images ?? []);
         if (!images.length) {
-          printWindow.focus();
-          printWindow.print();
-          printWindow.close();
+          doActualPrint();
 
           return;
         }
@@ -1768,11 +1913,7 @@ export default {
         let settled = 0;
         const finish = () => {
           settled += 1;
-          if (settled >= images.length) {
-            printWindow.focus();
-            printWindow.print();
-            printWindow.close();
-          }
+          if (settled >= images.length) { doActualPrint(); }
         };
 
         images.forEach((img) => {

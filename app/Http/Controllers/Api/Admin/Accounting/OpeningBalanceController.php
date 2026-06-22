@@ -9,6 +9,7 @@ use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Rules\WithinActiveFiscalYear;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalBalanceGuard;
@@ -30,7 +31,15 @@ class OpeningBalanceController extends Controller
             ->latest('date')
             ->paginate($request->integer('per_page', 15));
 
-        return response()->json($journals);
+        return response()->json([
+            'data' => $journals->items(),
+            'meta' => [
+                'current_page' => $journals->currentPage(),
+                'last_page' => $journals->lastPage(),
+                'per_page' => $journals->perPage(),
+                'total' => $journals->total(),
+            ],
+        ]);
     }
 
     #[Permissions('create_journal_voucher', group: 'journal_voucher', desc: 'Post Opening Balance')]
@@ -38,7 +47,7 @@ class OpeningBalanceController extends Controller
     {
         $validated = $request->validate([
             'fiscal_year_id' => ['nullable', 'integer', 'exists:fiscal_years,id'],
-            'date' => ['required', 'date'],
+            'date' => ['required', 'date', new WithinActiveFiscalYear],
             'remarks' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.account_id' => ['required', 'integer', 'exists:accounts,id'],
@@ -74,6 +83,18 @@ class OpeningBalanceController extends Controller
         $user = auth('admin')->user();
         $company = $user->company;
         $fiscalYearId = $validated['fiscal_year_id'] ?? $company->fiscal_year_id;
+
+        $exists = Journal::where('company_id', $company->id)
+            ->where('type', JournalTypeEnum::OPENING_BALANCE->value)
+            ->where('fiscal_year_id', $fiscalYearId)
+            ->whereNull('deleted_at')
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'fiscal_year_id' => 'An opening balance entry already exists for this fiscal year. Void the existing entry before posting a new one.',
+            ]);
+        }
 
         $journal = DB::transaction(function () use ($validated, $items, $user, $company, $fiscalYearId) {
             $voucherNo = $this->documentNumberGenerator->journalVoucher(

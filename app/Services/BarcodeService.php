@@ -137,8 +137,10 @@ class BarcodeService
             default => 'a4',
         };
 
+        $orientation = $paper === 'roll' ? 'landscape' : 'portrait';
+
         return Pdf::loadView('pdf.barcode-labels', ['labels' => $labels, 'paper' => $paper])
-            ->setPaper($paperSize, 'portrait')
+            ->setPaper($paperSize, $orientation)
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
                 'isRemoteEnabled' => false,

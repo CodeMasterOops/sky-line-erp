@@ -239,7 +239,7 @@ class LandedCostService
             ->filter(function (BillItem $item): bool {
                 $item->loadMissing('productVariant.product');
 
-                return (int) $item->quantity > 0
+                return (float) $item->quantity > 0
                     && ! $item->grn_item_id
                     && ! $item->productVariant?->isService();
             })

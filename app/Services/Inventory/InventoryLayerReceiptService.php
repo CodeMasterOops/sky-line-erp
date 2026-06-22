@@ -2,6 +2,7 @@
 
 namespace App\Services\Inventory;
 
+use App\Models\Batch;
 use App\Models\Company;
 use App\Enums\ChangeTypeEnum;
 use App\Models\StockMovement;
@@ -23,13 +24,15 @@ class InventoryLayerReceiptService
         Model $reference,
         int $productVariantId,
         int $warehouseId,
-        int $quantity,
+        float $quantity,
         float $unitCost,
         ChangeTypeEnum $changeType,
         ?int $userId,
         ?string $remarks,
         ?int $sourceBillItemId = null,
         ?int $sourceGrnItemId = null,
+        ?int $sourceProductionOrderId = null,
+        ?int $batchId = null,
     ): StockMovement {
         if ($quantity <= 0) {
             throw new \InvalidArgumentException('Receipt quantity must be positive.');
@@ -46,9 +49,16 @@ class InventoryLayerReceiptService
             $sourceBillItemId,
             null,
             $sourceGrnItemId,
+            $sourceProductionOrderId,
+            $batchId,
         );
 
         $this->quantities->adjust($company->id, $productVariantId, $warehouseId, $quantity);
+
+        if ($batchId !== null) {
+            Batch::where('id', $batchId)->increment('initial_qty', $quantity);
+            Batch::reconcileRemaining($batchId);
+        }
 
         $totalCost = round($quantity * $unitCost, 4);
         $movementUnitCost = round($totalCost / $quantity, 4);

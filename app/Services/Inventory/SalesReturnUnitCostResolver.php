@@ -47,7 +47,7 @@ class SalesReturnUnitCostResolver
                 ->where('type', ChangeTypeEnum::SALE)
                 ->get();
 
-            $qty = (int) $movements->sum('quantity');
+            $qty = (float) $movements->sum('quantity');
             if ($qty > 0) {
                 $cost = (float) $movements->sum('total_cost');
 
@@ -106,7 +106,7 @@ class SalesReturnUnitCostResolver
         }
 
         $m = $movements[$index];
-        $q = (int) $m->quantity;
+        $q = (float) $m->quantity;
         if ($q <= 0) {
             return null;
         }
@@ -126,14 +126,14 @@ class SalesReturnUnitCostResolver
             ->where('qty_remaining', '>', 0)
             ->get();
 
-        $qty = (int) $layers->sum('qty_remaining');
+        $qty = (float) $layers->sum('qty_remaining');
         if ($qty <= 0) {
             return 0.0;
         }
 
         $cost = 0.0;
         foreach ($layers as $layer) {
-            $cost += (int) $layer->qty_remaining * (float) $layer->unit_cost;
+            $cost += (float) $layer->qty_remaining * (float) $layer->unit_cost;
         }
 
         return round($cost / $qty, 4);

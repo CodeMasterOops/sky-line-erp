@@ -56,10 +56,11 @@
                         </div>
 
                         <div class="col-12">
-                            <ProductVariantSearchInput
+                            <ProductVariantSearchInput saleable-only
                                 ref="productSearchRef"
                                 label="Product"
                                 required
+                                show-stock
                                 @select="onVariantSelected"
                             />
                         </div>
@@ -75,13 +76,14 @@
                                         <th class="inv-col-rate">Rate</th>
                                         <th class="inv-col-disc">Discount</th>
                                         <th class="inv-col-tax">Tax</th>
+                                        <th class="inv-col-batch">Batch</th>
                                         <th class="inv-col-total text-end">Total</th>
                                         <th class="text-center inv-col-action">Action</th>
                                     </tr>
                                     </thead>
                                     <tbody>
                                     <tr v-if="!form.items.length">
-                                        <td colspan="8" class="text-center text-muted py-4">
+                                        <td colspan="9" class="text-center text-muted py-4">
                                             Search and select a product to add lines.
                                         </td>
                                     </tr>
@@ -175,6 +177,15 @@
                                             <span v-if="calcLineTax(item, index) > 0" class="inv-line-tax-amt">
                                                 {{ formatMoney(calcLineTax(item, index)) }}
                                             </span>
+                                        </td>
+                                        <td class="inv-col-batch">
+                                            <BatchPickerInput
+                                                v-if="item.is_batch_tracked && !item.is_service"
+                                                v-model="form.items[index].batch_id"
+                                                :product-variant-id="item.product_variant_id"
+                                                :warehouse-id="item.warehouse_id"
+                                            />
+                                            <span v-else class="text-muted small">—</span>
                                         </td>
                                         <td class="inv-col-total text-end">
                                             <span class="inv-line-total">{{ formatMoney(calcLineTotal(item, index)) }}</span>
@@ -309,6 +320,7 @@ import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTota
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
+import BatchPickerInput from '@/components/inventory/BatchPickerInput.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
 import WarehousePickerModal from '@/components/modal/WarehousePickerModal.vue';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
@@ -567,6 +579,8 @@ function commitVariantLine(variant, warehouse) {
         line_discount_type: 'fixed',
         line_discount_value: '0',
         is_service: isService,
+        is_batch_tracked: !isService && !!variant.is_batch_tracked,
+        batch_id: null,
         warehouse_id: wid ?? '',
         warehouse_name: warehouse.warehouse_name ?? '',
         stock_qty: isService ? null : (warehouse.quantity ?? null),
@@ -703,6 +717,7 @@ const buildInvoicePayload = () => {
             line_discount_value: item.line_discount_value ?? '0',
             tax_amount: calcLineTax(item, index),
             discount_amount: String(lineDiscountMoneyFromItem(item)),
+            batch_id: item.batch_id || null,
         })),
     };
 };

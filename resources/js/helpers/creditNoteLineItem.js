@@ -42,6 +42,8 @@ export function lineFromInvoiceItem(item, invoicedQty, options = {}) {
         line_discount_type: item.line_discount_type || 'fixed',
         line_discount_value: ldv,
         is_service: !!item.product_variant?.is_service,
+        is_batch_tracked: !!item.product_variant?.is_batch_tracked,
+        batch_id: item.batch_id ?? null,
         warehouse_id: item.warehouse_id || '',
         warehouse_name: item.warehouse?.name ?? '',
         stock_qty: null,

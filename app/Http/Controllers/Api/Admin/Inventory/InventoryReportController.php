@@ -6,11 +6,29 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Services\Inventory\MrpPlanningService;
 use App\Services\Inventory\InventoryReportService;
 
 class InventoryReportController extends Controller
 {
-    public function __construct(private InventoryReportService $reportService) {}
+    public function __construct(
+        private InventoryReportService $reportService,
+        private MrpPlanningService $mrpService,
+    ) {}
+
+    #[Permissions('inventory_production_variance_report', group: 'inventory_report', desc: 'MRP Planning')]
+    public function mrpPlan(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->mrpService->plan(auth('admin')->user()->company_id),
+        ]);
+    }
+
+    #[Permissions('inventory_production_variance_report', group: 'inventory_report', desc: 'Work Centre Load')]
+    public function workCenterLoad(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->workCenterLoad($request)]);
+    }
 
     #[Permissions('inventory_stock_movement_report', group: 'inventory_report', desc: 'Stock Movement Report')]
     public function stockMovement(Request $request): JsonResponse
@@ -58,5 +76,23 @@ class InventoryReportController extends Controller
     public function inventorySummary(Request $request): JsonResponse
     {
         return response()->json(['data' => $this->reportService->inventorySummary($request)]);
+    }
+
+    #[Permissions('inventory_production_variance_report', group: 'inventory_report', desc: 'Production Variance Report')]
+    public function productionVariance(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->productionVariance($request)]);
+    }
+
+    #[Permissions('inventory_batch_stock_report', group: 'inventory_report', desc: 'Batch Stock Report')]
+    public function batchStock(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->batchStock($request)]);
+    }
+
+    #[Permissions('inventory_batch_traceability_report', group: 'inventory_report', desc: 'Batch Traceability Report')]
+    public function batchTraceability(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->reportService->batchTraceability($request)]);
     }
 }

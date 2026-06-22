@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ProductionOrder extends Model
 {
@@ -20,6 +21,7 @@ class ProductionOrder extends Model
         'order_no',
         'planned_qty',
         'produced_qty',
+        'scrapped_qty',
         'status',
         'planned_start',
         'planned_end',
@@ -35,8 +37,9 @@ class ProductionOrder extends Model
     protected $casts = [
         'planned_qty' => 'float',
         'produced_qty' => 'float',
-        'planned_start' => 'date',
-        'planned_end' => 'date',
+        'scrapped_qty' => 'float',
+        'planned_start' => 'date:Y-m-d',
+        'planned_end' => 'date:Y-m-d',
         'actual_start' => 'datetime',
         'actual_end' => 'datetime',
         'approved_at' => 'datetime',
@@ -75,5 +78,20 @@ class ProductionOrder extends Model
     public function consumptions(): HasMany
     {
         return $this->hasMany(ProductionOrderConsumption::class);
+    }
+
+    public function stockMovements(): MorphMany
+    {
+        return $this->morphMany(StockMovement::class, 'reference');
+    }
+
+    public function stockReservations(): MorphMany
+    {
+        return $this->morphMany(StockReservation::class, 'reservable');
+    }
+
+    public function operations(): HasMany
+    {
+        return $this->hasMany(ProductionOrderOperation::class)->orderBy('sequence');
     }
 }

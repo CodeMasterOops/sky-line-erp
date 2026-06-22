@@ -50,6 +50,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'creditNoteItems.batch',
         ]);
 
         return response()->json([
@@ -68,6 +69,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'creditNoteItems.batch',
         ]);
 
         return CreditNoteResource::make($creditNote);
@@ -97,6 +99,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'creditNoteItems.batch',
         ]);
 
         return response()->json([
@@ -156,6 +159,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'creditNoteItems.batch',
         ]);
 
         return response()->json([
@@ -198,6 +202,7 @@ class CreditNoteController extends Controller
             'creditNoteItems.unit',
             'creditNoteItems.tax',
             'creditNoteItems.warehouse',
+            'creditNoteItems.batch',
         ]);
 
         return response()->json([

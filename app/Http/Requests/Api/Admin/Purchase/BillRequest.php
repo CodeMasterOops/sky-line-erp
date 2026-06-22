@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
 use App\Enums\LandedCostTreatmentEnum;
+use App\Services\Inventory\BatchGuard;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\LandedCostAllocationMethodEnum;
@@ -25,6 +26,7 @@ class BillRequest extends FormRequest
     {
         return [
             'bill_no' => ['nullable', 'string', 'max:255'],
+            'supplier_invoice_no' => ['nullable', 'string', 'max:100'],
             'bill_date' => ['required', 'date', new WithinActiveFiscalYear],
             'due_date' => ['nullable', 'date', 'after_or_equal:bill_date'],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
@@ -41,7 +43,7 @@ class BillRequest extends FormRequest
             ],
             'items.*.warehouse_id' => ProductLineRules::warehouseId(),
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'items.*.line_discount_value' => ['nullable', 'numeric', 'min:0'],
@@ -62,6 +64,10 @@ class BillRequest extends FormRequest
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
             'items.*.grn_item_id' => ['nullable', 'integer', Rule::exists('grn_items', 'id')],
+            'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')->withoutTrashed()],
+            'items.*.batch_no' => ['nullable', 'string', 'max:255'],
+            'items.*.mfg_date' => ['nullable', 'date'],
+            'items.*.expiry_date' => ['nullable', 'date'],
             'landed_costs' => ['nullable', 'array'],
             'landed_costs.*.cost_type' => ['required_with:landed_costs', 'string', 'max:100'],
             'landed_costs.*.description' => ['nullable', 'string', 'max:255'],
@@ -96,6 +102,20 @@ class BillRequest extends FormRequest
             if ($hasGrnLines && ! empty($this->input('landed_costs'))) {
                 $v->errors()->add('landed_costs', 'Additional charges cannot be added when billing GRN lines.');
             }
+
+            // Batch selection only applies to direct receipts. GRN-sourced lines
+            // carry their batch from the already-approved GRN, so exclude them.
+            $directItems = array_filter(
+                $this->input('items', []),
+                fn (array $item): bool => empty($item['grn_item_id']),
+            );
+
+            BatchGuard::validateItems(
+                $v,
+                $directItems,
+                (int) (auth('admin')->user()?->company?->id ?? 0),
+                fn (array $item) => $item['warehouse_id'] ?? null,
+            );
         });
     }
 }

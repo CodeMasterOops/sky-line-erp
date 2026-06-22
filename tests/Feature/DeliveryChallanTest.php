@@ -205,7 +205,7 @@ it('approves delivery challan and deducts stock', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(8);
+    expect((int) $stock->quantity)->toBe(8);
     expect(
         StockMovement::withoutGlobalScopes()
             ->where('type', ChangeTypeEnum::DELIVERY)
@@ -372,7 +372,7 @@ it('still deducts stock for standalone approved invoices', function () {
         ->where('warehouse_id', $this->warehouse->id)
         ->first();
 
-    expect($stock->quantity)->toBe(8);
+    expect((int) $stock->quantity)->toBe(8);
 });
 
 it('returns deliverable items for an approved sales order', function () {

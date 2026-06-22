@@ -56,10 +56,10 @@ class InventoryCostingMethodSwitchService
                     continue;
                 }
 
-                $totalQty = (int) $layers->sum('qty_remaining');
+                $totalQty = (float) $layers->sum('qty_remaining');
                 $totalCost = 0.0;
                 foreach ($layers as $layer) {
-                    $totalCost += (int) $layer->qty_remaining * (float) $layer->unit_cost;
+                    $totalCost += (float) $layer->qty_remaining * (float) $layer->unit_cost;
                 }
 
                 $avg = $totalQty > 0 ? round($totalCost / $totalQty, 4) : 0.0;

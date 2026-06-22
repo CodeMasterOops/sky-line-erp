@@ -82,6 +82,30 @@ export const useStockTransferStore = defineStore('stockTransfer', {
                 }).catch((err) => {
                     throw err;
                 });
-        }
+        },
+        dispatchTransfer(id) {
+            return apiAdmin(`${apiUrl}/${id}/dispatch`, 'post')
+                .then((res) => {
+                    const index = this.transfers.data.findIndex(d => d.id === id);
+                    if (index !== -1) {
+                        this.transfers.data[index] = res.data.data;
+                    }
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
+        receiveTransfer(id) {
+            return apiAdmin(`${apiUrl}/${id}/receive`, 'post')
+                .then((res) => {
+                    const index = this.transfers.data.findIndex(d => d.id === id);
+                    if (index !== -1) {
+                        this.transfers.data[index] = res.data.data;
+                    }
+                    return res;
+                }).catch((err) => {
+                    throw err;
+                });
+        },
     }
 });

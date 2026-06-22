@@ -47,11 +47,11 @@ class InventoryStockReconciliationAlignService
                 ]);
             }
 
-            $stockQty = (int) $stock->quantity;
+            $stockQty = (float) $stock->quantity;
             $valued = $this->sumValuedQuantity($company->id, $productVariantId, $warehouseId);
-            $diff = $stockQty - $valued;
+            $diff = round($stockQty - $valued, 4);
 
-            if ($diff === 0) {
+            if (abs($diff) < 0.00005) {
                 return;
             }
 
@@ -105,9 +105,9 @@ class InventoryStockReconciliationAlignService
         });
     }
 
-    private function sumValuedQuantity(int $companyId, int $productVariantId, int $warehouseId): int
+    private function sumValuedQuantity(int $companyId, int $productVariantId, int $warehouseId): float
     {
-        return (int) StockLayer::withoutGlobalScopes()
+        return (float) StockLayer::withoutGlobalScopes()
             ->where('company_id', $companyId)
             ->where('product_variant_id', $productVariantId)
             ->where('warehouse_id', $warehouseId)
@@ -125,14 +125,14 @@ class InventoryStockReconciliationAlignService
             ->where('qty_remaining', '>', 0)
             ->get(['qty_remaining', 'unit_cost']);
 
-        $qty = (int) $layers->sum('qty_remaining');
+        $qty = (float) $layers->sum('qty_remaining');
         if ($qty <= 0) {
             return 0.0;
         }
 
         $value = 0.0;
         foreach ($layers as $layer) {
-            $value += (int) $layer->qty_remaining * (float) $layer->unit_cost;
+            $value += (float) $layer->qty_remaining * (float) $layer->unit_cost;
         }
 
         return round($value / $qty, 4);

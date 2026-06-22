@@ -14,12 +14,14 @@ class BomItem extends Model
         'unit_id',
         'item_type',
         'wastage_pct',
+        'standard_rate',
         'remarks',
     ];
 
     protected $casts = [
         'quantity' => 'float',
         'wastage_pct' => 'float',
+        'standard_rate' => 'float',
     ];
 
     public function bom(): BelongsTo
