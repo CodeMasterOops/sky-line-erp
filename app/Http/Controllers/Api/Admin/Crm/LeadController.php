@@ -80,17 +80,16 @@ class LeadController extends Controller
                 'address' => $data['address'] ?? null,
             ]);
 
-            $party->leadProfile()->create([
-                'status' => $data['status'] ?? CrmLeadStatusEnum::New->value,
+            // PartyObserver provisions the lead profile + "lead created" activity;
+            // here we only layer on the optional pipeline fields supplied.
+            $party->leadProfile()->update(array_filter([
+                'status' => $data['status'] ?? null,
                 'source' => $data['source'] ?? null,
                 'assigned_to_user_id' => $data['assigned_to_user_id'] ?? null,
                 'expected_value' => $data['expected_value'] ?? null,
                 'expected_close_date' => $data['expected_close_date'] ?? null,
                 'next_follow_up_at' => $data['next_follow_up_at'] ?? null,
-                'created_by_user_id' => auth('admin')->id(),
-            ]);
-
-            $this->activityLogger->log($party, CrmActivityTypeEnum::LeadCreated, 'Lead created');
+            ], fn ($value) => $value !== null));
 
             return $party;
         });

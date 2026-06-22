@@ -104,6 +104,12 @@ class AppServiceProvider extends ServiceProvider
             Event::listen("eloquent.retrieved: {$model}", [BelongsToCompanyObserver::class, 'retrieved']);
         }
 
+        // Auto-provision a CRM lead profile + timeline entry for any party of
+        // type=lead. Event-string (not Party::observe()) for the same model-boot
+        // race reason described above.
+        Event::listen('eloquent.created: '.Party::class, [\App\Observers\PartyObserver::class, 'created']);
+        Event::listen('eloquent.updated: '.Party::class, [\App\Observers\PartyObserver::class, 'updated']);
+
         $this->registerTelescopeTenantTag();
 
         $this->registerBranchGates();

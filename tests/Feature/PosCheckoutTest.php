@@ -34,15 +34,17 @@ use App\Services\Inventory\InventoryLayerReceiptService;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-function warmAllTablesCache(): void
-{
-    $tables = [];
-    foreach (Schema::getTableListing() as $table) {
-        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
-        $tables[$table] = Schema::getColumnListing($plainName);
+if (! function_exists('warmAllTablesCache')) {
+    function warmAllTablesCache(): void
+    {
+        $tables = [];
+        foreach (Schema::getTableListing() as $table) {
+            $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+            $tables[$table] = Schema::getColumnListing($plainName);
+        }
+        Cache::forget(allTablesCacheKey());
+        Cache::forever(allTablesCacheKey(), $tables);
     }
-    Cache::forget(allTablesCacheKey());
-    Cache::forever(allTablesCacheKey(), $tables);
 }
 
 beforeEach(function () {

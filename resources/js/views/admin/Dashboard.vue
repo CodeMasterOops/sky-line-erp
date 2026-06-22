@@ -351,7 +351,7 @@
                   <span class="title-icon fs-16 me-2"><i class="ti ti-users"></i></span>
                   <h5 class="card-title mb-0">Top Customers</h5>
                 </div>
-                <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="stat-card__link">View all</router-link>
+                <router-link :to="{ name: 'admin.crm-contacts' }" class="stat-card__link">View all</router-link>
               </div>
               <div class="card-body">
                 <div v-if="!dash.top_customers.length" class="dashboard-empty">No customer data yet</div>
@@ -419,7 +419,7 @@ const businessMetrics = computed(() => {
             displayValue: d.customers_count,
             icon: 'ti-users',
             cardColor: 'green',
-            route: {name: 'admin.party-list', query: {type: 'customer'}},
+            route: {name: 'admin.crm-contacts'},
         },
         {
             label: 'Products',
@@ -433,7 +433,7 @@ const businessMetrics = computed(() => {
             displayValue: d.suppliers_count,
             icon: 'ti-truck',
             cardColor: 'purple',
-            route: {name: 'admin.party-list', query: {type: 'supplier'}},
+            route: {name: 'admin.crm-contacts'},
         },
         {
             label: "Today's Sales",

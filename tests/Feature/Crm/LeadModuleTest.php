@@ -31,6 +31,8 @@ beforeEach(function () {
 
 function makeLead(int $companyId, array $profile = []): Party
 {
+    // PartyObserver provisions the lead profile on create; we only layer on
+    // any caller-supplied pipeline fields.
     $party = Party::create([
         'company_id' => $companyId,
         'type' => PartyTypeEnum::LEAD,
@@ -38,10 +40,7 @@ function makeLead(int $companyId, array $profile = []): Party
         'code' => 'LEAD-'.fake()->unique()->numerify('####'),
     ]);
 
-    $party->leadProfile()->create(array_merge([
-        'status' => CrmLeadStatusEnum::New->value,
-        'source' => 'website',
-    ], $profile));
+    $party->leadProfile()->update(array_merge(['source' => 'website'], $profile));
 
     return $party;
 }
@@ -67,6 +66,47 @@ it('creates a lead with a profile and logs an activity', function () {
 
     expect(CrmActivity::where('subject_id', $party->id)
         ->where('type', CrmActivityTypeEnum::LeadCreated->value)->count())->toBe(1);
+});
+
+it('provisions a lead profile and activity when a lead party is created via the contacts endpoint', function () {
+    $response = $this->postJson(route('api.admin.party.store'), [
+        'type' => 'lead',
+        'name' => 'Walk-in Prospect',
+    ]);
+
+    $response->assertCreated();
+
+    $party = Party::where('name', 'Walk-in Prospect')->first();
+
+    expect($party->type)->toBe(PartyTypeEnum::LEAD)
+        ->and($party->leadProfile)->not->toBeNull()
+        ->and($party->leadProfile->status)->toBe(CrmLeadStatusEnum::New);
+
+    expect(CrmActivity::where('subject_id', $party->id)
+        ->where('type', CrmActivityTypeEnum::LeadCreated->value)->count())->toBe(1);
+});
+
+it('does not provision a lead profile for a customer party', function () {
+    $this->postJson(route('api.admin.party.store'), [
+        'type' => 'customer',
+        'name' => 'Plain Customer',
+    ])->assertCreated();
+
+    $party = Party::where('name', 'Plain Customer')->first();
+
+    expect($party->leadProfile)->toBeNull();
+});
+
+it('exposes party types and lead statuses through the enum endpoints', function () {
+    $this->getJson(route('enum.party-types'))
+        ->assertOk()
+        ->assertJsonFragment(['id' => 'lead', 'name' => 'Lead'])
+        ->assertJsonFragment(['id' => 'customer', 'name' => 'Customer']);
+
+    $this->getJson(route('enum.crm-lead-statuses'))
+        ->assertOk()
+        ->assertJsonCount(5, 'data')
+        ->assertJsonFragment(['id' => 'qualified', 'name' => 'Qualified']);
 });
 
 it('lists only leads and not customers', function () {

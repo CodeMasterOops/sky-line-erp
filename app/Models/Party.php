@@ -58,6 +58,12 @@ class Party extends Model
             $query->where('type', $param['type']);
         }
 
+        if (! empty($param['status'])) {
+            $query->whereHas('leadProfile', function ($q) use ($param) {
+                $q->where('status', $param['status']);
+            });
+        }
+
         return $query;
     }
 

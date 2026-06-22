@@ -43,7 +43,7 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.product-edit': 'edit_product',
     'admin.product-list': 'list_product',
     'admin.data-transfer-list': 'list_data_transfer',
-    'admin.party-list': 'list_party',
+    'admin.crm-contacts': 'list_party',
     'admin.variant-attributes': 'list_attribute',
     'admin.barcode': 'list_product',
     'admin.purchase-list': 'list_purchase_order',

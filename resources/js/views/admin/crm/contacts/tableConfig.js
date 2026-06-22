@@ -1,4 +1,4 @@
-export const partyColumns = [
+export const contactColumns = [
     { title: "SN",     key: "sn",         width: 60 },
     { title: "Name",   dataIndex: "name",       sorter: true },
     { title: "Code",   dataIndex: "code",       sorter: true },
@@ -9,9 +9,9 @@ export const partyColumns = [
 ];
 
 /**
- * @param {{ onEdit: Function, onDelete: Function }} handlers
+ * @param {{ onEdit: Function, onConvert: Function, onDelete: Function }} handlers
  */
-export function createRowActions({ onEdit, onDelete }) {
+export function createRowActions({ onEdit, onConvert, onDelete }) {
     return [
         {
             key:     'edit',
@@ -19,6 +19,13 @@ export function createRowActions({ onEdit, onDelete }) {
             title:   'Edit',
             class:   'edit-icon',
             handler: (record) => onEdit(record.id),
+        },
+        {
+            key:       'convert',
+            icon:      'ti-user-check',
+            title:     'Convert to customer',
+            condition: (record) => record.type === 'lead',
+            handler:   (record) => onConvert(record),
         },
         {
             key:     'delete',

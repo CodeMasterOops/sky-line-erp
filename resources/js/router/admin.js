@@ -1,5 +1,6 @@
 import AdminLayout from "@/layouts/admin/AppLayout.vue";
 import accountingRoutes from "@/router/modules/accounting.routes.js";
+import crmRoutes from "@/router/modules/crm.routes.js";
 import hrRoutes from "@/router/modules/hr.routes.js";
 import inventoryRoutes from "@/router/modules/inventory.routes.js";
 import purchaseRoutes from "@/router/modules/purchase.routes.js";
@@ -121,14 +122,10 @@ const routes = [
             },
             //inventory module
             ...inventoryRoutes,
-            {
-                path: "party",
-                name: "admin.party-list",
-                meta: {
-                    pageTitle: "Party List",
-                },
-                component: () => import("@/views/admin/party/Index.vue"),
-            },
+
+            //crm module (unified contacts: customers, suppliers, leads)
+            ...crmRoutes,
+
             //purchase module
             ...purchaseRoutes,
 

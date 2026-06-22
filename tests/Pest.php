@@ -59,15 +59,17 @@ function something()
     // ..
 }
 
-function warmAllTablesCache(): void
-{
-    $tables = [];
-    foreach (\Illuminate\Support\Facades\Schema::getTableListing() as $table) {
-        $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
-        $tables[$table] = \Illuminate\Support\Facades\Schema::getColumnListing($plainName);
+if (! function_exists('warmAllTablesCache')) {
+    function warmAllTablesCache(): void
+    {
+        $tables = [];
+        foreach (\Illuminate\Support\Facades\Schema::getTableListing() as $table) {
+            $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+            $tables[$table] = \Illuminate\Support\Facades\Schema::getColumnListing($plainName);
+        }
+        \Illuminate\Support\Facades\Cache::forget(allTablesCacheKey());
+        \Illuminate\Support\Facades\Cache::forever(allTablesCacheKey(), $tables);
     }
-    \Illuminate\Support\Facades\Cache::forget(allTablesCacheKey());
-    \Illuminate\Support\Facades\Cache::forever(allTablesCacheKey(), $tables);
 }
 
 function makeCompany(string $name, string $code): \App\Models\Company

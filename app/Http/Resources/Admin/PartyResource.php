@@ -23,6 +23,9 @@ class PartyResource extends JsonResource
             'is_active' => $this->is_active ?? '',
             'discount_type' => $this->discount?->type ?? '',
             'discount_value' => $this->discount?->value ?? '',
+            'lead_status' => $this->leadProfile?->status?->value,
+            'lead_status_label' => $this->leadProfile?->status?->label(),
+            'assigned_to_user_id' => $this->leadProfile?->assigned_to_user_id,
         ];
     }
 }
