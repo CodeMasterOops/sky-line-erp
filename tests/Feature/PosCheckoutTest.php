@@ -1324,3 +1324,38 @@ it('routes each split payment line to its own bank account GL', function () {
     expect($cashReceipt->account_id)->toBe($cashGl->id);
     expect($esewaReceipt->account_id)->toBe($esewaGl->id);
 });
+
+it('excludes non-saleable products (raw materials) from the POS grid', function () {
+    ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $this->product->id,
+        'sku' => 'SKU-POS-1B',
+        'sales_price' => 100,
+        'is_default' => false,
+    ]);
+
+    $rawMaterial = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Steel Sheet',
+        'code' => 'RAW-STEEL',
+        'product_type' => ProductTypeEnum::PRODUCT,
+        'is_saleable' => false,
+    ]);
+
+    ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $rawMaterial->id,
+        'sku' => 'SKU-RAW-1',
+        'sales_price' => 50,
+        'is_default' => true,
+    ]);
+
+    $response = $this->getJson('/api/admin/pos/products');
+
+    $response->assertOk();
+
+    $productIds = collect($response->json('data'))->pluck('product_id')->unique();
+
+    expect($productIds)->toContain($this->product->id)
+        ->not->toContain($rawMaterial->id);
+});

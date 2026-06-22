@@ -88,6 +88,7 @@ class PosController extends Controller
 
         $query = Product::query()
             ->physical()
+            ->saleable()
             ->with([
                 'productCategory.parent:id,name',
                 'variants' => function ($q) use ($warehouseId) {
