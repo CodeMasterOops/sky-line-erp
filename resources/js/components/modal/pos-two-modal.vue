@@ -277,9 +277,7 @@
               <button
                 type="button"
                 class="btn btn-md btn-secondary"
-                data-bs-toggle="modal"
-                data-bs-target="#print-receipt"
-                @click="openPrintReceiptForLastSale"
+                @click="switchToPrintReceipt"
               >Print Receipt <i class="feather-arrow-right-circle icon-me-5 ms-2"></i></button>
               <button
                 type="button"
@@ -1765,6 +1763,11 @@ export default {
       this.reprintSale = null;
     },
 
+    switchToPrintReceipt() {
+      this.openPrintReceiptForLastSale();
+      this.closeModal('payment-completed', () => this.openModal('print-receipt'));
+    },
+
     async doCheckout(overrideMethod = null, splitPayments = null) {
       if (this.loading) { return; }
       this.loading = true;
@@ -1839,7 +1842,11 @@ export default {
 
           return;
         } catch (error) {
-          useToast().warning(`${error.message || 'Thermal print failed.'} Falling back to browser print.`);
+          // Do NOT fall back to browser when a thermal printer is explicitly selected —
+          // that would send an A4-sized page to the thermal driver and waste a long strip of paper.
+          useToast().error(`Thermal print failed: ${error.message || 'Unknown error. Check QZ Tray is running and the printer is online.'}`);
+
+          return;
         } finally {
           this.printing = false;
         }
