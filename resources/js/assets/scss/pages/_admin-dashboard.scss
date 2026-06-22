@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "../utils/mixins";
 @use "../utils/variables";
 
@@ -188,6 +189,105 @@
 
         &:hover {
             text-decoration: underline;
+        }
+    }
+}
+
+.metric-card {
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: none;
+    transition: transform 0.15s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+    }
+
+    &__body {
+        padding: 1rem 1.25rem 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+        min-height: 90px;
+    }
+
+    &__info {
+        position: relative;
+        z-index: 1;
+    }
+
+    &__count {
+        font-size: 1.75rem;
+        font-weight: variables.$font-weight-bold;
+        color: variables.$white;
+        line-height: 1.2;
+        margin-bottom: 0.375rem;
+    }
+
+    &__label {
+        font-size: variables.$font-size-14;
+        color: rgba(variables.$white, 0.9);
+        font-weight: variables.$font-weight-medium;
+    }
+
+    &__bg-icon {
+        font-size: 5rem;
+        color: rgba(variables.$white, 0.18);
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        @include mixins.transform(translateY(-50%));
+        line-height: 1;
+        pointer-events: none;
+    }
+
+    &__footer {
+        display: block;
+        padding: 0.5rem 1.25rem;
+        font-size: variables.$font-size-13;
+        font-weight: variables.$font-weight-medium;
+        color: rgba(variables.$white, 0.9);
+        text-align: center;
+        text-decoration: none;
+
+        &:hover {
+            color: variables.$white;
+            text-decoration: none;
+        }
+    }
+
+    &--green {
+        background: variables.$success;
+
+        .metric-card__footer {
+            background: color.adjust(variables.$success, $lightness: -10%);
+        }
+    }
+
+    &--teal {
+        background: variables.$teal;
+
+        .metric-card__footer {
+            background: color.adjust(variables.$teal, $lightness: -10%);
+        }
+    }
+
+    &--purple {
+        background: variables.$purple;
+
+        .metric-card__footer {
+            background: color.adjust(variables.$purple, $lightness: -10%);
+        }
+    }
+
+    &--olive {
+        background: variables.$primary;
+
+        .metric-card__footer {
+            background: color.adjust(variables.$primary, $lightness: -10%);
         }
     }
 }

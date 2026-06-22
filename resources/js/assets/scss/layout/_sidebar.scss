@@ -621,7 +621,7 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
             -ms-flex-pack: center;
             position: absolute;
             opacity: 1;
-            background: variables.$primary;
+            background: variables.$info;
             right: -13px;
             border-radius: 50%;
             width: 25px;
@@ -630,10 +630,10 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
             cursor: pointer;
             svg {
                 transform: rotate(180deg);
-            }    
+            }
             &:hover {
-                background: variables.$primary-hover;
-            }       
+                background: variables.$info-hover;
+            }
         }
         &.active svg {
             transform: rotate(0) !important;
@@ -952,7 +952,7 @@ body.mini-sidebar{
             -ms-flex-pack: center;
             position: absolute;
             opacity: 1;
-            background: variables.$primary;
+            background: variables.$info;
             right: -13px;
             border-radius: 50%;
             width: 25px;
@@ -961,13 +961,13 @@ body.mini-sidebar{
             cursor: pointer;
             svg {
                 transform: rotate(0);
-            }    
+            }
             &:hover {
-                background: variables.$primary-hover;
-            }    
+                background: variables.$info-hover;
+            }
             &.active svg {
                 transform: rotate(180deg) !important;
-            }   
+            }
         }
        
     }

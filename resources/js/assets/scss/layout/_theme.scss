@@ -2337,12 +2337,12 @@ body.data-layout-transparent {
                 }
             }
         }
-        // Toggle collapse button: white on dark sidebar
+        // Toggle collapse button: light blue on dark sidebar
         .sidebar-logo #toggle_btn {
-            background: variables.$white;
-            color: variables.$primary;
+            background: variables.$info;
+            color: variables.$white;
             &:hover {
-                background: rgba(255, 255, 255, 0.88);
+                background: variables.$info-hover;
             }
         }
         // Regular mode: hide small-white icon (only full white logo is shown)
