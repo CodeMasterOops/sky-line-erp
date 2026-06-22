@@ -234,20 +234,4 @@ export default {
   color: var(--sidebar-text-hover-color, #333);
 }
 
-/* Hide footer text/card in mini-sidebar mode */
-:global(.mini-sidebar) .sidebar-plan-card__info,
-:global(.mini-sidebar) .sidebar-plan-card__action,
-:global(.mini-sidebar) .sidebar-plan-card__label,
-:global(.mini-sidebar) .sidebar-support-link span {
-  display: none;
-}
-
-:global(.mini-sidebar) .sidebar-plan-card__body {
-  justify-content: center;
-  padding: 8px;
-}
-
-:global(.mini-sidebar) .sidebar-support-link {
-  justify-content: center;
-}
 </style>

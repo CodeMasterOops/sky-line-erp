@@ -778,6 +778,20 @@ body.mini-sidebar{
             }
         }
     }
+    /* Hide footer text in mini-sidebar mode */
+    .sidebar-plan-card__info,
+    .sidebar-plan-card__action,
+    .sidebar-plan-card__label,
+    .sidebar-support-link span {
+        display: none;
+    }
+    .sidebar-plan-card__body {
+        justify-content: center;
+        padding: 8px;
+    }
+    .sidebar-support-link {
+        justify-content: center;
+    }
     /* Collapsed sidebar: compact trial plan (no hover-expand); avoid horizontal overflow */
     .admin-sidebar-shell__footer {
         max-width: 100%;
