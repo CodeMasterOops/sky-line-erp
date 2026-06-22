@@ -85,6 +85,31 @@ export const useCompanyStore = defineStore('company', {
                 }).catch((err) => {
                     throw err;
                 })
+        },
+        getBranches(companyId) {
+            return apiSuperAdmin(`${apiUrl}/${companyId}/branch`)
+                .then((res) => res.data.data)
+                .catch((err) => {
+                    throw err;
+                })
+        },
+        storeBranch(companyId, form) {
+            return apiSuperAdmin(`${apiUrl}/${companyId}/branch`, 'post', form)
+                .catch((err) => {
+                    throw err;
+                })
+        },
+        updateBranch(companyId, branchId, form) {
+            return apiSuperAdmin(`${apiUrl}/${companyId}/branch/${branchId}`, 'put', form)
+                .catch((err) => {
+                    throw err;
+                })
+        },
+        deleteBranch(companyId, branchId) {
+            return apiSuperAdmin(`${apiUrl}/${companyId}/branch/${branchId}`, 'delete')
+                .catch((err) => {
+                    throw err;
+                })
         }
     }
 })

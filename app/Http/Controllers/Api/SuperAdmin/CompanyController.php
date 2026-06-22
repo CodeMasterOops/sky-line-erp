@@ -33,7 +33,10 @@ class CompanyController extends Controller
     public function store(CompanyRequest $request)
     {
         $company = DB::transaction(function () use ($request) {
-            $company = Company::create($request->validated());
+            $company = Company::create([
+                ...$request->validated(),
+                'onboarding_completed_at' => now(),
+            ]);
 
             User::create([
                 'company_id' => $company->id,

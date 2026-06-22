@@ -66,7 +66,24 @@ it('creates a company with required address fields', function () {
     ]);
 });
 
-it('allows super admin to login as a company admin', function () {
+it('marks onboarding complete when a company is created with full details', function () {
+    actingAsSuperAdmin();
+    createDefaultPlan();
+    $ward = companyLocation();
+
+    $create = $this->postJson('/api/super-admin/company', validCompanyPayload($ward, [
+        'code' => 'OC-01',
+        'email' => 'onboardedco@example.com',
+        'user_email' => 'admin@onboardedco.example.com',
+    ]));
+
+    $create->assertCreated();
+
+    $company = \App\Models\Company::find($create->json('data.id'));
+    expect($company->onboarding_completed_at)->not->toBeNull();
+});
+
+it('allows super admin to login as a company admin without forcing onboarding', function () {
     actingAsSuperAdmin();
     createDefaultPlan();
     $ward = companyLocation();
@@ -82,7 +99,8 @@ it('allows super admin to login as a company admin', function () {
     $response = $this->postJson("/api/super-admin/company/{$companyId}/login");
 
     $response->assertOk()
-        ->assertJsonStructure(['access_token', 'expires_at', 'user', 'permissions', 'message']);
+        ->assertJsonStructure(['access_token', 'expires_at', 'user', 'permissions', 'message'])
+        ->assertJsonPath('needs_onboarding', false);
 });
 
 it('rejects company login when company is inactive', function () {

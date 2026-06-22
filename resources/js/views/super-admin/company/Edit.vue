@@ -231,6 +231,68 @@
             </div>
         </div>
 
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="avatar avatar-sm bg-info-transparent">
+                        <i class="ti ti-building-store"></i>
+                    </span>
+                    <h5 class="mb-0 fs-16 fw-semibold">Branches</h5>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary d-flex align-items-center" @click="openBranchModal()">
+                    <i class="ti ti-plus me-1"></i> Add Branch
+                </button>
+            </div>
+            <div class="card-body">
+                <div v-if="branchesLoading" class="py-3 text-center text-muted">
+                    <span class="spinner-border spinner-border-sm me-2"></span> Loading branches...
+                </div>
+                <div v-else-if="branches.length === 0" class="py-3 text-center text-muted">
+                    No branches yet. Click <strong>Add Branch</strong> to create one.
+                </div>
+                <div v-else class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Head Office</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="branch in branches" :key="branch.id">
+                                <td>{{ branch.name }}</td>
+                                <td>{{ branch.code }}</td>
+                                <td>{{ branch.phone || '—' }}</td>
+                                <td>{{ branch.email || '—' }}</td>
+                                <td>
+                                    <span v-if="branch.is_head_office" class="badge bg-primary-transparent">Head Office</span>
+                                    <span v-else class="text-muted">—</span>
+                                </td>
+                                <td>
+                                    <span :class="branch.is_active ? 'badge bg-success-transparent' : 'badge bg-danger-transparent'">
+                                        {{ branch.is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" @click="openBranchModal(branch)">
+                                        <i class="ti ti-edit"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @click="deleteBranch(branch)">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div class="text-end mb-4">
             <router-link
                 :to="{name:'super-admin.company-list'}"
@@ -241,6 +303,49 @@
             <VButton :loading="isSubmitting"/>
         </div>
     </form>
+
+    <VModal :show-modal="branchModal.show" :title="branchForm.id ? 'Edit Branch' : 'Add Branch'" size="md" @closeClick="closeBranchModal">
+        <template #modal-body>
+            <form @submit.prevent="submitBranch">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <VInput id="branch_name" v-model="branchForm.name" label="Branch Name" required :error="branchErrors.name?.[0]"/>
+                    </div>
+                    <div class="col-md-4">
+                        <VInput id="branch_code" v-model="branchForm.code" label="Code" :error="branchErrors.code?.[0]" placeholder="Auto"/>
+                    </div>
+                    <div class="col-md-6">
+                        <VInput id="branch_phone" v-model="branchForm.phone" label="Phone" :error="branchErrors.phone?.[0]"/>
+                    </div>
+                    <div class="col-md-6">
+                        <VInput id="branch_email" v-model="branchForm.email" label="Email" :error="branchErrors.email?.[0]"/>
+                    </div>
+                    <div class="col-md-6">
+                        <VInput id="branch_pan" v-model="branchForm.pan" label="PAN" :error="branchErrors.pan?.[0]"/>
+                    </div>
+                    <div class="col-12">
+                        <VInput id="branch_address" v-model="branchForm.address" label="Address" :error="branchErrors.address?.[0]"/>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input id="branch_is_head_office" v-model="branchForm.is_head_office" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label" for="branch_is_head_office">Head Office</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input id="branch_is_active" v-model="branchForm.is_active" class="form-check-input" type="checkbox"/>
+                            <label class="form-check-label" for="branch_is_active">Active</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-end mt-4">
+                    <button type="button" class="btn btn-outline-secondary me-2" @click="closeBranchModal">Cancel</button>
+                    <VButton :loading="branchModal.submitting"/>
+                </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
@@ -253,6 +358,7 @@ import {useCompanyStore} from '@/stores/super-admin/company';
 import {useLocationStore} from '@/stores/super-admin/location';
 import {storeToRefs} from 'pinia';
 import {useRoute, useRouter} from 'vue-router';
+import Swal from 'sweetalert2';
 
 const companyStore = useCompanyStore();
 const locationStore = useLocationStore();
@@ -428,6 +534,7 @@ const loadCompanyForm = async () => {
 
 onMounted(() => {
     loadCompanyForm();
+    loadBranches();
 });
 
 const validations = object({
@@ -469,5 +576,109 @@ const updateCompany = async (id) => {
             isSubmitting.value = false;
         }
     }
+};
+
+const branches = ref([]);
+const branchesLoading = ref(false);
+const branchErrors = ref({});
+const branchModal = reactive({show: false, submitting: false});
+
+const emptyBranch = () => ({
+    id: null,
+    name: '',
+    code: '',
+    phone: '',
+    email: '',
+    pan: '',
+    address: '',
+    is_head_office: false,
+    is_active: true,
+});
+
+const branchForm = reactive(emptyBranch());
+
+const loadBranches = async () => {
+    if (!edit_company_id.value) {
+        return;
+    }
+    branchesLoading.value = true;
+    try {
+        branches.value = await companyStore.getBranches(edit_company_id.value);
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        branchesLoading.value = false;
+    }
+};
+
+const openBranchModal = (branch = null) => {
+    branchErrors.value = {};
+    Object.assign(branchForm, branch ? {
+        id: branch.id,
+        name: branch.name ?? '',
+        code: branch.code ?? '',
+        phone: branch.phone ?? '',
+        email: branch.email ?? '',
+        pan: branch.pan ?? '',
+        address: branch.address ?? '',
+        is_head_office: !!branch.is_head_office,
+        is_active: !!branch.is_active,
+    } : emptyBranch());
+    branchModal.show = true;
+};
+
+const closeBranchModal = () => {
+    branchModal.show = false;
+};
+
+const submitBranch = async () => {
+    branchErrors.value = {};
+    branchModal.submitting = true;
+    const payload = {
+        name: branchForm.name,
+        code: branchForm.code || undefined,
+        phone: branchForm.phone || undefined,
+        email: branchForm.email || undefined,
+        pan: branchForm.pan || undefined,
+        address: branchForm.address || undefined,
+        is_head_office: branchForm.is_head_office,
+        is_active: branchForm.is_active,
+    };
+    try {
+        const res = branchForm.id
+            ? await companyStore.updateBranch(edit_company_id.value, branchForm.id, payload)
+            : await companyStore.storeBranch(edit_company_id.value, payload);
+        toast(res.status, res.data.message);
+        branchModal.show = false;
+        await loadBranches();
+    } catch (e) {
+        if (e?.response?.status === 422 && e.response.data?.errors) {
+            branchErrors.value = e.response.data.errors;
+        } else {
+            showErrors(e);
+        }
+    } finally {
+        branchModal.submitting = false;
+    }
+};
+
+const deleteBranch = (branch) => {
+    Swal.fire({
+        title: `Delete branch "${branch.name}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete',
+    }).then(async (result) => {
+        if (!result.value) {
+            return;
+        }
+        try {
+            const res = await companyStore.deleteBranch(edit_company_id.value, branch.id);
+            toast(res.status, res.data.message);
+            await loadBranches();
+        } catch (e) {
+            showErrors(e);
+        }
+    });
 };
 </script>

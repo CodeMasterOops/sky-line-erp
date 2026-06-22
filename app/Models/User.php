@@ -49,7 +49,7 @@ class User extends Authenticatable
     public function getProfilePhotoUrlAttribute(): string
     {
         return ! empty($this->profile_photo)
-            ? Storage::url($this->profile_photo)
+            ? url(Storage::url($this->profile_photo))
             : asset('images/user-icon.png');
     }
 
