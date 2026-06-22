@@ -34,14 +34,14 @@ import AppHeader from "./AppHeader.vue";
     z-index: 2000;
     display: inline-flex;
     align-items: center;
-    background: #0d6efd;
+    background: #0339a7;
     color: #fff;
     border-radius: 999px;
     padding: 10px 22px;
     font-size: 14px;
     font-weight: 600;
     text-decoration: none;
-    box-shadow: 0 4px 16px rgba(13, 110, 253, 0.4);
+    box-shadow: 0 4px 16px rgba(3, 57, 167, 0.4);
     transition: transform 0.18s, box-shadow 0.18s;
     white-space: nowrap;
 }
@@ -49,7 +49,7 @@ import AppHeader from "./AppHeader.vue";
 .support-fab:hover {
     transform: translateY(-2px);
     color: #fff;
-    box-shadow: 0 6px 20px rgba(13, 110, 253, 0.55);
+    box-shadow: 0 6px 20px rgba(3, 57, 167, 0.55);
 }
 
 .support-fab i {

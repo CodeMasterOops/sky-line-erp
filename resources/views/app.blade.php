@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="{{asset('nepali-datepicker.css')}}?v=5.0.6">
     @vite('resources/js/app.js')
 </head>
-<body data-bs-no-jquery>
+<body data-bs-no-jquery data-sidebar="sidebarcolorfour">
 <div id="app"></div>
 <script src="{{asset('nepali-datepicker.js')}}?v=5.0.6"></script>
 </body>

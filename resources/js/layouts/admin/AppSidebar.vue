@@ -143,7 +143,7 @@ export default {
 /* Plan card */
 .sidebar-plan-card {
   border-radius: 10px;
-  background: linear-gradient(135deg, #1358f1 0%, #40abe6 100%);
+  background: linear-gradient(135deg, #0339a7 0%, #40abe6 100%);
   margin-bottom: 6px;
   overflow: hidden;
 }
