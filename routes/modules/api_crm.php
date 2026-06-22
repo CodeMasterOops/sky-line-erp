@@ -3,9 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\Crm\TaskController;
 use App\Http\Controllers\Api\Admin\Crm\LeadController;
+use App\Http\Controllers\Api\Admin\Crm\NoteController;
 use App\Http\Controllers\Api\Admin\Crm\FollowUpController;
-use App\Http\Controllers\Api\Admin\Crm\TimelineController;
 use App\Http\Controllers\Api\Admin\Crm\ContactPersonController;
+use App\Http\Controllers\Api\Admin\Crm\CustomerProfileController;
 
 // crm — leads (Party of type=lead, with profile)
 Route::get('crm/lead/next-code', [LeadController::class, 'nextCode'])->name('crm.lead.next-code');
@@ -32,5 +33,10 @@ Route::get('crm/task/mine', [TaskController::class, 'mine'])->name('crm.task.min
 Route::apiResource('crm/task', TaskController::class)
     ->only(['index', 'store', 'update', 'destroy']);
 
-// crm — customer timeline (CRM-native activity feed)
-Route::get('crm/customer/{party}/timeline', [TimelineController::class, 'index'])->name('crm.customer.timeline');
+// crm — notes (polymorphic, attached to a party)
+Route::apiResource('crm/note', NoteController::class)
+    ->only(['index', 'store', 'update', 'destroy']);
+
+// crm — customer 360 (read aggregation) + unified timeline (CRM + financial)
+Route::get('crm/customer/{party}/summary', [CustomerProfileController::class, 'summary'])->name('crm.customer.summary');
+Route::get('crm/customer/{party}/timeline', [CustomerProfileController::class, 'timeline'])->name('crm.customer.timeline');

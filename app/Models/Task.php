@@ -82,6 +82,11 @@ class Task extends Model
                 ->where('taskable_id', $param['taskable_id']);
         }
 
+        if (! empty($param['party_id'])) {
+            $query->where('taskable_type', Party::class)
+                ->where('taskable_id', $param['party_id']);
+        }
+
         if (! empty($param['overdue'])) {
             $query->whereNotNull('due_date')
                 ->whereDate('due_date', '<', now()->toDateString())

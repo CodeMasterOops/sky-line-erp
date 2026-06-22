@@ -147,6 +147,9 @@ watch(edit_party_id, (id, prev) => {
 
 const openCreate = () => { createModalOpened.value = true; };
 const openEdit = (id) => { edit_party_id.value = id; };
+const openProfile = (record) => {
+    router.push({ name: 'admin.crm-customer-profile', params: { id: record.id } });
+};
 
 const handleDelete = (id) => {
     confirmAction({
@@ -171,6 +174,7 @@ const handleConvert = (record) => {
 };
 
 const rowActions = createRowActions({
+    onView: openProfile,
     onEdit: openEdit,
     onConvert: handleConvert,
     onDelete: handleDelete,

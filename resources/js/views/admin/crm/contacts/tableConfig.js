@@ -9,10 +9,17 @@ export const contactColumns = [
 ];
 
 /**
- * @param {{ onEdit: Function, onConvert: Function, onDelete: Function }} handlers
+ * @param {{ onView: Function, onEdit: Function, onConvert: Function, onDelete: Function }} handlers
  */
-export function createRowActions({ onEdit, onConvert, onDelete }) {
+export function createRowActions({ onView, onEdit, onConvert, onDelete }) {
     return [
+        {
+            key:       'view',
+            icon:      'ti-eye',
+            title:     'Customer 360',
+            condition: (record) => record.type === 'customer',
+            handler:   (record) => onView(record),
+        },
         {
             key:     'edit',
             icon:    'ti-edit',

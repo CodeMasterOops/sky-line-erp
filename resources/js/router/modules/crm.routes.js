@@ -23,4 +23,12 @@ export default [
         },
         component: () => import("@/views/admin/crm/tasks/Index.vue"),
     },
+    {
+        path: "crm/customer/:id",
+        name: "admin.crm-customer-profile",
+        meta: {
+            pageTitle: "Customer 360",
+        },
+        component: () => import("@/views/admin/crm/customer/Profile.vue"),
+    },
 ];

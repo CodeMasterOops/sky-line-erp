@@ -12,12 +12,14 @@ use App\Enums\CrmActivityTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Services\Crm\ActivityLogger;
 use App\Http\Resources\Admin\Crm\TaskResource;
+use App\Services\Crm\CustomerProfileAggregator;
 use App\Http\Requests\Api\Admin\Crm\TaskRequest;
 
 class TaskController extends Controller
 {
     public function __construct(
         private ActivityLogger $activityLogger,
+        private CustomerProfileAggregator $aggregator,
     ) {}
 
     #[Permissions('list_crm_task', group: 'crm_task', desc: 'List Tasks')]
@@ -62,6 +64,7 @@ class TaskController extends Controller
                 'Task created',
                 ['title' => $task->title],
             );
+            $this->aggregator->forget($task->taskable_id);
         }
 
         $task->load(['assignee', 'taskable']);
@@ -112,6 +115,7 @@ class TaskController extends Controller
                 'Task completed',
                 ['title' => $task->title],
             );
+            $this->aggregator->forget($task->taskable_id);
         }
 
         $task->load(['assignee', 'taskable']);

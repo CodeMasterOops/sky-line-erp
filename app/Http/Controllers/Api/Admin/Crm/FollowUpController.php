@@ -9,6 +9,7 @@ use App\Enums\FollowUpStatusEnum;
 use App\Enums\CrmActivityTypeEnum;
 use App\Http\Controllers\Controller;
 use App\Services\Crm\ActivityLogger;
+use App\Services\Crm\CustomerProfileAggregator;
 use App\Http\Resources\Admin\Crm\FollowUpResource;
 use App\Http\Requests\Api\Admin\Crm\FollowUpRequest;
 use App\Http\Requests\Api\Admin\Crm\CompleteFollowUpRequest;
@@ -17,6 +18,7 @@ class FollowUpController extends Controller
 {
     public function __construct(
         private ActivityLogger $activityLogger,
+        private CustomerProfileAggregator $aggregator,
     ) {}
 
     #[Permissions('list_crm_follow_up', group: 'crm_follow_up', desc: 'List Follow-ups')]
@@ -59,6 +61,7 @@ class FollowUpController extends Controller
             'Follow-up scheduled',
             ['channel' => $followUp->channel?->value, 'scheduled_at' => $followUp->scheduled_at?->toIso8601String()],
         );
+        $this->aggregator->forget($followUp->party_id);
 
         $followUp->load(['party', 'user']);
 
@@ -106,6 +109,7 @@ class FollowUpController extends Controller
             'Follow-up completed',
             ['outcome' => $followUp->outcome],
         );
+        $this->aggregator->forget($followUp->party_id);
 
         $followUp->load(['party', 'user']);
 
