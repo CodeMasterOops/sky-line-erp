@@ -79,8 +79,8 @@ class FileParserService
         foreach ($reader->getSheetIterator() as $sheet) {
             foreach ($sheet->getRowIterator() as $row) {
                 $cells = [];
-                foreach ($row->getCells() as $cell) {
-                    $cells[] = trim((string) $cell->getValue());
+                foreach ($row->toArray() as $value) {
+                    $cells[] = trim((string) $value);
                 }
                 yield $cells;
             }

@@ -161,6 +161,27 @@ it('flags a row for skipping when its value is aliased to skip', function () {
         ->and($result['errors'])->toBeEmpty();
 });
 
+it('ignores a skip-aliased value on an optional field without dropping the row', function () {
+    ImportValueAlias::create([
+        'company_id' => $this->company->id,
+        'entity_type' => 'product',
+        'field' => 'brand',
+        'source_value' => 'none',
+        'target_id' => null,
+    ]);
+
+    $validator = new ProductImportRowValidator;
+
+    $result = $validator->validate(
+        baseRow(['brand' => 'None']),
+        lookupsFor($this->company->id),
+    );
+
+    expect($result['skip'])->toBeFalse()
+        ->and($result['errors'])->toBeEmpty()
+        ->and($result['normalized']['brand_id'])->toBeNull();
+});
+
 it('matches a tax by rate regardless of decimal formatting', function () {
     Tax::create([
         'company_id' => $this->company->id,

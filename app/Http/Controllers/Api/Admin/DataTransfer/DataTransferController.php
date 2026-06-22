@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin\DataTransfer;
 
 use App\Models\Unit;
 use App\Models\Brand;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Models\DataTransferJob;
@@ -208,6 +209,19 @@ class DataTransferController extends Controller
     }
 
     #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
+    public function lookupOptions(string $uuid): JsonResponse
+    {
+        $job = $this->findCompanyJob($uuid);
+        $this->authorizeImportEntity($job->entity_type);
+
+        $companyId = auth('admin')->user()->company_id;
+
+        return response()->json([
+            'data' => ProductImportLookupCache::forCompany($companyId)->resolvableLabels(),
+        ]);
+    }
+
+    #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function resolutions(string $uuid, Request $request): JsonResponse
     {
         $job = $this->findCompanyJob($uuid);
@@ -285,10 +299,35 @@ class DataTransferController extends Controller
     {
         return match ($field) {
             'category' => ProductCategory::query()->create(['company_id' => $companyId, 'name' => $name])->id,
-            'brand' => Brand::query()->create(['company_id' => $companyId, 'name' => $name])->id,
-            'unit' => Unit::query()->create(['company_id' => $companyId, 'name' => $name])->id,
+            'brand' => Brand::query()->create([
+                'company_id' => $companyId,
+                'name' => $name,
+                'code' => $this->uniqueLookupCode(Brand::class, $name, $companyId),
+            ])->id,
+            'unit' => Unit::query()->create([
+                'company_id' => $companyId,
+                'name' => $name,
+                'code' => $this->uniqueLookupCode(Unit::class, $name, $companyId),
+            ])->id,
             default => throw new \InvalidArgumentException("Cannot create a record for field '{$field}'."),
         };
+    }
+
+    /**
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     */
+    private function uniqueLookupCode(string $model, string $name, int $companyId): string
+    {
+        $base = strtoupper(Str::slug($name, '_')) ?: 'CODE';
+        $code = $base;
+        $suffix = 1;
+
+        while ($model::query()->where('company_id', $companyId)->where('code', $code)->exists()) {
+            $code = $base.'_'.$suffix;
+            $suffix++;
+        }
+
+        return $code;
     }
 
     #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]

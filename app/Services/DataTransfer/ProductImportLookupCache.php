@@ -264,6 +264,24 @@ class ProductImportLookupCache
         return $this->productTypeAliases[strtolower(trim($value))] ?? null;
     }
 
+    /**
+     * All known labels for the resolvable lookup fields, sorted by label.
+     *
+     * @return array<string, list<array{id: int, label: string}>>
+     */
+    public function resolvableLabels(): array
+    {
+        $result = [];
+
+        foreach (['category', 'unit', 'brand', 'tax'] as $field) {
+            $labels = $this->labelsByField[$field] ?? [];
+            usort($labels, fn ($a, $b) => strcasecmp($a['label'], $b['label']));
+            $result[$field] = array_values($labels);
+        }
+
+        return $result;
+    }
+
     public function resolveCategory(?string $value): ?int
     {
         $match = $this->match('category', $value);
