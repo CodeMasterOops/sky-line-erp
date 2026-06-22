@@ -14,40 +14,61 @@
                             Upload CSV or XLSX. <a href="#" @click.prevent="downloadTemplate('csv')">CSV template</a>
                             · <a href="#" @click.prevent="downloadTemplate('xlsx')">XLSX template</a>
                         </p>
+                        <div v-if="job && !fileChanged" class="alert alert-info py-2 small d-flex justify-content-between align-items-center">
+                            <span>Using uploaded file: <strong>{{ uploadedFileName }}</strong></span>
+                            <span class="text-muted">Choose a file below to replace it.</span>
+                        </div>
                         <input type="file" class="form-control" accept=".csv,.xlsx,.txt" @change="onFileSelect" />
                     </div>
 
                     <div v-else-if="step === 1 && job">
-                        <p class="text-muted small">Map file columns to {{ entityLabel }} fields.</p>
-                        <div class="mb-3">
-                            <label class="form-label">Duplicate handling</label>
-                            <select v-model="duplicateMode" class="form-select form-select-sm">
-                                <option value="update">Update existing (match by code)</option>
-                                <option value="skip">Skip existing</option>
-                                <option value="create_only">Create only (fail if exists)</option>
-                            </select>
+                        <div v-if="parsing" class="py-4">
+                            <div class="placeholder-glow">
+                                <span class="placeholder col-6 mb-2"></span>
+                                <span class="placeholder col-12 mb-2"></span>
+                                <span class="placeholder col-12 mb-2"></span>
+                                <span class="placeholder col-9"></span>
+                            </div>
+                            <p class="mt-2 text-muted small">Reading your file and detecting columns…</p>
                         </div>
-                        <div class="table-responsive" style="max-height: 320px">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>File column</th>
-                                        <th>Maps to</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="header in detectedHeaders" :key="header">
-                                        <td>{{ header }}</td>
-                                        <td>
-                                            <select v-model="mapping[header]" class="form-select form-select-sm">
-                                                <option value="">— Skip —</option>
-                                                <option v-for="f in fields" :key="f" :value="f">{{ f }}</option>
-                                            </select>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <template v-else>
+                            <p class="text-muted small">
+                                Map file columns to {{ entityLabel }} fields.
+                                Matching columns are auto-selected — review and adjust as needed.
+                            </p>
+                            <div class="mb-3">
+                                <label class="form-label">Duplicate handling</label>
+                                <select v-model="duplicateMode" class="form-select form-select-sm">
+                                    <option value="update">Update existing (match by code)</option>
+                                    <option value="skip">Skip existing</option>
+                                    <option value="create_only">Create only (fail if exists)</option>
+                                </select>
+                            </div>
+                            <div class="table-responsive" style="max-height: 320px">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>File column</th>
+                                            <th>Maps to</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="header in detectedHeaders" :key="header">
+                                            <td>
+                                                {{ header }}
+                                                <span v-if="mapping[header]" class="badge bg-success-subtle text-success ms-1">matched</span>
+                                            </td>
+                                            <td>
+                                                <select v-model="mapping[header]" class="form-select form-select-sm">
+                                                    <option value="">— Skip —</option>
+                                                    <option v-for="f in fields" :key="f" :value="f">{{ f }}</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
                     </div>
 
                     <div v-else-if="step === 2 && job">
@@ -131,41 +152,88 @@
                             </div>
                             <p class="mt-2 text-muted small">Re-validating…</p>
                         </div>
+                        <div v-else-if="optionsLoading" class="py-4">
+                            <div class="placeholder-glow">
+                                <span class="placeholder col-5 mb-2"></span>
+                                <span class="placeholder col-12 mb-2"></span>
+                                <span class="placeholder col-12"></span>
+                            </div>
+                            <p class="mt-2 text-muted small">Loading available values…</p>
+                        </div>
                         <template v-else>
                             <p class="text-muted small">
-                                Tell us what each unrecognized value should map to. Your choices are remembered for
-                                future imports.
+                                For each value we couldn't recognise, search and pick the correct one,
+                                create it, or skip those rows. Your choices are remembered for future imports.
                             </p>
-                            <div class="table-responsive" style="max-height: 320px">
-                                <table class="table table-sm align-middle">
-                                    <thead>
-                                        <tr>
-                                            <th>Field</th>
-                                            <th>Value in file</th>
-                                            <th>Resolve to</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr v-for="item in unresolvedItems" :key="keyOf(item)">
-                                            <td><span class="badge bg-secondary">{{ item.field }}</span></td>
-                                            <td>“{{ item.value }}” <span class="text-muted">×{{ item.count }}</span></td>
-                                            <td>
-                                                <select
-                                                    v-model="resolutionChoice[keyOf(item)]"
-                                                    class="form-select form-select-sm"
-                                                >
-                                                    <option
-                                                        v-for="(opt, i) in optionsFor(item)"
-                                                        :key="i"
-                                                        :value="opt"
-                                                    >
-                                                        {{ opt.label }}
-                                                    </option>
-                                                </select>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <div style="max-height: 360px; overflow-y: auto">
+                                <div
+                                    v-for="item in unresolvedItems"
+                                    :key="keyOf(item)"
+                                    class="border rounded p-3 mb-2"
+                                >
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div>
+                                            <span class="badge bg-secondary text-uppercase me-2">{{ item.field }}</span>
+                                            <strong>“{{ item.value }}”</strong>
+                                            <span class="text-muted small ms-1">in {{ item.count }} row(s)</span>
+                                        </div>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button
+                                                type="button"
+                                                class="btn"
+                                                :class="resolutionState[keyOf(item)]?.action === 'map' ? 'btn-primary' : 'btn-outline-primary'"
+                                                @click="setAction(item, 'map')"
+                                            >
+                                                Use existing
+                                            </button>
+                                            <button
+                                                v-if="canCreate(item.field)"
+                                                type="button"
+                                                class="btn"
+                                                :class="resolutionState[keyOf(item)]?.action === 'create' ? 'btn-success' : 'btn-outline-success'"
+                                                @click="setAction(item, 'create')"
+                                            >
+                                                Create new
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="btn"
+                                                :class="resolutionState[keyOf(item)]?.action === 'skip' ? 'btn-secondary' : 'btn-outline-secondary'"
+                                                @click="setAction(item, 'skip')"
+                                            >
+                                                Skip rows
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="resolutionState[keyOf(item)]?.action === 'map' && item.field === 'product_type'">
+                                        <select
+                                            v-model="resolutionState[keyOf(item)].targetValue"
+                                            class="form-select form-select-sm"
+                                        >
+                                            <option value="product">Product</option>
+                                            <option value="service">Service</option>
+                                        </select>
+                                    </div>
+                                    <div v-else-if="resolutionState[keyOf(item)]?.action === 'map'">
+                                        <VMultiselect
+                                            v-model="resolutionState[keyOf(item)].targetId"
+                                            :options="optionLists[item.field] || []"
+                                            value-prop="id"
+                                            name-prop="label"
+                                            :placeholder="`Search ${item.field}…`"
+                                        />
+                                    </div>
+                                    <p
+                                        v-else-if="resolutionState[keyOf(item)]?.action === 'create'"
+                                        class="text-success small mb-0"
+                                    >
+                                        A new {{ item.field }} “{{ item.value }}” will be created.
+                                    </p>
+                                    <p v-else class="text-muted small mb-0">
+                                        Rows containing “{{ item.value }}” will be skipped.
+                                    </p>
+                                </div>
                             </div>
                         </template>
                     </div>
@@ -183,10 +251,17 @@
                                 {{ job.stats?.processed ?? 0 }} / {{ job.stats?.valid ?? job.stats?.total_rows ?? 0 }} rows
                             </p>
                         </div>
-                        <div v-else class="alert" :class="job.status === 'completed' ? 'alert-success' : 'alert-warning'">
+                        <div
+                            v-else
+                            class="alert"
+                            :class="job.status === 'completed' ? 'alert-success' : (job.status === 'failed' ? 'alert-danger' : 'alert-warning')"
+                        >
                             Import {{ job.status }}.
-                            <span v-if="job.stats"> Created: {{ job.stats.created }}, Updated: {{ job.stats.updated }},
+                            <span v-if="job.status !== 'failed' && job.stats"> Created: {{ job.stats.created }}, Updated: {{ job.stats.updated }},
                                 Failed: {{ job.stats.failed }}, Skipped: {{ job.stats.skipped }}.</span>
+                            <div v-if="job.status === 'failed' && job.error_summary" class="small mt-1">
+                                {{ job.error_summary }}
+                            </div>
                         </div>
                         <button
                             v-if="job.has_errors_download"
@@ -202,7 +277,15 @@
                     <button type="button" class="btn btn-secondary" @click="close">Close</button>
                     <button v-if="step > 0 && step < 4 && step !== 3" type="button" class="btn btn-outline-primary" @click="step--">Back</button>
                     <button
-                        v-if="step === 0"
+                        v-if="step === 0 && job && !fileChanged"
+                        type="button"
+                        class="btn btn-primary"
+                        @click="step = 1"
+                    >
+                        Continue
+                    </button>
+                    <button
+                        v-else-if="step === 0"
                         type="button"
                         class="btn btn-primary"
                         :disabled="!selectedFile || uploading"
@@ -214,10 +297,11 @@
                         v-if="step === 1"
                         type="button"
                         class="btn btn-primary"
-                        :disabled="saving"
+                        :disabled="saving || parsing || !detectedHeaders.length"
                         @click="saveMappingAndValidate"
                     >
-                        Validate
+                        <span v-if="saving" class="spinner-border spinner-border-sm me-1" role="status" />
+                        {{ saving ? 'Validating…' : 'Validate' }}
                     </button>
                     <button
                         v-if="step === 2 && job?.status === 'validated' && unresolvedCount"
@@ -247,7 +331,7 @@
                         v-if="step === 3 && !resolving"
                         type="button"
                         class="btn btn-primary"
-                        :disabled="!unresolvedItems.length"
+                        :disabled="!unresolvedItems.length || !allResolved"
                         @click="applyResolutions"
                     >
                         Apply &amp; re-validate
@@ -262,6 +346,7 @@ import { computed, ref } from 'vue';
 import { useDataTransferStore } from '@/stores/admin/data-transfer.js';
 import { useDataTransferJob } from '@/composables/useDataTransferJob.js';
 import { useToast } from 'vue-toastification';
+import VMultiselect from '@/components/base/VMultiselect.vue';
 
 const props = defineProps({
     entityType: {
@@ -304,13 +389,20 @@ const step = ref(0);
 const maxReachableStep = ref(0);
 const stepLabels = ['Upload', 'Mapping', 'Preview', 'Resolve', 'Import'];
 const selectedFile = ref(null);
+const uploadedFileName = ref('');
+const fileChanged = ref(false);
 const uploading = ref(false);
+const parsing = ref(false);
 const saving = ref(false);
 const resolving = ref(false);
 const job = ref(null);
 const mapping = ref({});
 const duplicateMode = ref('update');
-const resolutionChoice = ref({});
+const resolutionState = ref({});
+const optionLists = ref({ category: [], unit: [], brand: [], tax: [] });
+const optionsLoading = ref(false);
+
+const CREATABLE_FIELDS = ['category', 'brand', 'unit'];
 
 const detectedHeaders = computed(() => job.value?.stats?.detected_headers ?? Object.keys(mapping.value));
 
@@ -329,18 +421,27 @@ const progressPercent = computed(() => {
 
 const keyOf = (item) => `${item.field}|${item.value}`;
 
-const optionsFor = (item) => {
-    const opts = item.suggestions.map((s) =>
-        item.field === 'product_type'
-            ? { label: `Use "${s.label}"`, action: 'map', target_value: s.label }
-            : { label: `Map to "${s.label}"`, action: 'map', target_id: s.id },
-    );
-    if (['category', 'brand', 'unit'].includes(item.field)) {
-        opts.push({ label: `Create new "${item.value}"`, action: 'create' });
+const canCreate = (field) => CREATABLE_FIELDS.includes(field);
+
+const setAction = (item, action) => {
+    const state = resolutionState.value[keyOf(item)];
+    if (state) {
+        state.action = action;
     }
-    opts.push({ label: 'Skip these rows', action: 'skip' });
-    return opts;
 };
+
+const allResolved = computed(() =>
+    unresolvedItems.value.every((item) => {
+        const state = resolutionState.value[keyOf(item)];
+        if (!state) {
+            return false;
+        }
+        if (state.action !== 'map') {
+            return true;
+        }
+        return item.field === 'product_type' ? !!state.targetValue : !!state.targetId;
+    }),
+);
 
 const show = () => {
     step.value = 0;
@@ -348,8 +449,12 @@ const show = () => {
     job.value = null;
     mapping.value = {};
     selectedFile.value = null;
-    resolutionChoice.value = {};
+    uploadedFileName.value = '';
+    fileChanged.value = false;
+    resolutionState.value = {};
+    optionsLoading.value = false;
     resolving.value = false;
+    parsing.value = false;
     open.value = true;
 };
 
@@ -361,9 +466,53 @@ defineExpose({ show });
 
 const onFileSelect = (e) => {
     selectedFile.value = e.target.files?.[0] ?? null;
+    fileChanged.value = !!selectedFile.value;
 };
 
 const downloadTemplate = (format) => props.templateDownloadFn(format);
+
+const normalizeKey = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+const applySuggestedMapping = (j) => {
+    const headers = j?.stats?.detected_headers ?? [];
+    const suggested = j?.mapping ?? {};
+    const fieldByNorm = {};
+    props.fields.forEach((f) => {
+        fieldByNorm[normalizeKey(f)] = f;
+    });
+
+    const next = {};
+    headers.forEach((header) => {
+        if (suggested[header]) {
+            next[header] = suggested[header];
+            return;
+        }
+        next[header] = fieldByNorm[normalizeKey(header)] ?? '';
+    });
+    mapping.value = next;
+};
+
+const pollUntilParsed = () =>
+    new Promise((resolve) => {
+        parsing.value = true;
+        startPolling();
+        const poll = setInterval(async () => {
+            const j = await fetchJob();
+            if (!j) {
+                return;
+            }
+            job.value = j;
+            if (['parsed', 'mapped', 'validated', 'failed'].includes(j.status)) {
+                clearInterval(poll);
+                stopPolling();
+                parsing.value = false;
+                if (j.status !== 'failed') {
+                    applySuggestedMapping(j);
+                }
+                resolve(j);
+            }
+        }, 1500);
+    });
 
 const upload = async () => {
     if (!selectedFile.value) return;
@@ -371,11 +520,13 @@ const upload = async () => {
     try {
         const data = await store.uploadImport(selectedFile.value, props.entityType, props.uploadOptions);
         job.value = data;
+        uploadedFileName.value = selectedFile.value.name;
+        fileChanged.value = false;
         mapping.value = { ...(data.mapping || {}) };
         duplicateMode.value = data.options?.duplicate_mode ?? 'update';
         step.value = 1;
         maxReachableStep.value = 1;
-        startPolling();
+        await pollUntilParsed();
     } finally {
         uploading.value = false;
     }
@@ -411,24 +562,51 @@ const saveMappingAndValidate = async () => {
     }
 };
 
-const openResolveStep = () => {
-    resolutionChoice.value = {};
+const initResolutionState = () => {
+    const state = {};
     unresolvedItems.value.forEach((item) => {
-        resolutionChoice.value[keyOf(item)] = optionsFor(item)[0];
+        const best = item.suggestions?.[0] ?? null;
+        if (item.field === 'product_type') {
+            state[keyOf(item)] = {
+                action: 'map',
+                targetId: null,
+                targetValue: best?.label ?? 'product',
+            };
+            return;
+        }
+        state[keyOf(item)] = {
+            action: 'map',
+            targetId: best?.id ?? null,
+            targetValue: null,
+        };
     });
+    resolutionState.value = state;
+};
+
+const openResolveStep = async () => {
     step.value = 3;
     maxReachableStep.value = Math.max(maxReachableStep.value, 3);
+    initResolutionState();
+    optionsLoading.value = true;
+    try {
+        const lists = await store.getLookupOptions(job.value.uuid);
+        if (lists) {
+            optionLists.value = { category: [], unit: [], brand: [], tax: [], ...lists };
+        }
+    } finally {
+        optionsLoading.value = false;
+    }
 };
 
 const applyResolutions = async () => {
     const resolutions = unresolvedItems.value.map((item) => {
-        const choice = resolutionChoice.value[keyOf(item)] ?? {};
+        const state = resolutionState.value[keyOf(item)] ?? {};
         return {
             field: item.field,
             source_value: item.value,
-            action: choice.action,
-            target_id: choice.target_id ?? null,
-            target_value: choice.target_value ?? null,
+            action: state.action,
+            target_id: state.action === 'map' ? (state.targetId ?? null) : null,
+            target_value: state.action === 'map' ? (state.targetValue ?? null) : null,
         };
     });
 
@@ -453,8 +631,15 @@ const startImport = async () => {
         if (j && !isActive(j.status)) {
             clearInterval(pollImport);
             stopPolling();
-            toast.success('Import finished.');
-            emit('imported');
+            if (j.status === 'failed') {
+                toast.error(j.error_summary || 'Import failed.');
+            } else if (j.status === 'completed_with_errors') {
+                toast.warning('Import finished with some errors.');
+                emit('imported');
+            } else {
+                toast.success('Import finished.');
+                emit('imported');
+            }
         }
     }, 2000);
 };

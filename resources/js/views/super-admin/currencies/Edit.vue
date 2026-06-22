@@ -59,8 +59,8 @@
                         <label class="form-check-label" for="edit_currency_is_active">Active</label>
                     </div>
                 </div>
-                <div class="col-12 text-end">
-                    <button class="btn btn-danger me-1" type="button" @click="closeEditModal">Close</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button class="btn btn-cancel" type="button" @click="closeEditModal">Cancel</button>
                     <VButton :loading="isSubmitting"/>
                 </div>
             </form>

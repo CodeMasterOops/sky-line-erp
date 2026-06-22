@@ -74,8 +74,8 @@
                     />
                 </div>
 
-                <div class="col-12 text-end">
-                    <button class="btn btn-danger me-2" type="button" @click="closeEditModal">Close</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button class="btn btn-cancel" type="button" @click="closeEditModal">Cancel</button>
                     <VButton :loading="isSubmitting" @click="save" />
                 </div>
             </div>

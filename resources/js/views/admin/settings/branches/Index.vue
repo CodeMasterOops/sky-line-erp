@@ -105,8 +105,8 @@
                         <label class="form-check-label" for="brActive">Active</label>
                     </div>
                 </div>
-                <div class="col-12 text-end">
-                    <button class="btn btn-danger me-1" type="button" @click="closeFormModal">Cancel</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button class="btn btn-cancel" type="button" @click="closeFormModal">Cancel</button>
                     <button class="btn btn-primary" type="submit" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
                         Save Branch

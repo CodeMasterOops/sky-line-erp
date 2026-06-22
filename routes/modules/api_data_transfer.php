@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\Admin\DataTransfer\DataTransferController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\Admin\DataTransfer\DataTransferController;
 
 Route::prefix('data-transfers')->as('data-transfers.')->controller(DataTransferController::class)->group(function () {
     Route::get('/', 'index')->name('index');
@@ -17,6 +17,7 @@ Route::prefix('data-transfers')->as('data-transfers.')->controller(DataTransferC
     Route::put('{uuid}/mapping', 'updateMapping')->name('mapping');
     Route::post('{uuid}/validate', 'validateJob')->name('validate');
     Route::get('{uuid}/unresolved', 'unresolved')->name('unresolved');
+    Route::get('{uuid}/lookup-options', 'lookupOptions')->name('lookup-options');
     Route::post('{uuid}/resolutions', 'resolutions')->name('resolutions');
     Route::post('{uuid}/commit', 'commit')->name('commit');
     Route::post('{uuid}/cancel', 'cancel')->name('cancel');

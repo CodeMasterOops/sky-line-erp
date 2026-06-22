@@ -97,6 +97,12 @@ export const useDataTransferStore = defineStore('dataTransfer', {
                 .catch(showErrors);
         },
 
+        getLookupOptions(uuid) {
+            return apiAdmin(`${apiUrl}/${uuid}/lookup-options`)
+                .then((res) => res.data.data)
+                .catch(showErrors);
+        },
+
         submitResolutions(uuid, resolutions) {
             return apiAdmin(`${apiUrl}/${uuid}/resolutions`, 'post', { resolutions })
                 .then((res) => res.data)

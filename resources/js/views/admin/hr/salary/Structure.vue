@@ -88,8 +88,8 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="col-12 text-end">
-                    <button type="button" @click="showCreateModal = false" class="btn btn-danger me-2">Close</button>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" @click="showCreateModal = false" class="btn btn-cancel">Cancel</button>
                     <VButton :loading="cSubmitting" />
                 </div>
             </form>

@@ -245,7 +245,9 @@ class ProductImportRowValidator implements ImportRowValidatorInterface
         }
 
         if ($match->isSkip()) {
-            $skip = true;
+            if ($required) {
+                $skip = true;
+            }
 
             return null;
         }

@@ -477,8 +477,8 @@
                             />
                         </div>
 
-                        <div class="col-12 text-end">
-                            <button @click="closeEditModal" class="btn btn-cancel add-cancel me-2" type="button">
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button @click="closeEditModal" class="btn btn-cancel" type="button">
                                 Cancel
                             </button>
                             <VButton v-if="isDraft" :loading="isSubmitting" :disabled="isSubmitting"/>
@@ -519,8 +519,8 @@
                     </tbody>
                 </table>
             </div>
-            <div class="text-end mt-3">
-                <button type="button" class="btn btn-cancel me-2" @click="grnImportOpen = false">Cancel</button>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-cancel" @click="grnImportOpen = false">Cancel</button>
                 <button type="button" class="btn btn-primary" :disabled="!selectedGrnItemIds.length" @click="importSelectedGrnLines">Import selected</button>
             </div>
         </template>

@@ -17,9 +17,9 @@
                     :ward-districts="wardDistricts"
                     :ward-palikas="wardPalikas"
                 />
-                <div class="col-12 text-end">
-                    <button class="btn btn-danger me-1" type="button" @click="closeCreateModal">
-                        Close
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button class="btn btn-cancel" type="button" @click="closeCreateModal">
+                        Cancel
                     </button>
                     <VButton :loading="isSubmitting"/>
                 </div>

@@ -110,16 +110,16 @@
                     />
                 </div>
 
-                <div class="col-12 text-end">
-                    <button @click="closeCreateModal" class="btn btn-danger me-1" type="button">
-                        Close
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button @click="closeCreateModal" class="btn btn-cancel" type="button">
+                        Cancel
                     </button>
                     <button
                         type="button"
-                        class="btn btn-outline-primary me-1"
+                        class="btn btn-outline-primary"
                         :disabled="isSubmitting"
                         @click="storeVoucherWithStatus('draft')">
-                        Create
+                        Save as Draft
                     </button>
                     <button
                         type="button"

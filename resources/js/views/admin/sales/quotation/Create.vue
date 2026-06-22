@@ -235,16 +235,16 @@
                             </div>
                         </div>
 
-                        <div class="col-12 text-end border-top pt-3 mt-1">
-                            <button @click="closeCreateModal" class="btn btn-cancel me-2" type="button">
+                        <div class="col-12 d-flex justify-content-end gap-2 border-top pt-3 mt-1">
+                            <button @click="closeCreateModal" class="btn btn-cancel" type="button">
                                 Cancel
                             </button>
                             <button
                                 type="button"
-                                class="btn btn-outline-primary me-2"
+                                class="btn btn-outline-primary"
                                 :disabled="isSubmitting"
                                 @click="storeQuotationWithStatus('draft')">
-                                Create
+                                Save as Draft
                             </button>
                             <button
                                 type="button"

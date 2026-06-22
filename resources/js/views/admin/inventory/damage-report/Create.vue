@@ -143,14 +143,14 @@
                             />
                         </div>
 
-                        <div class="col-12 text-end">
-                            <button type="button" class="btn btn-danger me-2" @click="closeModal">Close</button>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-cancel" @click="closeModal">Cancel</button>
                             <button
                                 type="button"
-                                class="btn btn-outline-primary me-2"
+                                class="btn btn-outline-primary"
                                 :disabled="isSubmitting"
                                 @click="saveReport('draft')">
-                                Save Draft
+                                Save as Draft
                             </button>
                             <button
                                 type="button"

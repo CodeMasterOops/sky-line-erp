@@ -119,6 +119,66 @@ it('resolves unmatched values and imports the previously invalid rows', function
         ->and($service->product_type->value)->toBe('service');
 });
 
+it('returns the full list of existing values for resolvable lookup fields', function () {
+    $file = UploadedFile::fake()->createWithContent('products.csv', "name,code\nA,A-1\n");
+
+    $uuid = $this->postJson('/api/admin/data-transfers/imports', [
+        'file' => $file,
+        'entity_type' => 'product',
+    ])->assertCreated()->json('data.uuid');
+
+    $response = $this->getJson("/api/admin/data-transfers/{$uuid}/lookup-options")->assertSuccessful();
+
+    expect($response->json('data'))->toHaveKeys(['category', 'unit', 'brand', 'tax']);
+
+    $categoryLabels = collect($response->json('data.category'))->pluck('label');
+    $unitLabels = collect($response->json('data.unit'))->pluck('label');
+
+    expect($categoryLabels)->toContain('Electronics')
+        ->and($unitLabels)->toContain('Piece')
+        ->and($response->json('data.category.0'))->toHaveKeys(['id', 'label']);
+});
+
+it('creates a new unit with a generated code when resolved with the create action', function () {
+    $csv = "name,code,product_type,category,unit,sales_price,purchase_price\n";
+    $csv .= "Roll Item,R-1,product,Electronics,Roll,12,8\n";
+
+    $file = UploadedFile::fake()->createWithContent('products.csv', $csv);
+
+    $uuid = $this->postJson('/api/admin/data-transfers/imports', [
+        'file' => $file,
+        'entity_type' => 'product',
+    ])->assertCreated()->json('data.uuid');
+
+    $this->putJson("/api/admin/data-transfers/{$uuid}/mapping", [
+        'mapping' => [
+            'name' => 'name',
+            'code' => 'code',
+            'product_type' => 'product_type',
+            'category' => 'category',
+            'unit' => 'unit',
+            'sales_price' => 'sales_price',
+            'purchase_price' => 'purchase_price',
+        ],
+        'duplicate_mode' => 'update',
+    ])->assertSuccessful();
+
+    $this->postJson("/api/admin/data-transfers/{$uuid}/validate")->assertSuccessful();
+
+    $this->postJson("/api/admin/data-transfers/{$uuid}/resolutions", [
+        'resolutions' => [
+            ['field' => 'unit', 'source_value' => 'Roll', 'action' => 'create'],
+        ],
+    ])->assertSuccessful();
+
+    $unit = Unit::where('company_id', $this->company->id)->where('name', 'Roll')->first();
+    expect($unit)->not->toBeNull()
+        ->and($unit->code)->not->toBeEmpty();
+
+    $revalidated = $this->getJson("/api/admin/data-transfers/{$uuid}")->assertSuccessful();
+    expect($revalidated->json('data.stats.valid'))->toBe(1);
+});
+
 it('marks duplicate codes within the same file as invalid', function () {
     $csv = "name,code,product_type,category,unit,sales_price,purchase_price\n";
     $csv .= "First,DUP-1,product,Electronics,Piece,10,5\n";

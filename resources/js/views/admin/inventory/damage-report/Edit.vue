@@ -152,8 +152,8 @@
                             />
                         </div>
 
-                        <div class="col-12 text-end">
-                            <button type="button" class="btn btn-danger me-2" @click="closeModal">Close</button>
+                        <div class="col-12 d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-cancel" @click="closeModal">Cancel</button>
                             <VButton v-if="isDraft" :loading="isSubmitting" />
                             <button v-else type="button" class="btn btn-secondary" disabled>Approved</button>
                         </div>

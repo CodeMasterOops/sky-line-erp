@@ -137,8 +137,8 @@
                         <textarea class="form-control" v-model="form.address" rows="2"></textarea>
                     </div>
 
-                    <div class="col-12 text-end">
-                        <router-link :to="{ name: 'admin.hr-employee-list' }" class="btn btn-danger me-2">Cancel</router-link>
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <router-link :to="{ name: 'admin.hr-employee-list' }" class="btn btn-cancel">Cancel</router-link>
                         <VButton :loading="isSubmitting" />
                     </div>
                 </form>
