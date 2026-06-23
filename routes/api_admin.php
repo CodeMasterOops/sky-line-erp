@@ -96,6 +96,9 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         // hr module
         require __DIR__.'/modules/api_hr.php';
 
+        // crm module
+        require __DIR__.'/modules/api_crm.php';
+
         // parties
         Route::get('party/next-code', [PartyController::class, 'nextCode'])->name('party.next-code');
         Route::apiResource('party', PartyController::class);

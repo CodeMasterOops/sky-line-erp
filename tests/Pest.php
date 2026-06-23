@@ -59,6 +59,36 @@ function something()
     // ..
 }
 
+if (! function_exists('warmAllTablesCache')) {
+    function warmAllTablesCache(): void
+    {
+        $tables = [];
+        foreach (\Illuminate\Support\Facades\Schema::getTableListing() as $table) {
+            $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+            $tables[$table] = \Illuminate\Support\Facades\Schema::getColumnListing($plainName);
+        }
+        \Illuminate\Support\Facades\Cache::forget(allTablesCacheKey());
+        \Illuminate\Support\Facades\Cache::forever(allTablesCacheKey(), $tables);
+    }
+}
+
+function makeCompany(string $name, string $code): \App\Models\Company
+{
+    $fiscalYear = \App\Models\FiscalYear::create([
+        'year_name' => '2026',
+        'year_code' => '26',
+        'start_date' => '2026-01-01',
+        'end_date' => '2026-12-31',
+    ]);
+
+    return \App\Models\Company::create([
+        'fiscal_year_id' => $fiscalYear->id,
+        'company_name' => $name,
+        'code' => $code,
+        'inventory_costing_method' => \App\Enums\InventoryCostingMethodEnum::FIFO,
+    ]);
+}
+
 function actingAsSuperAdmin(): \App\Models\SuperAdmin
 {
     $superAdmin = \App\Models\SuperAdmin::create([

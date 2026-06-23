@@ -23,7 +23,7 @@ class PartyController extends Controller
     public function index(Request $request)
     {
         $parties = Party::filter($request->all())
-            ->with('discount')
+            ->with(['discount', 'leadProfile'])
             ->latest()
             ->paginate($request->limit ?? 25);
 

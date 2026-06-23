@@ -373,28 +373,45 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
                 }
                 ul {
                     li {
+                        position: relative;
+                        &::before {
+                            content: "";
+                            position: absolute;
+                            top: 0;
+                            bottom: 0;
+                            left: 18px;
+                            width: 1px;
+                            background: variables.$gray-600;
+                            opacity: 0.4;
+                        }
+                        &:last-child::before {
+                            bottom: auto;
+                            height: 50%;
+                        }
                         a {
                         padding-bottom: 4px;
                         font-size: variables.$font-size-13;
                         font-weight: variables.$font-weight-normal;
                         color: variables.$gray-600;
                         padding: 8px 10px 8px 30px;
+                        position: relative;
                         &::after{
                             content: "";
                             background: variables.$gray-600;
-                            width: 8px;
-                            height: 8px;
-                            border: 2px solid variables.$white;
-                            @include mixins.rounded(50px);
-                            @include mixins.position(absolute,50%,null,null,0);
+                            opacity: 0.4;
+                            border: 0;
+                            width: 10px;
+                            height: 1px;
+                            @include mixins.rounded(0);
+                            @include mixins.position(absolute,50%,null,null,18px);
                             @include mixins.transform(translateY(-50%));
-                            left: 15px;
                             }
                             &:hover{
                                 color:variables.$primary;
                                 &:after{
                                 background: variables.$primary;
-                                border: 2px solid variables.$primary-200;
+                                border: 0;
+                                opacity: 1;
                                 }
                             }
                             &.router-link-exact-active,
@@ -402,12 +419,13 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
                                 color: variables.$primary;
                                 &:after {
                                     background: variables.$primary;
-                                    border: 2px solid variables.$primary-200;
+                                    border: 0;
+                                    opacity: 1;
                                 }
                             }
                         }
                     }
-                } 
+                }
             } 
         }               
         .menu-arrow {

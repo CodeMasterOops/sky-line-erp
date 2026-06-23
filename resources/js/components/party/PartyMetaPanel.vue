@@ -79,7 +79,7 @@ const detailRoute = computed(() => {
         return null;
     }
     return {
-        name: 'admin.party-list',
+        name: 'admin.crm-contacts',
         query: { open_party: String(id) },
     };
 });

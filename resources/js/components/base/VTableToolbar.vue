@@ -1,6 +1,6 @@
 <template>
-    <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-        <div class="search-set">
+    <div class="card-header d-flex align-items-center justify-content-between gap-3 flex-wrap row-gap-3">
+        <div class="search-set flex-shrink-0">
             <div class="search-input">
                 <a href="javascript:void(0);" class="btn-searchset">
                     <i class="ti ti-search fs-14 feather-search"></i>
@@ -15,12 +15,12 @@
             </div>
         </div>
 
-        <div v-if="hasFilters || isFiltered" class="d-flex align-items-center gap-2 flex-wrap">
+        <div v-if="hasFilters || isFiltered" class="d-flex align-items-center gap-2 flex-nowrap overflow-auto">
             <slot name="filters" />
 
             <button
                 v-if="isFiltered"
-                class="btn btn-sm btn-outline-secondary"
+                class="btn btn-sm btn-outline-secondary flex-shrink-0"
                 @click="$emit('reset')"
             >
                 <i class="ti ti-x me-1"></i> Clear

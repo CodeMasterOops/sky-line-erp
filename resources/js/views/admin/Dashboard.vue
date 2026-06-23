@@ -112,17 +112,16 @@
       <!-- Financial overview -->
       <section class="dashboard-section">
         <div class="row g-2">
-          <div class="col-xxl-4 col-lg-6 col-12 d-flex">
-            <div class="card stat-card stat-card--featured flex-fill">
+          <div class="col-xxl col-lg-6 col-12 d-flex">
+            <div class="card stat-card flex-fill">
               <div class="card-body d-flex align-items-center gap-2">
-                <span class="stat-card__icon">
+                <span class="stat-card__icon bg-soft-success text-success">
                   <i class="ti ti-report-money"></i>
                 </span>
-                <div class="min-w-0 flex-fill">
+                <div class="min-w-0">
                   <p class="stat-card__label mb-0">Estimated Profit</p>
                   <h4 class="stat-card__value mb-0">{{ formatMoney(profit) }}</h4>
                 </div>
-                <router-link :to="{ name: 'admin.profit-and-loss' }" class="stat-card__link flex-shrink-0">P&amp;L</router-link>
               </div>
             </div>
           </div>
@@ -130,7 +129,7 @@
           <div
             v-for="card in summaryCards"
             :key="card.label"
-            class="col-xxl-2 col-lg-6 col-12 d-flex"
+            class="col-xxl col-lg-6 col-12 d-flex"
           >
             <div class="card stat-card flex-fill">
               <div class="card-body d-flex align-items-center gap-2">
@@ -351,7 +350,7 @@
                   <span class="title-icon fs-16 me-2"><i class="ti ti-users"></i></span>
                   <h5 class="card-title mb-0">Top Customers</h5>
                 </div>
-                <router-link :to="{ name: 'admin.party-list', query: { type: 'customer' } }" class="stat-card__link">View all</router-link>
+                <router-link :to="{ name: 'admin.crm-contacts' }" class="stat-card__link">View all</router-link>
               </div>
               <div class="card-body">
                 <div v-if="!dash.top_customers.length" class="dashboard-empty">No customer data yet</div>
@@ -419,7 +418,7 @@ const businessMetrics = computed(() => {
             displayValue: d.customers_count,
             icon: 'ti-users',
             cardColor: 'green',
-            route: {name: 'admin.party-list', query: {type: 'customer'}},
+            route: {name: 'admin.crm-contacts'},
         },
         {
             label: 'Products',
@@ -433,7 +432,7 @@ const businessMetrics = computed(() => {
             displayValue: d.suppliers_count,
             icon: 'ti-truck',
             cardColor: 'purple',
-            route: {name: 'admin.party-list', query: {type: 'supplier'}},
+            route: {name: 'admin.crm-contacts'},
         },
         {
             label: "Today's Sales",

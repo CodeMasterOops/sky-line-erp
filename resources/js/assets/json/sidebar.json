@@ -27,17 +27,37 @@
         "title": "Modules",
         "menu": [
             {
+                "menuValue": "CRM",
+                "icon": "ti ti-users-group",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Contacts",
+                        "route": { "name": "admin.crm-contacts" },
+                        "permission": "list_party",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Follow-ups",
+                        "route": { "name": "admin.crm-follow-ups" },
+                        "permission": "list_crm_follow_up",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Tasks",
+                        "route": { "name": "admin.crm-tasks" },
+                        "permission": "list_crm_task",
+                        "hasSubRoute": false
+                    }
+                ]
+            },
+            {
                 "menuValue": "Sales",
                 "icon": "ti ti-shopping-cart",
                 "hasSubRoute": true,
                 "showSubRoute": false,
                 "subMenus": [
-                    {
-                        "menuValue": "Customers",
-                        "route": { "name": "admin.party-list", "query": { "type": "customer" } },
-                        "permission": "list_party",
-                        "hasSubRoute": false
-                    },
                     {
                         "menuValue": "Sales Orders",
                         "route": { "name": "admin.sales-list" },
@@ -82,12 +102,6 @@
                 "hasSubRoute": true,
                 "showSubRoute": false,
                 "subMenus": [
-                    {
-                        "menuValue": "Suppliers",
-                        "route": { "name": "admin.party-list", "query": { "type": "supplier" } },
-                        "permission": "list_party",
-                        "hasSubRoute": false
-                    },
                     {
                         "menuValue": "Purchase Orders",
                         "route": { "name": "admin.purchase-order-list" },
