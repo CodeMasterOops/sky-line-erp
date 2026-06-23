@@ -133,15 +133,18 @@ export default {
       const isMiniSidebar = document.body.classList.contains("mini-sidebar");
       const key = this.submenuKey(section, menu);
 
-      (section.menu || []).forEach((subMenu) => {
-        if (subMenu.hasSubRoute && subMenu !== menu) {
-          const otherKey = this.submenuKey(section, subMenu);
-          this.submenuExpanded = { ...this.submenuExpanded, [otherKey]: false };
-        }
+      // Close all hasSubRoute items across every section
+      const collapsed = {};
+      this.displaySections.forEach((sec) => {
+        (sec.menu || []).forEach((subMenu) => {
+          if (subMenu.hasSubRoute) {
+            collapsed[this.submenuKey(sec, subMenu)] = false;
+          }
+        });
       });
 
       const nextOpen = isMiniSidebar ? true : !this.isSubmenuDropped(menu, section);
-      this.submenuExpanded = { ...this.submenuExpanded, [key]: nextOpen };
+      this.submenuExpanded = { ...collapsed, [key]: nextOpen };
     },
   },
 };

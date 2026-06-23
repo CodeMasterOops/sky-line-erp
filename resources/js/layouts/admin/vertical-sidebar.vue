@@ -261,22 +261,45 @@ export default {
       const isMiniSidebar = document.body.classList.contains("mini-sidebar");
       const key = this.submenuKey(section, menu);
 
-      (section.menu || []).forEach((subMenu) => {
-        if (subMenu.hasSubRoute && subMenu !== menu) {
-          const otherKey = this.submenuKey(section, subMenu);
-          this.submenuExpanded = { ...this.submenuExpanded, [otherKey]: false };
-        }
+      // Close all hasSubRoute items across every section
+      const collapsed = {};
+      this.permissionFiltered.forEach((sec) => {
+        (sec.menu || []).forEach((subMenu) => {
+          if (subMenu.hasSubRoute) {
+            collapsed[this.submenuKey(sec, subMenu)] = false;
+          }
+        });
       });
 
+      // Close any open hasSubRouteTwo menu
+      this.openMenuKey = null;
+      this.openSubMenuKey = null;
+
       const nextOpen = isMiniSidebar ? true : !this.isSubmenuDropped(menu, section);
-      this.submenuExpanded = { ...this.submenuExpanded, [key]: nextOpen };
+      this.submenuExpanded = { ...collapsed, [key]: nextOpen };
     },
     openMenu(menu, section) {
       const key = this.menuKey(section, menu);
-      if (this.openMenuKey !== key) {
+      const isOpening = this.openMenuKey !== key;
+
+      // Close all hasSubRoute items when opening a hasSubRouteTwo menu
+      if (isOpening) {
+        const collapsed = {};
+        this.permissionFiltered.forEach((sec) => {
+          (sec.menu || []).forEach((subMenu) => {
+            if (subMenu.hasSubRoute) {
+              collapsed[this.submenuKey(sec, subMenu)] = false;
+            }
+          });
+        });
+        this.submenuExpanded = collapsed;
         this.openSubMenuKey = null;
       }
-      this.openMenuKey = this.openMenuKey === key ? null : key;
+
+      this.openMenuKey = isOpening ? key : null;
+      if (!isOpening) {
+        this.openSubMenuKey = null;
+      }
     },
     openSubMenu(subMenus) {
       const key = subMenus.menuValue;
