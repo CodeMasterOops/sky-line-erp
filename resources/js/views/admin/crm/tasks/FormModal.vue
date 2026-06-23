@@ -52,22 +52,43 @@
                         :error="errors.assigned_to_user_id"
                     />
                 </div>
+
+                <!-- Linked contact with searchable select + create -->
                 <div class="col-md-6">
-                    <VSelect
-                        id="task-party"
-                        v-model="form.party_id"
-                        label="Linked contact"
-                        :options="partyOptions"
-                        :error="errors.party_id"
-                    />
+                    <div class="d-flex gap-2 align-items-end">
+                        <div class="flex-grow-1 min-w-0">
+                            <VMultiselect
+                                id="task-party"
+                                v-model="form.party_id"
+                                label="Linked contact"
+                                :options="partyOptions"
+                                name-prop="display_label"
+                                :filter-results="false"
+                                placeholder="None"
+                                :error="errors.party_id"
+                                @search-change="onPartySearch"
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary flex-shrink-0"
+                            style="height:38px"
+                            title="Add new contact"
+                            @click="createContactOpened = true"
+                        >
+                            <i class="ti ti-user-plus"></i>
+                        </button>
+                    </div>
+                    <div class="form-text text-muted mt-1">
+                        <i class="ti ti-info-circle me-1"></i>Optional. Customers, Leads or Suppliers.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <VDatepicker id="task-due" v-model="form.due_date" label="Due date" placeholder="Due date" />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label" for="task-due">Due date</label>
-                    <VDatepicker id="task-due" v-model="form.due_date" placeholder="Due date" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="task-reminder">Reminder at</label>
-                    <VDateTimePicker id="task-reminder" v-model="form.reminder_at" placeholder="Reminder" />
+                    <VDateTimePicker id="task-reminder" v-model="form.reminder_at" label="Reminder at" placeholder="Reminder" />
                 </div>
                 <div class="col-12 d-flex justify-content-end gap-2">
                     <button class="btn btn-cancel" type="button" @click="close">Cancel</button>
@@ -76,12 +97,15 @@
             </form>
         </template>
     </VModal>
+
+    <CreateParty v-model:create-modal-opened="createContactOpened" @update:create-modal-opened="onCreateContactClose" />
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { object, string } from 'yup';
+import debounce from 'lodash/debounce';
 import { toast } from '@/helpers/toast';
 import { useYup } from '@/helpers/yup';
 import showErrors from '@/helpers/showErrors';
@@ -89,10 +113,12 @@ import { apiAdmin } from '@/helpers/api.js';
 import VModal from '@/components/base/VModal.vue';
 import VInput from '@/components/base/VInput.vue';
 import VSelect from '@/components/base/VSelect.vue';
+import VMultiselect from '@/components/base/VMultiselect.vue';
 import VButton from '@/components/base/VButton.vue';
 import VTextarea from '@/components/base/VTextarea.vue';
 import VDatepicker from '@/components/base/VDatepicker.vue';
 import VDateTimePicker from '@/components/base/VDateTimePicker.vue';
+import CreateParty from '@/views/admin/party/Create.vue';
 import { useEnumStore } from '@/stores/admin/enum.js';
 import { useUserStore } from '@/stores/admin/user-management/user.js';
 import { useCrmTaskStore } from '@/stores/admin/crm/tasks.js';
@@ -112,6 +138,8 @@ const { taskStatuses, taskPriorities } = storeToRefs(enumStore);
 const { users } = storeToRefs(userStore);
 
 const partyOptions = ref([]);
+const partyLoading = ref(false);
+const createContactOpened = ref(false);
 const isSubmitting = ref(false);
 
 const isEdit = computed(() => !!props.task?.id);
@@ -135,13 +163,25 @@ const validations = object({
 
 const { errors, validateField, validateForm } = useYup(form, validations);
 
-const fetchParties = async () => {
-    if (partyOptions.value.length) return;
-    try {
-        const res = await apiAdmin('party?limit=500');
-        partyOptions.value = res.data.data;
-    } catch (e) {
-        showErrors(e);
+const mapParties = (data) =>
+    data.map((p) => ({
+        ...p,
+        display_label: p.name + (p.type_label ? ' — ' + p.type_label : ''),
+    }));
+
+const fetchParties = (search = '') => {
+    partyLoading.value = true;
+    return apiAdmin(`party?limit=100&search=${encodeURIComponent(search)}`)
+        .then((res) => { partyOptions.value = mapParties(res.data.data); })
+        .catch(showErrors)
+        .finally(() => { partyLoading.value = false; });
+};
+
+const onPartySearch = debounce((query) => { fetchParties(query ?? ''); }, 300);
+
+const onCreateContactClose = (opened) => {
+    if (!opened) {
+        fetchParties('');
     }
 };
 
@@ -150,7 +190,7 @@ watch(show, (opened) => {
     enumStore.getTaskStatuses();
     enumStore.getTaskPriorities();
     if (!users.value.data.length) userStore.getUsers();
-    fetchParties();
+    fetchParties('');
 
     if (isEdit.value) {
         Object.assign(form, {
