@@ -409,18 +409,22 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
                             &:hover{
                                 color:variables.$primary;
                                 &:after{
-                                background: variables.$primary;
+                                background: variables.$gray-600;
                                 border: 0;
-                                opacity: 1;
+                                opacity: 0.4;
                                 }
                             }
+                            &.active,
                             &.router-link-exact-active,
                             &.router-link-active {
                                 color: variables.$primary;
                                 &:after {
-                                    background: variables.$primary;
+                                    background: variables.$gray-600;
                                     border: 0;
-                                    opacity: 1;
+                                    width: 10px;
+                                    height: 1px;
+                                    @include mixins.rounded(0);
+                                    opacity: 0.4;
                                 }
                             }
                         }
