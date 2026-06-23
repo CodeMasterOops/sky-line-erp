@@ -112,17 +112,16 @@
       <!-- Financial overview -->
       <section class="dashboard-section">
         <div class="row g-2">
-          <div class="col-xxl-4 col-lg-6 col-12 d-flex">
-            <div class="card stat-card stat-card--featured flex-fill">
+          <div class="col-xxl col-lg-6 col-12 d-flex">
+            <div class="card stat-card flex-fill">
               <div class="card-body d-flex align-items-center gap-2">
-                <span class="stat-card__icon">
+                <span class="stat-card__icon bg-soft-success text-success">
                   <i class="ti ti-report-money"></i>
                 </span>
-                <div class="min-w-0 flex-fill">
+                <div class="min-w-0">
                   <p class="stat-card__label mb-0">Estimated Profit</p>
                   <h4 class="stat-card__value mb-0">{{ formatMoney(profit) }}</h4>
                 </div>
-                <router-link :to="{ name: 'admin.profit-and-loss' }" class="stat-card__link flex-shrink-0">P&amp;L</router-link>
               </div>
             </div>
           </div>
@@ -130,7 +129,7 @@
           <div
             v-for="card in summaryCards"
             :key="card.label"
-            class="col-xxl-2 col-lg-6 col-12 d-flex"
+            class="col-xxl col-lg-6 col-12 d-flex"
           >
             <div class="card stat-card flex-fill">
               <div class="card-body d-flex align-items-center gap-2">
