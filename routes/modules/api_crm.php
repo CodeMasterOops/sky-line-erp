@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Admin\Crm\TaskController;
 use App\Http\Controllers\Api\Admin\Crm\LeadController;
 use App\Http\Controllers\Api\Admin\Crm\NoteController;
+use App\Http\Controllers\Api\Admin\Crm\CrmReportController;
 use App\Http\Controllers\Api\Admin\Crm\FollowUpController;
 use App\Http\Controllers\Api\Admin\Crm\ContactPersonController;
 use App\Http\Controllers\Api\Admin\Crm\CustomerProfileController;
@@ -40,3 +41,9 @@ Route::apiResource('crm/note', NoteController::class)
 // crm — customer 360 (read aggregation) + unified timeline (CRM + financial)
 Route::get('crm/customer/{party}/summary', [CustomerProfileController::class, 'summary'])->name('crm.customer.summary');
 Route::get('crm/customer/{party}/timeline', [CustomerProfileController::class, 'timeline'])->name('crm.customer.timeline');
+
+// crm — reports (pipeline, conversion, follow-ups, tasks)
+Route::get('crm/report/pipeline', [CrmReportController::class, 'pipeline'])->name('crm.report.pipeline');
+Route::get('crm/report/conversion', [CrmReportController::class, 'conversion'])->name('crm.report.conversion');
+Route::get('crm/report/follow-ups', [CrmReportController::class, 'followUps'])->name('crm.report.follow-ups');
+Route::get('crm/report/tasks', [CrmReportController::class, 'tasks'])->name('crm.report.tasks');

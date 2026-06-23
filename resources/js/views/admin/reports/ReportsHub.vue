@@ -105,7 +105,7 @@ import PageHeader from '@/components/shared/PageHeader.vue';
 import { hasPermission } from '@/helpers/checkPermission';
 
 const REPORT_CATEGORIES = [
-    // 1 — Revenue (most checked daily)
+    // 0 — Revenue (most checked daily)
     {
         title: 'Sales',
         slug: 'sales',
