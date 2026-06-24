@@ -100,10 +100,24 @@
                 </div>
               </div>
               <div class="card-body pb-0">
+                <div class="d-flex align-items-stretch gap-2 mb-3 flex-wrap">
+                  <div class="chart-stat">
+                    <p class="chart-stat__label mb-1">
+                      <span class="chart-stat__dot chart-stat__dot--revenue"></span>Total Revenue
+                    </p>
+                    <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_sales) }}</h5>
+                  </div>
+                  <div class="chart-stat">
+                    <p class="chart-stat__label mb-1">
+                      <span class="chart-stat__dot chart-stat__dot--expense"></span>Total Expenses
+                    </p>
+                    <h5 class="chart-stat__value mb-0">{{ formatMoney(totalExpenses) }}</h5>
+                  </div>
+                </div>
                 <apexchart
                   v-if="chartsReady && hasExpensesChartData"
                   type="bar"
-                  height="340"
+                  height="280"
                   :options="expensesChartOptions"
                   :series="expensesChartSeries"
                 />
@@ -388,6 +402,7 @@
 
 <script setup>
 import {formatMoney} from '@/helpers/formatMoney.js';
+import {CHART_COLORS, baseChartOptions} from '@/constants/chartTheme.js';
 import {ref, computed, onMounted, watch, nextTick} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import moment from 'moment';
@@ -442,7 +457,7 @@ const businessMetrics = computed(() => {
             label: "Today's Sales",
             displayValue: d.orders_today,
             icon: 'ti-cash',
-            cardColor: 'olive',
+            cardColor: 'primary',
             route: {name: 'admin.invoice-list', query: {date_from: todayStr, date_to: todayStr}},
         },
     ];
@@ -465,15 +480,15 @@ const statusBadge = (status) => {
 const chartData = computed(() => dashboardStore.dashboard.data.chart_data ?? {});
 
 const salesChartOptions = computed(() => ({
-    chart: {
-        type: 'bar',
-        toolbar: {show: false},
+    ...baseChartOptions(),
+    chart: { ...baseChartOptions().chart, type: 'bar' },
+    colors: [CHART_COLORS.primary, CHART_COLORS.success],
+    fill: {
+        type: 'gradient',
+        gradient: { shade: 'light', type: 'vertical', opacityFrom: 0.9, opacityTo: 0.55 },
     },
-    colors: ['#1b84ff', '#17c653'],
-    plotOptions: {bar: {borderRadius: 4, columnWidth: '55%'}},
-    dataLabels: {enabled: false},
-    legend: {position: 'top'},
-    xaxis: {categories: chartData.value.labels || []},
+    yaxis: { labels: { formatter: (val) => formatMoney(val) } },
+    xaxis: { categories: chartData.value.labels || [] },
 }));
 
 const salesChartSeries = computed(() => [
@@ -482,15 +497,15 @@ const salesChartSeries = computed(() => [
 ]);
 
 const expensesChartOptions = computed(() => ({
-    chart: {
-        type: 'bar',
-        toolbar: {show: false},
+    ...baseChartOptions(),
+    chart: { ...baseChartOptions().chart, type: 'bar' },
+    colors: [CHART_COLORS.primary, CHART_COLORS.warning],
+    fill: {
+        type: 'gradient',
+        gradient: { shade: 'light', type: 'vertical', opacityFrom: 0.9, opacityTo: 0.55 },
     },
-    colors: ['#1b84ff', '#f6820d'],
-    plotOptions: {bar: {borderRadius: 4, columnWidth: '55%'}},
-    dataLabels: {enabled: false},
-    legend: {position: 'top'},
-    xaxis: {categories: chartData.value.labels || []},
+    yaxis: { labels: { formatter: (val) => formatMoney(val) } },
+    xaxis: { categories: chartData.value.labels || [] },
 }));
 
 const expensesChartSeries = computed(() => [
@@ -500,6 +515,7 @@ const expensesChartSeries = computed(() => [
 
 const hasSalesChartData    = computed(() => salesChartSeries.value.some((s) => s.data.length > 0));
 const hasExpensesChartData = computed(() => expensesChartSeries.value.some((s) => s.data.length > 0));
+const totalExpenses        = computed(() => (chartData.value.expenses || []).reduce((sum, v) => sum + (v || 0), 0));
 
 watch(
     () => dashboardStore.isLoading,

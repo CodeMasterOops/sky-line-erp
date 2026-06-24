@@ -216,6 +216,8 @@ class ProductController extends Controller
     {
         $product->load([
             'productCategory.parent',
+            'brand',
+            'unit',
             'tax',
             'variants.variantOptions.attribute',
             'variants.stocks.warehouse',

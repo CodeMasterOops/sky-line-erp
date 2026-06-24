@@ -42,6 +42,15 @@ class ProductVariantResource extends JsonResource
                 array_key_exists('stock_qty', $this->resource->getAttributes()),
                 fn () => (float) ($this->stock_qty ?? 0),
             ),
+            'total_stock' => $this->whenLoaded('stocks', fn () => (float) $this->stocks->sum('quantity')),
+            'stocks_by_warehouse' => $this->whenLoaded('stocks', function () {
+                return $this->stocks->map(fn ($s) => [
+                    'warehouse_id' => $s->warehouse_id,
+                    'warehouse_name' => $s->relationLoaded('warehouse') && $s->warehouse ? (string) $s->warehouse->name : '',
+                    'quantity' => (float) $s->quantity,
+                    'on_hold' => (float) ($s->on_hold ?? 0),
+                ])->values();
+            }),
             'variant_options' => $this->whenLoaded('variantOptions', function () {
                 return $this->formatVariantOptions();
             }),

@@ -89,13 +89,13 @@
                     <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'Product'">
                             <div class="productimgname d-flex align-items-start">
-                                <a href="javascript:void(0);" class="avatar avatar-md me-2 flex-shrink-0">
+                                <router-link :to="{ name: 'admin.product-show', params: { id: String(record.id) } }" class="avatar avatar-md me-2 flex-shrink-0">
                                     <img :src="record.image || 'https://placehold.co/40x40'" alt="product">
-                                </a>
+                                </router-link>
                                 <div class="min-w-0">
-                                    <a href="javascript:void(0);" class="fw-medium d-block text-truncate">
+                                    <router-link :to="{ name: 'admin.product-show', params: { id: String(record.id) } }" class="fw-medium d-block text-truncate">
                                         {{ record.name }}
-                                    </a>
+                                    </router-link>
                                     <div v-if="record.code || record.hsn_code" class="small text-muted">
                                         <span v-if="record.code">
                                             Code: <span class="font-monospace">{{ record.code }}</span>

@@ -305,7 +305,8 @@
         }
     }
 
-    &--olive {
+    &--olive,
+    &--primary {
         background: linear-gradient(135deg, variables.$white 0%, rgba(variables.$primary, 0.07) 100%);
         color: variables.$primary;
 
@@ -343,12 +344,20 @@
         @include mixins.rounded(50%);
         flex-shrink: 0;
 
-        &--purchase {
-            background: #17c653;
-        }
-
         &--sales {
             background: variables.$primary;
+        }
+
+        &--purchase {
+            background: variables.$success;
+        }
+
+        &--revenue {
+            background: variables.$primary;
+        }
+
+        &--expense {
+            background: variables.$warning;
         }
     }
 

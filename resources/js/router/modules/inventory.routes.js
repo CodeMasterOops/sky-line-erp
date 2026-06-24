@@ -80,6 +80,14 @@ export default [
         component: () => import("@/views/admin/inventory/product/Edit.vue"),
     },
     {
+        path: "product/:id",
+        name: "admin.product-show",
+        meta: {
+            pageTitle: "Product Details",
+        },
+        component: () => import("@/views/admin/inventory/product/Show.vue"),
+    },
+    {
         path: "product",
         name: "admin.product-list",
         meta: {
