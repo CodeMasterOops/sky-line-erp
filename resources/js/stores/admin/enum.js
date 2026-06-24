@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {apiFront} from "@/helpers/api";
+import {apiAdmin} from "@/helpers/api";
 import showErrors from "@/helpers/showErrors";
 
 export const useEnumStore = defineStore('enum', {
@@ -17,7 +17,7 @@ export const useEnumStore = defineStore('enum', {
     actions: {
         getPartyTypes() {
             if (!this.partyTypes.length) {
-                return apiFront(`enum/party-types`)
+                return apiAdmin(`enum/party-types`)
                     .then((res) => {
                         this.partyTypes = res.data.data;
                     }).catch((err) => {
@@ -28,7 +28,7 @@ export const useEnumStore = defineStore('enum', {
 
         getCrmLeadStatuses() {
             if (!this.crmLeadStatuses.length) {
-                return apiFront(`enum/crm-lead-statuses`)
+                return apiAdmin(`enum/crm-lead-statuses`)
                     .then((res) => {
                         this.crmLeadStatuses = res.data.data;
                     }).catch((err) => {
@@ -39,7 +39,7 @@ export const useEnumStore = defineStore('enum', {
 
         getTaskStatuses() {
             if (!this.taskStatuses.length) {
-                return apiFront(`enum/task-statuses`)
+                return apiAdmin(`enum/task-statuses`)
                     .then((res) => {
                         this.taskStatuses = res.data.data;
                     }).catch((err) => {
@@ -50,7 +50,7 @@ export const useEnumStore = defineStore('enum', {
 
         getTaskPriorities() {
             if (!this.taskPriorities.length) {
-                return apiFront(`enum/task-priorities`)
+                return apiAdmin(`enum/task-priorities`)
                     .then((res) => {
                         this.taskPriorities = res.data.data;
                     }).catch((err) => {
@@ -61,7 +61,7 @@ export const useEnumStore = defineStore('enum', {
 
         getFollowUpChannels() {
             if (!this.followUpChannels.length) {
-                return apiFront(`enum/follow-up-channels`)
+                return apiAdmin(`enum/follow-up-channels`)
                     .then((res) => {
                         this.followUpChannels = res.data.data;
                     }).catch((err) => {
@@ -72,7 +72,7 @@ export const useEnumStore = defineStore('enum', {
 
         getFollowUpStatuses() {
             if (!this.followUpStatuses.length) {
-                return apiFront(`enum/follow-up-statuses`)
+                return apiAdmin(`enum/follow-up-statuses`)
                     .then((res) => {
                         this.followUpStatuses = res.data.data;
                     }).catch((err) => {
@@ -83,7 +83,7 @@ export const useEnumStore = defineStore('enum', {
 
         getJournalTypes() {
             if (!this.journalTypes.length) {
-                return apiFront(`enum/journal-type`)
+                return apiAdmin(`enum/journal-type`)
                     .then((res) => {
                         this.journalTypes = res.data.data;
                     }).catch((err) => {
@@ -94,7 +94,7 @@ export const useEnumStore = defineStore('enum', {
 
         getTdsCategories() {
             if (!this.tdsCategories.length) {
-                return apiFront(`enum/tds-categories`)
+                return apiAdmin(`enum/tds-categories`)
                     .then((res) => {
                         this.tdsCategories = res.data.data;
                     }).catch((err) => {

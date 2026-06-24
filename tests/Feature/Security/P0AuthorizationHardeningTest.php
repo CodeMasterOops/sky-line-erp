@@ -140,6 +140,18 @@ it('H-2: lets an admin grant any catalogue permission', function () {
     ])->assertCreated();
 });
 
+it('H-2: lets an admin grant permissions enforced outside the grouped catalogue', function () {
+    // list_party / list_data_transfer are enforced but live outside the modules
+    // the grouped role-management catalogue scans. The whitelist must still
+    // accept them, otherwise they become impossible to grant.
+    Sanctum::actingAs($this->admin, [], 'admin');
+
+    $this->postJson('/api/admin/role', [
+        'name' => 'Party Manager',
+        'permissions' => ['list_party', 'list_data_transfer'],
+    ])->assertCreated();
+});
+
 it('H-2: rejects an unknown permission string', function () {
     Sanctum::actingAs($this->admin, [], 'admin');
 

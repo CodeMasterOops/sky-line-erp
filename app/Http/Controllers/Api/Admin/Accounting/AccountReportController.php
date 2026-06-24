@@ -26,6 +26,7 @@ class AccountReportController extends Controller
     ) {}
 
     #[Permissions('trial_balance', group: 'account_report', desc: 'Trial Balance Report')]
+    #[Permissions('list_account')]
     public function trialBalance(Request $request)
     {
         return response()->json([
@@ -34,6 +35,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('balance_sheet', group: 'account_report', desc: 'Balance Sheet Report')]
+    #[Permissions('list_account')]
     public function balanceSheet(Request $request)
     {
         return response()->json([
@@ -42,6 +44,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('profit_loss', group: 'account_report', desc: 'Profit Loss Report')]
+    #[Permissions('list_account')]
     public function profitLoss(Request $request)
     {
         return response()->json([
@@ -50,6 +53,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('journal_report', group: 'account_report', desc: 'Journal Report')]
+    #[Permissions('list_account')]
     public function journalReport(Request $request)
     {
         return response()->json([
@@ -58,6 +62,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('general_ledger', group: 'account_report', desc: 'General Ledger Report')]
+    #[Permissions('list_account')]
     public function generalLedger(Request $request)
     {
         return response()->json([
@@ -66,6 +71,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('vat_report', group: 'account_report', desc: 'VAT Sales Register (Bikri Khata)')]
+    #[Permissions('list_account')]
     public function vatSalesRegister(Request $request)
     {
         return response()->json([
@@ -74,6 +80,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('vat_report', group: 'account_report', desc: 'VAT Purchase Register (Kharid Khata)')]
+    #[Permissions('list_account')]
     public function vatPurchaseRegister(Request $request)
     {
         return response()->json([
@@ -82,6 +89,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('vat_report', group: 'account_report', desc: 'D3 VAT Return')]
+    #[Permissions('list_account')]
     public function vatReturn(Request $request)
     {
         return response()->json([
@@ -90,6 +98,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('vat_report', group: 'account_report', desc: 'VAT Return ↔ GL Reconciliation')]
+    #[Permissions('list_account')]
     public function vatReturnReconciliation(Request $request)
     {
         return response()->json([
@@ -106,6 +115,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('cash_flow', group: 'account_report', desc: 'Cash Flow Statement')]
+    #[Permissions('list_account')]
     public function cashFlow(Request $request)
     {
         return response()->json([
@@ -114,6 +124,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('ar_aging', group: 'account_report', desc: 'Accounts Receivable Aging')]
+    #[Permissions('list_account')]
     public function arAging(Request $request)
     {
         return response()->json([
@@ -122,6 +133,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('ap_aging', group: 'account_report', desc: 'Accounts Payable Aging')]
+    #[Permissions('list_account')]
     public function apAging(Request $request)
     {
         return response()->json([
@@ -130,6 +142,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('inventory_valuation', group: 'account_report', desc: 'Inventory Valuation Report')]
+    #[Permissions('list_product')]
     public function inventoryValuation(Request $request)
     {
         return response()->json([
@@ -138,6 +151,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('stock_aging', group: 'account_report', desc: 'Stock Aging Report')]
+    #[Permissions('list_product')]
     public function stockAging(Request $request)
     {
         return response()->json([
@@ -146,6 +160,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('reorder_alerts', group: 'account_report', desc: 'Reorder Alerts')]
+    #[Permissions('list_product')]
     public function reorderAlerts(Request $request)
     {
         return response()->json([
@@ -154,6 +169,7 @@ class AccountReportController extends Controller
     }
 
     #[Permissions('tds_report', group: 'account_report', desc: 'TDS Report')]
+    #[Permissions('list_account')]
     public function tdsReport(Request $request)
     {
         return response()->json([

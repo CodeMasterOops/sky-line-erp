@@ -119,6 +119,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(MigrationsEnded::class, function () {
             Cache::forget(allTablesCacheKey());
             Cache::forget(\App\Http\Controllers\Api\Admin\UserManagement\PermissionController::PERMISSION_MAP_CACHE_KEY);
+            Cache::forget(\App\Services\PermissionRegistry::ENFORCED_PERMISSIONS_CACHE_KEY);
         });
     }
 

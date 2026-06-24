@@ -3,32 +3,59 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Traits\PermissionHelper;
+use Illuminate\Support\Facades\Cache;
 
 class PermissionRegistry
 {
-    use PermissionHelper;
+    /**
+     * Cache key for the flat enforced-permission set. Invalidated on migrate /
+     * deploy alongside the grouped permission map (see AppServiceProvider).
+     */
+    public const ENFORCED_PERMISSIONS_CACHE_KEY = 'admin_enforced_permissions';
 
     /**
-     * Flat, de-duplicated list of every permission value defined by controller
-     * annotations. This is the single source of truth for which permission
-     * strings may be persisted onto a role.
+     * Flat, de-duplicated list of *every* permission enforced by a controller
+     * #[Permissions] attribute anywhere under Api/Admin — not just the grouped
+     * role-management catalogue (which only scans a subset of modules). This is
+     * the source of truth for which permission strings are real, so role/user
+     * validation neither rejects a legitimate permission nor accepts a typo.
      *
      * @return list<string>
      */
     public function all(): array
     {
-        $values = [];
-        $catalogue = $this->getAllPermissions();
-
-        array_walk_recursive(
-            $catalogue,
-            function ($value, $key) use (&$values): void {
-                if ($key === 'permission') {
-                    $values[] = $value;
-                }
-            }
+        return Cache::rememberForever(
+            self::ENFORCED_PERMISSIONS_CACHE_KEY,
+            fn (): array => $this->scanEnforcedPermissions()
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function scanEnforcedPermissions(): array
+    {
+        $base = app_path('Http/Controllers/Api/Admin');
+
+        if (! is_dir($base)) {
+            return [];
+        }
+
+        $values = [];
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            if (preg_match_all("/#\\[Permissions\\(\\s*'([a-z_]+)'/", (string) file_get_contents($file->getPathname()), $matches)) {
+                $values = array_merge($values, $matches[1]);
+            }
+        }
 
         return array_values(array_unique($values));
     }

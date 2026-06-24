@@ -101,6 +101,7 @@ class SalesReportController extends Controller
     }
 
     #[Permissions('sales_report_dashboard', group: 'sales_report', desc: 'Sales Report Dashboard')]
+    #[Permissions('list_sales_order')]
     public function dashboard(Request $request)
     {
         $company = auth('admin')->user()?->company?->loadMissing('fiscalYear');
@@ -121,6 +122,7 @@ class SalesReportController extends Controller
     }
 
     #[Permissions('sales_summary_report', group: 'sales_report', desc: 'Sales Report')]
+    #[Permissions('list_sales_order')]
     public function salesReport(Request $request)
     {
         $productVariantId = $request->filled('product_variant_id') ? (int) $request->product_variant_id : null;
@@ -197,6 +199,7 @@ class SalesReportController extends Controller
     }
 
     #[Permissions('sales_by_item_report', group: 'sales_report', desc: 'Sales By Item')]
+    #[Permissions('list_sales_order')]
     public function salesByItems(Request $request)
     {
         $rows = InvoiceItem::query()
