@@ -492,3 +492,38 @@ it('excludes employer contribution from net pay and posts a balanced employer jo
         ->and((float) $items->firstWhere('account_id', $ssfPayable->id)->cr_amount)->toBe(10_000.0)
         ->and((float) $items->firstWhere('account_id', $ssfExpense->id)->dr_amount)->toBe(10_000.0);
 });
+
+// ─── NEPAL-005: salary TDS uses marital status + SSF exemption ─────────────────
+
+it('applies married slab and SSF exemption to salary TDS', function () {
+    $employee = Employee::create([
+        'company_id' => $this->company->id, 'employee_code' => 'WF-TDS-'.uniqid(),
+        'first_name' => 'Married', 'last_name' => 'Ssf', 'join_date' => '2024-01-01', 'status' => 'active',
+        'marital_status' => \App\Enums\MaritalStatusEnum::Married,
+        'tds_category' => \App\Enums\TdsCategoryEnum::SALARY,
+    ]);
+
+    $basic = SalaryComponent::create([
+        'company_id' => $this->company->id, 'name' => 'Basic', 'is_basic' => true,
+        'type' => SalaryComponentTypeEnum::EARNING, 'calculation_type' => 'fixed',
+        'is_taxable' => true, 'is_active' => true,
+    ]);
+    $ssf = SalaryComponent::create([
+        'company_id' => $this->company->id, 'name' => 'SSF Employee', 'system_code' => 'SSF_EMPLOYEE_11',
+        'type' => SalaryComponentTypeEnum::DEDUCTION, 'calculation_type' => 'percentage',
+        'percentage_base' => 'basic', 'is_active' => true, 'is_system' => true,
+    ]);
+    $structure = SalaryStructure::create([
+        'company_id' => $this->company->id, 'employee_id' => $employee->id,
+        'effective_from' => '2024-01-01', 'is_active' => true,
+    ]);
+    SalaryStructureItem::create(['salary_structure_id' => $structure->id, 'salary_component_id' => $basic->id, 'amount' => 80_000, 'percentage' => 0]);
+    SalaryStructureItem::create(['salary_structure_id' => $structure->id, 'salary_component_id' => $ssf->id, 'amount' => 0, 'percentage' => 11]);
+    $structure->load('items.salaryComponent');
+
+    $tds = app(PayrollService::class)->calculateTds($employee, 80_000, $structure);
+
+    $expected = (new \App\Services\Payroll\SalarySlabTaxCalculator)->monthlyWithholding(80_000, 'married', true);
+
+    expect($tds)->toBe($expected)->and($tds)->toBeGreaterThan(0.0);
+});

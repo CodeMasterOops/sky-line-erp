@@ -18,6 +18,8 @@ class EmployeeResource extends JsonResource
             'email' => $this->email ?? '',
             'phone' => $this->phone ?? '',
             'gender' => $this->gender ?? '',
+            'marital_status' => $this->marital_status?->value ?? '',
+            'marital_status_label' => $this->marital_status?->label() ?? '',
             'dob' => $this->dob?->format('Y-m-d'),
             'join_date' => $this->join_date?->format('Y-m-d'),
             'employment_type' => $this->employment_type ?? '',

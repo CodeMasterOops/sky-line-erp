@@ -237,7 +237,10 @@ class PayrollService
         }
 
         if ($employee->tds_category->isSalary()) {
-            return $this->slabCalculator->monthlyWithholding($grossSalary);
+            $maritalStatus = $employee->marital_status?->value ?? 'single';
+            $ssfContributor = $this->isSsfContributor($structure);
+
+            return $this->slabCalculator->monthlyWithholding($grossSalary, $maritalStatus, $ssfContributor);
         }
 
         // Flat-rate TDS (vendor TDS categories)
@@ -262,6 +265,22 @@ class PayrollService
         $taxableBase = $grossSalary * $taxableFraction;
 
         return round($taxableBase * $employee->tds_category->rate() / 100, 2);
+    }
+
+    /**
+     * Whether the salary structure includes an active SSF employee contribution,
+     * which exempts the employee from the 1% Social Security Tax band.
+     */
+    protected function isSsfContributor($structure): bool
+    {
+        foreach ($structure->items as $item) {
+            $component = $item->salaryComponent;
+            if ($component && $component->is_active && $component->system_code === 'SSF_EMPLOYEE_11') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

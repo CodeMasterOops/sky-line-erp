@@ -35,7 +35,7 @@ class HrReportController extends Controller
             ],
             'data' => $runs->map(fn ($run) => [
                 'month' => $run->month,
-                'month_label' => date('F', mktime(0, 0, 0, $run->month, 1)),
+                'month_label' => $run->periodLabel(),
                 'status' => $run->status?->label(),
                 'employee_count' => $run->payslips->count(),
                 'total_gross' => $run->total_gross,
@@ -146,7 +146,7 @@ class HrReportController extends Controller
                 $employeeTotals[$key]['total_tds'] += $payslip->tds_amount;
                 $employeeTotals[$key]['months'][] = [
                     'month' => $run->month,
-                    'month_label' => date('F', mktime(0, 0, 0, $run->month, 1)),
+                    'month_label' => $run->periodLabel(),
                     'gross_salary' => $payslip->gross_salary,
                     'tds_amount' => $payslip->tds_amount,
                 ];

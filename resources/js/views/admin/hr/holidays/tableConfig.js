@@ -1,7 +1,8 @@
 export const holidayColumns = [
     { title: 'SN',          key: 'sn',           width: 60 },
     { title: 'Name',        dataIndex: 'name' },
-    { title: 'Date',        dataIndex: 'date' },
+    { title: 'Date (AD)',   dataIndex: 'date' },
+    { title: 'Date (BS)',   dataIndex: 'bs_date' },
     { title: 'Description', dataIndex: 'description' },
     { title: 'Action',      key: 'action',        align: 'center' },
 ];

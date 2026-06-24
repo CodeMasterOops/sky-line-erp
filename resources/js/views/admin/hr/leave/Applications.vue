@@ -53,6 +53,14 @@
                         <template v-else-if="column.key === 'leave_type'">
                             {{ record.leave_type?.name }}
                         </template>
+                        <template v-else-if="column.key === 'from_date'">
+                            {{ record.from_date }}
+                            <div v-if="record.bs_from_date" class="text-muted small">{{ record.bs_from_date }} BS</div>
+                        </template>
+                        <template v-else-if="column.key === 'to_date'">
+                            {{ record.to_date }}
+                            <div v-if="record.bs_to_date" class="text-muted small">{{ record.bs_to_date }} BS</div>
+                        </template>
                         <template v-else-if="column.key === 'status'">
                             <span :class="statusBadge(record.status)">{{ record.status_label }}</span>
                         </template>

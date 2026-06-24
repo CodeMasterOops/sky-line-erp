@@ -58,6 +58,14 @@
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label">Marital Status</label>
+                        <select v-model="form.marital_status" class="form-select">
+                            <option value="single">Single</option>
+                            <option value="married">Married</option>
+                        </select>
+                        <small class="text-muted">Affects salary tax slab.</small>
+                    </div>
+                    <div class="col-md-3">
                         <VDatepicker id="dob" v-model="form.dob" label="Date of Birth" />
                     </div>
                     <div class="col-md-3">
@@ -176,7 +184,7 @@ const isSubmitting = ref(false);
 
 const initial = {
     employee_code: '', first_name: '', last_name: '', email: '', phone: '',
-    gender: '', dob: '', join_date: '', employment_type: 'full_time', status: 'active',
+    gender: '', marital_status: 'single', dob: '', join_date: '', employment_type: 'full_time', status: 'active',
     department_id: '', designation_id: '', bank_name: '', bank_account_no: '',
     pan: '', tds_category: '', address: '',
 };

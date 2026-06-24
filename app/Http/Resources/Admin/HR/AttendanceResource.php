@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\HR;
 
 use Illuminate\Http\Request;
+use App\Services\Nepal\NepaliDateService;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class AttendanceResource extends JsonResource
@@ -13,6 +14,9 @@ class AttendanceResource extends JsonResource
             'id' => $this->id,
             'employee_id' => $this->employee_id,
             'date' => $this->date?->format('Y-m-d'),
+            'bs_date' => $this->date
+                ? app(NepaliDateService::class)->adToBsString($this->date->format('Y-m-d'))
+                : null,
             'check_in' => $this->check_in ? substr($this->check_in, 0, 5) : '',
             'check_out' => $this->check_out ? substr($this->check_out, 0, 5) : '',
             'worked_hours' => $this->worked_hours,

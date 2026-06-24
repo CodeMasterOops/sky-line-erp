@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\HR;
 use App\Tenancy\TRule;
 use App\Enums\TdsCategoryEnum;
 use Illuminate\Validation\Rule;
+use App\Enums\MaritalStatusEnum;
 use App\Enums\EmployeeStatusEnum;
 use App\Enums\EmploymentTypeEnum;
 use Illuminate\Foundation\Http\FormRequest;
@@ -26,6 +27,7 @@ class EmployeeRequest extends FormRequest
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:20'],
             'gender' => ['nullable', 'string', Rule::in(['male', 'female', 'other'])],
+            'marital_status' => ['nullable', Rule::enum(MaritalStatusEnum::class)],
             'dob' => ['nullable', 'date'],
             'join_date' => ['required', 'date'],
             'employment_type' => ['nullable', Rule::enum(EmploymentTypeEnum::class)],

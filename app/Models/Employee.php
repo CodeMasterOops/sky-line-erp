@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\MultiTenant;
 use App\Enums\TdsCategoryEnum;
+use App\Enums\MaritalStatusEnum;
 use App\Enums\EmployeeStatusEnum;
 use App\Enums\EmploymentTypeEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +27,7 @@ class Employee extends Model
         'email',
         'phone',
         'gender',
+        'marital_status',
         'dob',
         'join_date',
         'employment_type',
@@ -39,11 +41,12 @@ class Employee extends Model
     ];
 
     protected $casts = [
-        'dob' => 'date',
-        'join_date' => 'date',
+        'dob' => 'date:Y-m-d',
+        'join_date' => 'date:Y-m-d',
         'employment_type' => EmploymentTypeEnum::class,
         'status' => EmployeeStatusEnum::class,
         'tds_category' => TdsCategoryEnum::class,
+        'marital_status' => MaritalStatusEnum::class,
     ];
 
     public function department(): BelongsTo

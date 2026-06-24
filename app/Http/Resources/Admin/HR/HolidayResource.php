@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\HR;
 
 use Illuminate\Http\Request;
+use App\Services\Nepal\NepaliDateService;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class HolidayResource extends JsonResource
@@ -13,6 +14,9 @@ class HolidayResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name ?? '',
             'date' => $this->date?->format('Y-m-d'),
+            'bs_date' => $this->date
+                ? app(NepaliDateService::class)->adToBsString($this->date->format('Y-m-d'))
+                : null,
             'description' => $this->description ?? '',
         ];
     }
