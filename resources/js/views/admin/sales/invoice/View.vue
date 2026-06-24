@@ -338,6 +338,9 @@ const formatDate = (value) => {
     if (!value) {
         return '—';
     }
+    // Invoice is a legal document that prints the AD date alongside an explicit
+    // "Date (BS)" line, so this stays AD regardless of the user's preference.
+    // eslint-disable-next-line no-restricted-syntax
     return dayjs(value).format('MMM D, YYYY');
 };
 
