@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\FiscalYear;
 use App\Enums\DateModeEnum;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\Nepal\DateDisplayService;
@@ -77,6 +78,7 @@ class DashboardController extends Controller
         $itemTotal = fn (string $itemTable, string $fk, string $parentTable, string $dateCol) => DB::table($itemTable)
             ->join($parentTable, "{$parentTable}.id", '=', "{$itemTable}.{$fk}")
             ->where("{$parentTable}.company_id", $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, "{$parentTable}.branch_id"))
             ->whereNull("{$parentTable}.deleted_at")
             ->whereNull("{$itemTable}.deleted_at")
             ->whereBetween("{$parentTable}.{$dateCol}", [$from, $to])
@@ -101,6 +103,7 @@ class DashboardController extends Controller
             ->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
             ->leftJoin('product_categories as pc', 'pc.id', '=', 'p.product_category_id')
             ->where('inv.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'inv.branch_id'))
             ->whereNull('inv.deleted_at')
             ->whereNull('ii.deleted_at')
             ->whereNull('pv.deleted_at')
@@ -131,6 +134,7 @@ class DashboardController extends Controller
             ->join('products as p', 'p.id', '=', 'pv.product_id')
             ->join('warehouses as w', 'w.id', '=', 's.warehouse_id')
             ->where('s.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 's.branch_id'))
             ->whereNull('s.deleted_at')
             ->whereNull('pv.deleted_at')
             ->whereNull('p.deleted_at')
@@ -160,6 +164,7 @@ class DashboardController extends Controller
             ->leftJoin('invoice_items as ii', fn ($j) => $j->on('ii.invoice_id', '=', 'inv.id')->whereNull('ii.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'inv.party_id')
             ->where('inv.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'inv.branch_id'))
             ->whereNull('inv.deleted_at')
             ->whereBetween('inv.invoice_date', [$from, $to])
             ->groupBy('inv.id', 'inv.invoice_no', 'inv.invoice_date', 'inv.status', 'p.name')
@@ -185,6 +190,7 @@ class DashboardController extends Controller
             ->leftJoin('bill_items as bi', fn ($j) => $j->on('bi.bill_id', '=', 'b.id')->whereNull('bi.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'b.party_id')
             ->where('b.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'b.branch_id'))
             ->whereNull('b.deleted_at')
             ->whereBetween('b.bill_date', [$from, $to])
             ->groupBy('b.id', 'b.bill_no', 'b.bill_date', 'b.status', 'p.name')
@@ -210,6 +216,7 @@ class DashboardController extends Controller
             ->leftJoin('quotation_items as qi', fn ($j) => $j->on('qi.quotation_id', '=', 'q.id')->whereNull('qi.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'q.party_id')
             ->where('q.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'q.branch_id'))
             ->whereNull('q.deleted_at')
             ->whereBetween('q.quotation_date', [$from, $to])
             ->groupBy('q.id', 'q.quotation_no', 'q.quotation_date', 'q.status', 'p.name')
@@ -235,6 +242,7 @@ class DashboardController extends Controller
             ->leftJoin('expense_items as ei', fn ($j) => $j->on('ei.expense_id', '=', 'e.id')->whereNull('ei.deleted_at'))
             ->leftJoin('parties as p', 'p.id', '=', 'e.party_id')
             ->where('e.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'e.branch_id'))
             ->whereNull('e.deleted_at')
             ->whereBetween('e.date', [$from, $to])
             ->groupBy('e.id', 'e.expense_no', 'e.date', 'e.status', 'p.name')
@@ -260,6 +268,7 @@ class DashboardController extends Controller
             ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')
             ->join('parties as p', 'p.id', '=', 'inv.party_id')
             ->where('inv.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'inv.branch_id'))
             ->whereNull('inv.deleted_at')
             ->whereNull('ii.deleted_at')
             ->whereNull('p.deleted_at')
@@ -288,6 +297,7 @@ class DashboardController extends Controller
         $salesByMonth = DB::table('invoice_items as ii')
             ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')
             ->where('inv.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'inv.branch_id'))
             ->whereBetween('inv.invoice_date', [$from, $to])
             ->whereNull('inv.deleted_at')
             ->whereNull('ii.deleted_at')
@@ -298,6 +308,7 @@ class DashboardController extends Controller
         $purchasesByMonth = DB::table('bill_items as bi')
             ->join('bills as b', 'b.id', '=', 'bi.bill_id')
             ->where('b.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'b.branch_id'))
             ->whereBetween('b.bill_date', [$from, $to])
             ->whereNull('b.deleted_at')
             ->whereNull('bi.deleted_at')
@@ -308,6 +319,7 @@ class DashboardController extends Controller
         $expensesByMonth = DB::table('expense_items as ei')
             ->join('expenses as e', 'e.id', '=', 'ei.expense_id')
             ->where('e.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'e.branch_id'))
             ->whereBetween('e.date', [$from, $to])
             ->whereNull('e.deleted_at')
             ->whereNull('ei.deleted_at')

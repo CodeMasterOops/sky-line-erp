@@ -413,6 +413,37 @@ it('warehouse transfer report scopes results to the active branch', function () 
     expect($refs->contains('TRF-BRANCH-B'))->toBeFalse();
 });
 
+it('stock movement report scopes results to the active branch', function () {
+    $branchA = Branch::create(['company_id' => $this->company->id, 'name' => 'SM-A', 'code' => 'SMA']);
+    $branchB = Branch::create(['company_id' => $this->company->id, 'name' => 'SM-B', 'code' => 'SMB']);
+
+    foreach ([[$branchA, 'SM-BRANCH-A'], [$branchB, 'SM-BRANCH-B']] as [$branch, $remark]) {
+        StockMovement::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $branch->id,
+            'product_variant_id' => $this->variant->id,
+            'warehouse_id' => $this->warehouse->id,
+            'type' => ChangeTypeEnum::PURCHASE,
+            'direction' => StockDirectionEnum::IN,
+            'quantity' => 10,
+            'unit_cost' => 10.00,
+            'total_cost' => 100.00,
+            'remarks' => $remark,
+            'created_at' => now(),
+        ]);
+    }
+
+    TenantService::setCompanyId($this->company->id);
+    TenantService::setBranchId($branchA->id);
+
+    $response = $this->getJson('/api/admin/inventory-report/stock-movement');
+
+    $response->assertOk();
+    $remarks = collect($response->json('data.rows'))->pluck('remarks');
+    expect($remarks->contains('SM-BRANCH-A'))->toBeTrue();
+    expect($remarks->contains('SM-BRANCH-B'))->toBeFalse();
+});
+
 // Inventory Summary Report
 it('returns inventory summary with opening, purchase, sale and closing columns', function () {
     // Purchase movement in the fiscal year period

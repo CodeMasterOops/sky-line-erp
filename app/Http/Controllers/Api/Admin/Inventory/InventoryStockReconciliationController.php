@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin\Inventory;
 use App\Models\Stock;
 use App\Models\StockLayer;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -20,6 +21,9 @@ class InventoryStockReconciliationController extends Controller
         $companyId = (int) auth('admin')->user()->company_id;
         $onlyMismatch = $request->boolean('only_mismatch', true);
 
+        // This report bypasses the global scope to run raw joins, so branch
+        // isolation is re-applied explicitly via BranchScope (same semantics
+        // as the BranchTenant global scope).
         $valuedSub = StockLayer::withoutGlobalScopes()
             ->select([
                 'product_variant_id',
@@ -27,12 +31,14 @@ class InventoryStockReconciliationController extends Controller
                 DB::raw('SUM(qty_remaining) as valued_qty'),
             ])
             ->where('company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'branch_id'))
             ->whereNull('deleted_at')
             ->groupBy('product_variant_id', 'warehouse_id');
 
         $query = Stock::withoutGlobalScopes()
             ->from('stocks as s')
             ->where('s.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 's.branch_id'))
             ->whereNull('s.deleted_at')
             ->leftJoinSub($valuedSub, 'v', function ($join) {
                 $join->on('v.product_variant_id', '=', 's.product_variant_id')

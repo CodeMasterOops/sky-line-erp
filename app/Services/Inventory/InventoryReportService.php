@@ -4,6 +4,7 @@ namespace App\Services\Inventory;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use App\Enums\BatchStatusEnum;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ class InventoryReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'stock_movements.warehouse_id')
             ->where('stock_movements.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'stock_movements.branch_id'))
             ->whereNull('stock_movements.deleted_at')
             ->whereBetween(DB::raw('DATE(stock_movements.created_at)'), [$fromDate, $toDate])
             ->select([
@@ -116,6 +118,7 @@ class InventoryReportService
 
         $openingQty = (float) DB::table('stock_movements')
             ->where('company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'branch_id'))
             ->where('product_variant_id', $request->product_variant_id)
             ->whereNull('deleted_at')
             ->where(DB::raw('DATE(created_at)'), '<', $fromDate)
@@ -127,6 +130,7 @@ class InventoryReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'stock_movements.warehouse_id')
             ->where('stock_movements.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'stock_movements.branch_id'))
             ->where('stock_movements.product_variant_id', $request->product_variant_id)
             ->whereNull('stock_movements.deleted_at')
             ->whereBetween(DB::raw('DATE(stock_movements.created_at)'), [$fromDate, $toDate])
@@ -194,6 +198,7 @@ class InventoryReportService
             ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'stocks.warehouse_id')
             ->where('stocks.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'stocks.branch_id'))
             ->whereNull('stocks.deleted_at')
             ->where('stocks.quantity', '>', 0)
             ->select([
@@ -267,6 +272,7 @@ class InventoryReportService
     {
         return DB::table('batches')
             ->where('company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'branch_id'))
             ->whereNull('deleted_at')
             ->whereIn('status', BatchStatusEnum::heldValues())
             ->groupBy('product_variant_id', 'warehouse_id')
@@ -371,6 +377,7 @@ class InventoryReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'batches.warehouse_id')
             ->where('batches.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'batches.branch_id'))
             ->whereNull('batches.deleted_at')
             ->where('batches.remaining_qty', '>', 0)
             ->whereNotNull('batches.expiry_date')
@@ -441,6 +448,7 @@ class InventoryReportService
             ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'stocks.warehouse_id')
             ->where('stocks.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'stocks.branch_id'))
             ->whereNull('stocks.deleted_at')
             ->where('stocks.quantity', '>', 0)
             ->select([
@@ -467,6 +475,7 @@ class InventoryReportService
 
         $lastMovements = DB::table('stock_movements')
             ->where('company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'branch_id'))
             ->whereNull('deleted_at')
             ->whereIn('product_variant_id', $activeStocks->pluck('product_variant_id')->unique()->all())
             ->selectRaw('product_variant_id, warehouse_id, MAX(DATE(created_at)) as last_movement_date')
@@ -601,6 +610,7 @@ class InventoryReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
             ->where('stock_movements.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'stock_movements.branch_id'))
             ->whereNull('stock_movements.deleted_at')
             ->whereNull('products.deleted_at')
             ->whereNull('product_variants.deleted_at')
@@ -885,6 +895,7 @@ class InventoryReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'batches.warehouse_id')
             ->where('batches.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'batches.branch_id'))
             ->whereNull('batches.deleted_at')
             ->select([
                 'batches.id',
@@ -979,6 +990,7 @@ class InventoryReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'batches.warehouse_id')
             ->where('batches.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'batches.branch_id'))
             ->whereNull('batches.deleted_at');
 
         if ($request->filled('batch_id')) {
@@ -1002,6 +1014,7 @@ class InventoryReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'batches.warehouse_id')
             ->where('batches.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'batches.branch_id'))
             ->where('batches.id', $batchId)
             ->whereNull('batches.deleted_at')
             ->select([

@@ -554,14 +554,36 @@ class AccountReportService
     }
 
     /**
-     * Optional branch filter for the financial statements, read from the current
-     * request. Returns null (company-wide) when no branch is selected.
+     * Branch isolation for the financial statements. Honours an explicit
+     * branch_id request filter (a UI dropdown), but only for a branch the user
+     * may access (otherwise 403). A non-admin without an explicit branch is
+     * limited to their accessible branches; an admin without one sees the whole
+     * company.
+     *
+     * @return array<int, int>|null null = all branches (no branch filter)
      */
-    private function branchIdFilter(): ?int
+    private function resolveReportBranchIds(): ?array
     {
-        $branchId = request()->input('branch_id');
+        $user = auth('admin')->user();
 
-        return ($branchId === null || $branchId === '') ? null : (int) $branchId;
+        $requested = request()->input('branch_id');
+        $requested = ($requested === null || $requested === '') ? null : (int) $requested;
+
+        if ($requested !== null) {
+            if (! $user->canAccessBranch($requested)) {
+                abort(403, 'You do not have access to this branch.');
+            }
+
+            return [$requested];
+        }
+
+        if (! $user->isAdmin()) {
+            $ids = $user->accessibleBranchIds()->all();
+
+            return empty($ids) ? [0] : $ids;
+        }
+
+        return null;
     }
 
     public function vatReturn(Request $request): array
@@ -1786,7 +1808,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '<=', $endDate->toDateString())
-            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
+            ->when($this->resolveReportBranchIds(), fn ($q, $ids) => $q->whereIn('journals.branch_id', $ids))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1823,7 +1845,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereDate('journals.date', '<=', $endDate->toDateString())
-            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
+            ->when($this->resolveReportBranchIds(), fn ($q, $ids) => $q->whereIn('journals.branch_id', $ids))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1849,7 +1871,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereBetween('journals.date', [$startDate->toDateString(), $endDate->toDateString()])
-            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
+            ->when($this->resolveReportBranchIds(), fn ($q, $ids) => $q->whereIn('journals.branch_id', $ids))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')
@@ -1875,7 +1897,7 @@ class AccountReportService
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->where('journals.fiscal_year_id', $fiscalYear->id)
             ->whereNull('journals.deleted_at')
-            ->when($this->branchIdFilter(), fn ($q, $branchId) => $q->where('journals.branch_id', $branchId))
+            ->when($this->resolveReportBranchIds(), fn ($q, $ids) => $q->whereIn('journals.branch_id', $ids))
             ->groupBy('journal_items.account_id')
             ->get()
             ->keyBy('account_id')

@@ -15,8 +15,8 @@ use App\Http\Controllers\Controller;
 class CrmReportController extends Controller
 {
     /**
-     * Lead pipeline summary — lead count grouped by status (company-scoped,
-     * since leads are Parties which are not branch-owned).
+     * Lead pipeline summary — lead count grouped by status. Scoped to the active
+     * branch via the owning Party (whereHas applies Party's branch global scope).
      */
     #[Permissions('view_crm_report', group: 'crm_report', desc: 'View CRM Reports')]
     public function pipeline()
@@ -24,7 +24,7 @@ class CrmReportController extends Controller
         $byStatus = collect(CrmLeadStatusEnum::cases())->map(fn (CrmLeadStatusEnum $status): array => [
             'status' => $status->value,
             'label' => $status->label(),
-            'count' => CrmLeadProfile::query()->where('status', $status->value)->count(),
+            'count' => CrmLeadProfile::query()->whereHas('party')->where('status', $status->value)->count(),
         ]);
 
         return response()->json([
@@ -43,6 +43,7 @@ class CrmReportController extends Controller
     public function conversion(Request $request)
     {
         $profiles = CrmLeadProfile::query()
+            ->whereHas('party')
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date('date_from')))
             ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->date('date_to')))
             ->get();
