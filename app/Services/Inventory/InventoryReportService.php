@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Services\BranchScope;
 use App\Enums\BatchStatusEnum;
-use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 
 class InventoryReportService
@@ -285,7 +284,6 @@ class InventoryReportService
     public function warehouseTransfer(Request $request): array
     {
         $companyId = auth('admin')->user()->company_id;
-        $branchId = TenantService::branchId();
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
 
@@ -293,7 +291,7 @@ class InventoryReportService
             ->leftJoin('warehouses as fw', 'fw.id', '=', 'stock_transfers.from_warehouse_id')
             ->leftJoin('warehouses as tw', 'tw.id', '=', 'stock_transfers.to_warehouse_id')
             ->where('stock_transfers.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('stock_transfers.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'stock_transfers.branch_id'))
             ->whereNull('stock_transfers.deleted_at')
             ->whereBetween('stock_transfers.date', [$fromDate, $toDate])
             ->select([
@@ -520,14 +518,13 @@ class InventoryReportService
     public function stockOpening(Request $request): array
     {
         $companyId = auth('admin')->user()->company_id;
-        $branchId = TenantService::branchId();
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
 
         $query = DB::table('opening_stock_entries')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'opening_stock_entries.warehouse_id')
             ->where('opening_stock_entries.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('opening_stock_entries.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'opening_stock_entries.branch_id'))
             ->whereNull('opening_stock_entries.deleted_at')
             ->whereBetween('opening_stock_entries.date', [$fromDate, $toDate])
             ->select([

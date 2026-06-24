@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin\Purchase;
 use App\Models\Bill;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Services\Purchase\PurchaseBillService;
@@ -213,6 +214,7 @@ class BillController extends Controller
             ->leftJoinSub($paAgg, 'pa', 'pa.payable_id', '=', 'b.id')
             ->where('b.party_id', $partyId)
             ->where('b.company_id', $companyId)
+            ->tap(fn ($q) => BranchScope::apply($q, 'b.branch_id'))
             ->where('b.status', $approved)
             ->whereNull('b.voided_at')
             ->whereNull('b.deleted_at');

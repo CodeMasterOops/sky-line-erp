@@ -9,6 +9,7 @@ use App\Models\BillItem;
 use App\Enums\StatusEnum;
 use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
@@ -115,6 +116,7 @@ class PurchaseReportController extends Controller
             ->selectRaw('SUM(discount_amount) as discount')
             ->selectRaw('SUM(tax_amount) as vat_amount')
             ->join('bills', 'bills.id', '=', 'bill_items.bill_id')
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->whereNull('bill_items.deleted_at')
             ->whereNull('bills.deleted_at')
             ->where('bills.status', StatusEnum::APPROVED)
@@ -320,6 +322,7 @@ class PurchaseReportController extends Controller
             ->whereNull('b.voided_at')
             ->whereNull('b.deleted_at')
             ->when($companyId, fn ($q) => $q->where('b.company_id', $companyId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'b.branch_id'))
             ->when($fiscalYearId, fn ($q) => $q->where('b.fiscal_year_id', $fiscalYearId));
 
         $today = Carbon::today()->toDateString();

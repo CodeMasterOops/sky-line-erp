@@ -40,6 +40,25 @@ class DataTransferController extends Controller
         private ImportHandlerFactory $importHandlerFactory,
     ) {}
 
+    /**
+     * Non-admin users must operate within a selected branch. Without a branch
+     * context, imports would create branch-less records and exports would read
+     * across every company branch (TenantService::branchId() is null), bypassing
+     * branch isolation. Admins are allowed the company-wide consolidated view.
+     */
+    private function ensureBranchSelectedForNonAdmin(): ?JsonResponse
+    {
+        $user = auth('admin')->user();
+
+        if ($user && ! $user->isAdmin() && TenantService::branchId() === null) {
+            return response()->json([
+                'message' => 'Select a branch before importing or exporting data.',
+            ], 422);
+        }
+
+        return null;
+    }
+
     #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
     public function index(Request $request): JsonResponse
     {
@@ -102,6 +121,11 @@ class DataTransferController extends Controller
         ]);
 
         $user = auth('admin')->user();
+
+        if ($branchGuard = $this->ensureBranchSelectedForNonAdmin()) {
+            return $branchGuard;
+        }
+
         $key = 'data-transfer-upload:'.$user->company_id;
 
         if (RateLimiter::tooManyAttempts($key, (int) config('data_transfer.uploads_per_hour', 10))) {
@@ -395,6 +419,10 @@ class DataTransferController extends Controller
             'format' => ['required', Rule::in(['csv', 'xlsx'])],
             'filters' => ['nullable', 'array'],
         ]);
+
+        if ($branchGuard = $this->ensureBranchSelectedForNonAdmin()) {
+            return $branchGuard;
+        }
 
         $job = $this->uploadService->createExportJob(
             auth('admin')->user(),

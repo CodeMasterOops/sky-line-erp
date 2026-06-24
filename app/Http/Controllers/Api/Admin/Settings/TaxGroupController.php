@@ -22,6 +22,7 @@ class TaxGroupController extends Controller
         return response()->json($groups);
     }
 
+    #[Permissions('create_tax', group: 'tax', desc: 'Create Tax Group')]
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -52,11 +53,13 @@ class TaxGroupController extends Controller
         ], 201);
     }
 
+    #[Permissions('show_tax', group: 'tax', desc: 'Show Tax Group')]
     public function show(TaxGroup $taxGroup): JsonResponse
     {
         return response()->json($taxGroup->load('taxGroupMembers.tax'));
     }
 
+    #[Permissions('edit_tax', group: 'tax', desc: 'Edit Tax Group')]
     public function update(Request $request, TaxGroup $taxGroup): JsonResponse
     {
         $validated = $request->validate([
@@ -89,6 +92,7 @@ class TaxGroupController extends Controller
         ]);
     }
 
+    #[Permissions('delete_tax', group: 'tax', desc: 'Delete Tax Group')]
     public function destroy(TaxGroup $taxGroup): JsonResponse
     {
         $taxGroup->delete();

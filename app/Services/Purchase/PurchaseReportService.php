@@ -8,6 +8,7 @@ use App\Models\Party;
 use App\Enums\StatusEnum;
 use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use App\Services\TenantService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         $row = DB::table('bills')
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
@@ -29,7 +29,7 @@ class PurchaseReportService
                     ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -55,7 +55,7 @@ class PurchaseReportService
                     ->whereNull('debit_note_items.deleted_at');
             })
             ->where('debit_notes.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('debit_notes.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'debit_notes.branch_id'))
             ->where('debit_notes.status', StatusEnum::APPROVED->value)
             ->whereNull('debit_notes.voided_at')
             ->whereNull('debit_notes.deleted_at')
@@ -137,7 +137,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         $rows = DB::table('bills')
             ->join('parties', 'parties.id', '=', 'bills.party_id')
@@ -148,7 +147,7 @@ class PurchaseReportService
             })
             ->leftJoinSub($this->paidSubQuery($companyId), 'pt', fn ($j) => $j->on('bills.id', '=', 'pt.payable_id'))
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -209,7 +208,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         $rows = DB::table('bill_items')
             ->join('bills', 'bills.id', '=', 'bill_items.bill_id')
@@ -217,7 +215,7 @@ class PurchaseReportService
             ->join('products', 'products.id', '=', 'product_variants.product_id')
             ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -274,7 +272,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         $dnItemsSub = DB::table('debit_note_items')
             ->selectRaw('debit_note_id, COUNT(*) as item_count, SUM(quantity * rate) as subtotal, SUM(discount_amount) as discount, SUM(tax_amount) as tax_amount')
@@ -286,7 +283,7 @@ class PurchaseReportService
             ->leftJoin('bills as linked_bill', 'linked_bill.id', '=', 'debit_notes.bill_id')
             ->leftJoinSub($dnItemsSub, 'it', fn ($j) => $j->on('debit_notes.id', '=', 'it.debit_note_id'))
             ->where('debit_notes.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('debit_notes.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'debit_notes.branch_id'))
             ->where('debit_notes.status', StatusEnum::APPROVED->value)
             ->whereNull('debit_notes.voided_at')
             ->whereNull('debit_notes.deleted_at')
@@ -333,7 +330,7 @@ class PurchaseReportService
                     ->whereNull('debit_note_items.deleted_at');
             })
             ->where('debit_notes.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('debit_notes.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'debit_notes.branch_id'))
             ->where('debit_notes.status', StatusEnum::APPROVED->value)
             ->whereNull('debit_notes.voided_at')
             ->whereNull('debit_notes.deleted_at')
@@ -374,7 +371,6 @@ class PurchaseReportService
     public function outstandingPurchase(Request $request): array
     {
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
         $today = Carbon::today()->toDateString();
 
         $balanceExpr = 'COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) - COALESCE(pt.paid_total, 0)';
@@ -388,7 +384,7 @@ class PurchaseReportService
             })
             ->leftJoinSub($this->paidSubQuery($companyId), 'pt', fn ($j) => $j->on('bills.id', '=', 'pt.payable_id'))
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -455,13 +451,12 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         $rows = DB::table('bill_items')
             ->join('bills', 'bills.id', '=', 'bill_items.bill_id')
             ->leftJoin('taxes', 'taxes.id', '=', 'bill_items.tax_id')
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -507,7 +502,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         if (! $request->filled('party_id')) {
             return [
@@ -522,7 +516,7 @@ class PurchaseReportService
 
         $partyId = (int) $request->party_id;
         $party = Party::find($partyId, ['id', 'name', 'code', 'pan']);
-        $openingBalance = $this->computeOpeningBalance($partyId, $fromDate, $companyId, $branchId);
+        $openingBalance = $this->computeOpeningBalance($partyId, $fromDate, $companyId);
 
         $bills = DB::table('bills')
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
@@ -531,7 +525,7 @@ class PurchaseReportService
                     ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -552,7 +546,7 @@ class PurchaseReportService
             ->where('pa.payable_type', (new Bill)->getMorphClass())
             ->where('p.status', StatusEnum::APPROVED->value)
             ->where('p.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('p.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'p.branch_id'))
             ->where('b.party_id', $partyId)
             ->whereNull('p.deleted_at')
             ->whereNull('pa.deleted_at')
@@ -574,7 +568,7 @@ class PurchaseReportService
         $debitNotes = DB::table('debit_notes')
             ->leftJoinSub($dnItemsSub, 'dnt', fn ($j) => $j->on('debit_notes.id', '=', 'dnt.debit_note_id'))
             ->where('debit_notes.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('debit_notes.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'debit_notes.branch_id'))
             ->where('debit_notes.party_id', $partyId)
             ->where('debit_notes.status', StatusEnum::APPROVED->value)
             ->whereNull('debit_notes.voided_at')
@@ -632,7 +626,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         $grnItemsSub = DB::table('grn_items')
             ->selectRaw('goods_received_note_id, COUNT(*) as item_count, SUM(received_qty) as total_received_qty, SUM(billed_qty) as total_billed_qty')
@@ -643,7 +636,7 @@ class PurchaseReportService
             ->join('warehouses as w', 'w.id', '=', 'g.warehouse_id')
             ->joinSub($grnItemsSub, 'gi', fn ($j) => $j->on('gi.goods_received_note_id', '=', 'g.id'))
             ->where('g.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('g.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'g.branch_id'))
             ->where('g.status', StatusEnum::APPROVED->value)
             ->whereNull('g.deleted_at')
             ->whereBetween('g.received_date', [$fromDate, $toDate])
@@ -697,7 +690,6 @@ class PurchaseReportService
     public function pendingPurchase(Request $request): array
     {
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
 
@@ -714,7 +706,7 @@ class PurchaseReportService
             ->leftJoin('parties as pa', 'pa.id', '=', 'po.party_id')
             ->leftJoinSub($receivedSub, 'ri', fn ($j) => $j->on('ri.purchase_order_item_id', '=', 'poi.id'))
             ->where('po.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('po.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'po.branch_id'))
             ->where('po.status', StatusEnum::APPROVED->value)
             ->whereNull('po.deleted_at')
             ->whereNull('poi.deleted_at')
@@ -766,7 +758,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         $paginator = DB::table('bills')
             ->join('parties', 'parties.id', '=', 'bills.party_id')
@@ -776,7 +767,7 @@ class PurchaseReportService
                     ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -825,7 +816,7 @@ class PurchaseReportService
                     ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -865,7 +856,7 @@ class PurchaseReportService
     // Private helpers
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function computeOpeningBalance(int $partyId, string $fromDate, int $companyId, ?int $branchId): float
+    private function computeOpeningBalance(int $partyId, string $fromDate, int $companyId): float
     {
         $openingCr = DB::table('bills')
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
@@ -874,7 +865,7 @@ class PurchaseReportService
                     ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')
@@ -889,7 +880,7 @@ class PurchaseReportService
             ->where('pa.payable_type', (new Bill)->getMorphClass())
             ->where('p.status', StatusEnum::APPROVED->value)
             ->where('p.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('p.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'p.branch_id'))
             ->where('b.party_id', $partyId)
             ->whereNull('p.deleted_at')
             ->whereNull('pa.deleted_at')
@@ -905,7 +896,7 @@ class PurchaseReportService
         $openingDrDebitNotes = DB::table('debit_notes')
             ->leftJoinSub($dnSub, 'dnt', fn ($j) => $j->on('debit_notes.id', '=', 'dnt.debit_note_id'))
             ->where('debit_notes.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('debit_notes.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'debit_notes.branch_id'))
             ->where('debit_notes.party_id', $partyId)
             ->where('debit_notes.status', StatusEnum::APPROVED->value)
             ->whereNull('debit_notes.voided_at')
@@ -922,7 +913,6 @@ class PurchaseReportService
         $fromDate = $this->resolveFromDate($request)->toDateString();
         $toDate = $this->resolveToDate($request)->toDateString();
         $companyId = TenantService::companyId();
-        $branchId = TenantService::branchId();
 
         return DB::table('bills')
             ->leftJoinSub($this->billItemsSubQuery(), 'it', fn ($j) => $j->on('bills.id', '=', 'it.bill_id'))
@@ -931,7 +921,7 @@ class PurchaseReportService
                     ->where('discounts.discountable_type', (new Bill)->getMorphClass());
             })
             ->where('bills.company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('bills.branch_id', $branchId))
+            ->tap(fn ($q) => BranchScope::apply($q, 'bills.branch_id'))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.voided_at')
             ->whereNull('bills.deleted_at')

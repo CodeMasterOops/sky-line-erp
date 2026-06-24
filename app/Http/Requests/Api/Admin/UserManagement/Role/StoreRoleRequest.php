@@ -3,6 +3,8 @@
 namespace App\Http\Requests\Api\Admin\UserManagement\Role;
 
 use App\Tenancy\TRule;
+use Illuminate\Validation\Rule;
+use App\Services\PermissionRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreRoleRequest extends FormRequest
@@ -14,10 +16,22 @@ class StoreRoleRequest extends FormRequest
 
     public function rules(): array
     {
+        $grantable = app(PermissionRegistry::class)->grantableFor($this->user('admin'));
+
         return [
             'name' => ['required', TRule::unique('roles')->withoutTrashed()],
             'permissions' => ['required', 'array'],
-            'permissions.*' => ['required'],
+            'permissions.*' => ['required', 'string', Rule::in($grantable)],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'permissions.*.in' => 'You are not allowed to grant one or more of the selected permissions.',
         ];
     }
 }

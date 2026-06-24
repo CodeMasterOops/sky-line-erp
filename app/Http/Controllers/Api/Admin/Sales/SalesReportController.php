@@ -9,6 +9,7 @@ use App\Enums\StatusEnum;
 use App\Models\InvoiceItem;
 use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use App\Models\ProductVariant;
 use App\Annotation\Permissions;
 use App\Services\TenantService;
@@ -208,7 +209,7 @@ class SalesReportController extends Controller
             ->whereNull('invoice_items.deleted_at')
             ->whereNull('invoices.deleted_at')
             ->where('invoices.company_id', TenantService::companyId())
-            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
+            ->tap(fn ($q) => BranchScope::apply($q, 'invoices.branch_id'))
             ->where('invoices.status', StatusEnum::APPROVED)
             ->whereNull('invoices.voided_at')
             ->whereBetween('invoices.invoice_date', [
@@ -324,7 +325,7 @@ class SalesReportController extends Controller
                     ->where('discounts.discountable_type', (new Invoice)->getMorphClass());
             })
             ->where('invoices.company_id', $companyId)
-            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
+            ->tap(fn ($q) => BranchScope::apply($q, 'invoices.branch_id'))
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')
@@ -392,7 +393,7 @@ class SalesReportController extends Controller
                     ->where('discounts.discountable_type', (new Invoice)->getMorphClass());
             })
             ->where('invoices.company_id', $companyId)
-            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
+            ->tap(fn ($q) => BranchScope::apply($q, 'invoices.branch_id'))
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')

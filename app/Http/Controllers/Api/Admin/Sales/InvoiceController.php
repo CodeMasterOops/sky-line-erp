@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin\Sales;
 use App\Models\Invoice;
 use App\Enums\StatusEnum;
 use Illuminate\Http\Request;
+use App\Services\BranchScope;
 use App\Annotation\Permissions;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
@@ -258,7 +259,7 @@ class InvoiceController extends Controller
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')
-            ->when(TenantService::branchId(), fn ($q) => $q->where('invoices.branch_id', TenantService::branchId()))
+            ->tap(fn ($q) => BranchScope::apply($q, 'invoices.branch_id'))
             ->select([
                 'invoices.id',
                 'invoices.invoice_no',
