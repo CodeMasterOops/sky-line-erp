@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Enums\TdsCategoryEnum;
 use App\Enums\MaritalStatusEnum;
 use App\Enums\EmployeeStatusEnum;
@@ -14,11 +15,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Employee extends Model
 {
+    use BranchTenant;
     use MultiTenant;
     use SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'department_id',
         'designation_id',
         'employee_code',

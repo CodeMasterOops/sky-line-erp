@@ -65,6 +65,11 @@ beforeEach(function () {
         'code' => 'BR1',
     ]);
 
+    // Establish branch context before master data is created so branch-owned
+    // rows (products, variants, warehouses) are stamped with this branch.
+    TenantService::setCompanyId($this->company->id);
+    TenantService::setBranchId($this->branch->id);
+
     $this->user = User::create([
         'company_id' => $this->company->id,
         'name' => 'Opening Stock Admin',

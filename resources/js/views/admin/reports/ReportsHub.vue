@@ -556,6 +556,7 @@ function highlight(label) {
     display: flex;
     align-items: center;
     font-size: 0.875rem;
+    font-weight: 600;
     color: #64748b;
     text-decoration: none;
     line-height: 1.45;

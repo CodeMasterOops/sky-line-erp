@@ -4,6 +4,8 @@ use App\Models\Tag;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Party;
+use App\Models\Branch;
+use App\Models\BranchUser;
 use App\Enums\UserTypeEnum;
 use App\Models\CrmActivity;
 use App\Enums\PartyTypeEnum;
@@ -17,6 +19,15 @@ beforeEach(function () {
 
     $this->company = makeCompany('Acme CRM', 'ACME');
     TenantService::setCompanyId($this->company->id);
+
+    $this->branch = Branch::create([
+        'company_id' => $this->company->id,
+        'name' => 'Head Office',
+        'code' => 'HO',
+        'is_head_office' => true,
+        'is_active' => true,
+    ]);
+    TenantService::setBranchId($this->branch->id);
 
     $this->party = Party::create([
         'company_id' => $this->company->id,
@@ -128,6 +139,15 @@ it('forbids the timeline for a user without the permission', function () {
         'permissions' => ['list_party'],
     ]);
     $user->roles()->attach($role);
+    // Grant branch access so the request reaches the permission gate (403)
+    // rather than being filtered out by the branch scope (404).
+    BranchUser::create([
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'user_id' => $user->id,
+        'role_id' => $role->id,
+        'is_active' => true,
+    ]);
 
     Sanctum::actingAs($user, ['*'], 'admin');
 

@@ -251,7 +251,7 @@ export default {
   padding: 8px 12px;
   border-radius: 8px;
   color: var(--sidebar-text-color, #6e7c91);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   text-decoration: none;
   transition: background 0.15s, color 0.15s;

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\MultiTenant;
 use Illuminate\Support\Str;
+use App\Traits\BranchTenant;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\DataTransfer\DataTransferStatusEnum;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,7 @@ use App\Enums\DataTransfer\DataTransferEntityTypeEnum;
 
 class DataTransferJob extends Model
 {
+    use BranchTenant;
     use MultiTenant;
 
     protected $fillable = [

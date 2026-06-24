@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ItemRoleEnum;
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Enums\ProductTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -13,11 +14,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
+    use BranchTenant;
     use MultiTenant;
     use SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'import_batch_id',
         'product_category_id',
         'product_type',

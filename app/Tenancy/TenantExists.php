@@ -16,6 +16,11 @@ class TenantExists
         return $this;
     }
 
+    protected function appliesBranchScope(): bool
+    {
+        return true;
+    }
+
     public function __toString()
     {
         return rtrim(sprintf(

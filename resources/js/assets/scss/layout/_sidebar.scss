@@ -125,7 +125,7 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
                         }
                     }
                     span{
-                        font-size: variables.$font-size-15;
+                        font-size: variables.$font-size-16;
                         font-weight: variables.$font-weight-medium;
                         color: variables.$gray-600;
                     }
@@ -206,7 +206,7 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
                                 border-radius: 5px;
                                span {
                                 white-space: nowrap;
-                                font-size: variables.$font-size-base;
+                                font-size: variables.$font-size-15;
                                 color: variables.$title-color;
                                }
                                i {

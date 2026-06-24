@@ -7,6 +7,7 @@ use App\Traits\HasNotes;
 use App\Traits\HasDiscount;
 use App\Traits\MultiTenant;
 use App\Enums\PartyTypeEnum;
+use App\Traits\BranchTenant;
 use App\Traits\HasActivities;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -16,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Party extends Model
 {
+    use BranchTenant;
     use HasActivities;
     use HasDiscount;
     use HasNotes;
@@ -25,6 +27,7 @@ class Party extends Model
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'import_batch_id',
         'type',
         'name',

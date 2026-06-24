@@ -2,10 +2,12 @@
 
 use App\Models\User;
 use App\Models\Party;
+use App\Models\Branch;
 use App\Models\Account;
 use App\Models\Invoice;
 use App\Models\Receipt;
 use App\Models\FollowUp;
+use App\Models\BranchUser;
 use App\Models\SalesOrder;
 use App\Enums\UserTypeEnum;
 use App\Enums\PartyTypeEnum;
@@ -33,6 +35,15 @@ beforeEach(function () {
         'user_type' => UserTypeEnum::ADMIN,
     ]);
     Sanctum::actingAs($this->user, ['*'], 'admin');
+
+    $this->branch = Branch::create([
+        'company_id' => $this->company->id,
+        'name' => 'Head Office',
+        'code' => 'HO',
+        'is_head_office' => true,
+        'is_active' => true,
+    ]);
+    TenantService::setBranchId($this->branch->id);
 
     $this->customer = Party::create([
         'company_id' => $this->company->id,
@@ -177,10 +188,19 @@ it('forbids the customer 360 summary without permission', function () {
         'password' => bcrypt('password'),
         'user_type' => UserTypeEnum::USER,
     ]);
-    $user->roles()->create([
+    $role = $user->roles()->create([
         'company_id' => $this->company->id,
         'name' => 'Empty',
         'permissions' => [],
+    ]);
+    // Grant branch access so the request reaches the permission gate (403)
+    // rather than being filtered out by the branch scope (404).
+    BranchUser::create([
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'user_id' => $user->id,
+        'role_id' => $role->id,
+        'is_active' => true,
     ]);
     Sanctum::actingAs($user, ['*'], 'admin');
 

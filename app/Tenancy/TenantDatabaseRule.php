@@ -109,31 +109,44 @@ trait TenantDatabaseRule
         return $this->using;
     }
 
+    /**
+     * Whether this rule should also constrain matches to the active branch.
+     * Existence checks opt in (a user must not reference another branch's row);
+     * uniqueness checks do NOT, because codes are unique per company, not per
+     * branch (frozen decision, see config/tenancy.php).
+     */
+    protected function appliesBranchScope(): bool
+    {
+        return false;
+    }
+
     protected function formatWheres(): string
     {
         $conditions = collect($this->wheres);
 
-        $column = null;
-        $value = null;
-
-        $companyId = TenantService::companyId();
-
-        if ($companyId) {
-            $column = 'company_id';
-            $value = $companyId;
+        if ($companyId = TenantService::companyId()) {
+            $conditions->push(collect([
+                'column' => 'company_id',
+                'value' => $companyId,
+            ]));
         }
 
-        if ($column && $value) {
-            $tenantCond = collect([
-                'column' => $column,
-                'value' => $value,
-            ]);
-
-            $conditions->push($tenantCond);
+        if ($this->appliesBranchScope() && ($branchId = TenantService::branchId()) && $this->tableHasBranchColumn()) {
+            $conditions->push(collect([
+                'column' => 'branch_id',
+                'value' => $branchId,
+            ]));
         }
 
         return $conditions->map(function ($where) {
             return $where['column'].','.'"'.str_replace('"', '""', $where['value']).'"';
         })->implode(',');
+    }
+
+    protected function tableHasBranchColumn(): bool
+    {
+        $bareTable = \Illuminate\Support\Str::afterLast($this->table, '.');
+
+        return columnExists($bareTable, 'branch_id');
     }
 }
