@@ -1058,6 +1058,7 @@ hr{
             background: transparent;
             border: 0;
             line-height: normal;
+            cursor: pointer;
             transition: color 0.2s ease;
             &:hover {
                 color: variables.$primary;
@@ -1070,6 +1071,17 @@ hr{
                 outline: 2px solid variables.$primary-300;
                 outline-offset: 2px;
                 border-radius: 6px;
+            }
+            &--static {
+                cursor: default;
+                pointer-events: none;
+                &:hover {
+                    color: variables.$secondary;
+                    .fiscal-year-icon-wrap {
+                        background: variables.$light-500;
+                        color: variables.$gray-600;
+                    }
+                }
             }
         }
         .fiscal-year-icon-wrap {

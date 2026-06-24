@@ -5,10 +5,18 @@ import {useAdminAuthStore} from "@/stores/admin/auth";
 
 export const useProfileStore = defineStore('admin-profile', {
     state: () => {
-        const authUser = localStorage.getItem('admin_user');
+        let profileData = {};
+        try {
+            const authUser = localStorage.getItem('admin_user');
+            if (authUser) {
+                profileData = JSON.parse(authUser);
+            }
+        } catch {
+            localStorage.removeItem('admin_user');
+        }
         return {
             profile: {
-                data: authUser ? JSON.parse(authUser) : {},
+                data: profileData,
                 loading: false
             },
         }

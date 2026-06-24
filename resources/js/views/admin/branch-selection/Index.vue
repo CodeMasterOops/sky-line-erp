@@ -195,7 +195,7 @@ onMounted(async () => {
         return;
     }
 
-    if (accessibleBranches.value.data.length === 1) {
+    if (accessibleBranches.value.data.length === 1 && !selectedBranchId.value) {
         branchStore.setSelectedBranch(accessibleBranches.value.data[0]);
         await continueWithSelection();
     }

@@ -23,10 +23,12 @@
         <ul class="nav user-menu">
 
             <li class="nav-item fiscal-year-nav">
-                <router-link
+                <button
+                    type="button"
                     class="fiscal-year-link"
-                    :to="{ name: 'admin.branch-select', query: { redirect: currentPath } }"
+                    :class="{ 'fiscal-year-link--static': isSingleBranchSelected }"
                     :title="contextTooltip"
+                    @click="handleBranchNavigation"
                 >
                     <span class="fiscal-year-icon-wrap" aria-hidden="true">
                         <i class="fa fa-building"></i>
@@ -34,19 +36,10 @@
                     <span class="fiscal-year-label d-none d-md-flex flex-column">
                         <span class="fiscal-year-title">{{ selectedBranchLabel }}</span>
                         <span class="fiscal-year-sub">
-                            <template v-if="currentFiscalYear.data.year_name">
-                                {{ currentFiscalYear.data.year_name }}
-                                <span v-if="currentFiscalYear.data.start_date && currentFiscalYear.data.end_date">
-                                    · {{ adToBsDate(currentFiscalYear.data.start_date) }} -
-                                    {{ adToBsDate(currentFiscalYear.data.end_date) }}
-                                </span>
-                            </template>
-                            <template v-else>
-                                Change branch context
-                            </template>
+                            {{ currentFiscalYear.data.year_name || 'No fiscal year' }}
                         </span>
                     </span>
-                </router-link>
+                </button>
             </li>
 
             <li class="nav-item date-mode-nav">
@@ -153,7 +146,6 @@ import {toast} from "@/helpers/toast";
 import {useRouter} from "vue-router";
 import {useAdminNotificationStore} from "@/stores/admin/notification";
 import {useAdminSettingStore} from "@/stores/admin/settings/admin-setting.js";
-import {adToBsDate} from "@/helpers/helper.js";
 import {useBranchStore} from "@/stores/admin/settings/branch.js";
 import {useDatePreferenceStore} from "@/stores/admin/datePreference.js";
 import {useRoute} from "vue-router";
@@ -208,6 +200,7 @@ onMounted(async () => {
     profileStore.getProfile();
     notificationStore.getUnreadNotifications();
     adminSettingStore.getCurrentFiscalYear();
+    branchStore.getMyBranches();
     await branchStore.ensureSelectedBranchLoaded();
     if (branchStore.selectedBranchId) {
         authStore.refreshPermissions();
@@ -229,12 +222,27 @@ watch(route, () => {
 const {profile} = storeToRefs(profileStore);
 const {unreadNotifications: notifications} = storeToRefs(notificationStore);
 const {currentFiscalYear} = storeToRefs(adminSettingStore);
-const {selectedBranch} = storeToRefs(branchStore);
+const {selectedBranch, selectedBranchId, accessibleBranches} = storeToRefs(branchStore);
 
 const currentPath = computed(() => route.fullPath);
 
+const isSingleBranchSelected = computed(() =>
+    accessibleBranches.value.data.length <= 1 && !!selectedBranchId.value
+);
+
+const handleBranchNavigation = () => {
+    if (isSingleBranchSelected.value) { return; }
+    router.push({ name: 'admin.branch-select', query: { redirect: currentPath.value } });
+};
+
 const selectedBranchLabel = computed(() => {
-    return selectedBranch.value?.name || 'Select Branch';
+    if (!selectedBranch.value) { return 'Select Branch'; }
+    const companyName = profile.value.data?.company?.name || selectedBranch.value.name;
+    const hasMultipleBranches = accessibleBranches.value.data.length > 1;
+    if (!hasMultipleBranches) {
+        return companyName;
+    }
+    return `${companyName} - ${selectedBranch.value.name}`;
 });
 
 const contextTooltip = computed(() => {
