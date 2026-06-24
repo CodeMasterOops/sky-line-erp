@@ -422,11 +422,13 @@ it('excludes draft journal items from the GL balance in bank reconciliation', fu
         'approve_user_id' => $user->id,
         'approved_at' => now(),
     ]);
+    // Bank is debit-normal: money received into the bank is a debit to its GL
+    // account, so a 5000 inflow yields a +5000 book balance (SUM(dr - cr)).
     JournalItem::create([
         'journal_id' => $approvedJournal->id,
         'account_id' => $glAccount->id,
-        'dr_amount' => 0,
-        'cr_amount' => 5000,
+        'dr_amount' => 5000,
+        'cr_amount' => 0,
     ]);
 
     // Draft journal — must NOT count in GL balance
@@ -486,11 +488,13 @@ it('auto-matches bank statement lines with matching approved GL entries', functi
         'approve_user_id' => $user->id,
         'approved_at' => now(),
     ]);
+    // Statement credit (money in) must align in sign with a GL debit to the
+    // bank account for the set-based matcher to pair them.
     $journalItem = JournalItem::create([
         'journal_id' => $journal->id,
         'account_id' => $glAccount->id,
-        'dr_amount' => 0,
-        'cr_amount' => 2500,
+        'dr_amount' => 2500,
+        'cr_amount' => 0,
     ]);
 
     // Bank statement line with matching credit and date

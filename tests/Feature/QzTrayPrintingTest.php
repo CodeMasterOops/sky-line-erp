@@ -86,7 +86,15 @@ beforeEach(function () {
         'user_type' => UserTypeEnum::ADMIN,
     ]);
 
-    config(['qz.certificate_path' => null, 'qz.private_key_path' => null]);
+    // Null every signing source — paths *and* base64 env fallbacks — so the
+    // "unconfigured" tests are deterministic regardless of QZ_* env vars set on
+    // the developer machine (there is no .env.testing override for these).
+    config([
+        'qz.certificate_path' => null,
+        'qz.private_key_path' => null,
+        'qz.certificate_base64' => null,
+        'qz.private_key_base64' => null,
+    ]);
 
     Sanctum::actingAs($this->user, ['*'], 'admin');
 });
