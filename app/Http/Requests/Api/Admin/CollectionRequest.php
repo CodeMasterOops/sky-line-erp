@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Admin;
 
+use App\Tenancy\TRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -22,7 +23,7 @@ class CollectionRequest extends FormRequest
             'meta_keywords' => ['nullable'],
             'meta_description' => ['nullable'],
             'products' => ['nullable', 'array'],
-            'products.*' => ['required', Rule::exists('products', 'id')->withoutTrashed()],
+            'products.*' => ['required', TRule::exists('products', 'id')->withoutTrashed()],
         ];
 
         return match ($this->method()) {

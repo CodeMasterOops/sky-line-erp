@@ -8,6 +8,7 @@ use App\Enums\TaxTypeEnum;
 use App\Enums\TaxLineTypeEnum;
 use Illuminate\Validation\Rule;
 use App\Http\Validation\ProductLineRules;
+use App\Http\Validation\BranchScopedExists;
 use Illuminate\Foundation\Http\FormRequest;
 
 class InvoiceRequest extends FormRequest
@@ -82,7 +83,7 @@ class InvoiceRequest extends FormRequest
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
-            'items.*.delivery_challan_item_id' => ['nullable', Rule::exists('delivery_challan_items', 'id')],
+            'items.*.delivery_challan_item_id' => ['nullable', BranchScopedExists::child('delivery_challan_items', 'delivery_challan_id', 'delivery_challans')],
             'items.*.warehouse_id' => ProductLineRules::warehouseId(),
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],

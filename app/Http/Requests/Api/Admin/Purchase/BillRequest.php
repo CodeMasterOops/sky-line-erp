@@ -12,6 +12,7 @@ use App\Rules\WithinActiveFiscalYear;
 use App\Enums\LandedCostTreatmentEnum;
 use App\Services\Inventory\BatchGuard;
 use App\Http\Validation\ProductLineRules;
+use App\Http\Validation\BranchScopedExists;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\LandedCostAllocationMethodEnum;
 
@@ -63,7 +64,7 @@ class BillRequest extends FormRequest
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_line_type' => ['nullable', Rule::enum(TaxLineTypeEnum::class)],
-            'items.*.grn_item_id' => ['nullable', 'integer', Rule::exists('grn_items', 'id')],
+            'items.*.grn_item_id' => ['nullable', 'integer', BranchScopedExists::child('grn_items', 'goods_received_note_id', 'goods_received_notes')],
             'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')->withoutTrashed()],
             'items.*.batch_no' => ['nullable', 'string', 'max:255'],
             'items.*.mfg_date' => ['nullable', 'date'],
