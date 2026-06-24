@@ -12,15 +12,14 @@
                         <VDatepicker id="to_date" label="To Date" v-model="filters.to_date" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" v-model="filters.status">
-                            <option value="">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="presented">Presented</option>
-                            <option value="cleared">Cleared</option>
-                            <option value="bounced">Bounced</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
+                        <VMultiselect
+                            id="cheque_status"
+                            v-model="filters.status"
+                            label="Status"
+                            :options="chequeStatusOptions"
+                            value-prop="value"
+                            placeholder="All Status"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success w-100" @click="loadReport" :disabled="loading">
@@ -104,6 +103,15 @@ const {currentFiscalYear} = storeToRefs(adminSettingStore);
 const rows = ref([]);
 const loading = ref(false);
 const filters = ref({from_date: '', to_date: '', status: ''});
+
+const chequeStatusOptions = [
+    {value: '', name: 'All Status'},
+    {value: 'pending', name: 'Pending'},
+    {value: 'presented', name: 'Presented'},
+    {value: 'cleared', name: 'Cleared'},
+    {value: 'bounced', name: 'Bounced'},
+    {value: 'cancelled', name: 'Cancelled'},
+];
 
 const grandTotal = computed(() => rows.value.reduce((s, r) => s + Number(r.amount ?? 0), 0));
 

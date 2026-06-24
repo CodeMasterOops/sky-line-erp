@@ -113,49 +113,49 @@
     </div>
 
     <!-- Create / Edit Modal -->
-    <div v-if="showFormModal" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1055">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        {{ editingJournal ? 'Edit' : 'Create' }} Recurring Journal
-                    </h5>
-                    <button type="button" class="btn-close" @click="showFormModal = false"></button>
+    <VModal
+        :show-modal="showFormModal"
+        size="xl"
+        :title="editingJournal ? 'Edit Recurring Journal' : 'Create Recurring Journal'"
+        @close-click="showFormModal = false">
+        <template #modal-body>
+            <form @submit.prevent="saveJournal" class="row g-3">
+                <div class="col-md-6">
+                    <VInput id="rj_name" v-model="form.name" label="Name" placeholder="e.g. Monthly Rent" required />
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label">Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" v-model="form.name" placeholder="e.g. Monthly Rent" />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Frequency <span class="text-danger">*</span></label>
-                            <select class="form-select" v-model="form.frequency">
-                                <option v-for="f in frequencies" :key="f.value" :value="f.value">{{ f.label }}</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <VDatepicker id="next_run_date" label="Next Run Date" v-model="form.next_run_date" required />
-                        </div>
-                        <div class="col-md-3">
-                            <VDatepicker id="end_date" label="End Date" v-model="form.end_date" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Remarks</label>
-                            <input type="text" class="form-control" v-model="form.remarks" />
-                        </div>
-                        <div v-if="editingJournal" class="col-md-3 d-flex align-items-end">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" v-model="form.is_active" id="is-active-switch" />
-                                <label class="form-check-label" for="is-active-switch">Active</label>
-                            </div>
-                        </div>
+                <div class="col-md-3">
+                    <VMultiselect
+                        id="rj_frequency"
+                        v-model="form.frequency"
+                        label="Frequency"
+                        :options="frequencies"
+                        value-prop="value"
+                        name-prop="label"
+                        required
+                    />
+                </div>
+                <div class="col-md-3">
+                    <VDatepicker id="next_run_date" label="Next Run Date" v-model="form.next_run_date" required />
+                </div>
+                <div class="col-md-3">
+                    <VDatepicker id="end_date" label="End Date" v-model="form.end_date" />
+                </div>
+                <div class="col-md-6">
+                    <VInput id="rj_remarks" v-model="form.remarks" label="Remarks" />
+                </div>
+                <div v-if="editingJournal" class="col-md-3 d-flex align-items-end">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" v-model="form.is_active" id="is-active-switch" />
+                        <label class="form-check-label" for="is-active-switch">Active</label>
                     </div>
+                </div>
 
+                <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="mb-0">Journal Lines</h6>
                         <button
-                            class="btn btn-sm btn-outline-primary"
+                            type="button"
+                            class="btn btn-sm btn-outline-secondary"
                             @click="form.items.push({ account_id: null, dr_amount: 0, cr_amount: 0 })"
                         >
                             <i class="ti ti-plus me-1"></i> Add Line
@@ -163,51 +163,50 @@
                     </div>
 
                     <div class="table-responsive">
-                        <table class="table table-bordered">
+                        <table class="table table-bordered align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 50%">Account</th>
-                                    <th class="text-end">Debit (NPR)</th>
-                                    <th class="text-end">Credit (NPR)</th>
-                                    <th style="width: 60px"></th>
+                                    <th style="width: 50px">SN</th>
+                                    <th style="min-width: 260px">Account</th>
+                                    <th style="width: 160px" class="text-end">Debit (NPR)</th>
+                                    <th style="width: 160px" class="text-end">Credit (NPR)</th>
+                                    <th style="width: 60px" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="(item, idx) in form.items" :key="idx">
+                                    <td>{{ idx + 1 }}</td>
                                     <td>
-                                        <Multiselect
+                                        <VMultiselect
                                             v-model="item.account_id"
                                             :options="accountOptions"
                                             value-prop="value"
-                                            label="label"
-                                            :searchable="true"
-                                            placeholder="Select account"
+                                            name-prop="label"
+                                            placeholder="Account"
                                         />
                                     </td>
                                     <td>
-                                        <input
-                                            type="number"
-                                            class="form-control form-control-sm text-end"
+                                        <VInput
                                             v-model="item.dr_amount"
-                                            min="0"
-                                            step="0.01"
+                                            input-type="number"
+                                            input-class="form-control text-end"
                                             placeholder="0.00"
                                         />
                                     </td>
                                     <td>
-                                        <input
-                                            type="number"
-                                            class="form-control form-control-sm text-end"
+                                        <VInput
                                             v-model="item.cr_amount"
-                                            min="0"
-                                            step="0.01"
+                                            input-type="number"
+                                            input-class="form-control text-end"
                                             placeholder="0.00"
                                         />
                                     </td>
                                     <td class="text-center">
                                         <button
+                                            type="button"
                                             class="btn btn-sm btn-outline-danger"
                                             @click="form.items.splice(idx, 1)"
+                                            :disabled="form.items.length === 2"
                                         >
                                             <i class="ti ti-trash"></i>
                                         </button>
@@ -216,13 +215,13 @@
                             </tbody>
                             <tfoot class="table-light fw-semibold">
                                 <tr>
-                                    <td>Total</td>
+                                    <td colspan="2" class="text-end">Total</td>
                                     <td class="text-end">{{ formatMoney(formTotalDr) }}</td>
                                     <td class="text-end">{{ formatMoney(formTotalCr) }}</td>
                                     <td></td>
                                 </tr>
                                 <tr v-if="form.items.length > 0 && Math.abs(formTotalDr - formTotalCr) > 0.005">
-                                    <td colspan="4" class="text-danger small">
+                                    <td colspan="5" class="text-danger small">
                                         <i class="ti ti-alert-triangle me-1"></i>
                                         Template must be balanced. Difference: {{ formatMoney(Math.abs(formTotalDr - formTotalCr)) }}
                                     </td>
@@ -231,16 +230,17 @@
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showFormModal = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveJournal" :disabled="saving">
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="showFormModal = false">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         Save
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>

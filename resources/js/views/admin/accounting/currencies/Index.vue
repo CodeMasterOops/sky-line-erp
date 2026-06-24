@@ -70,44 +70,52 @@
         </div>
     </section>
 
-    <div v-if="showForm" class="modal d-block" style="background: rgba(0,0,0,0.5)">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">{{ editingCurrency ? 'Edit' : 'Add' }} Currency</h5>
-                    <button class="btn-close" @click="showForm = false"></button>
+    <VModal
+        :show-modal="showForm"
+        size="md"
+        :title="editingCurrency ? 'Edit Currency' : 'Add Currency'"
+        @close-click="showForm = false">
+        <template #modal-body>
+            <form @submit.prevent="saveCurrency" class="row g-3">
+                <div class="col-12" v-if="!editingCurrency">
+                    <VInput
+                        id="currency_code"
+                        v-model="form.code"
+                        label="Currency Code (3 chars)"
+                        input-class="form-control text-uppercase"
+                        placeholder="USD, INR, EUR..."
+                        required
+                    />
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3" v-if="!editingCurrency">
-                        <label class="form-label">Currency Code (3 chars) *</label>
-                        <input type="text" class="form-control text-uppercase" v-model="form.code" maxlength="3" placeholder="USD, INR, EUR..." />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Currency Name *</label>
-                        <input type="text" class="form-control" v-model="form.name" placeholder="US Dollar" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Symbol</label>
-                        <input type="text" class="form-control" v-model="form.symbol" placeholder="Rs." maxlength="10" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Exchange Rate (1 unit = ? NPR) *</label>
-                        <input type="number" class="form-control" v-model="form.exchange_rate" min="0.000001" step="0.01" />
-                    </div>
-                    <div class="mb-3">
-                        <VDatepicker id="rate_date" label="Rate Date" v-model="form.rate_date" />
-                    </div>
+                <div class="col-12">
+                    <VInput id="currency_name" v-model="form.name" label="Currency Name" placeholder="US Dollar" required />
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showForm = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveCurrency" :disabled="saving">
+                <div class="col-12">
+                    <VInput id="currency_symbol" v-model="form.symbol" label="Symbol" placeholder="Rs." />
+                </div>
+                <div class="col-12">
+                    <VInput
+                        id="currency_rate"
+                        v-model="form.exchange_rate"
+                        label="Exchange Rate (1 unit = ? NPR)"
+                        input-type="number"
+                        required
+                    />
+                </div>
+                <div class="col-12">
+                    <VDatepicker id="rate_date" label="Rate Date" v-model="form.rate_date" />
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="showForm = false">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         Save
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>

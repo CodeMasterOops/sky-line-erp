@@ -76,13 +76,15 @@
                             <div class="col-md-auto">
                                 <VDatepicker id="end_date" label="End Date" v-model="filters.end_date" />
                             </div>
-                            <div class="col-md-auto">
-                                <label class="form-label small mb-1">Status</label>
-                                <select class="form-select form-select-sm" v-model="filters.status">
-                                    <option value="">All</option>
-                                    <option value="unmatched">Unmatched</option>
-                                    <option value="matched">Matched</option>
-                                </select>
+                            <div class="col-md-auto" style="min-width: 160px">
+                                <VMultiselect
+                                    id="line_status"
+                                    v-model="filters.status"
+                                    label="Status"
+                                    :options="statusOptions"
+                                    value-prop="value"
+                                    placeholder="All"
+                                />
                             </div>
                             <div class="col-md-auto d-flex gap-2 flex-wrap">
                                 <button class="btn btn-sm btn-primary" @click="loadLines" :disabled="loading">
@@ -226,185 +228,183 @@
     <BankStatementImportWizard ref="importWizard" @imported="refresh" />
 
     <!-- Create Entry Modal -->
-    <div v-if="createEntryLine" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1055">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Create GL Entry</h5>
-                    <button type="button" class="btn-close" @click="createEntryLine = null"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="small text-muted mb-2">
+    <VModal
+        :show-modal="!!createEntryLine"
+        size="md"
+        title="Create GL Entry"
+        @close-click="createEntryLine = null">
+        <template #modal-body>
+            <form @submit.prevent="submitCreateEntry" class="row g-3">
+                <div class="col-12">
+                    <p class="small text-muted mb-0">
                         Posts a balanced journal between the bank ledger and the chosen account for this
-                        statement line ({{ createEntryLine.credit > 0 ? 'money in' : 'money out' }}:
-                        <strong>{{ formatMoney(createEntryLine.credit > 0 ? createEntryLine.credit : createEntryLine.debit) }}</strong>).
+                        statement line ({{ createEntryLine?.credit > 0 ? 'money in' : 'money out' }}:
+                        <strong>{{ formatMoney(createEntryLine?.credit > 0 ? createEntryLine?.credit : createEntryLine?.debit) }}</strong>).
                     </p>
-                    <div class="mb-3">
-                        <label class="form-label">Contra Account <span class="text-danger">*</span></label>
-                        <Multiselect
-                            v-model="createEntryContra"
-                            :options="glAccountOptions"
-                            value-prop="value"
-                            label="label"
-                            :searchable="true"
-                            placeholder="e.g. Bank Charges, Interest Income"
-                        />
-                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="createEntryLine = null">Cancel</button>
-                    <button class="btn btn-primary" @click="submitCreateEntry" :disabled="!createEntryContra || savingEntry">
+                <div class="col-12">
+                    <VMultiselect
+                        id="contra_account"
+                        v-model="createEntryContra"
+                        label="Contra Account"
+                        :options="glAccountOptions"
+                        value-prop="value"
+                        name-prop="label"
+                        placeholder="e.g. Bank Charges, Interest Income"
+                        required
+                    />
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="createEntryLine = null">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="!createEntryContra || savingEntry">
                         <span v-if="savingEntry" class="spinner-border spinner-border-sm me-1"></span>
-                        Post & Match
+                        Post &amp; Match
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 
     <!-- Reconcile Modal -->
-    <div v-if="showReconcile" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1055">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Reconcile {{ selectedAccount?.bank_name }}</h5>
-                    <button type="button" class="btn-close" @click="showReconcile = false"></button>
+    <VModal
+        :show-modal="showReconcile"
+        size="md"
+        :title="`Reconcile ${selectedAccount?.bank_name ?? ''}`"
+        @close-click="showReconcile = false">
+        <template #modal-body>
+            <div class="row g-3">
+                <div class="col-6">
+                    <VDatepicker id="rec_start" label="Period Start" v-model="reconcileForm.period_start" />
                 </div>
-                <div class="modal-body">
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <VDatepicker id="rec_start" label="Period Start" v-model="reconcileForm.period_start" />
-                        </div>
-                        <div class="col-6">
-                            <VDatepicker id="rec_end" label="Period End" v-model="reconcileForm.period_end" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Statement Closing Balance <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control" v-model.number="reconcileForm.statement_closing_balance" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Notes</label>
-                            <textarea class="form-control" rows="2" v-model="reconcileForm.notes"></textarea>
-                        </div>
-                    </div>
-                    <div v-if="draftReconciliation" class="alert mt-3 mb-0" :class="Math.abs(draftReconciliation.difference) < 0.01 ? 'alert-success' : 'alert-warning'">
+                <div class="col-6">
+                    <VDatepicker id="rec_end" label="Period End" v-model="reconcileForm.period_end" />
+                </div>
+                <div class="col-12">
+                    <VInput
+                        id="statement_closing_balance"
+                        v-model="reconcileForm.statement_closing_balance"
+                        label="Statement Closing Balance"
+                        input-type="number"
+                        required
+                    />
+                </div>
+                <div class="col-12">
+                    <VTextarea id="rec_notes" v-model="reconcileForm.notes" label="Notes" :rows="2" />
+                </div>
+
+                <div v-if="draftReconciliation" class="col-12">
+                    <div class="alert mb-0" :class="Math.abs(draftReconciliation.difference) < 0.01 ? 'alert-success' : 'alert-warning'">
                         Book balance {{ formatMoney(draftReconciliation.gl_balance) }} vs statement
                         {{ formatMoney(draftReconciliation.statement_closing_balance) }} —
                         difference <strong>{{ formatMoney(draftReconciliation.difference) }}</strong>.
                         <span v-if="Math.abs(draftReconciliation.difference) >= 0.01">Match or park remaining lines before completing.</span>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showReconcile = false">Close</button>
-                    <button v-if="!draftReconciliation" class="btn btn-primary" @click="startReconcile" :disabled="savingReconcile">
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="showReconcile = false">Close</button>
+                    <button v-if="!draftReconciliation" type="button" class="btn btn-primary" @click="startReconcile" :disabled="savingReconcile">
                         <span v-if="savingReconcile" class="spinner-border spinner-border-sm me-1"></span>
                         Start
                     </button>
-                    <button v-else class="btn btn-success" @click="completeReconcile" :disabled="savingReconcile">
+                    <button v-else type="button" class="btn btn-success" @click="completeReconcile" :disabled="savingReconcile">
                         <span v-if="savingReconcile" class="spinner-border spinner-border-sm me-1"></span>
                         Complete &amp; Lock
                     </button>
                 </div>
             </div>
-        </div>
-    </div>
+        </template>
+    </VModal>
 
     <!-- History Modal -->
-    <div v-if="showHistory" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1055">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Reconciliation History</h5>
-                    <button type="button" class="btn-close" @click="showHistory = false"></button>
-                </div>
-                <div class="modal-body p-0">
-                    <table class="table table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Period</th>
-                                <th class="text-end">Closing</th>
-                                <th class="text-end">GL</th>
-                                <th class="text-end">Difference</th>
-                                <th>Status</th>
-                                <th>By</th>
-                                <th>When</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-if="!history.length">
-                                <td colspan="7" class="text-center text-muted py-4">No reconciliations yet.</td>
-                            </tr>
-                            <tr v-for="r in history" :key="r.id">
-                                <td>{{ formatDate(r.period_start) }} – {{ formatDate(r.period_end) }}</td>
-                                <td class="text-end">{{ formatMoney(r.statement_closing_balance) }}</td>
-                                <td class="text-end">{{ formatMoney(r.gl_balance) }}</td>
-                                <td class="text-end">{{ formatMoney(r.difference) }}</td>
-                                <td><span class="badge" :class="r.status === 'locked' ? 'bg-success' : 'bg-secondary'">{{ r.status }}</span></td>
-                                <td class="small">{{ r.reconciled_by?.name || '—' }}</td>
-                                <td class="small text-muted">{{ r.reconciled_at ? formatDate(r.reconciled_at) : '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showHistory = false">Close</button>
-                </div>
+    <VModal
+        :show-modal="showHistory"
+        size="lg"
+        title="Reconciliation History"
+        @close-click="showHistory = false">
+        <template #modal-body>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Period</th>
+                            <th class="text-end">Closing</th>
+                            <th class="text-end">GL</th>
+                            <th class="text-end">Difference</th>
+                            <th>Status</th>
+                            <th>By</th>
+                            <th>When</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-if="!history.length">
+                            <td colspan="7" class="text-center text-muted py-4">No reconciliations yet.</td>
+                        </tr>
+                        <tr v-for="r in history" :key="r.id">
+                            <td>{{ formatDate(r.period_start) }} – {{ formatDate(r.period_end) }}</td>
+                            <td class="text-end">{{ formatMoney(r.statement_closing_balance) }}</td>
+                            <td class="text-end">{{ formatMoney(r.gl_balance) }}</td>
+                            <td class="text-end">{{ formatMoney(r.difference) }}</td>
+                            <td><span class="badge" :class="r.status === 'locked' ? 'bg-success' : 'bg-secondary'">{{ r.status }}</span></td>
+                            <td class="small">{{ r.reconciled_by?.name || '—' }}</td>
+                            <td class="small text-muted">{{ r.reconciled_at ? formatDate(r.reconciled_at) : '—' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
-    </div>
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" class="btn btn-cancel" @click="showHistory = false">Close</button>
+            </div>
+        </template>
+    </VModal>
 
     <!-- Add Bank Account Modal -->
-    <div v-if="showAddAccount" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1055">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Bank Account</h5>
-                    <button type="button" class="btn-close" @click="showAddAccount = false"></button>
+    <VModal
+        :show-modal="showAddAccount"
+        size="md"
+        title="Add Bank Account"
+        @close-click="showAddAccount = false">
+        <template #modal-body>
+            <form @submit.prevent="saveBankAccount" class="row g-3">
+                <div class="col-12">
+                    <VMultiselect
+                        id="new_account_gl"
+                        v-model="newAccount.account_id"
+                        label="GL Account (Cash / Bank)"
+                        :options="glAccountOptions"
+                        value-prop="value"
+                        name-prop="label"
+                        placeholder="Account"
+                        required
+                    />
                 </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">GL Account (Cash / Bank) <span class="text-danger">*</span></label>
-                        <Multiselect
-                            v-model="newAccount.account_id"
-                            :options="glAccountOptions"
-                            value-prop="value"
-                            label="label"
-                            :searchable="true"
-                            placeholder="Select account"
-                        />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Bank Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" v-model="newAccount.bank_name" placeholder="e.g. Nabil Bank" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Account Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" v-model="newAccount.account_number" />
-                    </div>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <label class="form-label">Opening Balance</label>
-                            <input type="number" step="0.01" class="form-control" v-model.number="newAccount.opening_balance" />
-                        </div>
-                        <div class="col-6">
-                            <VDatepicker id="ob_date" label="Opening Date" v-model="newAccount.opening_balance_date" />
-                        </div>
-                    </div>
-                    <div class="mb-3 mt-2">
-                        <label class="form-label">Branch</label>
-                        <input type="text" class="form-control" v-model="newAccount.branch" />
-                    </div>
+                <div class="col-12">
+                    <VInput id="new_bank_name" v-model="newAccount.bank_name" label="Bank Name" placeholder="e.g. Nabil Bank" required />
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showAddAccount = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveBankAccount" :disabled="savingAccount">
+                <div class="col-12">
+                    <VInput id="new_account_number" v-model="newAccount.account_number" label="Account Number" required />
+                </div>
+                <div class="col-6">
+                    <VInput id="new_opening_balance" v-model="newAccount.opening_balance" label="Opening Balance" input-type="number" />
+                </div>
+                <div class="col-6">
+                    <VDatepicker id="ob_date" label="Opening Date" v-model="newAccount.opening_balance_date" />
+                </div>
+                <div class="col-12">
+                    <VInput id="new_branch" v-model="newAccount.branch" label="Branch" />
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="showAddAccount = false">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="savingAccount">
                         <span v-if="savingAccount" class="spinner-border spinner-border-sm me-1"></span>
                         Save
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
@@ -426,6 +426,12 @@ const showAddAccount = ref(false);
 const savingAccount = ref(false);
 const glAccountOptions = ref([]);
 const filters = ref({ start_date: '', end_date: '', status: '' });
+
+const statusOptions = [
+    { value: '', name: 'All' },
+    { value: 'unmatched', name: 'Unmatched' },
+    { value: 'matched', name: 'Matched' },
+];
 const newAccount = ref({ account_id: null, bank_name: '', account_number: '', branch: '', opening_balance: 0, opening_balance_date: '' });
 
 const importWizard = ref(null);

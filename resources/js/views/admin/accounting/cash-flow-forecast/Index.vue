@@ -8,20 +8,26 @@
             <div class="card-body py-2">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label small">Forecast Period</label>
-                        <select class="form-select form-select-sm" v-model="params.days" @change="loadForecast">
-                            <option :value="30">30 Days</option>
-                            <option :value="60">60 Days</option>
-                            <option :value="90">90 Days</option>
-                        </select>
+                        <VMultiselect
+                            id="forecast_period"
+                            v-model="params.days"
+                            label="Forecast Period"
+                            :options="periodOptions"
+                            value-prop="value"
+                            @on-input="loadForecast"
+                        />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small">Opening Balance (NPR)</label>
-                        <input v-model="params.opening_balance" type="number" class="form-control form-control-sm"
-                               placeholder="Current cash/bank balance" />
+                        <VInput
+                            id="opening_balance"
+                            v-model="params.opening_balance"
+                            label="Opening Balance (NPR)"
+                            input-type="number"
+                            placeholder="Current cash/bank balance"
+                        />
                     </div>
                     <div class="col-md-2">
-                        <button class="btn btn-sm btn-primary w-100" :disabled="loading" @click="loadForecast">
+                        <button class="btn btn-primary w-100" :disabled="loading" @click="loadForecast">
                             <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
                             Run Forecast
                         </button>
@@ -140,6 +146,12 @@ import showErrors from '@/helpers/showErrors';
 const loading = ref(false);
 const forecast = ref(null);
 const params = ref({ days: 90, opening_balance: 0 });
+
+const periodOptions = [
+    { value: 30, name: '30 Days' },
+    { value: 60, name: '60 Days' },
+    { value: 90, name: '90 Days' },
+];
 
 onMounted(loadForecast);
 

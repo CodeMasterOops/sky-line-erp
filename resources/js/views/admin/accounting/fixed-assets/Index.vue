@@ -153,117 +153,110 @@
     </div>
 
     <!-- Create / Edit Modal -->
-    <div v-if="showFormModal" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1055">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">{{ editingAsset ? 'Edit' : 'Add' }} Fixed Asset</h5>
-                    <button type="button" class="btn-close" @click="showFormModal = false"></button>
+    <VModal
+        :show-modal="showFormModal"
+        size="lg"
+        :title="editingAsset ? 'Edit Fixed Asset' : 'Add Fixed Asset'"
+        @close-click="showFormModal = false">
+        <template #modal-body>
+            <form @submit.prevent="saveAsset" class="row g-3">
+                <div class="col-md-6">
+                    <VInput id="asset_name" v-model="form.name" label="Asset Name" placeholder="e.g. Office Laptop" required />
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Asset Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" v-model="form.name" placeholder="e.g. Office Laptop" />
+                <div class="col-md-6">
+                    <label class="form-label">Category</label>
+                    <div class="d-flex gap-2">
+                        <div class="flex-grow-1">
+                            <VMultiselect
+                                v-model="form.fixed_asset_category_id"
+                                :options="categoryOptions"
+                                value-prop="value"
+                                name-prop="label"
+                                placeholder="Category"
+                                @on-input="onCategorySelect"
+                            />
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Category</label>
-                            <div class="d-flex gap-2">
-                                <Multiselect
-                                    v-model="form.fixed_asset_category_id"
-                                    :options="categoryOptions"
-                                    value-prop="value"
-                                    label="label"
-                                    :searchable="true"
-                                    placeholder="Select category"
-                                    class="flex-grow-1"
-                                    @select="onCategorySelect"
-                                />
-                                <button
-                                    class="btn btn-outline-secondary btn-sm"
-                                    title="Add new category"
-                                    @click="showCategoryModal = true"
-                                >
-                                    <i class="ti ti-plus"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <VDatepicker id="purchase_date" label="Purchase Date" v-model="form.purchase_date" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Purchase Cost (NPR) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" v-model="form.purchase_cost" min="0" step="0.01" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Salvage Value (NPR)</label>
-                            <input type="number" class="form-control" v-model="form.salvage_value" min="0" step="0.01" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Useful Life (years) <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" v-model="form.useful_life_years" min="0.5" step="0.5" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Depreciation Method <span class="text-danger">*</span></label>
-                            <select class="form-select" v-model="form.depreciation_method">
-                                <option value="slm">Straight Line Method (SLM)</option>
-                                <option value="wdv">Written Down Value (WDV)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Notes</label>
-                            <input type="text" class="form-control" v-model="form.notes" placeholder="Optional notes" />
-                        </div>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            title="Add new category"
+                            @click="showCategoryModal = true"
+                        >
+                            <i class="ti ti-plus"></i>
+                        </button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showFormModal = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveAsset" :disabled="saving">
+                <div class="col-md-6">
+                    <VDatepicker id="purchase_date" label="Purchase Date" v-model="form.purchase_date" required />
+                </div>
+                <div class="col-md-6">
+                    <VInput id="purchase_cost" v-model="form.purchase_cost" label="Purchase Cost (NPR)" input-type="number" required />
+                </div>
+                <div class="col-md-6">
+                    <VInput id="salvage_value" v-model="form.salvage_value" label="Salvage Value (NPR)" input-type="number" />
+                </div>
+                <div class="col-md-6">
+                    <VInput id="useful_life_years" v-model="form.useful_life_years" label="Useful Life (years)" input-type="number" :min-value="0.5" required />
+                </div>
+                <div class="col-md-6">
+                    <VMultiselect
+                        id="depreciation_method"
+                        v-model="form.depreciation_method"
+                        label="Depreciation Method"
+                        :options="depreciationMethods"
+                        value-prop="value"
+                        required
+                    />
+                </div>
+                <div class="col-md-6">
+                    <VInput id="asset_notes" v-model="form.notes" label="Notes" placeholder="Optional notes" />
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="showFormModal = false">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         Save Asset
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 
     <!-- Add Category Modal -->
-    <div v-if="showCategoryModal" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1060">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Asset Category</h5>
-                    <button type="button" class="btn-close" @click="showCategoryModal = false"></button>
+    <VModal
+        :show-modal="showCategoryModal"
+        size="md"
+        title="Add Asset Category"
+        @close-click="showCategoryModal = false">
+        <template #modal-body>
+            <form @submit.prevent="saveCategory" class="row g-3">
+                <div class="col-12">
+                    <VInput id="category_name" v-model="categoryForm.name" label="Category Name" required />
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">Category Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" v-model="categoryForm.name" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Default Depreciation Method</label>
-                            <select class="form-select" v-model="categoryForm.depreciation_method">
-                                <option value="slm">Straight Line (SLM)</option>
-                                <option value="wdv">Written Down Value (WDV)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Default Useful Life (years)</label>
-                            <input type="number" class="form-control" v-model="categoryForm.useful_life_years" min="0.5" step="0.5" />
-                        </div>
-                    </div>
+                <div class="col-md-6">
+                    <VMultiselect
+                        id="category_method"
+                        v-model="categoryForm.depreciation_method"
+                        label="Default Depreciation Method"
+                        :options="depreciationMethods"
+                        value-prop="value"
+                    />
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showCategoryModal = false">Cancel</button>
-                    <button class="btn btn-primary" @click="saveCategory" :disabled="savingCategory">
+                <div class="col-md-6">
+                    <VInput id="category_useful_life" v-model="categoryForm.useful_life_years" label="Default Useful Life (years)" input-type="number" :min-value="0.5" />
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="showCategoryModal = false">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="savingCategory">
                         <span v-if="savingCategory" class="spinner-border spinner-border-sm me-1"></span>
                         Save Category
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
@@ -319,6 +312,11 @@ const defaultForm = () => ({
 
 const form = ref(defaultForm());
 const categoryForm = ref({ name: '', depreciation_method: 'slm', useful_life_years: 5 });
+
+const depreciationMethods = [
+    { value: 'slm', name: 'Straight Line Method (SLM)' },
+    { value: 'wdv', name: 'Written Down Value (WDV)' },
+];
 
 const fetchAssets = async () => {
     loading.value = true;
@@ -387,8 +385,8 @@ const loadSchedule = async () => {
     }
 };
 
-const onCategorySelect = (value, option) => {
-    const cat = option?.item;
+const onCategorySelect = (value) => {
+    const cat = categoryOptions.value.find((o) => o.value === value)?.item;
     if (cat) {
         form.value.depreciation_method = cat.depreciation_method ?? form.value.depreciation_method;
         form.value.useful_life_years = cat.useful_life_years ?? form.value.useful_life_years;

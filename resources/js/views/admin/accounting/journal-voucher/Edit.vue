@@ -27,9 +27,15 @@
                 </div>
 
                 <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Journal Lines</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
+                            <i class="ti ti-plus me-1"></i> Add Line
+                        </button>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
                             <tr>
                                 <th style="width: 50px;">SN</th>
                                 <th>Account</th>
@@ -81,20 +87,26 @@
                                         class="btn btn-sm btn-outline-danger"
                                         @click="removeItem(index)"
                                         :disabled="form.items.length === 2">
-                                        <i class="fa fa-trash"></i>
+                                        <i class="ti ti-trash"></i>
                                     </button>
                                 </td>
                             </tr>
                             </tbody>
+                            <tfoot class="table-light fw-semibold">
+                                <tr>
+                                    <td colspan="2" class="text-end">Total</td>
+                                    <td class="text-end">{{ formatMoney(totalDr) }}</td>
+                                    <td class="text-end">{{ formatMoney(totalCr) }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                                <tr v-if="(totalDr > 0 || totalCr > 0) && Math.abs(totalDr - totalCr) > 0.0001">
+                                    <td colspan="6" class="text-danger small">
+                                        <i class="ti ti-alert-triangle me-1"></i>
+                                        Total Dr must equal Total Cr. Difference: {{ formatMoney(Math.abs(totalDr - totalCr)) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
-                            Add Item
-                        </button>
-                        <div class="text-muted small">
-                            Total Dr: {{ formatMoney(totalDr) }} | Total Cr: {{ formatMoney(totalCr) }}
-                        </div>
                     </div>
                     <div v-if="errors.items" class="text-danger small mt-2">
                         {{ errors.items }}

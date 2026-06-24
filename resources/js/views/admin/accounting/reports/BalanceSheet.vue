@@ -20,21 +20,14 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Compare Fiscal Year</label>
-                        <select
+                        <VMultiselect
+                            id="compare_fiscal_year"
                             v-model="filter.compare_fiscal_year_id"
-                            class="form-select"
+                            label="Compare Fiscal Year"
+                            :options="compareFiscalYearSelectOptions"
                             :disabled="fiscalYears.loading"
-                        >
-                            <option value="">None</option>
-                            <option
-                                v-for="fy in compareFiscalYearOptions"
-                                :key="fy.id"
-                                :value="String(fy.id)"
-                            >
-                                {{ fy.year_name }}{{ fy.is_current ? ' (Current)' : '' }}
-                            </option>
-                        </select>
+                            placeholder="None"
+                        />
                     </div>
                     <div class="col-md-3">
                         <button
@@ -161,6 +154,14 @@ let pickerInstance = null;
 const compareFiscalYearOptions = computed(() => {
     return fiscalYears.value.data.filter((fy) => String(fy.id) !== String(filter.fiscal_year_id));
 });
+
+const compareFiscalYearSelectOptions = computed(() => [
+    {id: '', name: 'None'},
+    ...compareFiscalYearOptions.value.map((fy) => ({
+        id: String(fy.id),
+        name: `${fy.year_name}${fy.is_current ? ' (Current)' : ''}`,
+    })),
+]);
 
 const hasCompareFiscalYear = computed(() => Boolean(balanceSheet.value.data?.compare_fiscal_year));
 

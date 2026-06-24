@@ -61,96 +61,88 @@
     </div>
 
     <!-- Post Opening Balance modal -->
-    <div v-if="showForm" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1055">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Post Opening Balance</h5>
-                    <button type="button" class="btn-close" @click="showForm = false"></button>
+    <VModal
+        :show-modal="showForm"
+        size="xl"
+        title="Post Opening Balance"
+        @close-click="showForm = false">
+        <template #modal-body>
+            <form @submit.prevent="postOpeningBalance" class="row g-3">
+                <div class="col-md-6">
+                    <VDatepicker id="form_date" label="As of Date" v-model="form.date" required />
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <VDatepicker id="form_date" label="As of Date" v-model="form.date" required />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Remarks</label>
-                            <input type="text" class="form-control" v-model="form.remarks" placeholder="Opening Balance Entry" />
-                        </div>
-                    </div>
+                <div class="col-md-6">
+                    <VInput id="ob_remarks" v-model="form.remarks" label="Remarks" placeholder="Opening Balance Entry" />
+                </div>
 
+                <div class="col-12">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="mb-0">Account Lines</h6>
-                        <button class="btn btn-sm btn-outline-primary" @click="addLine">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addLine">
                             <i class="ti ti-plus me-1"></i> Add Line
                         </button>
                     </div>
 
-                    <div>
-                        <table class="table table-bordered">
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 45%">Account</th>
-                                    <th class="text-end">Debit (NPR)</th>
-                                    <th class="text-end">Credit (NPR)</th>
-                                    <th style="width: 60px"></th>
+                                    <th style="width: 50px">SN</th>
+                                    <th style="min-width: 260px">Account</th>
+                                    <th style="width: 160px" class="text-end">Debit (NPR)</th>
+                                    <th style="width: 160px" class="text-end">Credit (NPR)</th>
+                                    <th style="width: 60px" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <template v-for="(line, idx) in form.items" :key="idx">
-                                    <tr>
-                                        <td>
-                                            <Multiselect
-                                                v-model="line.account_id"
-                                                :options="accountOptions"
-                                                value-prop="value"
-                                                label="label"
-                                                :searchable="true"
-                                                placeholder="Select account"
-                                            />
-                                        </td>
-                                        <td>
-                                            <input
-                                                type="number"
-                                                class="form-control text-end"
-                                                v-model="line.dr_amount"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                            />
-                                        </td>
-                                        <td>
-                                            <input
-                                                type="number"
-                                                class="form-control text-end"
-                                                v-model="line.cr_amount"
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                            />
-                                        </td>
-                                        <td class="text-center">
-                                            <button class="btn btn-sm btn-outline-danger" @click="removeLine(idx)">
-                                                <i class="ti ti-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </template>
+                                <tr v-for="(line, idx) in form.items" :key="idx">
+                                    <td>{{ idx + 1 }}</td>
+                                    <td>
+                                        <VMultiselect
+                                            v-model="line.account_id"
+                                            :options="accountOptions"
+                                            value-prop="value"
+                                            name-prop="label"
+                                            placeholder="Account"
+                                        />
+                                    </td>
+                                    <td>
+                                        <VInput
+                                            v-model="line.dr_amount"
+                                            input-type="number"
+                                            input-class="form-control text-end"
+                                            placeholder="0.00"
+                                        />
+                                    </td>
+                                    <td>
+                                        <VInput
+                                            v-model="line.cr_amount"
+                                            input-type="number"
+                                            input-class="form-control text-end"
+                                            placeholder="0.00"
+                                        />
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @click="removeLine(idx)">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
                                 <tr v-if="!form.items.length">
-                                    <td colspan="4" class="text-center text-muted py-3">
+                                    <td colspan="5" class="text-center text-muted py-3">
                                         Click "Add Line" to add account entries.
                                     </td>
                                 </tr>
                             </tbody>
                             <tfoot class="table-light fw-semibold">
                                 <tr>
-                                    <td>Total</td>
+                                    <td colspan="2" class="text-end">Total</td>
                                     <td class="text-end">{{ formatMoney(totalDr) }}</td>
                                     <td class="text-end">{{ formatMoney(totalCr) }}</td>
                                     <td></td>
                                 </tr>
                                 <tr v-if="(totalDr > 0 || totalCr > 0) && Math.abs(totalDr - totalCr) > 0.005">
-                                    <td colspan="4" class="text-danger small">
+                                    <td colspan="5" class="text-danger small">
                                         <i class="ti ti-alert-triangle me-1"></i>
                                         Debit and Credit totals must be equal.
                                         Difference: {{ formatMoney(Math.abs(totalDr - totalCr)) }}
@@ -160,68 +152,65 @@
                         </table>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="showForm = false">Cancel</button>
-                    <button
-                        class="btn btn-primary"
-                        @click="postOpeningBalance"
-                        :disabled="saving"
-                    >
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="showForm = false">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         Post Opening Balance
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 
     <!-- View detail modal -->
-    <div v-if="viewingEntry" class="modal d-block" style="background: rgba(0,0,0,0.5); z-index: 1060">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <div>
-                        <h5 class="modal-title">{{ viewingEntry.voucher_no }}</h5>
-                        <div class="text-muted small">{{ formatDate(viewingEntry.date) }} · {{ viewingEntry.remarks }}</div>
-                    </div>
-                    <button type="button" class="btn-close" @click="viewingEntry = null"></button>
-                </div>
-                <div class="modal-body">
-                    <table class="table table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Account</th>
-                                <th class="text-end">Debit (NPR)</th>
-                                <th class="text-end">Credit (NPR)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="item in viewingEntry.journal_items" :key="item.id">
-                                <td>{{ item.account?.name }} <span class="text-muted small">({{ item.account?.code }})</span></td>
-                                <td class="text-end">{{ formatMoney(item.dr_amount) }}</td>
-                                <td class="text-end">{{ formatMoney(item.cr_amount) }}</td>
-                            </tr>
-                        </tbody>
-                        <tfoot class="table-light fw-semibold">
-                            <tr>
-                                <td>Total</td>
-                                <td class="text-end">
-                                    {{ formatMoney(viewingEntry.journal_items?.reduce((s, i) => s + parseFloat(i.dr_amount || 0), 0) || 0) }}
-                                </td>
-                                <td class="text-end">
-                                    {{ formatMoney(viewingEntry.journal_items?.reduce((s, i) => s + parseFloat(i.cr_amount || 0), 0) || 0) }}
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+    <VModal
+        :show-modal="!!viewingEntry"
+        size="lg"
+        @close-click="viewingEntry = null">
+        <template #header>
+            <div class="page-title">
+                <h4 class="mb-0">{{ viewingEntry?.voucher_no }}</h4>
+                <div class="text-muted small">{{ formatDate(viewingEntry?.date) }} · {{ viewingEntry?.remarks }}</div>
             </div>
-        </div>
-    </div>
+        </template>
+        <template #modal-body>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Account</th>
+                            <th class="text-end">Debit (NPR)</th>
+                            <th class="text-end">Credit (NPR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="item in viewingEntry?.journal_items" :key="item.id">
+                            <td>{{ item.account?.name }} <span class="text-muted small">({{ item.account?.code }})</span></td>
+                            <td class="text-end">{{ formatMoney(item.dr_amount) }}</td>
+                            <td class="text-end">{{ formatMoney(item.cr_amount) }}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="table-light fw-semibold">
+                        <tr>
+                            <td>Total</td>
+                            <td class="text-end">
+                                {{ formatMoney(viewingEntry?.journal_items?.reduce((s, i) => s + parseFloat(i.dr_amount || 0), 0) || 0) }}
+                            </td>
+                            <td class="text-end">
+                                {{ formatMoney(viewingEntry?.journal_items?.reduce((s, i) => s + parseFloat(i.cr_amount || 0), 0) || 0) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue';
+import { ref, computed } from 'vue';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { toast } from '@/helpers/toast.js';
@@ -252,11 +241,6 @@ const defaultForm = () => ({
 
 const form = ref(defaultForm());
 
-const activeLines = computed(() =>
-    form.value.items.filter(
-        (l) => parseFloat(l.dr_amount) > 0 || parseFloat(l.cr_amount) > 0
-    )
-);
 const totalDr = computed(() =>
     form.value.items.reduce((s, l) => s + (parseFloat(l.dr_amount) || 0), 0)
 );

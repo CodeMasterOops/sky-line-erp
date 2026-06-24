@@ -144,141 +144,121 @@
     </div>
 
     <!-- Record Cheque Modal -->
-    <div v-if="createModal" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.45); z-index: 1055">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Record PDC Cheque</h5>
-                    <button type="button" class="btn-close" @click="createModal = false"></button>
+    <VModal
+        :show-modal="createModal"
+        size="lg"
+        title="Record PDC Cheque"
+        @close-click="createModal = false">
+        <template #modal-body>
+            <form @submit.prevent="saveCheque" class="row g-3">
+                <div class="col-md-6">
+                    <VMultiselect
+                        id="cheque_type"
+                        v-model="form.type"
+                        label="Type"
+                        :options="typeOptions"
+                        value-prop="value"
+                        required
+                    />
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Type <span class="text-danger">*</span></label>
-                            <select v-model="form.type" class="form-select">
-                                <option value="receivable">Receivable (from customer)</option>
-                                <option value="payable">Payable (to supplier)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">{{ partyLabel }} <span class="text-danger">*</span></label>
-                            <div class="position-relative">
-                                <input
-                                    v-model="partySearch"
-                                    type="text"
-                                    class="form-control"
-                                    :placeholder="`Search ${partyLabel.toLowerCase()} by name…`"
-                                    @input="showPartyDropdown = true"
-                                    @focus="showPartyDropdown = true"
-                                    @blur="hidePartyDropdown"
-                                />
-                                <div
-                                    v-if="showPartyDropdown && filteredParties.length"
-                                    class="position-absolute w-100 bg-white border rounded shadow-sm"
-                                    style="z-index:1060; max-height:180px; overflow-y:auto; top:100%"
-                                >
-                                    <div
-                                        v-for="p in filteredParties"
-                                        :key="p.id"
-                                        class="px-3 py-2"
-                                        style="cursor:pointer"
-                                        @mousedown.prevent="selectParty(p)"
-                                    >
-                                        <div class="fw-semibold small">{{ p.name }}</div>
-                                        <div class="text-muted" style="font-size:0.75rem">{{ p.phone }}</div>
-                                    </div>
-                                </div>
-                                <div v-if="form.party_id" class="form-text text-success small">
-                                    <i class="ti ti-check me-1"></i>Selected: {{ partySearch }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">
-                                {{ isReceivable ? 'Bank Name' : 'Our Bank Account' }}
-                                <span class="text-danger">*</span>
-                            </label>
-                            <input v-if="isReceivable" v-model="form.bank_name" class="form-control" placeholder="e.g. Nabil Bank" />
-                            <select v-else v-model="form.bank_account_id" class="form-select">
-                                <option value="">Select bank account</option>
-                                <option v-for="account in bankAccounts" :key="account.id" :value="account.id">
-                                    {{ account.bank_name }} — {{ account.account_number }}
-                                </option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Cheque No <span class="text-danger">*</span></label>
-                            <input v-model="form.cheque_no" class="form-control" placeholder="e.g. 001234" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Amount (NPR) <span class="text-danger">*</span></label>
-                            <input v-model="form.amount" type="number" class="form-control" min="0" step="0.01" />
-                        </div>
-                        <div class="col-md-6">
-                            <VDatepicker id="cheque_date" label="Cheque Date" v-model="form.cheque_date" required />
-                        </div>
-                        <div class="col-md-6">
-                            <VDatepicker id="deposit_date" :label="depositDateLabel" v-model="form.deposit_date" />
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label">Remarks</label>
-                            <textarea v-model="form.remarks" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
+                <div class="col-md-6">
+                    <VMultiselect
+                        id="cheque_party"
+                        v-model="form.party_id"
+                        :label="partyLabel"
+                        :options="partyOptions"
+                        :placeholder="partyLabel"
+                        required
+                    />
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="createModal = false">Cancel</button>
-                    <button class="btn btn-primary" :disabled="saving" @click="saveCheque">
+                <div class="col-md-4">
+                    <VInput
+                        v-if="isReceivable"
+                        id="bank_name"
+                        v-model="form.bank_name"
+                        label="Bank Name"
+                        placeholder="e.g. Nabil Bank"
+                        required
+                    />
+                    <VMultiselect
+                        v-else
+                        id="bank_account_id"
+                        v-model="form.bank_account_id"
+                        label="Our Bank Account"
+                        placeholder="Bank account"
+                        :options="bankAccountOptions"
+                        required
+                    />
+                </div>
+                <div class="col-md-4">
+                    <VInput id="cheque_no" v-model="form.cheque_no" label="Cheque No" placeholder="e.g. 001234" required />
+                </div>
+                <div class="col-md-4">
+                    <VInput id="cheque_amount" v-model="form.amount" label="Amount (NPR)" input-type="number" required />
+                </div>
+                <div class="col-md-6">
+                    <VDatepicker id="cheque_date" label="Cheque Date" v-model="form.cheque_date" required />
+                </div>
+                <div class="col-md-6">
+                    <VDatepicker id="deposit_date" :label="depositDateLabel" v-model="form.deposit_date" />
+                </div>
+                <div class="col-12">
+                    <VTextarea id="cheque_remarks" v-model="form.remarks" label="Remarks" :rows="2" />
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="createModal = false">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         Save Cheque
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 
     <!-- Action Modal (present / clear / bounce) -->
-    <div v-if="actionModal.show" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.45); z-index: 1055">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">{{ actionModal.title }}</h5>
-                    <button type="button" class="btn-close" @click="actionModal.show = false"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted small mb-3">
+    <VModal
+        :show-modal="actionModal.show"
+        size="md"
+        :title="actionModal.title"
+        @close-click="actionModal.show = false">
+        <template #modal-body>
+            <form @submit.prevent="submitAction" class="row g-3">
+                <div class="col-12">
+                    <p class="text-muted small mb-0">
                         Cheque <strong>{{ actionModal.cheque?.cheque_no }}</strong>
                         · {{ formatMoney(actionModal.cheque?.amount) }}
                         · {{ actionModal.cheque?.party?.name }}
                     </p>
-                    <div v-if="actionModal.type !== 'bounce'" class="mb-3">
-                        <VDatepicker
-                            id="action_date"
-                            :label="actionModal.type === 'present' ? 'Deposit / Presentation Date' : 'Cleared Date'"
-                            v-model="actionModal.date"
-                            required
-                        />
-                    </div>
-                    <div v-if="actionModal.type === 'bounce'" class="mb-3">
-                        <label class="form-label">Bounce Reason</label>
-                        <textarea class="form-control" rows="2" v-model="actionModal.remarks" placeholder="e.g. Insufficient funds"></textarea>
-                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="actionModal.show = false">Cancel</button>
+                <div v-if="actionModal.type !== 'bounce'" class="col-12">
+                    <VDatepicker
+                        id="action_date"
+                        :label="actionModal.type === 'present' ? 'Deposit / Presentation Date' : 'Cleared Date'"
+                        v-model="actionModal.date"
+                        required
+                    />
+                </div>
+                <div v-if="actionModal.type === 'bounce'" class="col-12">
+                    <VTextarea id="bounce_reason" v-model="actionModal.remarks" label="Bounce Reason" :rows="2" />
+                </div>
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="actionModal.show = false">Cancel</button>
                     <button
+                        type="submit"
                         class="btn"
                         :class="actionModal.type === 'bounce' ? 'btn-danger' : 'btn-primary'"
                         :disabled="actionModal.saving"
-                        @click="submitAction"
                     >
                         <span v-if="actionModal.saving" class="spinner-border spinner-border-sm me-1"></span>
                         Confirm
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
@@ -304,18 +284,22 @@ const createModal = ref(false);
 
 const parties = ref([]);
 const bankAccounts = ref([]);
-const partySearch = ref('');
-const showPartyDropdown = ref(false);
+
+const typeOptions = [
+    { value: 'receivable', name: 'Receivable (from customer)' },
+    { value: 'payable', name: 'Payable (to supplier)' },
+];
 
 const isReceivable = computed(() => form.value.type === 'receivable');
 const partyLabel = computed(() => isReceivable.value ? 'Customer' : 'Supplier');
 const depositDateLabel = computed(() => isReceivable.value ? 'Received / Deposit Date' : 'Issued Date');
 
-const filteredParties = computed(() => {
-    const q = partySearch.value.trim().toLowerCase();
-    if (!q) return parties.value.slice(0, 20);
-    return parties.value.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 20);
-});
+const partyOptions = computed(() =>
+    parties.value.map((p) => ({ id: p.id, name: p.phone ? `${p.name} — ${p.phone}` : p.name }))
+);
+const bankAccountOptions = computed(() =>
+    bankAccounts.value.map((a) => ({ id: a.id, name: `${a.bank_name} — ${a.account_number}` }))
+);
 
 const statuses = [
     { value: 'pending', label: 'Pending' },
@@ -477,7 +461,6 @@ watch(() => form.value.type, async () => {
     form.value.party_id = '';
     form.value.bank_name = '';
     form.value.bank_account_id = '';
-    partySearch.value = '';
     await fetchParties();
     if (!isReceivable.value && !bankAccounts.value.length) {
         await fetchBankAccounts();
@@ -521,21 +504,9 @@ function openCreate() {
         amount: '',
         remarks: '',
     };
-    partySearch.value = '';
-    showPartyDropdown.value = false;
     createModal.value = true;
     fetchParties();
 }
-
-const selectParty = (p) => {
-    form.value.party_id = p.id;
-    partySearch.value = p.name;
-    showPartyDropdown.value = false;
-};
-
-const hidePartyDropdown = () => {
-    setTimeout(() => { showPartyDropdown.value = false; }, 150);
-};
 
 async function saveCheque() {
     saving.value = true;

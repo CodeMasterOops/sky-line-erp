@@ -26,10 +26,12 @@
                             <tr v-for="f in targetFields" :key="f.key">
                                 <td>{{ f.label }} <span v-if="f.required" class="text-danger">*</span></td>
                                 <td>
-                                    <select v-model="mapping[f.key]" class="form-select form-select-sm">
-                                        <option value="">— Skip —</option>
-                                        <option v-for="(h, i) in headers" :key="i" :value="i">{{ h || `Column ${i + 1}` }}</option>
-                                    </select>
+                                    <VMultiselect
+                                        v-model="mapping[f.key]"
+                                        :options="columnOptions"
+                                        value-prop="value"
+                                        placeholder="— Skip —"
+                                    />
                                 </td>
                             </tr>
                         </tbody>
@@ -86,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { toast } from '@/helpers/toast.js';
@@ -115,6 +117,11 @@ const targetFields = [
     { key: 'credit', label: 'Credit (money in)', required: false },
     { key: 'balance', label: 'Balance', required: false },
 ];
+
+const columnOptions = computed(() => [
+    { value: '', name: '— Skip —' },
+    ...headers.value.map((h, i) => ({ value: i, name: h || `Column ${i + 1}` })),
+]);
 
 const mappedRows = ref([]);
 const previewRows = ref([]);

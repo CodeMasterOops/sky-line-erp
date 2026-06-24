@@ -121,89 +121,102 @@
     </section>
 
     <!-- Create / Edit Budget Modal -->
-    <div v-if="formModal" class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5)">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">{{ editingId ? 'Edit' : 'Create' }} Budget</h5>
-                    <button type="button" class="btn-close" @click="formModal = false"></button>
+    <VModal
+        :show-modal="formModal"
+        size="xl"
+        :title="editingId ? 'Edit Budget' : 'Create Budget'"
+        @close-click="formModal = false">
+        <template #modal-body>
+            <form @submit.prevent="saveBudget" class="row g-3">
+                <div class="col-md-6">
+                    <VInput
+                        id="budget_name"
+                        v-model="form.name"
+                        label="Budget Name"
+                        required
+                    />
                 </div>
-                <div class="modal-body">
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Budget Name <span class="text-danger">*</span></label>
-                            <input v-model="form.name" class="form-control" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Branch (optional)</label>
-                            <select v-model="form.branch_id" class="form-select">
-                                <option value="">All Branches</option>
-                                <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
-                            </select>
-                        </div>
+                <div class="col-md-6">
+                    <VMultiselect
+                        id="budget_branch"
+                        v-model="form.branch_id"
+                        label="Branch"
+                        placeholder="All Branches"
+                        :options="branches"
+                    />
+                </div>
+
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Budget Lines</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addLine">
+                            <i class="ti ti-plus me-1"></i> Add Line
+                        </button>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small">Search Account</label>
-                        <input
-                            type="text"
-                            class="form-control form-control-sm"
-                            placeholder="Type to filter accounts..."
-                            v-model="accountSearch"
-                        />
-                    </div>
-                    <h6 class="border-bottom pb-1">Budget Lines</h6>
                     <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
                                 <tr>
-                                    <th style="min-width:220px">Account <span class="text-danger">*</span></th>
-                                    <th style="min-width:120px">Month (1–12, blank=annual)</th>
-                                    <th style="min-width:140px">Budgeted Amount</th>
-                                    <th></th>
+                                    <th style="width:50px">SN</th>
+                                    <th style="min-width:260px">Account <VRequiredMark /></th>
+                                    <th style="width:160px">Month <small class="text-muted">(1–12, blank = annual)</small></th>
+                                    <th style="width:160px">Budgeted Amount</th>
+                                    <th style="width:60px" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr v-for="(line, i) in form.lines" :key="i">
+                                    <td>{{ i + 1 }}</td>
                                     <td>
-                                        <select v-model="line.account_id" class="form-select form-select-sm">
-                                            <option value="">— Select Account —</option>
-                                            <option
-                                                v-for="acc in filteredAccounts"
-                                                :key="acc.id"
-                                                :value="acc.id">
-                                                {{ acc.code }} — {{ acc.name }}
-                                            </option>
-                                        </select>
+                                        <VMultiselect
+                                            v-model="line.account_id"
+                                            :options="accountOptions"
+                                            placeholder="Account"
+                                        />
                                     </td>
                                     <td>
-                                        <input v-model="line.period_month" type="number" min="1" max="12" class="form-control form-control-sm" placeholder="Annual" />
+                                        <VInput
+                                            v-model="line.period_month"
+                                            input-type="number"
+                                            :min-value="1"
+                                            :max-value="12"
+                                            placeholder="Annual"
+                                        />
                                     </td>
                                     <td>
-                                        <input v-model="line.budgeted_amount" type="number" min="0" step="0.01" class="form-control form-control-sm" />
+                                        <VInput
+                                            v-model="line.budgeted_amount"
+                                            input-type="number"
+                                            placeholder="0.00"
+                                        />
                                     </td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" @click="form.lines.splice(i,1)">
-                                            <i class="ti ti-x"></i>
+                                    <td class="text-center">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            @click="form.lines.splice(i, 1)"
+                                            :disabled="form.lines.length === 1">
+                                            <i class="ti ti-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @click="addLine">
-                        <i class="ti ti-plus me-1"></i> Add Line
-                    </button>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @click="formModal = false">Cancel</button>
-                    <button class="btn btn-primary" :disabled="saving" @click="saveBudget">
+
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="formModal = false">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         {{ editingId ? 'Save Changes' : 'Create Budget' }}
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
@@ -214,7 +227,6 @@ import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import { apiAdmin } from '@/helpers/api';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
-import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const loading = ref(false);
 const saving = ref(false);
@@ -223,7 +235,6 @@ const budgets = ref([]);
 const listMeta = ref({ total: 0, current_page: 1, per_page: 10, from: null, to: null, last_page: 1 });
 const branches = ref([]);
 const accounts = ref([]);
-const accountSearch = ref('');
 const formModal = ref(false);
 const editingId = ref(null);
 const viewingBudget = ref(null);
@@ -233,13 +244,9 @@ const vsActualFilter = ref({ from_date: '', to_date: '' });
 const emptyLine = () => ({ account_id: '', period_month: '', budgeted_amount: '' });
 const form = ref({ branch_id: '', name: '', is_active: true, lines: [emptyLine()] });
 
-const filteredAccounts = computed(() => {
-    const q = accountSearch.value.trim().toLowerCase();
-    if (!q) return accounts.value;
-    return accounts.value.filter(
-        (a) => a.name.toLowerCase().includes(q) || String(a.code).toLowerCase().includes(q)
-    );
-});
+const accountOptions = computed(() =>
+    accounts.value.map((a) => ({ id: a.id, name: `${a.code} — ${a.name}` }))
+);
 
 const listColumns = [
     { title: 'SN', key: 'sn', width: 60 },
@@ -301,14 +308,12 @@ function addLine() {
 
 function openCreate() {
     editingId.value = null;
-    accountSearch.value = '';
     form.value = { branch_id: '', name: '', is_active: true, lines: [emptyLine()] };
     formModal.value = true;
 }
 
 function openEdit(budget) {
     editingId.value = budget.id;
-    accountSearch.value = '';
     form.value = {
         branch_id: budget.branch_id ?? '',
         name: budget.name,

@@ -3,7 +3,7 @@
         <template #actions>
             <button
                 class="btn btn-outline-primary d-flex align-items-center"
-                :disabled="!selectedFiscalYear || generating"
+                :disabled="!currentFiscalYearId || generating"
                 @click="generatePeriods"
             >
                 <span v-if="generating" class="spinner-border spinner-border-sm me-2"></span>
@@ -14,24 +14,6 @@
     </PageHeader>
 
     <div class="card table-list-card">
-        <div class="card-header d-flex align-items-center justify-content-between flex-wrap row-gap-3">
-            <div class="d-flex align-items-center gap-2">
-                <label class="form-label mb-0 text-nowrap">Fiscal Year</label>
-                <select
-                    v-model="selectedFiscalYear"
-                    class="form-select form-select-sm"
-                    style="min-width: 280px"
-                    :disabled="fiscalYears.loading"
-                    @change="loadPeriods"
-                >
-                    <option value="">— Select Fiscal Year —</option>
-                    <option v-for="fy in fiscalYears.data" :key="fy.id" :value="fy.id">
-                        {{ fy.year_name }} ({{ formatDate(fy.start_date) }} – {{ formatDate(fy.end_date) }}){{ fy.is_current ? ' · Current' : '' }}
-                    </option>
-                </select>
-            </div>
-        </div>
-
         <div class="card-body">
             <div class="custom-datatable-filter table-responsive">
                 <a-table
@@ -100,7 +82,7 @@
                     <template #emptyText>
                         <div class="text-center text-muted py-5">
                             <i class="ti ti-calendar-off display-4 d-block mb-3"></i>
-                            {{ selectedFiscalYear ? 'No periods found. Click "Generate Periods" to create them.' : 'Select a fiscal year to view its accounting periods.' }}
+                            No periods found for the current fiscal year. Click "Generate Periods" to create them.
                         </div>
                     </template>
                 </a-table>
@@ -110,7 +92,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
@@ -120,10 +102,10 @@ import { useAdminSettingStore } from '@/stores/admin/settings/admin-setting.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
 
 const adminSettingStore = useAdminSettingStore();
-const { fiscalYears, currentFiscalYear } = storeToRefs(adminSettingStore);
+const { currentFiscalYear } = storeToRefs(adminSettingStore);
 const { confirmAction } = useConfirmAction();
 
-const selectedFiscalYear = ref('');
+const currentFiscalYearId = computed(() => currentFiscalYear.value?.data?.id ?? '');
 const periods = ref([]);
 const loading = ref(false);
 const generating = ref(false);
@@ -146,13 +128,13 @@ const statusBadge = (status) => ({
 }[status] ?? 'bg-secondary');
 
 const loadPeriods = async () => {
-    if (!selectedFiscalYear.value) {
+    if (!currentFiscalYearId.value) {
         periods.value = [];
         return;
     }
     loading.value = true;
     try {
-        const res = await apiAdmin('accounting-period', 'get', { fiscal_year_id: selectedFiscalYear.value });
+        const res = await apiAdmin('accounting-period', 'get', { fiscal_year_id: currentFiscalYearId.value });
         periods.value = res.data.data || [];
     } catch (e) {
         showErrors(e);
@@ -164,7 +146,7 @@ const loadPeriods = async () => {
 const generatePeriods = async () => {
     generating.value = true;
     try {
-        const res = await apiAdmin('accounting-period/generate', 'post', { fiscal_year_id: selectedFiscalYear.value });
+        const res = await apiAdmin('accounting-period/generate', 'post', { fiscal_year_id: currentFiscalYearId.value });
         toast('success', res.data.message);
         await loadPeriods();
     } catch (e) {
@@ -211,13 +193,11 @@ const handleLock = (period) => {
 };
 
 onMounted(async () => {
-    await Promise.all([
-        adminSettingStore.getFiscalYears(),
-        adminSettingStore.getCurrentFiscalYear(),
-    ]);
+    if (!currentFiscalYearId.value) {
+        await adminSettingStore.getCurrentFiscalYear();
+    }
 
-    if (currentFiscalYear.value.data?.id) {
-        selectedFiscalYear.value = currentFiscalYear.value.data.id;
+    if (currentFiscalYearId.value) {
         await loadPeriods();
     }
 });

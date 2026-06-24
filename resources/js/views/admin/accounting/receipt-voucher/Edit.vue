@@ -38,9 +38,15 @@
                 </div>
 
                 <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Receipt Lines</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
+                            <i class="ti ti-plus me-1"></i> Add Line
+                        </button>
+                    </div>
                     <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
                             <tr>
                                 <th style="width: 50px;">SN</th>
                                 <th>Account</th>
@@ -52,8 +58,8 @@
                             <tbody>
                             <tr v-for="(item, index) in form.items" :key="index">
                                 <td>{{ index + 1 }}</td>
-                                <td>
-                                    <VSelect
+                                <td style="width: 300px;min-width: 300px;">
+                                    <VMultiselect
                                         v-model="form.items[index].account_id"
                                         :options="accounts.data"
                                         @validate="validateField(`items[${index}].account_id`)"
@@ -81,20 +87,19 @@
                                         class="btn btn-sm btn-outline-danger"
                                         @click="removeItem(index)"
                                         :disabled="form.items.length === 1">
-                                        <i class="fa fa-trash"></i>
+                                        <i class="ti ti-trash"></i>
                                     </button>
                                 </td>
                             </tr>
                             </tbody>
+                            <tfoot class="table-light fw-semibold">
+                                <tr>
+                                    <td colspan="2" class="text-end">Total</td>
+                                    <td class="text-end">{{ formatMoney(totalAmount) }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
                         </table>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addItem">
-                            Add Item
-                        </button>
-                        <div class="text-muted small">
-                            Total Amount: {{ formatMoney(totalAmount) }}
-                        </div>
                     </div>
                     <div v-if="errors.items" class="text-danger small mt-2">
                         {{ errors.items }}
