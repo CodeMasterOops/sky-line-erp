@@ -57,6 +57,7 @@
 
 <script>
 import Settings from "@/assets/json/settings.json";
+import { isSettingsRouteActive } from "@/helpers/settingsMenuActive.js";
 
 export default {
   data() {
@@ -86,23 +87,11 @@ export default {
   },
   methods: {
     /**
-     * Normalize path by removing trailing slashes and query params
-     */
-    normalizePath(path) {
-      if (!path) return "";
-      // Remove trailing slash
-      let normalized = path.replace(/\/$/, "");
-      // Remove query string and hash if present
-      normalized = normalized.split("?")[0].split("#")[0];
-      return normalized;
-    },
-    /**
-     * Check if a route is active
+     * Check if a route is active, including child pages nested beneath it
+     * (e.g. `/admin/settings/branches/1/users` keeps "Branches" active).
      */
     isActive(route) {
-      const currentPath = this.normalizePath(this.$route.path);
-      const routePath = this.normalizePath(route);
-      return currentPath === routePath;
+      return isSettingsRouteActive(this.$route.path, route);
     },
     /**
      * Check if a parent menu should be active (has active child)

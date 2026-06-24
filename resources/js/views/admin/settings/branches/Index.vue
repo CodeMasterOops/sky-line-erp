@@ -60,56 +60,105 @@
         @close-click="closeFormModal"
     >
         <template #modal-body>
-            <form @submit.prevent="saveBranch" class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Branch Name <span class="text-danger">*</span></label>
-                    <input v-model="form.name" class="form-control" placeholder="Kathmandu Branch" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Code <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <input v-model="form.code" class="form-control" placeholder="KTM" />
-                        <button
-                            v-if="!editId"
-                            type="button"
-                            class="btn btn-primary"
-                            :disabled="codeLoading"
-                            @click="fetchNextCode">
-                            Generate
-                        </button>
+            <form @submit.prevent="saveBranch" class="branch-form">
+                <section class="branch-form__section">
+                    <div class="branch-form__section-head">
+                        <span class="branch-form__icon"><i class="ti ti-building-store"></i></span>
+                        <div>
+                            <h6 class="branch-form__title">Branch Details</h6>
+                            <p class="branch-form__hint">Identify this branch within your organisation.</p>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">PAN</label>
-                    <input v-model="form.pan" class="form-control" />
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Address</label>
-                    <input v-model="form.address" class="form-control" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Phone</label>
-                    <input v-model="form.phone" class="form-control" />
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Email</label>
-                    <input v-model="form.email" class="form-control" type="email" />
-                </div>
-                <div class="col-md-6 d-flex gap-4 align-items-end">
-                    <div class="form-check">
-                        <input v-model="form.is_head_office" type="checkbox" class="form-check-input" id="isHO" />
-                        <label class="form-check-label" for="isHO">Head Office</label>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Branch Name <span class="text-danger">*</span></label>
+                            <input v-model="form.name" class="form-control" placeholder="e.g. Kathmandu Branch" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">Code <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input v-model="form.code" class="form-control" placeholder="KTM" />
+                                <button
+                                    v-if="!editId"
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    :disabled="codeLoading"
+                                    @click="fetchNextCode">
+                                    <span v-if="codeLoading" class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                    <span v-else>Generate</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-medium">PAN</label>
+                            <input v-model="form.pan" class="form-control" placeholder="Tax PAN" />
+                        </div>
                     </div>
-                    <div class="form-check">
-                        <input v-model="form.is_active" type="checkbox" class="form-check-input" id="brActive" />
-                        <label class="form-check-label" for="brActive">Active</label>
+                </section>
+
+                <section class="branch-form__section">
+                    <div class="branch-form__section-head">
+                        <span class="branch-form__icon"><i class="ti ti-address-book"></i></span>
+                        <div>
+                            <h6 class="branch-form__title">Contact</h6>
+                            <p class="branch-form__hint">Where this branch can be reached.</p>
+                        </div>
                     </div>
-                </div>
-                <div class="col-12 d-flex justify-content-end gap-2">
-                    <button class="btn btn-cancel" type="button" @click="closeFormModal">Cancel</button>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-medium">Address</label>
+                            <input v-model="form.address" class="form-control" placeholder="Street, City" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Phone</label>
+                            <input v-model="form.phone" class="form-control" placeholder="+977 ..." />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-medium">Email</label>
+                            <input v-model="form.email" class="form-control" type="email" placeholder="branch@company.com" />
+                        </div>
+                    </div>
+                </section>
+
+                <section class="branch-form__section">
+                    <div class="branch-form__section-head">
+                        <span class="branch-form__icon"><i class="ti ti-adjustments"></i></span>
+                        <div>
+                            <h6 class="branch-form__title">Settings</h6>
+                            <p class="branch-form__hint">Control how this branch behaves.</p>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="branch-form__toggle">
+                                <div>
+                                    <label class="form-check-label fw-medium" for="isHO">Head Office</label>
+                                    <p class="branch-form__hint mb-0">Mark as the primary location.</p>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input v-model="form.is_head_office" type="checkbox" class="form-check-input" id="isHO" role="switch" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="branch-form__toggle">
+                                <div>
+                                    <label class="form-check-label fw-medium" for="brActive">Active</label>
+                                    <p class="branch-form__hint mb-0">Inactive branches are hidden from use.</p>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input v-model="form.is_active" type="checkbox" class="form-check-input" id="brActive" role="switch" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="branch-form__footer">
+                    <button class="btn btn-light" type="button" @click="closeFormModal">Cancel</button>
                     <button class="btn btn-primary" type="submit" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-                        Save Branch
+                        {{ editId ? 'Update Branch' : 'Save Branch' }}
                     </button>
                 </div>
             </form>
@@ -193,3 +242,69 @@ async function deleteBranch(id) {
     fetch();
 }
 </script>
+
+<style scoped>
+.branch-form__section {
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--bs-border-color, #e9ecef);
+}
+
+.branch-form__section:last-of-type {
+    border-bottom: 0;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0;
+}
+
+.branch-form__section-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.branch-form__icon {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 0.5rem;
+    background: var(--bs-primary-bg-subtle, #eef2ff);
+    color: var(--bs-primary, #4361ee);
+    font-size: 1.1rem;
+}
+
+.branch-form__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.branch-form__hint {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.branch-form__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--bs-border-color, #e9ecef);
+    border-radius: 0.5rem;
+    height: 100%;
+}
+
+.branch-form__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 1.25rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--bs-border-color, #e9ecef);
+}
+</style>
