@@ -54,6 +54,41 @@
         </div>
       </section>
 
+      <!-- Quick links -->
+      <section class="dashboard-section">
+        <div class="card dashboard-panel quick-links">
+          <div class="card-header dashboard-panel__header d-flex justify-content-between align-items-center">
+            <div class="d-inline-flex align-items-center">
+              <span class="title-icon fs-16 me-2"><i class="ti ti-pin"></i></span>
+              <h5 class="card-title mb-0">Quick Links</h5>
+            </div>
+            <button type="button" class="quick-links__edit" @click="openLinksEditor">
+              <i class="ti ti-pencil me-1"></i>Edit Links
+            </button>
+          </div>
+          <div class="card-body">
+            <div v-if="!pinnedLinks.length" class="dashboard-empty">
+              No quick links pinned yet. Click “Edit Links” to add shortcuts to the pages you use most.
+            </div>
+            <div v-else class="row g-2">
+              <div
+                v-for="link in pinnedLinks"
+                :key="link.routeName"
+                class="col-xl-4 col-md-6 col-12 d-flex"
+              >
+                <router-link :to="{ name: link.routeName }" class="quick-link flex-fill">
+                  <span class="quick-link__icon"><i :class="link.icon"></i></span>
+                  <span class="quick-link__text min-w-0">
+                    <span class="quick-link__title">{{ link.label }}</span>
+                    <span class="quick-link__category">{{ link.category }}</span>
+                  </span>
+                </router-link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Analytics -->
       <section class="dashboard-section">
         <div class="row g-2">
@@ -397,6 +432,53 @@
         </div>
       </section>
     </template>
+
+    <VModal
+      :show-modal="showLinksEditor"
+      size="lg"
+      title="Edit Quick Links"
+      @close-click="closeLinksEditor"
+    >
+      <template #modal-body>
+        <p class="text-muted fs-13 mb-3">
+          Select the pages you want quick access to from your dashboard.
+          <span class="fw-semibold">{{ draftLinks.length }}</span> selected.
+        </p>
+        <div class="quick-links-editor">
+          <div
+            v-for="group in groupedLeaves"
+            :key="group.category"
+            class="quick-links-editor__group"
+          >
+            <h6 class="quick-links-editor__heading">{{ group.category }}</h6>
+            <div class="row g-2">
+              <div v-for="leaf in group.items" :key="leaf.routeName" class="col-md-6">
+                <label
+                  class="quick-links-editor__item"
+                  :class="{ 'quick-links-editor__item--active': isDrafted(leaf.routeName) }"
+                >
+                  <input
+                    type="checkbox"
+                    class="form-check-input m-0 flex-shrink-0"
+                    :checked="isDrafted(leaf.routeName)"
+                    @change="toggleDraft(leaf.routeName)"
+                  />
+                  <i :class="leaf.icon" class="mx-2 fs-16"></i>
+                  <span class="text-truncate">{{ leaf.label }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-light" @click="closeLinksEditor">Cancel</button>
+          <button type="button" class="btn btn-primary" :disabled="savingLinks" @click="saveLinks">
+            <span v-if="savingLinks" class="spinner-border spinner-border-sm me-1"></span>
+            Save Links
+          </button>
+        </div>
+      </template>
+    </VModal>
   </div>
 </template>
 
@@ -409,9 +491,17 @@ import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
 import {useAdminDashboardStore} from '@/stores/admin/dashboard';
+import {usePinnedLinksStore} from '@/stores/admin/pinnedLinks';
 import {useDisplayDate} from '@/composables/useDisplayDate.js';
+import VModal from '@/components/base/VModal.vue';
+import rawSidebar from '@/assets/json/sidebar.json';
+import {filterSidebarSections, flattenMenuLeaves} from '@/helpers/sidebarMenu';
+import {hasPermission} from '@/helpers/checkPermission';
+import {toast} from '@/helpers/toast.js';
+import showErrors from '@/helpers/showErrors';
 
 const dashboardStore = useAdminDashboardStore();
+const pinnedLinksStore = usePinnedLinksStore();
 const {mode: dateMode, formatDate} = useDisplayDate();
 const route  = useRoute();
 const router = useRouter();
@@ -464,6 +554,75 @@ const businessMetrics = computed(() => {
         },
     ];
 });
+
+/* ---- Quick links (pinned dashboard shortcuts) ---- */
+const availableLeaves = computed(() =>
+    flattenMenuLeaves(filterSidebarSections(rawSidebar, (p) => hasPermission(p)))
+        .filter((leaf) => leaf.routeName !== 'admin.dashboard'),
+);
+
+const leafIndex = computed(() => {
+    const index = {};
+    availableLeaves.value.forEach((leaf) => {
+        index[leaf.routeName] = leaf;
+    });
+    return index;
+});
+
+const pinnedLinks = computed(() =>
+    pinnedLinksStore.links.map((name) => leafIndex.value[name]).filter(Boolean),
+);
+
+const groupedLeaves = computed(() => {
+    const groups = [];
+    const byCategory = {};
+    availableLeaves.value.forEach((leaf) => {
+        if (!byCategory[leaf.category]) {
+            byCategory[leaf.category] = {category: leaf.category, items: []};
+            groups.push(byCategory[leaf.category]);
+        }
+        byCategory[leaf.category].items.push(leaf);
+    });
+    return groups;
+});
+
+const showLinksEditor = ref(false);
+const savingLinks     = ref(false);
+const draftLinks      = ref([]);
+
+const isDrafted = (routeName) => draftLinks.value.includes(routeName);
+
+const toggleDraft = (routeName) => {
+    draftLinks.value = isDrafted(routeName)
+        ? draftLinks.value.filter((name) => name !== routeName)
+        : [...draftLinks.value, routeName];
+};
+
+const openLinksEditor = () => {
+    draftLinks.value = [...pinnedLinksStore.links];
+    showLinksEditor.value = true;
+};
+
+const closeLinksEditor = () => {
+    showLinksEditor.value = false;
+};
+
+const saveLinks = async () => {
+    savingLinks.value = true;
+    const ordered = availableLeaves.value
+        .filter((leaf) => draftLinks.value.includes(leaf.routeName))
+        .map((leaf) => leaf.routeName);
+
+    try {
+        await pinnedLinksStore.setLinks(ordered);
+        toast(200, 'Quick links updated');
+        showLinksEditor.value = false;
+    } catch (err) {
+        showErrors(err);
+    } finally {
+        savingLinks.value = false;
+    }
+};
 
 const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : '–';
 

@@ -44,6 +44,19 @@ adminClient.interceptors.response.use((response) => response, async (error) => {
         window.location.href = '/admin/login';
     }
 
+    // A revoked or invalid branch selection: SetTenantContext aborts 403 with
+    // this exact message when the X-Branch-Id cookie points at a branch the user
+    // can no longer access. Clear the stale cookie and re-prompt for an allowed
+    // branch. A permission 403 carries a different message and is left untouched.
+    if (
+        error.response?.status === 403 &&
+        error.response?.data?.message === 'You do not have access to this branch.' &&
+        !window.location.pathname.startsWith('/admin/branch-select')
+    ) {
+        piniaStore(useBranchStore)?.clearSelectedBranch();
+        window.location.href = '/admin/branch-select';
+    }
+
     throw error;
 });
 

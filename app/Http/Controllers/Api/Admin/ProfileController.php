@@ -11,6 +11,7 @@ use App\Http\Resources\Admin\ProfileResource;
 use App\Http\Requests\Api\Admin\UpdateProfileRequest;
 use App\Http\Requests\Api\Admin\ChangePasswordRequest;
 use App\Http\Requests\Api\Admin\UpdateDateModeRequest;
+use App\Http\Requests\Api\Admin\UpdatePinnedLinksRequest;
 
 class ProfileController extends Controller
 {
@@ -71,6 +72,18 @@ class ProfileController extends Controller
         return response()->json([
             'data' => ProfileResource::make(auth('admin')->user()),
             'message' => 'Date preference updated successfully',
+        ]);
+    }
+
+    public function updatePinnedLinks(UpdatePinnedLinksRequest $request)
+    {
+        auth('admin')->user()->update([
+            'dashboard_pinned_links' => $request->validated('links'),
+        ]);
+
+        return response()->json([
+            'data' => ProfileResource::make(auth('admin')->user()),
+            'message' => 'Quick links updated successfully',
         ]);
     }
 

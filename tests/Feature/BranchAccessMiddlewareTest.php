@@ -128,6 +128,17 @@ it('rejects a non-existent branch id with 403', function () {
     ])->assertForbidden();
 });
 
+it('returns the exact branch-context 403 message the frontend matches on', function () {
+    // Contract: resources/js/helpers/api.js clears the branch cookie and
+    // re-prompts only when the message is exactly this. Keep them in sync.
+    Sanctum::actingAs($this->adminUser, [], 'admin');
+
+    $this->getJson('/api/admin/branch/my-branches', [
+        'X-Branch-Id' => (string) $this->otherBranch->id,
+    ])->assertForbidden()
+        ->assertJson(['message' => 'You do not have access to this branch.']);
+});
+
 it('blocks unassigned branch for regular user', function () {
     Sanctum::actingAs($this->regularUser, [], 'admin');
 

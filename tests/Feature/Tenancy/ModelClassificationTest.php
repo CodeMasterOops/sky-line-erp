@@ -143,3 +143,15 @@ it('keeps pending_branch_migration entries within the branch_owned tier', functi
         'These pending_branch_migration entries are not in branch_owned: '.implode(', ', $stray)
     );
 });
+
+it('has no models still pending branch migration (Phase 6 enforcement)', function () {
+    // The branch-isolation migration is complete: every branch-owned model
+    // carries branch_id + BranchTenant and is enforced by the trait test above.
+    // A new Tier A model added here must ship its migration in the same change,
+    // not be parked. If you must temporarily park one, do so deliberately —
+    // this guard exists so the backlog cannot silently grow.
+    expect(config('tenancy.pending_branch_migration'))->toBe(
+        [],
+        'Models are parked pending branch migration: '.implode(', ', config('tenancy.pending_branch_migration'))
+    );
+});

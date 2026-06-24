@@ -86,6 +86,52 @@ export function filterSidebarBySearch(sections, query) {
         .filter(Boolean);
 }
 
+/**
+ * Flatten sidebar sections into a list of navigable leaf links for the
+ * dashboard "Quick Links" picker. Each leaf inherits its parent submenu's
+ * icon and uses the parent submenu label (or section title for top-level
+ * items) as its category.
+ *
+ * @returns {Array<{ routeName: string, label: string, icon: string, category: string }>}
+ */
+export function flattenMenuLeaves(sections) {
+    if (!Array.isArray(sections)) return [];
+
+    const leaves = [];
+
+    const pushLeaf = (leaf, icon, category) => {
+        if (leaf?.route?.name) {
+            leaves.push({
+                routeName: leaf.route.name,
+                label: leaf.menuValue,
+                icon: icon || 'ti ti-link',
+                category,
+            });
+        }
+    };
+
+    sections.forEach((section) => {
+        const sectionTitle = section.title ?? section.tittle ?? '';
+        (section.menu || []).forEach((item) => {
+            if (item.hasSubRoute && Array.isArray(item.subMenus)) {
+                item.subMenus.forEach((sub) => pushLeaf(sub, item.icon, item.menuValue));
+            } else if (item.hasSubRouteTwo && Array.isArray(item.subMenus)) {
+                item.subMenus.forEach((sub) => {
+                    if (sub.customSubmenuTwo && Array.isArray(sub.subMenusTwo)) {
+                        sub.subMenusTwo.forEach((leaf) => pushLeaf(leaf, item.icon, item.menuValue));
+                    } else {
+                        pushLeaf(sub, item.icon, item.menuValue);
+                    }
+                });
+            } else {
+                pushLeaf(item, item.icon, sectionTitle);
+            }
+        });
+    });
+
+    return leaves;
+}
+
 function filterMenuItemBySearch(item, matchLabel) {
     if (item.hasSubRoute && Array.isArray(item.subMenus)) {
         const subMenus = item.subMenus.filter((sub) =>

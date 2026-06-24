@@ -579,7 +579,9 @@ class AccountReportService
 
         if ($requested !== null) {
             if (! $user->canAccessBranch($requested)) {
-                abort(403, 'You do not have access to this branch.');
+                // Distinct from the SetTenantContext branch-context message so the
+                // frontend does not treat a bad report filter as a revoked cookie.
+                abort(403, 'You do not have access to the requested branch filter.');
             }
 
             return [$requested];
