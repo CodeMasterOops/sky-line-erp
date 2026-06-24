@@ -19,6 +19,7 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $users = User::with('roles:id,name')
+            ->withCount('branches as branches_count')
             ->where('company_id', auth('admin')->user()->company_id)
             ->whereNot('user_type', UserTypeEnum::ADMIN->value)
             ->orderBy('name')
@@ -52,7 +53,7 @@ class UserController extends Controller
     public function show(User $user)
     {
         Gate::authorize('view', $user);
-        $user->load('roles');
+        $user->load('roles', 'branches');
 
         return UserResource::make($user);
     }

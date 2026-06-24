@@ -16,6 +16,8 @@ class UserResource extends JsonResource
             'email' => $this->email ?? '',
             'status' => $this->status ?? true,
             'roles' => RoleResource::collection($this->whenLoaded('roles')),
+            'branches_count' => $this->branches_count ?? 0,
+            'branch_ids' => $this->whenLoaded('branches', fn () => $this->branches->pluck('id')->all()),
         ];
     }
 }

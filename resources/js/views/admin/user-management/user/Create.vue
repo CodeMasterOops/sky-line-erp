@@ -1,7 +1,7 @@
 <template>
     <VModal
         :show-modal="!!createModalOpened"
-        @close-click="createModalOpened=false"
+        @close-click="closeCreateModal"
         modal-class="extra-medium-modal"
         title="Add New User">
         <template #modal-body>
@@ -65,6 +65,37 @@
                         :error="errors.password_confirmation"
                     />
                 </div>
+
+                <div class="col-12">
+                    <hr class="my-1" />
+                    <label class="form-label fw-semibold mb-2">
+                        <i class="ti ti-building me-1"></i> Branch Access
+                        <span class="text-muted fw-normal small ms-1">(optional)</span>
+                    </label>
+                    <div v-if="branches.loading" class="text-muted small py-1">Loading branches...</div>
+                    <div v-else-if="!branches.data.length" class="text-muted small fst-italic py-1">No branches configured yet.</div>
+                    <div v-else class="row g-2">
+                        <div v-for="branch in branches.data" :key="branch.id" class="col-sm-6">
+                            <label
+                                class="d-flex align-items-center gap-2 p-2 rounded border"
+                                :class="form.branch_ids.includes(branch.id)
+                                    ? 'border-primary bg-primary bg-opacity-10'
+                                    : 'border-secondary border-opacity-25'"
+                                style="cursor:pointer"
+                            >
+                                <input
+                                    type="checkbox"
+                                    class="form-check-input mt-0 flex-shrink-0"
+                                    :value="branch.id"
+                                    v-model="form.branch_ids"
+                                />
+                                <span class="fw-medium small">{{ branch.name }}</span>
+                                <span v-if="branch.is_head_office" class="badge bg-warning text-dark ms-auto small">HQ</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-12 d-flex justify-content-end gap-2">
                     <button @click="closeCreateModal" class="btn btn-cancel" type="button">
                         Cancel
@@ -84,18 +115,23 @@ import {array, object, string} from "yup";
 import {useYup} from "@/helpers/yup";
 import {useUserStore} from "@/stores/admin/user-management/user";
 import {useRoleStore} from "@/stores/admin/user-management/role";
+import {useBranchStore} from "@/stores/admin/settings/branch";
 import {storeToRefs} from "pinia";
+import {apiAdmin} from "@/helpers/api";
 
 const roleStore = useRoleStore();
 const userStore = useUserStore();
+const branchStore = useBranchStore();
 
 const createModalOpened = defineModel('createModalOpened');
 
 onMounted(() => {
     roleStore.getRoles();
+    branchStore.getBranches();
 })
 
 const {roles} = storeToRefs(roleStore);
+const {branches} = storeToRefs(branchStore);
 
 const initialState = {
     name: '',
@@ -104,6 +140,7 @@ const initialState = {
     password: '',
     password_confirmation: '',
     roles: [],
+    branch_ids: [],
 };
 
 const form = reactive({...initialState});
@@ -126,6 +163,16 @@ const storeUser = async () => {
         isSubmitting.value = true;
         try {
             let res = await userStore.storeUser(form);
+            const newUserId = res.data.data.id;
+
+            if (form.branch_ids.length > 0) {
+                await Promise.all(
+                    form.branch_ids.map(branchId =>
+                        apiAdmin(`branch/${branchId}/users`, 'post', {user_id: newUserId}).catch(() => {})
+                    )
+                );
+            }
+
             toast(res.status, res.data.message);
             closeCreateModal();
         } catch (e) {
@@ -142,8 +189,7 @@ const closeCreateModal = () => {
 }
 
 function resetForm() {
-    Object.assign(form, {...initialState});
+    Object.assign(form, {...initialState, branch_ids: []});
     errors.value = {};
 }
-
 </script>

@@ -33,10 +33,27 @@ class BranchUserController extends Controller
 
         $data = $request->validated();
 
-        if (BranchUser::where('branch_id', $branch->id)->where('user_id', $data['user_id'])->exists()) {
+        $existing = BranchUser::where('branch_id', $branch->id)
+            ->where('user_id', $data['user_id'])
+            ->first();
+
+        if ($existing) {
+            if ($existing->is_active) {
+                return response()->json([
+                    'message' => 'User is already assigned to this branch.',
+                ], 422);
+            }
+
+            $existing->update([
+                'role_id' => $data['role_id'] ?? $existing->role_id,
+                'is_active' => true,
+            ]);
+            $existing->load(['user', 'role']);
+
             return response()->json([
-                'message' => 'User is already assigned to this branch.',
-            ], 422);
+                'data' => BranchUserResource::make($existing),
+                'message' => 'User assigned to branch successfully.',
+            ], 201);
         }
 
         $assignment = BranchUser::create([

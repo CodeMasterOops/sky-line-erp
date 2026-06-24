@@ -130,6 +130,29 @@ it('returns 422 when assigning a user already assigned to the branch', function 
         ->assertJsonPath('message', 'User is already assigned to this branch.');
 });
 
+it('reactivates an inactive assignment instead of returning 422', function () {
+    BranchUser::create([
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'user_id' => $this->regularUser->id,
+        'is_active' => false,
+    ]);
+
+    Sanctum::actingAs($this->adminUser, [], 'admin');
+
+    $this->postJson("/api/admin/branch/{$this->branch->id}/users", [
+        'user_id' => $this->regularUser->id,
+    ])->assertCreated()
+        ->assertJsonPath('data.is_active', true)
+        ->assertJsonPath('message', 'User assigned to branch successfully.');
+
+    $this->assertDatabaseHas('branch_users', [
+        'branch_id' => $this->branch->id,
+        'user_id' => $this->regularUser->id,
+        'is_active' => true,
+    ]);
+});
+
 it('rejects assignment for a user from another company', function () {
     $otherFiscalYear = FiscalYear::create([
         'year_name' => '2026X',
