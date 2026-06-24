@@ -238,6 +238,8 @@ class ProductController extends Controller
 
             $hasVariants = $request->boolean('has_variants');
 
+            $keptVariantIds = [];
+
             foreach ($validated['variants'] ?? [] as $variant) {
                 $variantId = $variant['id'] ?? null;
                 $attrValues = $variant['attribute_values'] ?? [];
@@ -274,7 +276,11 @@ class ProductController extends Controller
 
                     $productVariant->variantOptions()->attach($attrValues);
                 }
+
+                $keptVariantIds[] = $productVariant->id;
             }
+
+            $this->pruneRemovedVariants($product, $keptVariantIds);
         });
 
         $product->load([
@@ -287,6 +293,28 @@ class ProductController extends Controller
             'data' => ProductResource::make($product),
             'message' => 'Product Updated Successfully',
         ]);
+    }
+
+    /**
+     * Soft-delete variants that were removed from the edit payload so stale
+     * generations do not linger and pollute search / POS with duplicate names.
+     * Variants that hold stock on hand are protected and never auto-removed.
+     *
+     * @param  list<int>  $keptVariantIds
+     */
+    private function pruneRemovedVariants(Product $product, array $keptVariantIds): void
+    {
+        if ($keptVariantIds === []) {
+            return;
+        }
+
+        $product->variants()
+            ->whereNotIn('id', $keptVariantIds)
+            ->whereDoesntHave('stocks', fn ($q) => $q->where('quantity', '>', 0))
+            ->get()
+            ->each(function (ProductVariant $variant): void {
+                $variant->delete();
+            });
     }
 
     #[Permissions('delete_product', group: 'product', desc: 'Delete Product')]
