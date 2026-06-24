@@ -50,6 +50,12 @@ const baseColumns = [
         sorter: sortByNumber((r) => r.defaultVariant?.purchase_price),
     },
     {
+        title: "Sale",
+        key: "sales_price",
+        dataIndex: "sales_price",
+        sorter: sortByNumber((r) => r.defaultVariant?.sales_price),
+    },
+    {
         title: "VAT",
         key: "tax",
         dataIndex: "tax",

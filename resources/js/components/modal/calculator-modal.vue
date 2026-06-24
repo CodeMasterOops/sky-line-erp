@@ -99,10 +99,9 @@ export default {
     },
     // Close the modal
     closeModal() {
-      this.inputValue = ""; // Clear the input before closing the modal
+      this.inputValue = "";
       const modal = document.getElementById("calculator");
-      const bootstrapModal = new bootstrap.Modal(modal);
-      bootstrapModal.hide();
+      bootstrap.Modal.getInstance(modal)?.hide();
     },
   },
 };

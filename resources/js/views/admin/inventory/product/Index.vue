@@ -151,6 +151,13 @@
                             </template>
                         </template>
 
+                        <template v-else-if="column.key === 'sales_price'">
+                            <div>{{ salesPriceDisplay(record).price }}</div>
+                            <div v-if="salesPriceDisplay(record).unit" class="small text-muted">
+                                / {{ salesPriceDisplay(record).unit }}
+                            </div>
+                        </template>
+
                         <template v-else-if="column.key === 'tax'">
                             {{ formatProductTax(record) }}
                         </template>
@@ -326,5 +333,9 @@ function formatProductTax(record) {
 
 function purchasePriceDisplay(record) {
     return formatPriceWithUnit(record.defaultVariant?.purchase_price, record.unit);
+}
+
+function salesPriceDisplay(record) {
+    return formatPriceWithUnit(record.defaultVariant?.sales_price, record.unit);
 }
 </script>
