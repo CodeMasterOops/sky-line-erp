@@ -25,7 +25,7 @@
                   </span>
                   <div>
                     <h5 class="fs-16 fw-medium mb-1">Password</h5>
-                    <p class="fs-16">Last Changed 22 Dec 2024, 10:30 AM</p>
+                    <p class="fs-16">Keep your password secure and up to date</p>
                   </div>
                 </div>
                 <a
@@ -160,8 +160,7 @@
                 <a
                   href="javascript:void(0);"
                   class="btn btn-primary mt-0"
-                  data-bs-toggle="modal"
-                  data-bs-target="#device-management"
+                  @click.prevent="deviceModalOpened = true"
                   >Manage</a
                 >
               </div>
@@ -182,8 +181,7 @@
                 <a
                   href="javascript:void(0);"
                   class="btn btn-primary mt-0"
-                  data-bs-toggle="modal"
-                  data-bs-target="#account-activity"
+                  @click.prevent="activityModalOpened = true"
                   >View</a
                 >
               </div>
@@ -197,12 +195,15 @@
                   <div>
                     <h5 class="fs-16 fw-medium mb-1">Deactivate Account</h5>
                     <p class="fs-16">
-                      This will shutdown your account. Your account will be
-                      reactive when you sign in again
+                      This switches off your account and signs you out. An
+                      administrator can reactivate it for you later.
                     </p>
                   </div>
                 </div>
-                <a href="javascript:void(0);" class="btn btn-primary mt-0"
+                <a
+                  href="javascript:void(0);"
+                  class="btn btn-primary mt-0"
+                  @click.prevent="deactivateModalOpened = true"
                   >Deactivate</a
                 >
               </div>
@@ -221,8 +222,7 @@
                 <a
                   href="javascript:void(0);"
                   class="btn btn-danger"
-                  data-bs-toggle="modal"
-                  data-bs-target="#delete-account"
+                  @click.prevent="deleteModalOpened = true"
                   >Delete</a
                 >
               </div>
@@ -236,11 +236,23 @@
   <ChangePasswordModal
     v-model:change-password-modal-opened="changePasswordModalOpened"
   />
+  <DeviceManagementModal v-model:show="deviceModalOpened" />
+  <AccountActivityModal v-model:show="activityModalOpened" />
+  <DeactivateAccountModal v-model:show="deactivateModalOpened" />
+  <DeleteAccountModal v-model:show="deleteModalOpened" />
 </template>
 
 <script setup>
 import { ref } from "vue";
 import ChangePasswordModal from "./ChangePasswordModal.vue";
+import DeviceManagementModal from "./DeviceManagementModal.vue";
+import AccountActivityModal from "./AccountActivityModal.vue";
+import DeactivateAccountModal from "./DeactivateAccountModal.vue";
+import DeleteAccountModal from "./DeleteAccountModal.vue";
 
 const changePasswordModalOpened = ref(false);
+const deviceModalOpened = ref(false);
+const activityModalOpened = ref(false);
+const deactivateModalOpened = ref(false);
+const deleteModalOpened = ref(false);
 </script>

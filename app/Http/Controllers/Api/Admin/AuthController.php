@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
+use Illuminate\Http\Request;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Services\BranchAccessService;
 use App\Services\SubscriptionService;
+use App\Services\SecurityActivityLogger;
+use Laravel\Sanctum\PersonalAccessToken;
 use App\Http\Requests\Api\Admin\LoginRequest;
 use App\Http\Resources\Admin\ProfileResource;
 use App\Services\SetCompanyDefaultDataService;
@@ -42,9 +45,12 @@ class AuthController extends Controller
             Auth::guard('admin')->setUser($user);
 
             $tokenData = auth('admin')->user()->createToken('auth-token', $this->buildTokenAbilities($user), now()->addWeek());
+            $this->stampTokenDevice($tokenData->accessToken, $request);
 
             $authUser = auth('admin')->user();
             TenantService::setCompanyId($authUser->company_id);
+
+            app(SecurityActivityLogger::class)->log($authUser, 'login', 'Signed in');
 
             $accessService = app(BranchAccessService::class);
             $accessibleBranches = $accessService->getAccessibleBranches($authUser);
@@ -107,6 +113,7 @@ class AuthController extends Controller
         Auth::guard('admin')->setUser($user);
 
         $tokenData = $user->createToken('auth-token', $this->buildTokenAbilities($user), now()->addWeek());
+        $this->stampTokenDevice($tokenData->accessToken, $request);
 
         return response()->json([
             'access_token' => $tokenData->plainTextToken,
@@ -152,10 +159,20 @@ class AuthController extends Controller
 
     public function logout()
     {
-        auth('admin')->user()->currentAccessToken()->delete();
+        $user = auth('admin')->user();
+        app(SecurityActivityLogger::class)->log($user, 'logout', 'Signed out');
+        $user->currentAccessToken()->delete();
 
         return response()->json([
             'message' => 'Logged Out Successfully',
         ]);
+    }
+
+    private function stampTokenDevice(PersonalAccessToken $token, Request $request): void
+    {
+        $token->forceFill([
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 255) ?: null,
+        ])->save();
     }
 }

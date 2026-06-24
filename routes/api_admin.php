@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\OnboardingController;
 use App\Http\Controllers\Api\Admin\EnumController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\ProfileController;
+use App\Http\Controllers\Api\Admin\AccountSecurityController;
 use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Admin\Nepal\VatD3Controller;
 use App\Http\Controllers\Api\Admin\Nepal\VatD4Controller;
@@ -48,6 +49,16 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
             Route::put('pinned-links', 'updatePinnedLinks')->name('pinnedLinks');
             Route::put('report-pinned-links', 'updateReportPinnedLinks')->name('reportPinnedLinks');
             Route::put('change-password', 'changePassword')->name('changePassword');
+        });
+
+        // account security — activity log, device management, deactivate / delete
+        Route::prefix('profile/security')->as('profile.security.')->controller(AccountSecurityController::class)->group(function () {
+            Route::get('activity', 'activity')->name('activity');
+            Route::get('devices', 'devices')->name('devices.index');
+            Route::delete('devices/{token}', 'revokeDevice')->whereNumber('token')->name('devices.revoke');
+            Route::delete('devices', 'revokeOtherDevices')->name('devices.revoke-others');
+            Route::post('deactivate', 'deactivate')->name('deactivate');
+            Route::delete('account', 'destroyAccount')->name('account.destroy');
         });
 
         // dashboard

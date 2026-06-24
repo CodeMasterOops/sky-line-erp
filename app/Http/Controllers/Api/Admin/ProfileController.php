@@ -7,6 +7,7 @@ use App\Services\TenantService;
 use App\Http\Controllers\Controller;
 use App\Services\BranchAccessService;
 use Illuminate\Support\Facades\Storage;
+use App\Services\SecurityActivityLogger;
 use App\Http\Resources\Admin\ProfileResource;
 use App\Http\Requests\Api\Admin\UpdateProfileRequest;
 use App\Http\Requests\Api\Admin\ChangePasswordRequest;
@@ -109,6 +110,12 @@ class ProfileController extends Controller
 
         $abilities = $this->buildTokenAbilities($user);
         $tokenData = $user->createToken('auth-token', $abilities, now()->addWeek());
+        $tokenData->accessToken->forceFill([
+            'ip_address' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 255) ?: null,
+        ])->save();
+
+        app(SecurityActivityLogger::class)->log($user, 'password_changed', 'Password changed');
 
         return response()->json([
             'access_token' => $tokenData->plainTextToken,

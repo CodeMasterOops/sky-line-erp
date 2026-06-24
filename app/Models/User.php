@@ -86,6 +86,11 @@ class User extends Authenticatable
         return $this->hasMany(BranchUser::class);
     }
 
+    public function securityActivities(): HasMany
+    {
+        return $this->hasMany(SecurityActivity::class);
+    }
+
     public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class, 'branch_users')
