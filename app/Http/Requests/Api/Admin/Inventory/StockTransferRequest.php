@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
 use App\Services\Inventory\BatchGuard;
+use App\Rules\WarehouseInAccessibleBranch;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockTransferRequest extends FormRequest
@@ -22,14 +23,14 @@ class StockTransferRequest extends FormRequest
         $rules = [
             'reference_no' => ['nullable', 'string', 'max:255'],
             'date' => ['required', 'date', new WithinActiveFiscalYear],
-            'from_warehouse_id' => ['nullable', TRule::exists('warehouses', 'id')->withoutTrashed()],
-            'to_warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'from_warehouse_id' => ['nullable', new WarehouseInAccessibleBranch],
+            'to_warehouse_id' => ['required', new WarehouseInAccessibleBranch],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
-            'items.*.from_warehouse_id' => ['required_without:from_warehouse_id', 'nullable', 'integer', 'different:to_warehouse_id', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'items.*.from_warehouse_id' => ['required_without:from_warehouse_id', 'nullable', 'integer', 'different:to_warehouse_id', new WarehouseInAccessibleBranch],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
         ];

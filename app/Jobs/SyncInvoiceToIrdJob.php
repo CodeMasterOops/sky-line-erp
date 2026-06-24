@@ -28,6 +28,8 @@ class SyncInvoiceToIrdJob implements ShouldQueue
     {
         // Queue workers run without HTTP tenant context; establish it from the
         // invoice so tenant-scoped queries inside the sync resolve correctly.
+        // Company context (not branch): the job operates on a single invoice by
+        // reference and must not branch-filter its eager-loaded relations.
         TenantService::setCompanyId($this->invoice->company_id);
 
         try {

@@ -81,6 +81,24 @@ if (! function_exists('columnExists')) {
     }
 }
 
+if (! function_exists('warehouseBranchId')) {
+    /**
+     * Resolve a warehouse's owning branch_id. Used so warehouse-keyed inventory
+     * records (stock, layers, batches, movements) always belong to their
+     * warehouse's branch — including the destination side of a cross-branch
+     * stock transfer. Not statically cached: a process-level cache would leak
+     * stale mappings across requests/tests (cf. TenantService reset).
+     */
+    function warehouseBranchId(int $warehouseId): ?int
+    {
+        $branchId = \App\Models\Warehouse::withoutGlobalScopes()
+            ->whereKey($warehouseId)
+            ->value('branch_id');
+
+        return $branchId !== null ? (int) $branchId : null;
+    }
+}
+
 if (! function_exists('hasPermission')) {
     function hasPermission($permissions): bool
     {

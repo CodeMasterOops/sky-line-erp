@@ -181,6 +181,7 @@ class StockTransferController extends Controller
         }
 
         $user = auth('admin')->user();
+        $this->assertCanAccessTransferBranches($stockTransfer);
 
         try {
             DB::transaction(function () use ($stockTransfer, $user) {
@@ -220,6 +221,7 @@ class StockTransferController extends Controller
         }
 
         $user = auth('admin')->user();
+        $this->assertCanAccessTransferBranches($stockTransfer);
 
         try {
             DB::transaction(function () use ($stockTransfer, $user) {
@@ -264,6 +266,7 @@ class StockTransferController extends Controller
         }
 
         $user = auth('admin')->user();
+        $this->assertCanAccessTransferBranches($stockTransfer);
 
         try {
             DB::transaction(function () use ($stockTransfer, $user) {
@@ -329,6 +332,31 @@ class StockTransferController extends Controller
                 'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
             ];
         })->all();
+    }
+
+    /**
+     * Dual-branch authorization for the sanctioned cross-branch transfer flow:
+     * the user must be able to access every branch whose warehouse takes part
+     * (source and destination). Runs on dispatch/receive/approve, which act on
+     * an existing transfer without re-validating its warehouses.
+     */
+    private function assertCanAccessTransferBranches(StockTransfer $transfer): void
+    {
+        $user = auth('admin')->user();
+        $transfer->loadMissing('stockTransferItems');
+
+        $warehouseIds = collect([$transfer->from_warehouse_id, $transfer->to_warehouse_id])
+            ->merge($transfer->stockTransferItems->pluck('from_warehouse_id'))
+            ->filter()
+            ->unique();
+
+        foreach ($warehouseIds as $warehouseId) {
+            $branchId = warehouseBranchId((int) $warehouseId);
+
+            if ($branchId !== null && ! $user->canAccessBranch($branchId)) {
+                abort(403, 'You do not have access to a branch involved in this transfer.');
+            }
+        }
     }
 
     private function applyApprovalEffects(StockTransfer $transfer, User $user): void
