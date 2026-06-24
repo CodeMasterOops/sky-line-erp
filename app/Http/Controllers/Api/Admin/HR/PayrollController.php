@@ -8,8 +8,10 @@ use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Enums\PayrollStatusEnum;
 use App\Services\PayrollService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\NepaliDateService;
 use App\Http\Resources\Admin\HR\PayrollRunResource;
 use App\Http\Requests\Api\Admin\HR\PayrollRunRequest;
 
@@ -26,6 +28,20 @@ class PayrollController extends Controller
             ->paginate($request->limit ?? 25);
 
         return PayrollRunResource::collection($runs);
+    }
+
+    #[Permissions('create_payroll', group: 'payroll', desc: 'Current Payroll BS Period')]
+    public function currentPeriod(NepaliDateService $nepaliDate): JsonResponse
+    {
+        $today = $nepaliDate->today();
+
+        return response()->json([
+            'data' => [
+                'bs_year' => $today['year'],
+                'bs_month' => $today['month'],
+                'bs_month_name' => $nepaliDate->monthName($today['month']),
+            ],
+        ]);
     }
 
     #[Permissions('create_payroll', group: 'payroll', desc: 'Create Payroll Run')]

@@ -137,6 +137,27 @@ it('creates a BS payroll run over HTTP and exposes the BS label', function () {
     expect($run->bs_year)->toBe(2081)->and($run->month)->toBe(4);
 });
 
+it('shows a single payroll run by id over HTTP', function () {
+    $run = PayrollRun::create([
+        'company_id' => $this->company->id, 'fiscal_year_id' => $this->fiscalYear->id,
+        'bs_year' => 2081, 'bs_month' => 4, 'month' => 4, 'status' => PayrollStatusEnum::DRAFT,
+    ]);
+
+    $this->getJson("/api/admin/hr/payroll/{$run->id}")
+        ->assertOk()
+        ->assertJsonPath('data.id', $run->id)
+        ->assertJsonPath('data.period_label', 'Shrawan 2081');
+});
+
+it('exposes the current BS period for the create form', function () {
+    $today = app(NepaliDateService::class)->today();
+
+    $this->getJson('/api/admin/hr/payroll/current-period')
+        ->assertOk()
+        ->assertJsonPath('data.bs_year', $today['year'])
+        ->assertJsonPath('data.bs_month', $today['month']);
+});
+
 it('still supports legacy AD-month payroll runs', function () {
     $run = PayrollRun::make([
         'company_id' => $this->company->id, 'fiscal_year_id' => $this->fiscalYear->id,

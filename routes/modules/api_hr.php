@@ -39,10 +39,11 @@ Route::prefix('hr')->as('hr.')->group(function () {
     // Phase 3: Payroll
     Route::apiResource('salary-component', SalaryComponentController::class);
     Route::apiResource('salary-structure', SalaryStructureController::class);
+    Route::get('payroll/current-period', [PayrollController::class, 'currentPeriod'])->name('payroll.current-period');
     Route::post('payroll/{payrollRun}/process', [PayrollController::class, 'process'])->name('payroll.process');
     Route::post('payroll/{payrollRun}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
     Route::post('payroll/{payrollRun}/confirm', [PayrollController::class, 'confirm'])->name('payroll.confirm');
-    Route::apiResource('payroll', PayrollController::class)->except('update');
+    Route::apiResource('payroll', PayrollController::class)->except('update')->parameters(['payroll' => 'payrollRun']);
     Route::get('payslip', [PayslipController::class, 'index'])->name('payslip.index');
     Route::get('payslip/{payslip}', [PayslipController::class, 'show'])->name('payslip.show');
 
