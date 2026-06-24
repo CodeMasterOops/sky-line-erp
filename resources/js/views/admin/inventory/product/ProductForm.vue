@@ -731,6 +731,11 @@ async function hydrateFromProduct(data) {
         const variantRows = Array.isArray(data.variants) ? data.variants : [];
         const pt = normalizeProductType(data.product_type);
 
+        const optionVariantRows = variantRows.filter(
+            (v) => Array.isArray(v.variant_options) && v.variant_options.length > 0,
+        );
+        const isVariable = pt === 'product' && optionVariantRows.length > 0;
+
         Object.assign(form, {
             product_category_id: data.product_category_id ?? '',
             product_type: pt,
@@ -747,7 +752,7 @@ async function hydrateFromProduct(data) {
             min_stock_level: data.min_stock_level != null ? String(data.min_stock_level) : '',
             hsn_code: data.hsn_code ?? '',
             description: data.description ?? '',
-            has_variants: !!data.has_variants,
+            has_variants: isVariable,
             attribute_values: [],
             track_stock: 0,
         });
@@ -770,21 +775,22 @@ async function hydrateFromProduct(data) {
             });
         }
 
-        if (data.has_variants && pt === 'product' && variantRows.length) {
-            const first = variantRows[0];
+        if (isVariable && optionVariantRows.length) {
             const attrOrder = [];
             const seenAttr = new Set();
-            for (const opt of first.variant_options || []) {
-                const aid = opt.attribute_id;
-                if (aid != null && !seenAttr.has(aid)) {
-                    seenAttr.add(aid);
-                    attrOrder.push(aid);
+            for (const vr of optionVariantRows) {
+                for (const opt of vr.variant_options || []) {
+                    const aid = opt.attribute_id;
+                    if (aid != null && !seenAttr.has(aid)) {
+                        seenAttr.add(aid);
+                        attrOrder.push(aid);
+                    }
                 }
             }
             const selected = [];
             for (const aid of attrOrder) {
                 const valueSet = new Set();
-                for (const vr of variantRows) {
+                for (const vr of optionVariantRows) {
                     for (const opt of vr.variant_options || []) {
                         if (opt.attribute_id === aid) {
                             valueSet.add(Number(opt.id));
