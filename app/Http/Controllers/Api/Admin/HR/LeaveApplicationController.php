@@ -7,11 +7,14 @@ use App\Enums\LeaveStatusEnum;
 use App\Annotation\Permissions;
 use App\Models\LeaveApplication;
 use App\Http\Controllers\Controller;
+use App\Services\Payroll\LeaveGuardService;
 use App\Http\Resources\Admin\HR\LeaveApplicationResource;
 use App\Http\Requests\Api\Admin\HR\LeaveApplicationRequest;
 
 class LeaveApplicationController extends Controller
 {
+    public function __construct(protected LeaveGuardService $leaveGuard) {}
+
     #[Permissions('list_leave_application', group: 'leave_application', desc: 'List Leave Applications')]
     public function index(Request $request)
     {
@@ -26,6 +29,8 @@ class LeaveApplicationController extends Controller
     #[Permissions('create_leave_application', group: 'leave_application', desc: 'Create Leave Application')]
     public function store(LeaveApplicationRequest $request)
     {
+        $this->leaveGuard->assertNoOverlap($request->employee_id, $request->from_date, $request->to_date);
+
         $application = LeaveApplication::create($request->validated());
 
         return response()->json([
@@ -44,6 +49,8 @@ class LeaveApplicationController extends Controller
     public function update(LeaveApplicationRequest $request, LeaveApplication $leaveApplication)
     {
         abort_if($leaveApplication->status !== LeaveStatusEnum::PENDING, 403, 'Only pending applications can be edited.');
+
+        $this->leaveGuard->assertNoOverlap($request->employee_id, $request->from_date, $request->to_date, $leaveApplication->id);
 
         $leaveApplication->update($request->validated());
 
@@ -67,6 +74,8 @@ class LeaveApplicationController extends Controller
     public function approve(Request $request, LeaveApplication $leaveApplication)
     {
         abort_if($leaveApplication->status !== LeaveStatusEnum::PENDING, 403, 'Only pending applications can be approved.');
+
+        $this->leaveGuard->assertWithinBalance($leaveApplication);
 
         $leaveApplication->update([
             'status' => LeaveStatusEnum::APPROVED,

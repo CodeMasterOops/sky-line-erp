@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\Payroll\SalaryLedgerService;
 use App\Http\Resources\Admin\HR\EmployeeResource;
 use App\Http\Requests\Api\Admin\HR\EmployeeRequest;
 use App\Http\Controllers\Concerns\GeneratesEntityCode;
@@ -69,6 +70,22 @@ class EmployeeController extends Controller
 
         return response()->json([
             'message' => 'Employee Deleted Successfully',
+        ]);
+    }
+
+    #[Permissions('show_employee', group: 'employee', desc: 'Employee Salary Ledger')]
+    public function salaryLedger(Request $request, Employee $employee, SalaryLedgerService $ledgerService)
+    {
+        $request->validate([
+            'fiscal_year_id' => ['required', 'integer', 'exists:fiscal_years,id'],
+        ]);
+
+        $ledger = $ledgerService->forEmployee($employee, (int) $request->fiscal_year_id);
+
+        return response()->json([
+            'employee' => EmployeeResource::make($employee->load(['department', 'designation'])),
+            'rows' => $ledger['rows'],
+            'totals' => $ledger['totals'],
         ]);
     }
 }

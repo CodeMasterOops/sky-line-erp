@@ -9,8 +9,15 @@ export const employeeColumns = [
     { title: 'Action',      key: 'action',               align: 'center' },
 ];
 
-export function createRowActions({ onEdit, onDelete }) {
+export function createRowActions({ onEdit, onDelete, onLedger }) {
     return [
+        {
+            key:     'ledger',
+            icon:    'ti-report-money',
+            title:   'Salary Ledger',
+            class:   'text-success',
+            handler: (record) => onLedger(record.id),
+        },
         {
             key:     'edit',
             icon:    'ti-edit',

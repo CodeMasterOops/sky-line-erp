@@ -18,6 +18,12 @@ export default [
         component: () => import("@/views/admin/hr/employees/Form.vue"),
     },
     {
+        path: "hr/employees/:id/salary-ledger",
+        name: "admin.hr-employee-salary-ledger",
+        meta: {pageTitle: "Salary Ledger"},
+        component: () => import("@/views/admin/hr/employees/SalaryLedger.vue"),
+    },
+    {
         path: "hr/departments",
         name: "admin.hr-department-list",
         meta: {pageTitle: "Departments"},

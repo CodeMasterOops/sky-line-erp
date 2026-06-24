@@ -80,7 +80,7 @@ beforeEach(function () {
     TenantService::setCompanyId($this->company->id);
 });
 
-function makeInvoice(object $test, string $no, ?int $fyId = null): Invoice
+function makeDocNumberInvoice(object $test, string $no, ?int $fyId = null): Invoice
 {
     return Invoice::create([
         'company_id' => $test->company->id,
@@ -94,24 +94,24 @@ function makeInvoice(object $test, string $no, ?int $fyId = null): Invoice
 }
 
 it('rejects duplicate invoice numbers within (company, fiscal year)', function () {
-    makeInvoice($this, 'INV-UQ-1');
+    makeDocNumberInvoice($this, 'INV-UQ-1');
 
-    expect(fn () => makeInvoice($this, 'INV-UQ-1'))
+    expect(fn () => makeDocNumberInvoice($this, 'INV-UQ-1'))
         ->toThrow(QueryException::class);
 });
 
 it('allows reusing an invoice number in a different fiscal year', function () {
-    makeInvoice($this, 'INV-UQ-2');
+    makeDocNumberInvoice($this, 'INV-UQ-2');
 
-    $other = makeInvoice($this, 'INV-UQ-2', fyId: $this->fiscalYear2->id);
+    $other = makeDocNumberInvoice($this, 'INV-UQ-2', fyId: $this->fiscalYear2->id);
     expect($other->id)->toBeInt();
 });
 
 it('also blocks reuse after a soft-delete (numbers are consumed for the audit trail)', function () {
-    $invoice = makeInvoice($this, 'INV-UQ-3');
+    $invoice = makeDocNumberInvoice($this, 'INV-UQ-3');
     $invoice->delete(); // soft-delete
 
-    expect(fn () => makeInvoice($this, 'INV-UQ-3'))
+    expect(fn () => makeDocNumberInvoice($this, 'INV-UQ-3'))
         ->toThrow(QueryException::class);
 });
 
@@ -138,7 +138,7 @@ it('rejects duplicate bill numbers within (company, fiscal year)', function () {
 });
 
 it('rejects duplicate credit-note numbers within (company, fiscal year)', function () {
-    $invoice = makeInvoice($this, 'INV-CN-BASE');
+    $invoice = makeDocNumberInvoice($this, 'INV-CN-BASE');
     InvoiceItem::create([
         'invoice_id' => $invoice->id, 'product_variant_id' => $this->variant->id,
         'quantity' => 1, 'rate' => 100, 'discount_amount' => 0, 'tax_amount' => 0, 'tax_line_type' => 'taxable',

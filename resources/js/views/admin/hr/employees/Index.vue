@@ -107,6 +107,7 @@ const statusBadge = (status) => ({
 const { confirmDelete } = useConfirmAction();
 
 const rowActions = createRowActions({
+    onLedger: (id) => router.push({ name: 'admin.hr-employee-salary-ledger', params: { id } }),
     onEdit: (id) => router.push({ name: 'admin.hr-employee-edit', params: { id } }),
     onDelete: (id) => confirmDelete(
         () => store.deleteEmployee(id),

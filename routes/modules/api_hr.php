@@ -21,6 +21,7 @@ Route::prefix('hr')->as('hr.')->group(function () {
     Route::apiResource('department', DepartmentController::class);
     Route::apiResource('designation', DesignationController::class);
     Route::get('employee/next-code', [EmployeeController::class, 'nextCode'])->name('employee.next-code');
+    Route::get('employee/{employee}/salary-ledger', [EmployeeController::class, 'salaryLedger'])->name('employee.salary-ledger');
     Route::apiResource('employee', EmployeeController::class);
 
     // Phase 2: Attendance & Leave
