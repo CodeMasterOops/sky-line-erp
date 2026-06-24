@@ -620,6 +620,79 @@ class SalesReportService
         ];
     }
 
+    public function productWiseSales(Request $request): array
+    {
+        $fromDate = $this->resolveFromDate($request)->toDateString();
+        $toDate = $this->resolveToDate($request)->toDateString();
+        $companyId = TenantService::companyId();
+        $branchId = TenantService::branchId();
+
+        $rows = DB::table('invoice_items')
+            ->join('invoices', 'invoices.id', '=', 'invoice_items.invoice_id')
+            ->join('product_variants', 'product_variants.id', '=', 'invoice_items.product_variant_id')
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
+            ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
+            ->where('invoices.company_id', $companyId)
+            ->when($branchId, fn ($q) => $q->where('invoices.branch_id', $branchId))
+            ->where('invoices.status', StatusEnum::APPROVED->value)
+            ->whereNull('invoices.voided_at')
+            ->whereNull('invoices.deleted_at')
+            ->whereNull('invoice_items.deleted_at')
+            ->whereBetween('invoices.invoice_date', [$fromDate, $toDate])
+            ->when($request->filled('party_id'), fn ($q) => $q->where('invoices.party_id', $request->party_id))
+            ->when($request->filled('category_id'), fn ($q) => $q->where('products.product_category_id', $request->category_id))
+            ->selectRaw("
+                products.id as product_id,
+                products.name as product_name,
+                products.code as product_code,
+                COALESCE(product_categories.name, 'Uncategorized') as category_name,
+                COALESCE(brands.name, '') as brand_name,
+                COUNT(DISTINCT invoices.id) as invoice_count,
+                COALESCE(SUM(invoice_items.quantity), 0) as total_qty,
+                COALESCE(SUM(invoice_items.quantity * invoice_items.rate), 0) as subtotal,
+                COALESCE(SUM(invoice_items.discount_amount), 0) as discount,
+                COALESCE(SUM(invoice_items.tax_amount), 0) as tax_amount
+            ")
+            ->groupBy('products.id', 'products.name', 'products.code', 'product_categories.name', 'brands.name')
+            ->orderByRaw('SUM(invoice_items.quantity) DESC')
+            ->get();
+
+        $mapped = $rows->map(function ($row) {
+            $subtotal = (float) $row->subtotal;
+            $discount = (float) $row->discount;
+            $taxAmount = (float) $row->tax_amount;
+
+            return [
+                'product_id' => $row->product_id,
+                'product_name' => $row->product_name,
+                'product_code' => $row->product_code ?? '',
+                'category_name' => $row->category_name,
+                'brand_name' => $row->brand_name,
+                'invoice_count' => (int) $row->invoice_count,
+                'total_qty' => round((float) $row->total_qty, 2),
+                'subtotal' => round($subtotal, 2),
+                'discount' => round($discount, 2),
+                'tax_amount' => round($taxAmount, 2),
+                'net_sales' => round($subtotal - $discount + $taxAmount, 2),
+            ];
+        })->values();
+
+        return [
+            'period' => $this->buildPeriod($request),
+            'rows' => $mapped->all(),
+            'summary' => [
+                'total_qty' => round((float) $mapped->sum('total_qty'), 2),
+                'subtotal' => round((float) $mapped->sum('subtotal'), 2),
+                'discount' => round((float) $mapped->sum('discount'), 2),
+                'tax_amount' => round((float) $mapped->sum('tax_amount'), 2),
+                'net_sales' => round((float) $mapped->sum('net_sales'), 2),
+            ],
+            'party_options' => $this->partyOptions(),
+            'category_options' => $this->categoryOptions(),
+        ];
+    }
+
     public function discountReport(Request $request): array
     {
         $fromDate = $this->resolveFromDate($request)->toDateString();

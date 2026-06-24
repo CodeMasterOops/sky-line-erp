@@ -531,6 +531,158 @@ it('sales ledger computes opening balance from prior period transactions', funct
     expect($response->json('data.closing_balance'))->toEqual(300.0);
 });
 
+// ─── Product Wise Sales ───────────────────────────────────────────────────────
+
+it('product wise sales groups by product ordered by qty desc', function () {
+    $productA = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Widget A',
+        'code' => 'WA-'.uniqid(),
+        'product_category_id' => $this->category->id,
+    ]);
+    $variantA = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $productA->id,
+        'sku' => 'WA-SKU-'.uniqid(),
+        'sales_price' => 50,
+        'is_default' => true,
+    ]);
+
+    $invoice1 = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-PW-A-'.uniqid(),
+        'invoice_date' => '2024-10-01',
+        'status' => StatusEnum::APPROVED,
+        'create_user_id' => $this->user->id,
+        'approve_user_id' => $this->user->id,
+        'approved_at' => now(),
+    ]);
+    InvoiceItem::create([
+        'invoice_id' => $invoice1->id,
+        'product_variant_id' => $this->variant->id,
+        'quantity' => 10,
+        'rate' => 100,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+    ]);
+    InvoiceItem::create([
+        'invoice_id' => $invoice1->id,
+        'product_variant_id' => $variantA->id,
+        'quantity' => 3,
+        'rate' => 50,
+        'discount_amount' => 0,
+        'tax_amount' => 0,
+    ]);
+
+    $response = $this->getJson('/api/admin/sales-report/product-wise-sales?from_date=2024-10-01&to_date=2024-10-31');
+
+    $response->assertOk();
+    $data = $response->json('data');
+
+    expect($data)->toHaveKeys(['period', 'rows', 'summary', 'party_options', 'category_options']);
+
+    $rows = $data['rows'];
+    expect($rows)->toHaveCount(2);
+
+    // Test Product (qty=10) should come first (ordered by qty desc)
+    expect($rows[0]['product_name'])->toBe('Test Product');
+    expect($rows[0]['total_qty'])->toEqual(10.0);
+    expect($rows[0]['net_sales'])->toEqual(1000.0);
+
+    expect($rows[1]['product_name'])->toBe('Widget A');
+    expect($rows[1]['total_qty'])->toEqual(3.0);
+    expect($rows[1]['net_sales'])->toEqual(150.0);
+});
+
+it('product wise sales summary aggregates all products', function () {
+    srMakeInvoice(['invoice_date' => '2024-10-01'], qty: 4, rate: 100, discount: 20, tax: 10);
+
+    $response = $this->getJson('/api/admin/sales-report/product-wise-sales?from_date=2024-10-01&to_date=2024-10-31');
+
+    $response->assertOk();
+    $summary = $response->json('data.summary');
+
+    expect($summary['total_qty'])->toEqual(4.0);
+    expect($summary['subtotal'])->toEqual(400.0);
+    expect($summary['discount'])->toEqual(20.0);
+    expect($summary['tax_amount'])->toEqual(10.0);
+    expect($summary['net_sales'])->toEqual(390.0); // 400 - 20 + 10
+});
+
+it('product wise sales filters by category', function () {
+    $otherCategory = ProductCategory::create([
+        'company_id' => $this->company->id,
+        'name' => 'Other Category',
+    ]);
+    $otherProduct = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Other Product',
+        'code' => 'OP-'.uniqid(),
+        'product_category_id' => $otherCategory->id,
+    ]);
+    $otherVariant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $otherProduct->id,
+        'sku' => 'OP-SKU-'.uniqid(),
+        'sales_price' => 200,
+        'is_default' => true,
+    ]);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->party->id,
+        'invoice_no' => 'INV-PW-C-'.uniqid(),
+        'invoice_date' => '2024-10-05',
+        'status' => StatusEnum::APPROVED,
+        'create_user_id' => $this->user->id,
+        'approve_user_id' => $this->user->id,
+        'approved_at' => now(),
+    ]);
+    InvoiceItem::create([
+        'invoice_id' => $invoice->id,
+        'product_variant_id' => $this->variant->id,
+        'quantity' => 2, 'rate' => 100, 'discount_amount' => 0, 'tax_amount' => 0,
+    ]);
+    InvoiceItem::create([
+        'invoice_id' => $invoice->id,
+        'product_variant_id' => $otherVariant->id,
+        'quantity' => 1, 'rate' => 200, 'discount_amount' => 0, 'tax_amount' => 0,
+    ]);
+
+    $response = $this->getJson("/api/admin/sales-report/product-wise-sales?from_date=2024-10-01&to_date=2024-10-31&category_id={$this->category->id}");
+
+    $response->assertOk();
+    $rows = $response->json('data.rows');
+
+    expect($rows)->toHaveCount(1);
+    expect($rows[0]['product_name'])->toBe('Test Product');
+});
+
+it('product wise sales excludes voided invoices', function () {
+    srMakeInvoice(['invoice_date' => '2024-10-01', 'voided_at' => now()]);
+    srMakeInvoice(['invoice_date' => '2024-10-01']);
+
+    $response = $this->getJson('/api/admin/sales-report/product-wise-sales?from_date=2024-10-01&to_date=2024-10-31');
+
+    $response->assertOk();
+    $rows = $response->json('data.rows');
+
+    expect($rows)->toHaveCount(1);
+    expect($rows[0]['total_qty'])->toEqual(2.0);
+});
+
+it('product wise sales returns empty rows when no data in range', function () {
+    srMakeInvoice(['invoice_date' => '2024-09-15']);
+
+    $response = $this->getJson('/api/admin/sales-report/product-wise-sales?from_date=2024-10-01&to_date=2024-10-31');
+
+    $response->assertOk();
+    expect($response->json('data.rows'))->toBeEmpty();
+});
+
 // ─── Branch isolation ─────────────────────────────────────────────────────────
 
 it('sales summary only returns data for the active branch', function () {

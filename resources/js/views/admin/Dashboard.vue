@@ -336,6 +336,7 @@
                   <span class="title-icon fs-16 me-2"><i class="ti ti-trending-up"></i></span>
                   <h5 class="card-title mb-0">Top Selling Products</h5>
                 </div>
+                <router-link :to="{ name: 'admin.product-wise-sales-report' }" class="stat-card__link">View all</router-link>
               </div>
               <div class="card-body sell-product">
                 <div v-if="!dash.top_selling_products.length" class="dashboard-empty">No sales data yet</div>

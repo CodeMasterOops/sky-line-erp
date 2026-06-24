@@ -81,6 +81,12 @@ class SalesReportController extends Controller
         return response()->json(['data' => $this->service->salesProfit($request)]);
     }
 
+    #[Permissions('product_wise_sales_report', group: 'sales_report', desc: 'Product Wise Sales Report')]
+    public function productWiseSales(Request $request)
+    {
+        return response()->json(['data' => $this->service->productWiseSales($request)]);
+    }
+
     #[Permissions('discount_report', group: 'sales_report', desc: 'Discount Report')]
     public function discountReport(Request $request)
     {

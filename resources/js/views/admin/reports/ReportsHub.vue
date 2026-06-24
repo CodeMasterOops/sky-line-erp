@@ -173,6 +173,7 @@ const REPORT_CATEGORIES = [
             { label: 'Yearly Sales', name: 'admin.yearly-sales-report', permission: 'yearly_sales_report' },
             { label: 'Customer Wise Sales', name: 'admin.customer-wise-sales-report', permission: 'customer_wise_sales_report' },
             { label: 'Category Wise Sales', name: 'admin.category-wise-sales-report', permission: 'category_wise_sales_report' },
+            { label: 'Product Wise Sales', name: 'admin.product-wise-sales-report', permission: 'product_wise_sales_report' },
             { label: 'Sales Return', name: 'admin.sales-return-report', permission: 'sales_return_report' },
             { label: 'Outstanding Sales', name: 'admin.outstanding-sales-report', permission: 'outstanding_sales_report' },
             { label: 'Sales Tax', name: 'admin.sales-tax-report', permission: 'sales_tax_report' },

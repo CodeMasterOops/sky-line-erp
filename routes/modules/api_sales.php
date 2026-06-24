@@ -29,6 +29,7 @@ Route::prefix('sales-report')->as('sales-report.')->controller(SalesReportContro
     Route::get('yearly-sales', 'yearlySales')->name('yearly-sales');
     Route::get('customer-wise-sales', 'customerWiseSales')->name('customer-wise-sales');
     Route::get('category-wise-sales', 'categoryWiseSales')->name('category-wise-sales');
+    Route::get('product-wise-sales', 'productWiseSales')->name('product-wise-sales');
     Route::get('sales-return', 'salesReturn')->name('sales-return');
     Route::get('outstanding-sales', 'outstandingSales')->name('outstanding-sales');
     Route::get('sales-tax', 'salesTax')->name('sales-tax');

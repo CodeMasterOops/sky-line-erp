@@ -630,7 +630,7 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
         }
     }
 }
-.header-left{    
+.header-left{
         #toggle_btn{
             display: -webkit-box;
             display: -ms-flexbox;
@@ -643,7 +643,7 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
             -ms-flex-pack: center;
             position: absolute;
             opacity: 1;
-            background: variables.$info;
+            background: variables.$primary;
             right: -13px;
             border-radius: 50%;
             width: 25px;
@@ -654,7 +654,7 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
                 transform: rotate(180deg);
             }
             &:hover {
-                background: variables.$info-hover;
+                background: variables.$primary-hover;
             }
         }
         &.active svg {
@@ -974,7 +974,7 @@ body.mini-sidebar{
             -ms-flex-pack: center;
             position: absolute;
             opacity: 1;
-            background: variables.$info;
+            background: variables.$primary;
             right: -13px;
             border-radius: 50%;
             width: 25px;
@@ -985,7 +985,7 @@ body.mini-sidebar{
                 transform: rotate(0);
             }
             &:hover {
-                background: variables.$info-hover;
+                background: variables.$primary-hover;
             }
             &.active svg {
                 transform: rotate(180deg) !important;

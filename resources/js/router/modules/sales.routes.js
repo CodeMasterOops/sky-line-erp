@@ -108,6 +108,12 @@ export default [
         component: () => import("@/views/admin/sales/reports/CategoryWiseSalesReport.vue"),
     },
     {
+        path: "product-wise-sales-report",
+        name: "admin.product-wise-sales-report",
+        meta: { pageTitle: "Product Wise Sales Report" },
+        component: () => import("@/views/admin/sales/reports/ProductWiseSalesReport.vue"),
+    },
+    {
         path: "sales-return-report",
         name: "admin.sales-return-report",
         meta: { pageTitle: "Sales Return Report" },
