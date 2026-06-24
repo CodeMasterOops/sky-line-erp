@@ -104,6 +104,7 @@ class StockMovementGlPostingService
 
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $movement->company_id,
+                'branch_id' => $movement->branch_id,
                 'fiscal_year_id' => $fiscalYearId,
                 'type' => JournalTypeEnum::JOURNAL_VOUCHER,
                 'reference_type' => $movement->getMorphClass(),

@@ -124,6 +124,7 @@ class InvoiceGlPostingService
         ) {
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $invoice->company_id,
+                'branch_id' => $invoice->branch_id,
                 'fiscal_year_id' => $company->fiscal_year_id,
                 'type' => JournalTypeEnum::INVOICE,
                 'reference_type' => $invoice->getMorphClass(),

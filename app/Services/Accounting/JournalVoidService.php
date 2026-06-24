@@ -71,6 +71,7 @@ class JournalVoidService
 
         $contra = Journal::withoutGlobalScopes()->create([
             'company_id' => $companyId,
+            'branch_id' => $original->branch_id,
             'fiscal_year_id' => $original->fiscal_year_id,
             'type' => JournalTypeEnum::VOID,
             'reference_type' => $document->getMorphClass(),

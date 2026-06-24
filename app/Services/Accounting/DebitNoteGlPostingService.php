@@ -99,6 +99,7 @@ class DebitNoteGlPostingService
         ) {
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $debitNote->company_id,
+                'branch_id' => $debitNote->branch_id,
                 'fiscal_year_id' => $company->fiscal_year_id,
                 'type' => JournalTypeEnum::DEBIT_NOTE,
                 'reference_type' => $debitNote->getMorphClass(),

@@ -476,6 +476,7 @@ class LandedCostService
     ): Journal {
         return Journal::withoutGlobalScopes()->create([
             'company_id' => $landedCost->company_id,
+            'branch_id' => $landedCost->branch_id,
             'fiscal_year_id' => $fiscalYearId,
             'type' => JournalTypeEnum::JOURNAL_VOUCHER,
             'reference_type' => $landedCost->getMorphClass(),

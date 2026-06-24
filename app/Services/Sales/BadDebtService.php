@@ -79,6 +79,7 @@ readonly class BadDebtService
 
             $journal = \App\Models\Journal::withoutGlobalScopes()->create([
                 'company_id' => $invoice->company_id,
+                'branch_id' => $invoice->branch_id,
                 'fiscal_year_id' => $invoice->fiscal_year_id,
                 'type' => JournalTypeEnum::JOURNAL_VOUCHER->value,
                 'reference_type' => Invoice::class,

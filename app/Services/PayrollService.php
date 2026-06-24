@@ -317,6 +317,7 @@ class PayrollService
 
             $journal = Journal::create([
                 'company_id' => $companyId,
+                'branch_id' => $payrollRun->branch_id,
                 'fiscal_year_id' => $fiscalYear->id,
                 'type' => JournalTypeEnum::PAYMENT_VOUCHER,
                 'reference_type' => PayrollRun::class,

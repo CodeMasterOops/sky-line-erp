@@ -112,6 +112,7 @@ readonly class TdsReceivableService
         DB::transaction(function () use ($receivable, $settings, $amount, $date, $user) {
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $receivable->company_id,
+                'branch_id' => $receivable->branch_id,
                 'fiscal_year_id' => $receivable->fiscal_year_id,
                 'type' => JournalTypeEnum::JOURNAL_VOUCHER->value,
                 'reference_type' => TdsReceivable::class,

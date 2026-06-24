@@ -100,6 +100,9 @@ class ClosingEntryService
         }
 
         $journal = DB::transaction(function () use ($companyId, $fiscalYear, $endDate, $userId, $lines) {
+            // Year-end close is a single company-wide entry that aggregates every
+            // branch's P&L into retained earnings, so branch_id is intentionally
+            // left null (visible to admins / company-level reports only).
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $companyId,
                 'fiscal_year_id' => $fiscalYear->id,

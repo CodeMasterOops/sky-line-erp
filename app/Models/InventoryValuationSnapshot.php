@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Traits\BranchTenant;
-
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InventoryValuationSnapshot extends Model
 {
     use BranchTenant;
+
     protected $fillable = [
         'company_id',
         'branch_id',

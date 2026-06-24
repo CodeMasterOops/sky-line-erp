@@ -14,8 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Batch extends Model
 {
-    use BranchTenant;
     use Auditable, MultiTenant, SoftDeletes;
+    use BranchTenant;
 
     protected $fillable = [
         'company_id',

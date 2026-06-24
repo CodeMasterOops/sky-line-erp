@@ -197,6 +197,7 @@ class ProductionOrderGlPostingService
 
         $journal = Journal::withoutGlobalScopes()->create([
             'company_id' => $order->company_id,
+            'branch_id' => $order->branch_id,
             'fiscal_year_id' => $order->fiscal_year_id,
             'type' => JournalTypeEnum::JOURNAL_VOUCHER,
             'reference_type' => $order->getMorphClass(),
@@ -261,6 +262,7 @@ class ProductionOrderGlPostingService
 
         $journal = Journal::withoutGlobalScopes()->create([
             'company_id' => $order->company_id,
+            'branch_id' => $order->branch_id,
             'fiscal_year_id' => $order->fiscal_year_id,
             'type' => JournalTypeEnum::JOURNAL_VOUCHER,
             'reference_type' => $order->getMorphClass(),

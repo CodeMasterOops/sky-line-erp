@@ -81,6 +81,7 @@ readonly class CustomerAdvanceService
 
             $journal = $advance->journal()->create([
                 'company_id' => $advance->company_id,
+                'branch_id' => $advance->branch_id,
                 'fiscal_year_id' => $advance->fiscal_year_id,
                 'type' => JournalTypeEnum::RECEIPT->value,
                 'reference_type' => CustomerAdvance::class,
@@ -165,6 +166,7 @@ readonly class CustomerAdvanceService
 
             $application = AdvanceApplication::create([
                 'company_id' => $advance->company_id,
+                'branch_id' => $advance->branch_id,
                 'customer_advance_id' => $advance->id,
                 'invoice_id' => $invoice->id,
                 'amount' => $amount,
@@ -177,6 +179,7 @@ readonly class CustomerAdvanceService
             // Post offsetting GL
             $journal = \App\Models\Journal::withoutGlobalScopes()->create([
                 'company_id' => $advance->company_id,
+                'branch_id' => $advance->branch_id,
                 'fiscal_year_id' => $advance->fiscal_year_id,
                 'type' => JournalTypeEnum::JOURNAL_VOUCHER->value,
                 'reference_type' => AdvanceApplication::class,

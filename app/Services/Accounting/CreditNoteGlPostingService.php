@@ -114,6 +114,7 @@ class CreditNoteGlPostingService
         ) {
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $creditNote->company_id,
+                'branch_id' => $creditNote->branch_id,
                 'fiscal_year_id' => $company->fiscal_year_id,
                 'type' => JournalTypeEnum::CREDIT_NOTE,
                 'reference_type' => $creditNote->getMorphClass(),
