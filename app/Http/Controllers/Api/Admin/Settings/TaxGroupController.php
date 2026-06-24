@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api\Admin\Settings;
 
 use App\Models\TaxGroup;
 use Illuminate\Http\Request;
+use App\Annotation\Permissions;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 
 class TaxGroupController extends Controller
 {
+    #[Permissions('list_tax', group: 'tax', desc: 'List Tax Group')]
     public function index(Request $request): JsonResponse
     {
         $groups = TaxGroup::query()
