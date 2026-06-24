@@ -40,7 +40,7 @@
                   :to="subMenu.route"
                   active-class=""
                   exact-active-class=""
-                  :class="{ active: isRouteTargetActive(subMenu.route) }"
+                  :class="{ active: isSubmenuItemActive(subMenu) }"
                 >{{ subMenu.menuValue }}</router-link>
               </li>
             </ul>
@@ -66,7 +66,7 @@
                     :to="subMenus.route"
                     active-class=""
                     exact-active-class=""
-                    :class="{ active: isRouteTargetActive(subMenus.route) }"
+                    :class="{ active: isSubmenuItemActive(subMenus) }"
                     >{{ subMenus.menuValue }}</router-link
                   >
                 </template>
@@ -89,7 +89,7 @@
                           :to="subMenuTwo.route"
                           active-class=""
                           exact-active-class=""
-                          :class="{ active: isRouteTargetActive(subMenuTwo.route) }"
+                          :class="{ active: isSubmenuItemActive(subMenuTwo) }"
                         >{{ subMenuTwo.menuValue }}</router-link>
                       </li>
                     </ul>
@@ -143,9 +143,9 @@ export default {
         if (menu.subMenus && Array.isArray(menu.subMenus)) {
           if (
             menu.subMenus.some((s) => {
-              if (s.route && this.isRouteTargetActive(s.route)) return true;
+              if (this.isSubmenuItemActive(s)) return true;
               if (s.customSubmenuTwo && Array.isArray(s.subMenusTwo)) {
-                return s.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route));
+                return s.subMenusTwo.some((t) => this.isSubmenuItemActive(t));
               }
               return false;
             })
@@ -165,7 +165,7 @@ export default {
     isSubActive() {
       return (menu) => {
         if (menu.subMenusTwo && Array.isArray(menu.subMenusTwo)) {
-          if (menu.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route))) {
+          if (menu.subMenusTwo.some((t) => this.isSubmenuItemActive(t))) {
             return true;
           }
         }
@@ -202,6 +202,12 @@ export default {
       }
       return false;
     },
+    isSubmenuItemActive(subMenu) {
+      if (subMenu.active_routes && subMenu.active_routes.includes(this.$route.name)) {
+        return true;
+      }
+      return subMenu.route ? this.isRouteTargetActive(subMenu.route) : false;
+    },
     sectionTitle(section) {
       return section.title ?? section.tittle ?? "";
     },
@@ -225,17 +231,15 @@ export default {
         (section.menu || []).forEach((menu) => {
           if (menu.hasSubRoute && menu.subMenus) {
             const key = this.submenuKey(section, menu);
-            const anyChildActive = menu.subMenus.some(
-              (s) => s.route && this.isRouteTargetActive(s.route)
-            );
+            const anyChildActive = menu.subMenus.some((s) => this.isSubmenuItemActive(s));
             this.submenuExpanded = { ...this.submenuExpanded, [key]: anyChildActive };
           }
           if (menu.hasSubRouteTwo && menu.subMenus) {
             const key = this.menuKey(section, menu);
             const anyChildActive = menu.subMenus.some((s) => {
-              if (s.route && this.isRouteTargetActive(s.route)) return true;
+              if (this.isSubmenuItemActive(s)) return true;
               if (s.customSubmenuTwo && Array.isArray(s.subMenusTwo)) {
-                return s.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route));
+                return s.subMenusTwo.some((t) => this.isSubmenuItemActive(t));
               }
               return false;
             });
@@ -243,7 +247,7 @@ export default {
               this.openMenuKey = key;
               menu.subMenus.forEach((s) => {
                 if (s.customSubmenuTwo && Array.isArray(s.subMenusTwo)) {
-                  const groupActive = s.subMenusTwo.some((t) => t.route && this.isRouteTargetActive(t.route));
+                  const groupActive = s.subMenusTwo.some((t) => this.isSubmenuItemActive(t));
                   if (groupActive) {
                     this.openSubMenuKey = s.menuValue;
                   }

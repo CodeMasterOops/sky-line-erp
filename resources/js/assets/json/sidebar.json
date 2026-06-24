@@ -35,6 +35,7 @@
                     {
                         "menuValue": "Contacts",
                         "route": { "name": "admin.crm-contacts" },
+                        "active_routes": ["admin.crm-contacts", "admin.crm-customer-profile"],
                         "permission": "list_party",
                         "hasSubRoute": false
                     },
@@ -67,12 +68,14 @@
                     {
                         "menuValue": "Invoices",
                         "route": { "name": "admin.invoice-list" },
+                        "active_routes": ["admin.invoice-list", "admin.invoice-view"],
                         "permission": "list_invoice",
                         "hasSubRoute": false
                     },
                     {
                         "menuValue": "Delivery Challans",
                         "route": { "name": "admin.delivery-challan-list" },
+                        "active_routes": ["admin.delivery-challan-list", "admin.delivery-challan-create", "admin.delivery-challan-view"],
                         "permission": "list_delivery_challan",
                         "hasSubRoute": false
                     },
@@ -111,6 +114,7 @@
                     {
                         "menuValue": "Goods Received Notes",
                         "route": { "name": "admin.grn-list" },
+                        "active_routes": ["admin.grn-list", "admin.grn-create", "admin.grn-view"],
                         "permission": "list_grn",
                         "hasSubRoute": false
                     },
@@ -149,6 +153,7 @@
                     {
                         "menuValue": "Products",
                         "route": { "name": "admin.product-list" },
+                        "active_routes": ["admin.product-list", "admin.product-show", "admin.product-create", "admin.product-edit"],
                         "permission": "list_product",
                         "hasSubRoute": false,
                         "customSubmenuTwo": false
@@ -220,6 +225,7 @@
                             {
                                 "menuValue": "Batch / Lot Tracking",
                                 "route": { "name": "admin.batch-list" },
+                                "active_routes": ["admin.batch-list", "admin.batch-create", "admin.batch-edit"],
                                 "permission": "list_batch",
                                 "hasSubRoute": false
                             },
@@ -368,6 +374,7 @@
                     {
                         "menuValue": "Employees",
                         "route": { "name": "admin.hr-employee-list" },
+                        "active_routes": ["admin.hr-employee-list", "admin.hr-employee-create", "admin.hr-employee-edit"],
                         "permission": "list_employee",
                         "hasSubRoute": false,
                         "customSubmenuTwo": false
@@ -440,6 +447,7 @@
                             {
                                 "menuValue": "Payroll",
                                 "route": { "name": "admin.hr-payroll" },
+                                "active_routes": ["admin.hr-payroll", "admin.hr-payroll-detail", "admin.hr-payslip"],
                                 "permission": "list_payroll",
                                 "hasSubRoute": false
                             }
@@ -462,6 +470,7 @@
                     {
                         "menuValue": "Roles & Permissions",
                         "route": { "name": "admin.role-list" },
+                        "active_routes": ["admin.role-list", "admin.role-create", "admin.role-edit"],
                         "permission": "list_role",
                         "hasSubRoute": false
                     }
