@@ -38,6 +38,7 @@
                     <div class="sidebar-plan-card__info">
                         <p class="sidebar-plan-card__label">Current Plan</p>
                         <p class="sidebar-plan-card__name">{{ planName }}</p>
+                        <p v-if="planExpiry" class="sidebar-plan-card__expiry">{{ planExpiry }}</p>
                     </div>
                     <router-link
                         :to="{ name: 'admin.billing-pricing' }"
@@ -74,6 +75,23 @@ export default {
     planName() {
       const billing = useBillingStore();
       return billing.subscription.data?.plan?.name ?? "Free";
+    },
+    planExpiry() {
+      const sub = useBillingStore().subscription.data;
+      if (!sub) { return null; }
+
+      const dateStr = sub.status === 'trialing' ? sub.trial_ends_at : sub.ends_at;
+      if (!dateStr) { return null; }
+
+      const expiry = new Date(dateStr);
+      const now = new Date();
+      const diffDays = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+
+      if (diffDays < 0) { return 'Plan expired'; }
+      if (diffDays === 0) { return 'Expires today'; }
+      if (diffDays <= 7) { return `Expires in ${diffDays}d`; }
+
+      return `Expires ${expiry.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     },
   },
   watch: {
@@ -143,7 +161,7 @@ export default {
 /* Plan card */
 .sidebar-plan-card {
   border-radius: 10px;
-  background: linear-gradient(135deg, #0339a7 0%, #40abe6 100%);
+  background: #0339a7;
   margin-bottom: 6px;
   overflow: hidden;
 }
@@ -189,6 +207,17 @@ export default {
   font-size: 13px;
   font-weight: 600;
   color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.sidebar-plan-card__expiry {
+  margin: 2px 0 0;
+  font-size: 10px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

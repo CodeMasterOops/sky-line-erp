@@ -113,6 +113,9 @@
                         }
                         ul {
                             li {
+                                &::before {
+                                    display: none;
+                                }
                                 a {
                                     font-size: variables.$font-size-14;
                                     font-weight: variables.$font-weight-medium;

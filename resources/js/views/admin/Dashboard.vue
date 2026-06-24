@@ -35,16 +35,20 @@
             class="col-xl-3 col-sm-6 col-12 d-flex"
           >
             <div :class="`card metric-card metric-card--${metric.cardColor} flex-fill`">
-              <div class="metric-card__body">
-                <div class="metric-card__info">
-                  <h3 class="metric-card__count">{{ metric.displayValue }}</h3>
-                  <p class="metric-card__label mb-0">{{ metric.label }}</p>
+              <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                  <span class="metric-card__icon">
+                    <i :class="`ti ${metric.icon} fs-24`"></i>
+                  </span>
+                  <div>
+                    <p class="metric-card__label mb-1">{{ metric.label }}</p>
+                    <h3 class="metric-card__count mb-0">{{ metric.displayValue }}</h3>
+                  </div>
                 </div>
-                <i :class="`ti ${metric.icon} metric-card__bg-icon`"></i>
+                <router-link :to="metric.route" class="metric-card__footer">
+                  View all <i class="ti ti-arrow-right fs-12"></i>
+                </router-link>
               </div>
-              <router-link :to="metric.route" class="metric-card__footer">
-                {{ metric.label }}
-              </router-link>
             </div>
           </div>
         </div>

@@ -228,14 +228,14 @@ $sidebar-active-bg: color.change(variables.$primary, $alpha: 0.08);
                                    }
                                }
                                &:hover{
-                                   color:variables.$title-color;
-                                   background-color: variables.$light-900;
+                                   color: variables.$primary;
+                                   background-color: $sidebar-active-bg;
                                    &:after{
                                     background: variables.$primary;
                                     border: 2px solid variables.$primary-200;
                                    }
                                    span, i {
-                                        color:variables.$title-color;
+                                        color: variables.$primary;
                                    }
                                }
                            }  
