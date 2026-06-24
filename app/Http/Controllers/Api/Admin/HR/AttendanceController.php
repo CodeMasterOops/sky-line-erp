@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\Admin\HR;
 
+use Carbon\Carbon;
 use App\Models\Employee;
 use App\Models\Attendance;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\NepaliDateService;
 use App\Http\Resources\Admin\HR\AttendanceResource;
 use App\Http\Requests\Api\Admin\HR\AttendanceRequest;
 
@@ -65,13 +67,29 @@ class AttendanceController extends Controller
     }
 
     #[Permissions('list_attendance', group: 'attendance', desc: 'Monthly Attendance Sheet')]
-    public function monthly(Request $request)
+    public function monthly(Request $request, NepaliDateService $nepaliDate)
     {
-        $month = $request->month ?? now()->month;
-        $year = $request->year ?? now()->year;
+        $today = $nepaliDate->today();
+        $bsYear = (int) ($request->bs_year ?? $today['year']);
+        $bsMonth = (int) ($request->bs_month ?? $today['month']);
 
-        $employees = Employee::with(['attendances' => function ($q) use ($month, $year) {
-            $q->whereMonth('date', $month)->whereYear('date', $year);
+        $daysInMonth = $nepaliDate->daysInBsMonth($bsYear, $bsMonth);
+        $start = $nepaliDate->bsToAd($bsYear, $bsMonth, 1)->startOfDay();
+        $end = $nepaliDate->bsToAd($bsYear, $bsMonth, $daysInMonth)->endOfDay();
+
+        $days = [];
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $ad = $nepaliDate->bsToAd($bsYear, $bsMonth, $day);
+            $days[] = [
+                'bs_day' => str_pad((string) $day, 2, '0', STR_PAD_LEFT),
+                'ad_date' => $ad->toDateString(),
+                'weekday' => $ad->isoFormat('dd'),
+                'is_weekend' => $ad->dayOfWeek === Carbon::SATURDAY,
+            ];
+        }
+
+        $employees = Employee::with(['attendances' => function ($q) use ($start, $end) {
+            $q->whereBetween('date', [$start->toDateString(), $end->toDateString()]);
         }])->get();
 
         return response()->json([
@@ -81,10 +99,14 @@ class AttendanceController extends Controller
                     'full_name' => $emp->full_name,
                     'employee_code' => $emp->employee_code,
                 ],
-                'attendances' => $emp->attendances->keyBy(fn ($a) => $a->date->format('d')),
+                'attendances' => $emp->attendances->keyBy(
+                    fn ($a) => str_pad((string) $nepaliDate->adToBs($a->date)['day'], 2, '0', STR_PAD_LEFT)
+                ),
             ]),
-            'month' => $month,
-            'year' => $year,
+            'bs_year' => $bsYear,
+            'bs_month' => $bsMonth,
+            'bs_month_name' => $nepaliDate->monthName($bsMonth),
+            'days' => $days,
         ]);
     }
 

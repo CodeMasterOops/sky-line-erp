@@ -65,6 +65,31 @@
             </form>
         </template>
     </VModal>
+
+    <VModal :show-modal="showPayModal" @close-click="showPayModal = false" title="Confirm Payroll as Paid">
+        <template #modal-body>
+            <div class="row g-3">
+                <div class="col-12">
+                    <p class="text-muted">Select the bank or cash account from which salaries will be paid. A journal entry will be automatically posted to the ledger.</p>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Payment Account <span class="text-danger">*</span></label>
+                    <select v-model="paidAccountId" class="form-select">
+                        <option value="">-- Select Account --</option>
+                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
+                    </select>
+                    <div v-if="payError" class="text-danger small mt-1">{{ payError }}</div>
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" @click="showPayModal = false" class="btn btn-cancel">Cancel</button>
+                    <button type="button" @click="confirmPay" :disabled="isPaying" class="btn btn-success">
+                        <span v-if="isPaying" class="spinner-border spinner-border-sm me-1"></span>
+                        Confirm &amp; Post to Ledger
+                    </button>
+                </div>
+            </div>
+        </template>
+    </VModal>
 </template>
 
 <script setup>
@@ -89,6 +114,13 @@ const { runs } = storeToRefs(payrollStore);
 const showCreateModal = ref(false);
 const cSubmitting = ref(false);
 const fiscalYears = ref([]);
+
+const showPayModal = ref(false);
+const payRunId = ref(null);
+const paidAccountId = ref('');
+const payError = ref('');
+const isPaying = ref(false);
+const accountList = ref([]);
 
 const bsMonthNames = ['Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
 
@@ -115,14 +147,16 @@ const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
 
 onMounted(async () => {
     try {
-        const [fyRes, periodRes] = await Promise.all([
+        const [fyRes, periodRes, accRes] = await Promise.all([
             apiAdmin('admin-setting/fiscal-year'),
             apiAdmin('hr/payroll/current-period'),
+            apiAdmin('account?limit=200'),
         ]);
         fiscalYears.value = fyRes.data.data;
         currentBsPeriod.value = periodRes.data.data;
         cForm.bs_year = currentBsPeriod.value.bs_year;
         cForm.bs_month = currentBsPeriod.value.bs_month;
+        accountList.value = accRes.data.data ?? [];
     } catch (e) {
         showErrors(e);
     }
@@ -164,21 +198,38 @@ const processRun = async (id) => {
     }
 };
 
-const { confirmAction, confirmDelete } = useConfirmAction();
+const { confirmDelete } = useConfirmAction();
 
-const confirmRun = (id) => confirmAction({
-    title:              'Mark payroll as Paid?',
-    icon:               'question',
-    confirmButtonColor: 'green',
-    confirmButtonText:  'Yes, Confirm',
-    action:             () => payrollStore.confirmRun(id),
-    onSuccess:          fetchRuns,
-});
+const openPayModal = (id) => {
+    payRunId.value = id;
+    paidAccountId.value = '';
+    payError.value = '';
+    showPayModal.value = true;
+};
+
+const confirmPay = async () => {
+    payError.value = '';
+    if (!paidAccountId.value) {
+        payError.value = 'Please select a payment account.';
+        return;
+    }
+    isPaying.value = true;
+    try {
+        const res = await payrollStore.confirmRun(payRunId.value, { paid_account_id: paidAccountId.value });
+        toast(res.status, res.data.message);
+        showPayModal.value = false;
+        fetchRuns();
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        isPaying.value = false;
+    }
+};
 
 const rowActions = createRowActions({
     onView:    (id) => router.push({ name: 'admin.hr-payroll-detail', params: { id } }),
     onProcess: processRun,
-    onConfirm: confirmRun,
+    onConfirm: openPayModal,
     onDelete:  (id) => confirmDelete(
         () => payrollStore.deleteRun(id),
         fetchRuns,

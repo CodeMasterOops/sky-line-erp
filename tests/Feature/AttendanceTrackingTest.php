@@ -219,3 +219,28 @@ it('returns and updates the company work schedule over HTTP', function () {
 
     expect(WorkSchedule::where('company_id', $this->company->id)->count())->toBe(1);
 });
+
+it('returns the monthly attendance sheet keyed by BS day for a BS month', function () {
+    $svc = app(App\Services\Nepal\NepaliDateService::class);
+
+    $employee = Employee::create([
+        'company_id' => $this->company->id, 'employee_code' => 'AT-BS-'.uniqid(),
+        'first_name' => 'Bik', 'last_name' => 'Ram', 'join_date' => '2024-01-01', 'status' => 'active',
+    ]);
+
+    // Mark attendance on Shrawan 5, 2081 BS — assert it lands in the BS day-5 column.
+    $adDate = $svc->bsToAd(2081, 4, 5)->toDateString();
+    Attendance::create([
+        'company_id' => $this->company->id, 'employee_id' => $employee->id,
+        'date' => $adDate, 'status' => AttendanceStatusEnum::PRESENT,
+    ]);
+
+    $res = $this->getJson('/api/admin/hr/attendance/monthly?bs_year=2081&bs_month=4')
+        ->assertOk()
+        ->assertJsonPath('bs_year', 2081)
+        ->assertJsonPath('bs_month', 4)
+        ->assertJsonPath('data.0.attendances.05.status', AttendanceStatusEnum::PRESENT->value);
+
+    expect($res->json('days'))->toHaveCount($svc->daysInBsMonth(2081, 4))
+        ->and($res->json('days.0.bs_day'))->toBe('01');
+});

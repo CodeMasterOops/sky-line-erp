@@ -5,7 +5,7 @@ import showErrors from '@/helpers/showErrors.js';
 export const useAttendanceStore = defineStore('attendance', {
     state: () => ({
         attendances: { data: [], loading: false, meta: {} },
-        monthlySheet: { data: [], loading: false },
+        monthlySheet: { data: [], days: [], bsYear: null, bsMonth: null, loading: false },
         workSchedule: { data: {}, loading: false },
     }),
 
@@ -36,7 +36,12 @@ export const useAttendanceStore = defineStore('attendance', {
         getMonthlySheet(params = {}) {
             this.monthlySheet.loading = true;
             return apiAdmin('hr/attendance/monthly', 'get', params)
-                .then((res) => { this.monthlySheet.data = res.data.data; })
+                .then((res) => {
+                    this.monthlySheet.data = res.data.data;
+                    this.monthlySheet.days = res.data.days ?? [];
+                    this.monthlySheet.bsYear = res.data.bs_year;
+                    this.monthlySheet.bsMonth = res.data.bs_month;
+                })
                 .catch(showErrors)
                 .finally(() => { this.monthlySheet.loading = false; });
         },

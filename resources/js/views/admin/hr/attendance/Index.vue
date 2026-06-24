@@ -92,18 +92,18 @@
                 <span class="text-muted small me-1">
                     <i class="ti ti-calendar-stats me-1"></i>{{ currentPeriodLabel }}
                 </span>
-                <!-- Month Dropdown -->
+                <!-- BS Month Dropdown -->
                 <div class="dropdown">
                     <a href="javascript:void(0);"
                         class="dropdown-toggle btn btn-white btn-md d-inline-flex align-items-center"
                         data-bs-toggle="dropdown">
-                        <i class="ti ti-calendar me-1"></i> {{ monthName(filter.month) }}
+                        <i class="ti ti-calendar me-1"></i> {{ bsMonthName(monthlySheet.bsMonth) }}
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end p-3" style="min-width:160px;">
-                        <li v-for="m in 12" :key="m">
+                        <li v-for="(name, idx) in bsMonthNames" :key="idx">
                             <a href="javascript:void(0);" class="dropdown-item rounded-1"
-                                :class="{ 'active': filter.month === m }"
-                                @click="filter.month = m">{{ monthName(m) }}</a>
+                                :class="{ 'active': monthlySheet.bsMonth === idx + 1 }"
+                                @click="filter.bs_month = idx + 1">{{ name }}</a>
                         </li>
                     </ul>
                 </div>
@@ -129,12 +129,13 @@
                                 Employee
                                 <span class="badge bg-secondary ms-1">{{ filteredSheet.length }}</span>
                             </th>
-                            <th v-for="day in daysInMonth" :key="day"
+                            <th v-for="d in days" :key="d.bs_day"
                                 class="text-center fw-semibold"
-                                :class="{ 'weekend-col': isWeekend(day) }"
+                                :class="{ 'weekend-col': d.is_weekend }"
+                                :title="d.ad_date"
                                 style="min-width:58px; width:58px;">
-                                <div>{{ parseInt(day) }}</div>
-                                <div class="text-muted" style="font-size:10px; font-weight:400;">{{ dayLabel(day) }}</div>
+                                <div>{{ parseInt(d.bs_day) }}</div>
+                                <div class="text-muted" style="font-size:10px; font-weight:400;">{{ d.weekday }}</div>
                             </th>
                         </tr>
                     </thead>
@@ -151,19 +152,19 @@
                                     </div>
                                 </div>
                             </td>
-                            <td v-for="day in daysInMonth" :key="day"
+                            <td v-for="d in days" :key="d.bs_day"
                                 class="text-center p-0"
-                                :class="{ 'weekend-col': isWeekend(day) }">
-                                <template v-if="row.attendances[day]">
-                                    <div :class="cellClass(row.attendances[day].status)"
-                                        :title="cellTooltip(row.attendances[day])"
+                                :class="{ 'weekend-col': d.is_weekend }">
+                                <template v-if="row.attendances[d.bs_day]">
+                                    <div :class="cellClass(row.attendances[d.bs_day].status)"
+                                        :title="cellTooltip(row.attendances[d.bs_day])"
                                         class="attendance-cell">
-                                        <span class="cell-label">{{ cellLabel(row.attendances[day].status) }}</span>
-                                        <span v-if="row.attendances[day].check_in" class="cell-time cell-in">
-                                            {{ formatTime(row.attendances[day].check_in) }}
+                                        <span class="cell-label">{{ cellLabel(row.attendances[d.bs_day].status) }}</span>
+                                        <span v-if="row.attendances[d.bs_day].check_in" class="cell-time cell-in">
+                                            {{ formatTime(row.attendances[d.bs_day].check_in) }}
                                         </span>
-                                        <span v-if="row.attendances[day].check_out" class="cell-time cell-out">
-                                            {{ formatTime(row.attendances[day].check_out) }}
+                                        <span v-if="row.attendances[d.bs_day].check_out" class="cell-time cell-out">
+                                            {{ formatTime(row.attendances[d.bs_day].check_out) }}
                                         </span>
                                     </div>
                                 </template>
@@ -202,15 +203,14 @@
         </div>
     </div>
 
-    <BulkAttendanceModal v-model:show="showBulkModal" :month="filter.month" :year="currentYear" @saved="loadSheet" />
+    <BulkAttendanceModal v-model:show="showBulkModal" @saved="loadSheet" />
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useAttendanceStore } from '@/stores/admin/hr/attendance.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
-import { apiAdmin } from '@/helpers/api.js';
 import BulkAttendanceModal from './BulkModal.vue';
 
 const store = useAttendanceStore();
@@ -218,48 +218,25 @@ const { monthlySheet } = storeToRefs(store);
 const showBulkModal = ref(false);
 const employeeSearch = ref('');
 
-const now = new Date();
-const fiscalYear = ref(null);
+const bsMonthNames = ['Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
+const bsMonthName = (m) => bsMonthNames[m - 1] ?? '';
 
-// Derive the calendar year from the current fiscal year so month selection is accurate.
-// Falls back to current calendar year if fiscal year data isn't available.
-const currentYear = computed(() => {
-    if (!fiscalYear.value) return now.getFullYear();
-    return new Date(fiscalYear.value.start_date).getFullYear();
-});
+// Day columns and BS year/month come from the backend (resolved on the Nepali calendar).
+const days = computed(() => monthlySheet.value.days);
 
-const currentPeriodLabel = computed(() => `${monthName(filter.month)} ${currentYear.value}`);
+const currentPeriodLabel = computed(() =>
+    monthlySheet.value.bsYear ? `${bsMonthName(monthlySheet.value.bsMonth)} ${monthlySheet.value.bsYear} BS` : ''
+);
 
-const loadSheet = () => store.getMonthlySheet({ month: filter.month, year: currentYear.value });
+// Pass bs_month only; the backend pins the BS year to the current Nepali year.
+const loadSheet = () => store.getMonthlySheet(filter.bs_month ? { bs_month: filter.bs_month } : {});
 
 const { filter } = useUrlFilter({
-    defaults: { month: now.getMonth() + 1 },
+    defaults: { bs_month: 0 },
     onFilter: loadSheet,
 });
 
-onMounted(async () => {
-    try {
-        const res = await apiAdmin('admin-setting/fiscal-year');
-        fiscalYear.value = res.data.data?.find(fy => fy.is_current) ?? null;
-    } catch { /* fall back to calendar year */ }
-});
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-const monthName = (m) => new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' });
-
-const daysInMonth = computed(() => {
-    const count = new Date(currentYear.value, filter.month, 0).getDate();
-    return Array.from({ length: count }, (_, i) => String(i + 1).padStart(2, '0'));
-});
-
-const isWeekend = (day) => {
-    const d = new Date(currentYear.value, filter.month - 1, parseInt(day)).getDay();
-    return d === 0 || d === 6;
-};
-
-const dayLabel = (day) => new Date(currentYear.value, filter.month - 1, parseInt(day))
-    .toLocaleString('default', { weekday: 'short' }).slice(0, 2);
 
 const avatarInitials = (name) => name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 

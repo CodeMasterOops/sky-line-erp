@@ -149,13 +149,17 @@ it('walks the full DRAFT → process → approve → confirm → PAID workflow o
         ->assertOk()
         ->assertJsonPath('data.status', PayrollStatusEnum::PENDING_APPROVAL->value);
 
+    // Approve and confirm must return the payslips so the detail view stays
+    // populated without a manual refresh.
     $this->postJson("/api/admin/hr/payroll/{$runId}/approve")
         ->assertOk()
-        ->assertJsonPath('data.status', PayrollStatusEnum::PROCESSED->value);
+        ->assertJsonPath('data.status', PayrollStatusEnum::PROCESSED->value)
+        ->assertJsonCount(1, 'data.payslips');
 
     $this->postJson("/api/admin/hr/payroll/{$runId}/confirm", ['paid_account_id' => $bank->id])
         ->assertOk()
-        ->assertJsonPath('data.status', PayrollStatusEnum::PAID->value);
+        ->assertJsonPath('data.status', PayrollStatusEnum::PAID->value)
+        ->assertJsonCount(1, 'data.payslips');
 
     expect(PayrollRun::find($runId)->journal_id)->not->toBeNull();
 });

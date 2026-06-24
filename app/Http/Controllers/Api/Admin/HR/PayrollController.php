@@ -116,7 +116,7 @@ class PayrollController extends Controller
         $payrollRun = $this->payrollService->approve($payrollRun);
 
         return response()->json([
-            'data' => PayrollRunResource::make($payrollRun->load('fiscalYear')),
+            'data' => PayrollRunResource::make($payrollRun->load(['fiscalYear', 'payslips.employee', 'payslips.items'])),
             'message' => 'Payroll Approved Successfully',
         ]);
     }
@@ -133,7 +133,7 @@ class PayrollController extends Controller
         $journal = $this->payrollService->postToLedger($payrollRun, (int) $request->paid_account_id);
 
         return response()->json([
-            'data' => PayrollRunResource::make($payrollRun->fresh()->load(['fiscalYear', 'journal', 'paidAccount'])),
+            'data' => PayrollRunResource::make($payrollRun->fresh()->load(['fiscalYear', 'journal', 'paidAccount', 'payslips.employee', 'payslips.items'])),
             'message' => 'Payroll Confirmed as Paid and Posted to Ledger',
         ]);
     }
