@@ -36,6 +36,12 @@ export default [
         component: () => import("@/views/admin/hr/attendance/Index.vue"),
     },
     {
+        path: "hr/work-schedule",
+        name: "admin.hr-work-schedule",
+        meta: {pageTitle: "Work Schedule"},
+        component: () => import("@/views/admin/hr/settings/WorkSchedule.vue"),
+    },
+    {
         path: "hr/leave-applications",
         name: "admin.hr-leave-applications",
         meta: {pageTitle: "Leave Applications"},

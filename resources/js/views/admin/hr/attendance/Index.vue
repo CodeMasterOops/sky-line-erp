@@ -283,6 +283,8 @@ const cellTooltip = (att) => {
     const parts = [att.status_label || resolveStatus(att.status)];
     if (att.check_in)  parts.push(`In: ${formatTime(att.check_in)}`);
     if (att.check_out) parts.push(`Out: ${formatTime(att.check_out)}`);
+    if (att.late_minutes > 0)   parts.push(`Late: ${att.late_minutes}m`);
+    if (att.overtime_hours > 0) parts.push(`OT: ${att.overtime_hours}h`);
     if (att.note)      parts.push(`Note: ${att.note}`);
     return parts.join(' · ');
 };

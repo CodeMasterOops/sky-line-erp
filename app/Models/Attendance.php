@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
-use App\Models\WorkSchedule;
 use App\Services\TenantService;
 use App\Enums\AttendanceStatusEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -29,7 +28,7 @@ class Attendance extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d',
         'status' => AttendanceStatusEnum::class,
         'worked_hours' => 'float',
         'late_minutes' => 'integer',

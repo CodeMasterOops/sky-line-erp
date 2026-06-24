@@ -35,14 +35,20 @@ class PayrollController extends Controller
 
         abort_if(! $fiscalYear->is_current, 422, 'Payroll can only be created for the current fiscal year.');
 
-        $run = DB::transaction(function () use ($request) {
+        // For a BS period the legacy `month` column mirrors the BS month so the
+        // existing per-fiscal-year uniqueness constraint keeps working.
+        $bsYear = $request->filled('bs_month') ? $request->bs_year : null;
+        $bsMonth = $request->filled('bs_month') ? $request->bs_month : null;
+        $month = $bsMonth ?? $request->month;
+
+        $run = DB::transaction(function () use ($request, $bsYear, $bsMonth, $month) {
             FiscalYear::withoutGlobalScopes()
                 ->where('id', $request->fiscal_year_id)
                 ->lockForUpdate()
                 ->first();
 
             $exists = PayrollRun::where('fiscal_year_id', $request->fiscal_year_id)
-                ->where('month', $request->month)
+                ->where('month', $month)
                 ->exists();
 
             if ($exists) {
@@ -52,7 +58,9 @@ class PayrollController extends Controller
             return PayrollRun::create([
                 'company_id' => auth('admin')->user()->company_id,
                 'fiscal_year_id' => $request->fiscal_year_id,
-                'month' => $request->month,
+                'bs_year' => $bsYear,
+                'bs_month' => $bsMonth,
+                'month' => $month,
                 'status' => PayrollStatusEnum::DRAFT,
             ]);
         });

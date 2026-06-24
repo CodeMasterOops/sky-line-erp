@@ -401,6 +401,13 @@
                         "customSubmenuTwo": false
                     },
                     {
+                        "menuValue": "Work Schedule",
+                        "route": { "name": "admin.hr-work-schedule" },
+                        "permission": "show_work_schedule",
+                        "hasSubRoute": false,
+                        "customSubmenuTwo": false
+                    },
+                    {
                         "menuValue": "Leaves",
                         "customSubmenuTwo": true,
                         "hasSubRoute": true,

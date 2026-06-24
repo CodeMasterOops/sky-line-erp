@@ -18,8 +18,8 @@ use App\Services\PayrollService;
 use App\Enums\AttendanceStatusEnum;
 use App\Models\SalaryStructureItem;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Schema;
 use App\Enums\SalaryComponentTypeEnum;
+use Illuminate\Support\Facades\Schema;
 use App\Services\Payroll\AttendanceCalculator;
 
 uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
@@ -139,22 +139,22 @@ it('adds an overtime earning to payroll when the schedule enables it', function 
     ]);
     SalaryStructureItem::create(['salary_structure_id' => $structure->id, 'salary_component_id' => $basic->id, 'amount' => 26_000, 'percentage' => 0]);
 
-    // Present every working day; one day has 4h overtime (in 10:00, out 21:00 = 11h → 3h OT... use explicit).
+    // Present every working day; the first works 10:00–20:00 (10h → 2h OT), the rest 10:00–18:00 (no OT).
     $current = Carbon::create(2024, 8, 1);
     $end = $current->copy()->endOfMonth();
+    $first = true;
     while ($current <= $end) {
         if ($current->dayOfWeek !== Carbon::SATURDAY) {
             Attendance::create([
                 'company_id' => $this->company->id, 'employee_id' => $employee->id,
-                'date' => $current->toDateString(), 'check_in' => '10:00', 'check_out' => '18:00',
+                'date' => $current->toDateString(),
+                'check_in' => '10:00', 'check_out' => $first ? '20:00' : '18:00',
                 'status' => AttendanceStatusEnum::PRESENT,
             ]);
+            $first = false;
         }
         $current->addDay();
     }
-    // Override one day to include 2h overtime (10:00–20:00 = 10h → 2h OT).
-    Attendance::where('employee_id', $employee->id)->where('date', '2024-08-01')
-        ->update(['overtime_hours' => 2]);
 
     $run = PayrollRun::create([
         'company_id' => $this->company->id, 'fiscal_year_id' => $this->fiscalYear->id,

@@ -9,8 +9,7 @@ class PayrollRunResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $monthLabel = $this->month ? date('F', mktime(0, 0, 0, $this->month, 1)) : '';
-        $yearName = $this->fiscalYear?->year_name ?? '';
+        $label = $this->periodLabel();
 
         return [
             'id' => $this->id,
@@ -21,8 +20,11 @@ class PayrollRunResource extends JsonResource
                 'year_code' => $this->fiscalYear->year_code,
             ]),
             'month' => $this->month,
-            'period_label' => $monthLabel ? "{$monthLabel} - {$yearName}" : $yearName,
-            'month_year_label' => $monthLabel ? "{$monthLabel} - {$yearName}" : $yearName,
+            'bs_year' => $this->bs_year,
+            'bs_month' => $this->bs_month,
+            'is_bs_period' => $this->isBsPeriod(),
+            'period_label' => $label,
+            'month_year_label' => $label,
             'status' => $this->status ?? '',
             'status_label' => $this->status?->label() ?? '',
             'total_gross' => $this->total_gross,

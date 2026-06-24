@@ -6,9 +6,23 @@ export const useAttendanceStore = defineStore('attendance', {
     state: () => ({
         attendances: { data: [], loading: false, meta: {} },
         monthlySheet: { data: [], loading: false },
+        workSchedule: { data: {}, loading: false },
     }),
 
     actions: {
+        getWorkSchedule() {
+            this.workSchedule.loading = true;
+            return apiAdmin('hr/work-schedule')
+                .then((res) => { this.workSchedule.data = res.data.data; })
+                .catch(showErrors)
+                .finally(() => { this.workSchedule.loading = false; });
+        },
+        updateWorkSchedule(form) {
+            return apiAdmin('hr/work-schedule', 'put', form).then((res) => {
+                this.workSchedule.data = res.data.data;
+                return res;
+            });
+        },
         getAttendances(params = {}) {
             this.attendances.loading = true;
             return apiAdmin('hr/attendance', 'get', params)

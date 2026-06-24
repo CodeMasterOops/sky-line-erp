@@ -48,10 +48,16 @@
                         No current fiscal year set. Please ask the super admin to set one.
                     </div>
                 </div>
-                <div v-if="currentFiscalYear" class="col-12">
-                    <label class="form-label">Month</label>
-                    <select v-model="cForm.month" class="form-select">
-                        <option v-for="m in 12" :key="m" :value="m">{{ monthName(m) }}</option>
+                <div v-if="currentFiscalYear" class="col-7">
+                    <label class="form-label">BS Month</label>
+                    <select v-model="cForm.bs_month" class="form-select">
+                        <option v-for="(name, idx) in bsMonthNames" :key="idx" :value="idx + 1">{{ name }}</option>
+                    </select>
+                </div>
+                <div v-if="currentFiscalYear" class="col-5">
+                    <label class="form-label">BS Year</label>
+                    <select v-model="cForm.bs_year" class="form-select">
+                        <option v-for="y in bsYearOptions" :key="y" :value="y">{{ y }}</option>
                     </select>
                 </div>
                 <div class="col-12 d-flex justify-content-end gap-2">
@@ -64,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
@@ -86,16 +92,26 @@ const showCreateModal = ref(false);
 const cSubmitting = ref(false);
 const fiscalYears = ref([]);
 
-const now = new Date();
-const cForm = reactive({ fiscal_year_id: null, month: now.getMonth() + 1 });
+const bsMonthNames = ['Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
+
+const cForm = reactive({ fiscal_year_id: null, bs_month: 4, bs_year: null });
 
 const currentFiscalYear = computed(() => fiscalYears.value.find(fy => fy.is_current) ?? null);
 
-const monthName = (m) => new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' });
+// Derive the two BS years a Nepali fiscal year spans from its name, e.g. "2081-82" → [2081, 2082].
+const bsYearOptions = computed(() => {
+    const name = currentFiscalYear.value?.year_name ?? '';
+    const match = name.match(/(\d{4})/);
+    if (!match) return [];
+    const start = parseInt(match[1], 10);
+    return [start, start + 1];
+});
+
 const statusBadge = (s) => ({
-    draft:     'badge bg-secondary',
-    processed: 'badge bg-primary',
-    paid:      'badge bg-success',
+    draft:           'badge bg-secondary',
+    pending_approval:'badge bg-warning',
+    processed:       'badge bg-primary',
+    paid:            'badge bg-success',
 }[s?.value ?? s] ?? 'badge bg-secondary');
 
 const fetchRuns = () => payrollStore.getRuns(filter);
@@ -114,9 +130,17 @@ onMounted(async () => {
     }
 });
 
+watch(() => cForm.bs_month, (m) => {
+    if (bsYearOptions.value.length === 2) {
+        cForm.bs_year = m >= 4 ? bsYearOptions.value[0] : bsYearOptions.value[1];
+    }
+});
+
 const openCreateModal = () => {
     if (currentFiscalYear.value) {
         cForm.fiscal_year_id = currentFiscalYear.value.id;
+        // Shrawan–Chaitra belong to the first BS year, Baisakh–Ashadh to the second.
+        cForm.bs_year = cForm.bs_month >= 4 ? bsYearOptions.value[0] : bsYearOptions.value[1];
     }
     showCreateModal.value = true;
 };

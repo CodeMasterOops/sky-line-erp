@@ -26,8 +26,8 @@ class LeaveApplication extends Model
     ];
 
     protected $casts = [
-        'from_date' => 'date',
-        'to_date' => 'date',
+        'from_date' => 'date:Y-m-d',
+        'to_date' => 'date:Y-m-d',
         'days' => 'float',
         'status' => LeaveStatusEnum::class,
         'approved_at' => 'datetime',

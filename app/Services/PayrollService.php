@@ -9,7 +9,6 @@ use App\Models\Payslip;
 use App\Models\Employee;
 use App\Enums\StatusEnum;
 use App\Models\Attendance;
-use App\Models\FiscalYear;
 use App\Models\PayrollRun;
 use App\Models\JournalItem;
 use App\Models\PayslipItem;
@@ -41,14 +40,9 @@ class PayrollService
     {
         $payrollRun->loadMissing('fiscalYear');
 
-        $month = $payrollRun->month;
         $companyId = $payrollRun->company_id;
 
-        $fiscalYear = $payrollRun->fiscalYear ?? FiscalYear::findOrFail($payrollRun->fiscal_year_id);
-        $year = $this->resolveCalendarYear($fiscalYear, $month);
-
-        $monthStart = Carbon::create($year, $month, 1)->startOfDay();
-        $monthEnd = $monthStart->copy()->endOfMonth()->endOfDay();
+        [$monthStart, $monthEnd] = $payrollRun->periodRange();
 
         $schedule = WorkSchedule::withoutGlobalScopes()
             ->where('company_id', $companyId)
@@ -57,7 +51,7 @@ class PayrollService
 
         $weeklyOffDays = $schedule?->weeklyOffDays() ?? self::WEEKLY_OFF_DAYS;
 
-        $holidays = $this->monthlyHolidays($month, $year, $companyId);
+        $holidays = $this->holidaysBetween($monthStart, $monthEnd, $companyId);
         $workingDays = $this->workingDaysBetween($monthStart, $monthEnd, $holidays, $weeklyOffDays);
 
         $employees = Employee::where('company_id', $companyId)
@@ -300,7 +294,7 @@ class PayrollService
         $this->periodGuard->assertPostable($companyId, $fiscalYear->id, $postingDate);
 
         return DB::transaction(function () use ($payrollRun, $paidAccountId, $fiscalYear, $companyId, $postingDate) {
-            $monthLabel = date('F Y', mktime(0, 0, 0, $payrollRun->month, 1, $fiscalYear->start_date->year));
+            $monthLabel = $payrollRun->periodLabel();
 
             $journal = Journal::create([
                 'company_id' => $companyId,
@@ -511,30 +505,15 @@ class PayrollService
     protected const WEEKLY_OFF_DAYS = [Carbon::SATURDAY];
 
     /**
-     * Resolve the Gregorian calendar year for a payroll month within a fiscal year.
-     *
-     * A Nepali fiscal year spans two Gregorian years (e.g. mid-Jul 2024 → mid-Jul 2025).
-     * Months at or after the fiscal-year start month belong to the start year; earlier
-     * months roll into the following year.
-     */
-    protected function resolveCalendarYear(FiscalYear $fiscalYear, int $month): int
-    {
-        $startYear = $fiscalYear->start_date->year;
-        $startMonth = $fiscalYear->start_date->month;
-
-        return $month >= $startMonth ? $startYear : $startYear + 1;
-    }
-
-    /**
-     * Company holidays falling within a Gregorian month, as Y-m-d strings.
+     * Company holidays falling within an AD date range, as Y-m-d strings.
+     * (A BS month spans two AD months, so the range form is required.)
      *
      * @return array<int, string>
      */
-    protected function monthlyHolidays(int $month, int $year, int $companyId): array
+    protected function holidaysBetween(Carbon $start, Carbon $end, int $companyId): array
     {
         return Holiday::where('company_id', $companyId)
-            ->whereMonth('date', $month)
-            ->whereYear('date', $year)
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->pluck('date')
             ->map(fn ($d) => $d->format('Y-m-d'))
             ->toArray();
