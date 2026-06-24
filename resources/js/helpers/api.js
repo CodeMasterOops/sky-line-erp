@@ -55,6 +55,16 @@ adminClient.interceptors.response.use((response) => response, async (error) => {
     ) {
         piniaStore(useBranchStore)?.clearSelectedBranch();
         window.location.href = '/admin/branch-select';
+    } else if (
+        error.response?.status === 403 &&
+        !error.config?.url?.includes('profile/permissions')
+    ) {
+        // A permission 403 (not the branch message above): the user's effective
+        // permissions may have changed since they were last loaded — e.g. an
+        // admin edited their role mid-session. Re-sync so the UI stops showing
+        // controls they no longer have. Skip the permissions endpoint itself to
+        // avoid a refresh loop.
+        piniaStore(useAdminAuthStore)?.refreshPermissions();
     }
 
     throw error;

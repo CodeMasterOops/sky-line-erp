@@ -63,15 +63,26 @@ class CheckRoleMiddleware
     private function findPermissionAttributes(Request $request): array
     {
         $object = $request->route()->getAction();
-        $controllerArr = explode('@', $object['controller']);
-        if (isset($controllerArr[1])) {
-            [$controller, $method] = $controllerArr;
-            $reflectionMethod = new \ReflectionMethod($controller, $method);
-            $attributes = $reflectionMethod->getAttributes(Permissions::class, \ReflectionAttribute::IS_INSTANCEOF);
 
-            return array_map(fn ($attr) => $attr->newInstance(), $attributes);
+        if (! isset($object['controller']) || ! is_string($object['controller'])) {
+            return [];
         }
 
-        return [];
+        $controllerArr = explode('@', $object['controller']);
+
+        // Invokable (single-action) controllers are registered without an
+        // "@method" suffix; their attributes live on __invoke. Without this the
+        // #[Permissions] on an invokable controller would be silently ignored.
+        $controller = $controllerArr[0];
+        $method = $controllerArr[1] ?? '__invoke';
+
+        if (! method_exists($controller, $method)) {
+            return [];
+        }
+
+        $reflectionMethod = new \ReflectionMethod($controller, $method);
+        $attributes = $reflectionMethod->getAttributes(Permissions::class, \ReflectionAttribute::IS_INSTANCEOF);
+
+        return array_map(fn ($attr) => $attr->newInstance(), $attributes);
     }
 }

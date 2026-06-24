@@ -98,12 +98,12 @@ it('does not provision a lead profile for a customer party', function () {
 });
 
 it('exposes party types and lead statuses through the enum endpoints', function () {
-    $this->getJson(route('enum.party-types'))
+    $this->getJson(route('api.admin.enum.party-types'))
         ->assertOk()
         ->assertJsonFragment(['id' => 'lead', 'name' => 'Lead'])
         ->assertJsonFragment(['id' => 'customer', 'name' => 'Customer']);
 
-    $this->getJson(route('enum.crm-lead-statuses'))
+    $this->getJson(route('api.admin.enum.crm-lead-statuses'))
         ->assertOk()
         ->assertJsonCount(5, 'data')
         ->assertJsonFragment(['id' => 'qualified', 'name' => 'Qualified']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin\Inventory;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Annotation\Permissions;
 use Illuminate\Validation\Rule;
 use App\Services\BarcodeService;
 use App\Http\Controllers\Controller;
@@ -35,6 +36,7 @@ class BarcodeController extends Controller
      *   ]
      * }
      */
+    #[Permissions('list_product')]
     public function pdf(Request $request): Response
     {
         $validated = $request->validate([
@@ -72,6 +74,7 @@ class BarcodeController extends Controller
      *
      * POST /api/admin/barcode/preview
      */
+    #[Permissions('list_product')]
     public function preview(Request $request): \Illuminate\Http\JsonResponse
     {
         $validated = $request->validate([

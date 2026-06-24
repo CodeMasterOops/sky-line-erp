@@ -33,11 +33,26 @@ trait PermissionHelper
     protected function getPermissions($group = []): array
     {
         $permissions = [];
-        $modules = ['Settings', 'UserManagement', 'Accounting', 'Inventory', 'Purchase', 'Sales', 'HR', 'Crm'];
-        $path = app_path().'/Http/Controllers/Api/Admin';
-        $classPath = 'App\\Http\\Controllers\\Api\\Admin\\';
-        foreach ($modules as $module) {
-            $permissions[$module] = $this->listFiles($group, $path.'/'.$module, $classPath.$module.'\\');
+        $base = app_path('Http/Controllers/Api/Admin');
+        $baseNamespace = 'App\\Http\\Controllers\\Api\\Admin\\';
+
+        // Top-level controllers (Party, Pos, ...) are grouped under "General" so
+        // their permissions are grantable from the role-management UI rather than
+        // being enforced-but-hidden.
+        $general = $this->listFiles($group, $base, $baseNamespace);
+        if (! empty($general)) {
+            $permissions['General'] = $general;
+        }
+
+        // Every module subdirectory (including Nepal & DataTransfer, previously
+        // omitted) becomes its own bucket, so no enforced permission is hidden.
+        foreach (glob($base.'/*', GLOB_ONLYDIR) ?: [] as $dir) {
+            $module = basename($dir);
+            $modulePermissions = $this->listFiles($group, $dir, $baseNamespace.$module.'\\');
+
+            if (! empty($modulePermissions)) {
+                $permissions[$module] = $modulePermissions;
+            }
         }
 
         return $permissions;
