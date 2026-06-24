@@ -78,3 +78,14 @@ it('forbids a branch user from the balance sheet of another branch', function ()
     $this->getJson('/api/admin/account-report/balance-sheet?branch_id='.$this->branchB->id)
         ->assertForbidden();
 });
+
+it('branch-scopes the VAT sales and purchase registers (sales/purchase) by access', function () {
+    $this->user->roles()->first()->update(['permissions' => ['profit_loss', 'vat_report']]);
+
+    // Own branch is allowed; another branch is forbidden for both registers.
+    $this->getJson('/api/admin/account-report/vat-sales-register?branch_id='.$this->branchA->id)->assertSuccessful();
+    $this->getJson('/api/admin/account-report/vat-sales-register?branch_id='.$this->branchB->id)->assertForbidden();
+
+    $this->getJson('/api/admin/account-report/vat-purchase-register?branch_id='.$this->branchA->id)->assertSuccessful();
+    $this->getJson('/api/admin/account-report/vat-purchase-register?branch_id='.$this->branchB->id)->assertForbidden();
+});

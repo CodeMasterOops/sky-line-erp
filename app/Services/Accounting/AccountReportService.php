@@ -377,12 +377,15 @@ class AccountReportService
 
     private function fetchVatSalesRows(int $companyId, string $start, string $end): array
     {
-        $key = $this->vatRegisterCacheKey('sales', $companyId, $start, $end);
+        // Resolve (and authorize) the branch scope before the cache so the
+        // access check runs even on a cache hit and the key is branch-specific.
+        $branchIds = $this->resolveReportBranchIds();
+        $key = $this->vatRegisterCacheKey('sales', $companyId, $start, $end, $branchIds);
 
-        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatSalesRows($companyId, $start, $end));
+        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatSalesRows($companyId, $start, $end, $branchIds));
     }
 
-    private function computeVatSalesRows(int $companyId, string $start, string $end): array
+    private function computeVatSalesRows(int $companyId, string $start, string $end, ?array $branchIds = null): array
     {
         $dbRows = DB::table('invoices')
             ->leftJoin('parties', 'parties.id', '=', 'invoices.party_id')
@@ -391,6 +394,7 @@ class AccountReportService
                     ->whereNull('invoice_items.deleted_at');
             })
             ->where('invoices.company_id', $companyId)
+            ->when($branchIds, fn ($q, $ids) => $q->whereIn('invoices.branch_id', $ids))
             ->where('invoices.status', StatusEnum::APPROVED->value)
             ->whereNull('invoices.voided_at')
             ->whereNull('invoices.deleted_at')
@@ -454,12 +458,13 @@ class AccountReportService
 
     private function fetchVatPurchaseRows(int $companyId, string $start, string $end): array
     {
-        $key = $this->vatRegisterCacheKey('purchase', $companyId, $start, $end);
+        $branchIds = $this->resolveReportBranchIds();
+        $key = $this->vatRegisterCacheKey('purchase', $companyId, $start, $end, $branchIds);
 
-        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatPurchaseRows($companyId, $start, $end));
+        return Cache::remember($key, now()->addHour(), fn () => $this->computeVatPurchaseRows($companyId, $start, $end, $branchIds));
     }
 
-    private function computeVatPurchaseRows(int $companyId, string $start, string $end): array
+    private function computeVatPurchaseRows(int $companyId, string $start, string $end, ?array $branchIds = null): array
     {
         $dbRows = DB::table('bills')
             ->leftJoin('parties', 'parties.id', '=', 'bills.party_id')
@@ -468,6 +473,7 @@ class AccountReportService
                     ->whereNull('bill_items.deleted_at');
             })
             ->where('bills.company_id', $companyId)
+            ->when($branchIds, fn ($q, $ids) => $q->whereIn('bills.branch_id', $ids))
             ->where('bills.status', StatusEnum::APPROVED->value)
             ->whereNull('bills.deleted_at')
             ->whereBetween('bills.bill_date', [$start, $end])
@@ -531,7 +537,7 @@ class AccountReportService
      * invoice or bill in the range yields a fresh key — the cache self-invalidates
      * without needing posting services to clear it.
      */
-    private function vatRegisterCacheKey(string $kind, int $companyId, string $start, string $end): string
+    private function vatRegisterCacheKey(string $kind, int $companyId, string $start, string $end, ?array $branchIds = null): string
     {
         $table = $kind === 'sales' ? 'invoices' : 'bills';
         $dateColumn = $kind === 'sales' ? 'invoice_date' : 'bill_date';
@@ -545,9 +551,11 @@ class AccountReportService
             ->selectRaw('COUNT(*) as row_count, COALESCE(MAX(updated_at), 0) as last_change')
             ->first();
 
+        $branchKey = $branchIds === null ? 'all' : implode('-', $branchIds);
+
         return sprintf(
-            'vat_register:%s:%d:%s:%s:%d:%s',
-            $kind, $companyId, $start, $end,
+            'vat_register:%s:%d:%s:%s:%s:%d:%s',
+            $kind, $companyId, $start, $end, $branchKey,
             (int) ($fingerprint->row_count ?? 0),
             (string) ($fingerprint->last_change ?? '0'),
         );
@@ -794,6 +802,7 @@ class AccountReportService
             ->selectRaw('SUM(journal_items.cr_amount - journal_items.dr_amount) as net')
             ->join('journals', 'journals.id', '=', 'journal_items.journal_id')
             ->where('journals.company_id', $companyId)
+            ->when($this->resolveReportBranchIds(), fn ($q, $ids) => $q->whereIn('journals.branch_id', $ids))
             ->where('journals.status', StatusEnum::APPROVED->value)
             ->whereNull('journals.deleted_at')
             ->whereBetween('journals.date', [$period['start_date']->toDateString(), $period['end_date']->toDateString()])
@@ -994,6 +1003,7 @@ class AccountReportService
             ->leftJoin('product_categories', 'product_categories.id', '=', 'products.product_category_id')
             ->leftJoin('warehouses', 'warehouses.id', '=', 'stocks.warehouse_id')
             ->where('stocks.company_id', $companyId)
+            ->when($this->resolveReportBranchIds(), fn ($q, $ids) => $q->whereIn('stocks.branch_id', $ids))
             ->select([
                 'products.id as product_id',
                 'products.name as product_name',
