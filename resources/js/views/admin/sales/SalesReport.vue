@@ -214,7 +214,7 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
@@ -223,6 +223,7 @@ import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useSalesReportStore} from '@/stores/admin/sales/report.js';
 import {formatAmount} from "@/helpers/helper.js";
 import {useDisplayDate} from "@/composables/useDisplayDate.js";
+import {useRangePickerLabel} from "@/composables/useRangePickerLabel.js";
 import {useProductStore} from "@/stores/admin/inventory/product.js";
 
 const dateRangeInput = ref(null);
@@ -258,7 +259,7 @@ const buildFilters = () => ({
     product_variant_id: filter.product_variant_id || '',
 });
 
-const formatPickerValue = (startDate, endDate) => `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
+const {mode: dateMode, formatPickerValue} = useRangePickerLabel();
 
 const applyDateRange = (startDate, endDate) => {
     filter.from_date = startDate.format('YYYY-MM-DD');
@@ -281,6 +282,8 @@ const syncPicker = () => {
     pickerInstance.setEndDate(endDate);
     applyDateRange(startDate, endDate);
 };
+
+watch(dateMode, () => syncPicker());
 
 const initializePicker = () => {
     if (!dateRangeInput.value) {

@@ -105,7 +105,7 @@
 
 <script setup>
 import {formatMoney} from '@/helpers/formatMoney.js';
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
@@ -113,10 +113,12 @@ import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useSalesReportStore} from '@/stores/admin/sales/report.js';
 import {useDisplayDate} from '@/composables/useDisplayDate.js';
+import {useRangePickerLabel} from '@/composables/useRangePickerLabel.js';
 
 const adminSettingStore = useAdminSettingStore();
 const salesReportStore = useSalesReportStore();
 const {formatDate} = useDisplayDate();
+const {mode: dateMode, formatPickerValue} = useRangePickerLabel();
 
 const {fiscalYears} = storeToRefs(adminSettingStore);
 const {salesByItem} = storeToRefs(salesReportStore);
@@ -144,8 +146,6 @@ const reportPeriodLabel = computed(() => {
     return `${formatDate(period.from_date, {adFormat: 'DD-MM-YYYY'})} to ${formatDate(period.to_date, {adFormat: 'DD-MM-YYYY'})}`;
 });
 
-const formatPickerValue = (startDate, endDate) => `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
-
 const applyDateRange = (startDate, endDate) => {
     filter.from_date = startDate.format('YYYY-MM-DD');
     filter.to_date = endDate.format('YYYY-MM-DD');
@@ -167,6 +167,8 @@ const syncPicker = () => {
     pickerInstance.setEndDate(endDate);
     applyDateRange(startDate, endDate);
 };
+
+watch(dateMode, () => syncPicker());
 
 const initializePicker = () => {
     if (!dateRangeInput.value) {

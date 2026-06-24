@@ -110,6 +110,7 @@
 <script setup>
 import {onMounted, ref} from 'vue';
 import moment from 'moment';
+import {useRangePickerLabel} from '@/composables/useRangePickerLabel.js';
 import DateRangePicker from 'daterangepicker';
 import {formatMoney} from '@/helpers/formatMoney.js';
 import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
@@ -153,8 +154,10 @@ const reportRows = [
     {reference: '#8745245', customer: 'Michelle Robison', date: '10 Sep 2024', store: 'Travel Mart', amount: 300, paymentMethod: 'Cash', discount: 300, taxAmount: 300},
 ];
 
+const {formatPickerValue} = useRangePickerLabel();
+
 function formatRange(start, end) {
-    return `${start.format('DD/MM/YYYY')} - ${end.format('DD/MM/YYYY')}`;
+    return formatPickerValue(start, end, 'DD/MM/YYYY');
 }
 
 function onSubmit() {

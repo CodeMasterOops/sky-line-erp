@@ -109,8 +109,9 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import moment from 'moment';
+import {useRangePickerLabel} from '@/composables/useRangePickerLabel.js';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
@@ -149,11 +150,13 @@ const journalRows = computed(() =>
 
 const reportPeriodLabel = computed(() => journalReport.value.data?.period?.label || 'For the selected period');
 
+const {mode: dateMode, formatPickerValue} = useRangePickerLabel();
+
 const applyDateRange = (startDate, endDate) => {
     filter.start_date = startDate.format('YYYY-MM-DD');
     filter.end_date = endDate.format('YYYY-MM-DD');
     if (dateRangeInput.value) {
-        dateRangeInput.value.value = `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
+        dateRangeInput.value.value = formatPickerValue(startDate, endDate);
     }
 };
 
@@ -165,6 +168,8 @@ const syncPicker = () => {
     pickerInstance.setEndDate(e);
     applyDateRange(s, e);
 };
+
+watch(dateMode, () => syncPicker());
 
 const initializePicker = () => {
     if (!dateRangeInput.value) { return; }

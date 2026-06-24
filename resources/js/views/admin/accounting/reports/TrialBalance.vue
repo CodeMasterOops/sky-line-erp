@@ -142,6 +142,7 @@
 
 <script setup>
 import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {useRangePickerLabel} from '@/composables/useRangePickerLabel.js';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
@@ -175,9 +176,7 @@ const compareFiscalYearOptions = computed(() => {
     return fiscalYears.value.data.filter((fy) => String(fy.id) !== String(filter.fiscal_year_id));
 });
 
-const formatPickerValue = (startDate, endDate) => {
-    return `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
-};
+const {mode: dateMode, formatPickerValue} = useRangePickerLabel();
 
 const applyDateRange = (startDate, endDate) => {
     filter.start_date = startDate.format('YYYY-MM-DD');
@@ -200,6 +199,8 @@ const syncPicker = () => {
     pickerInstance.setEndDate(endDate);
     applyDateRange(startDate, endDate);
 };
+
+watch(dateMode, () => syncPicker());
 
 const initializePicker = () => {
     if (!dateRangeInput.value) {

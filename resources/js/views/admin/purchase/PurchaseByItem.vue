@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import {computed, onMounted, reactive, ref} from 'vue';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
@@ -113,8 +113,10 @@ import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {usePurchaseReportStore} from '@/stores/admin/purchase/report.js';
 import {formatAmount as formatAmountBase} from '@/helpers/helper.js';
 import {useDisplayDate} from '@/composables/useDisplayDate.js';
+import {useRangePickerLabel} from '@/composables/useRangePickerLabel.js';
 
 const {formatDate} = useDisplayDate();
+const {mode: dateMode, formatPickerValue} = useRangePickerLabel();
 
 const formatAmount = (value, dashOnZero = false) => {
     const amount = Number(value || 0);
@@ -155,8 +157,6 @@ const reportPeriodLabel = computed(() => {
     return `${formatDate(period.from_date, {adFormat: 'DD-MM-YYYY'})} to ${formatDate(period.to_date, {adFormat: 'DD-MM-YYYY'})}`;
 });
 
-const formatPickerValue = (startDate, endDate) => `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;
-
 const applyDateRange = (startDate, endDate) => {
     filter.from_date = startDate.format('YYYY-MM-DD');
     filter.to_date = endDate.format('YYYY-MM-DD');
@@ -178,6 +178,8 @@ const syncPicker = () => {
     pickerInstance.setEndDate(endDate);
     applyDateRange(startDate, endDate);
 };
+
+watch(dateMode, () => syncPicker());
 
 const initializePicker = () => {
     if (!dateRangeInput.value) {
