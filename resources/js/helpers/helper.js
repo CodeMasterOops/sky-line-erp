@@ -1,23 +1,25 @@
-import dayjs from 'dayjs';
 import {useDateHelper} from "@/composables/dateHelper.js";
+import {useDatePreferenceStore} from "@/stores/admin/datePreference.js";
+import {displayDate, displayDateTime} from "@/composables/useDisplayDate.js";
 
 /**
- * Format a date or datetime string for display.
+ * Format a date for display, honoring the user's AD/BS calendar preference.
+ * In BS mode the `format` argument is ignored and a Bikram Sambat date is shown.
  * @param {string|null} value  - ISO date or datetime string (e.g. "2026-04-25T00:00:00.000000Z" or "2026-04-25")
- * @param {string} format      - moment.js format string, default "DD MMM YYYY"
+ * @param {string} format      - dayjs format string used in AD mode, default "DD MMM YYYY"
  * @returns {string}
  */
 export const formatDate = (value, format = 'DD MMM YYYY') => {
     if (!value) return '–';
-    return dayjs(value).format(format);
+    return displayDate(value, useDatePreferenceStore().mode, {adFormat: format});
 };
 
 /**
- * Format a datetime string showing date + time.
+ * Format a datetime (date + time) for display, honoring the AD/BS preference.
  */
 export const formatDateTime = (value, format = 'DD MMM YYYY, h:mm A') => {
     if (!value) return '–';
-    return dayjs(value).format(format);
+    return displayDateTime(value, useDatePreferenceStore().mode, {adFormat: format});
 };
 
 export const containsHtmlTag = (str) => {

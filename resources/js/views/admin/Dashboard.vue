@@ -409,8 +409,10 @@ import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
 import 'daterangepicker/daterangepicker.css';
 import {useAdminDashboardStore} from '@/stores/admin/dashboard';
+import {useDisplayDate} from '@/composables/useDisplayDate.js';
 
 const dashboardStore = useAdminDashboardStore();
+const {mode: dateMode, formatDate} = useDisplayDate();
 const route  = useRoute();
 const router = useRouter();
 const dateRangeInput = ref(null);
@@ -479,6 +481,10 @@ const statusBadge = (status) => {
 
 const chartData = computed(() => dashboardStore.dashboard.data.chart_data ?? {});
 
+const chartLabels = computed(() =>
+    (dateMode.value === 'ne' ? chartData.value.labels_bs : chartData.value.labels) || [],
+);
+
 const salesChartOptions = computed(() => ({
     ...baseChartOptions(),
     chart: { ...baseChartOptions().chart, type: 'bar' },
@@ -488,7 +494,7 @@ const salesChartOptions = computed(() => ({
         gradient: { shade: 'light', type: 'vertical', opacityFrom: 0.9, opacityTo: 0.55 },
     },
     yaxis: { labels: { formatter: (val) => formatMoney(val) } },
-    xaxis: { categories: chartData.value.labels || [] },
+    xaxis: { categories: chartLabels.value },
 }));
 
 const salesChartSeries = computed(() => [
@@ -505,7 +511,7 @@ const expensesChartOptions = computed(() => ({
         gradient: { shade: 'light', type: 'vertical', opacityFrom: 0.9, opacityTo: 0.55 },
     },
     yaxis: { labels: { formatter: (val) => formatMoney(val) } },
-    xaxis: { categories: chartData.value.labels || [] },
+    xaxis: { categories: chartLabels.value },
 }));
 
 const expensesChartSeries = computed(() => [
@@ -529,6 +535,14 @@ watch(
     },
     {immediate: true},
 );
+
+const rangeDisplay = (m) => formatDate(m.format('YYYY-MM-DD'), {adFormat: 'MM/DD/YYYY'});
+
+const setRangeInputText = (from, to) => {
+    if (dateRangeInput.value) {
+        dateRangeInput.value.value = `${rangeDisplay(from)} - ${rangeDisplay(to)}`;
+    }
+};
 
 function initPicker(fyStart, fyEnd) {
     if (!dateRangeInput.value) { return; }
@@ -569,12 +583,18 @@ function initPicker(fyStart, fyEnd) {
         },
     );
 
-    dateRangeInput.value.value = `${currentFrom.format('MM/DD/YYYY')} - ${currentTo.format('MM/DD/YYYY')}`;
+    setRangeInputText(currentFrom, currentTo);
 }
 
 watch(fiscalYear, (fy) => {
     if (fy?.start_date && fy?.end_date) {
         initPicker(fy.start_date, fy.end_date);
+    }
+});
+
+watch(dateMode, () => {
+    if (pickerInstance) {
+        setRangeInputText(pickerInstance.startDate, pickerInstance.endDate);
     }
 });
 
@@ -584,7 +604,7 @@ watch(
         if (query.date_from && query.date_to && pickerInstance) {
             pickerInstance.setStartDate(moment(query.date_from));
             pickerInstance.setEndDate(moment(query.date_to));
-            dateRangeInput.value.value = `${moment(query.date_from).format('MM/DD/YYYY')} - ${moment(query.date_to).format('MM/DD/YYYY')}`;
+            setRangeInputText(moment(query.date_from), moment(query.date_to));
         }
     },
 );

@@ -208,6 +208,7 @@
 
 <script setup>
 import {formatAmount} from '@/helpers/helper.js';
+import {useDisplayDate} from '@/composables/useDisplayDate.js';
 import {computed, onMounted, reactive, ref} from 'vue';
 import moment from 'moment';
 import DateRangePicker from 'daterangepicker';
@@ -317,8 +318,10 @@ const formatQuantity = (value) => {
     }).format(quantity);
 };
 
+const {formatDate: displayDate} = useDisplayDate();
+
 const formatDate = (value) => {
-    return value ? moment(value).format('DD-MM-YYYY') : '-';
+    return value ? displayDate(value, {adFormat: 'DD-MM-YYYY'}) : '-';
 };
 
 const generateReport = async () => {

@@ -222,6 +222,7 @@ import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useSalesReportStore} from '@/stores/admin/sales/report.js';
 import {formatAmount} from "@/helpers/helper.js";
+import {useDisplayDate} from "@/composables/useDisplayDate.js";
 import {useProductStore} from "@/stores/admin/inventory/product.js";
 
 const dateRangeInput = ref(null);
@@ -325,8 +326,10 @@ const formatQuantity = (value) => {
     }).format(quantity);
 };
 
+const {formatDate: displayDate} = useDisplayDate();
+
 const formatDate = (value) => {
-    return value ? moment(value).format('DD-MM-YYYY') : '-';
+    return value ? displayDate(value, {adFormat: 'DD-MM-YYYY'}) : '-';
 };
 
 const generateReport = async () => {

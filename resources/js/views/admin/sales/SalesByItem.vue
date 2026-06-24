@@ -112,9 +112,11 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useSalesReportStore} from '@/stores/admin/sales/report.js';
+import {useDisplayDate} from '@/composables/useDisplayDate.js';
 
 const adminSettingStore = useAdminSettingStore();
 const salesReportStore = useSalesReportStore();
+const {formatDate} = useDisplayDate();
 
 const {fiscalYears} = storeToRefs(adminSettingStore);
 const {salesByItem} = storeToRefs(salesReportStore);
@@ -139,7 +141,7 @@ const reportPeriodLabel = computed(() => {
         return 'the selected period';
     }
 
-    return `${moment(period.from_date).format('DD-MM-YYYY')} to ${moment(period.to_date).format('DD-MM-YYYY')}`;
+    return `${formatDate(period.from_date, {adFormat: 'DD-MM-YYYY'})} to ${formatDate(period.to_date, {adFormat: 'DD-MM-YYYY'})}`;
 });
 
 const formatPickerValue = (startDate, endDate) => `${startDate.format('DD-MM-YYYY')} - ${endDate.format('DD-MM-YYYY')}`;

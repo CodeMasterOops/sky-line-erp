@@ -16,6 +16,7 @@ class ProfileResource extends JsonResource
             'phone' => $this->phone ?? '',
             'profile_photo_url' => $this->profile_photo_url ?? '',
             'user_type' => $this->user_type ?? '',
+            'date_mode' => $this->date_mode?->value ?? '',
             'company' => [
                 'name' => $this->company?->company_name ?? '',
             ],

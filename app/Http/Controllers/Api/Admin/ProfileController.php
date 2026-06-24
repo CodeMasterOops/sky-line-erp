@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\Admin\ProfileResource;
 use App\Http\Requests\Api\Admin\UpdateProfileRequest;
 use App\Http\Requests\Api\Admin\ChangePasswordRequest;
+use App\Http\Requests\Api\Admin\UpdateDateModeRequest;
 
 class ProfileController extends Controller
 {
@@ -60,6 +61,16 @@ class ProfileController extends Controller
         return response()->json([
             'data' => ProfileResource::make(auth('admin')->user()),
             'message' => 'Profile Updated Successfully',
+        ]);
+    }
+
+    public function updateDateMode(UpdateDateModeRequest $request)
+    {
+        auth('admin')->user()->update($request->validated());
+
+        return response()->json([
+            'data' => ProfileResource::make(auth('admin')->user()),
+            'message' => 'Date preference updated successfully',
         ]);
     }
 

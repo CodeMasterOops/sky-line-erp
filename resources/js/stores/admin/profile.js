@@ -2,6 +2,7 @@ import {defineStore} from 'pinia'
 import {apiAdmin} from "@/helpers/api";
 import showErrors from "@/helpers/showErrors";
 import {useAdminAuthStore} from "@/stores/admin/auth";
+import {useDatePreferenceStore} from "@/stores/admin/datePreference";
 
 export const useProfileStore = defineStore('admin-profile', {
     state: () => {
@@ -62,6 +63,9 @@ export const useProfileStore = defineStore('admin-profile', {
         setAuthUser(user) {
             this.profile.data = user;
             localStorage.setItem('admin_user', JSON.stringify(user));
+            if (user?.date_mode) {
+                useDatePreferenceStore().applyMode(user.date_mode);
+            }
         },
     }
 })

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\DateModeEnum;
 use App\Enums\UserTypeEnum;
 use Illuminate\Http\UploadedFile;
 use Laravel\Sanctum\HasApiTokens;
@@ -28,6 +29,7 @@ class User extends Authenticatable
         'password',
         'profile_photo',
         'user_type',
+        'date_mode',
         'status',
     ];
 
@@ -36,12 +38,17 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $attributes = [
+        'date_mode' => DateModeEnum::Bs->value,
+    ];
+
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'user_type' => UserTypeEnum::class,
+            'date_mode' => DateModeEnum::class,
             'status' => 'boolean',
         ];
     }

@@ -44,6 +44,7 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
             Route::get('/', 'profile')->name('index');
             Route::get('permissions', 'permissions')->name('permissions');
             Route::post('update', 'updateProfile')->name('update');
+            Route::put('date-mode', 'updateDateMode')->name('dateMode');
             Route::put('change-password', 'changePassword')->name('changePassword');
         });
 

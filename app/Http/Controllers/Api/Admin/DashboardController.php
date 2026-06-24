@@ -8,9 +8,11 @@ use App\Models\Stock;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\FiscalYear;
+use App\Enums\DateModeEnum;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\DateDisplayService;
 
 class DashboardController extends Controller
 {
@@ -323,8 +325,11 @@ class DashboardController extends Controller
             $cursor->addMonth();
         }
 
+        $display = app(DateDisplayService::class);
+
         return [
-            'labels' => $months->map(fn ($m) => Carbon::createFromFormat('Y-m', $m)->format('M Y'))->values()->all(),
+            'labels' => $months->map(fn ($m) => $display->monthLabel($m.'-01', DateModeEnum::Ad))->values()->all(),
+            'labels_bs' => $months->map(fn ($m) => $display->monthLabel($m.'-01', DateModeEnum::Bs))->values()->all(),
             'sales' => $months->map(fn ($m) => round((float) ($salesByMonth[$m] ?? 0), 2))->values()->all(),
             'purchases' => $months->map(fn ($m) => round((float) ($purchasesByMonth[$m] ?? 0), 2))->values()->all(),
             'expenses' => $months->map(fn ($m) => round((float) ($expensesByMonth[$m] ?? 0), 2))->values()->all(),
