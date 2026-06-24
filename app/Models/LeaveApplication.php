@@ -3,16 +3,19 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Enums\LeaveStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeaveApplication extends Model
 {
+    use BranchTenant;
     use MultiTenant;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'employee_id',
         'leave_type_id',
         'from_date',

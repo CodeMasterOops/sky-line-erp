@@ -210,12 +210,14 @@ return [
         Budget::class,
         DataTransferJob::class,
 
-        // Decided Tier A, branch_id migration pending (Phase 2)
+        // Phase 2a — master data (branch_id + BranchTenant added 2026-06-24)
         Product::class,
         ProductVariant::class,
         Party::class,
         Warehouse::class,
         Employee::class,
+
+        // Phase 2b — transaction / state tables (own branch_id, added 2026-06-24)
         CustomerAdvance::class,
         Attendance::class,
         PayrollRun::class,
@@ -223,8 +225,6 @@ return [
         AdvanceApplication::class,
         FixedAsset::class,
         ProductionOrder::class,
-        ProductionOrderConsumption::class,
-        ProductionOrderOperation::class,
         LandedCost::class,
         Cheque::class,
         TdsDeduction::class,
@@ -237,8 +237,6 @@ return [
         SerialNumber::class,
         Batch::class,
         BankStatementImport::class,
-        CrmLeadProfile::class,
-        Lead::class,
     ],
 
     /*
@@ -267,6 +265,9 @@ return [
         Payslip::class => PayrollRun::class,
         PayslipItem::class => Payslip::class,
         ProductTax::class => Product::class,
+        ProductionOrderConsumption::class => ProductionOrder::class,
+        ProductionOrderOperation::class => ProductionOrder::class,
+        CrmLeadProfile::class => Party::class,
         PurchaseOrderItem::class => PurchaseOrder::class,
         QuotationItem::class => Quotation::class,
         ReceiptAllocation::class => Receipt::class,
@@ -340,6 +341,7 @@ return [
         Company::class,
         Currency::class,
         District::class,
+        Lead::class,
         Palika::class,
         Plan::class,
         Province::class,
@@ -367,36 +369,10 @@ return [
     | begins enforcing branch scoping for that model.
     */
     'pending_branch_migration' => [
-        // Phase 1 — DONE 2026-06-24: BranchTenant trait added, null branch_id
-        // backfilled to head office for operational tables. These now enforce.
-
-        // Phase 2a — DONE 2026-06-24: master data (Product, ProductVariant,
-        // Party, Warehouse, Employee) now carry branch_id + BranchTenant.
-
-        // Phase 2b — remaining transaction / derived tables
-        CustomerAdvance::class,
-        Attendance::class,
-        PayrollRun::class,
-        LeaveApplication::class,
-        AdvanceApplication::class,
-        FixedAsset::class,
-        ProductionOrder::class,
-        ProductionOrderConsumption::class,
-        ProductionOrderOperation::class,
-        LandedCost::class,
-        Cheque::class,
-        TdsDeduction::class,
-        TdsReceivable::class,
-        RecurringJournal::class,
-        StockLayer::class,
-        StockReservation::class,
-        InventoryValuationSnapshot::class,
-        PosCashMovement::class,
-        SerialNumber::class,
-        Batch::class,
-        BankStatementImport::class,
-        CrmLeadProfile::class,
-        Lead::class,
+        // Phase 1, 2a, 2b all DONE 2026-06-24. Every branch-owned model now
+        // carries branch_id + BranchTenant and is enforced by the classification
+        // test. This list is intentionally empty; add a model here only if a
+        // future Tier A entity is introduced before its migration ships.
     ],
 
     /*
@@ -414,7 +390,6 @@ return [
         Bom::class => 'Kept Tier B (shared recipe master). Confirm BOMs are shared while ProductionOrders are branch-owned.',
         BankMatchingRule::class => 'Kept Tier B (config). Confirm reconciliation rules are shared, not per-branch.',
         AccountingPeriod::class => 'Kept Tier B (company-wide accounting calendar). Confirm periods are not per-branch.',
-        Lead::class => 'No company_id/branch_id columns detected. Confirm columns + Tier A placement during CRM branch migration.',
         DataTransferSchedule::class => 'Kept Tier B. Confirm scheduled exports are company-level, not branch-level.',
         ImportValueAlias::class => 'Has company_id but does NOT use MultiTenant — company-level leak risk. Add the trait during the company-scope review.',
         Subscription::class => 'Has company_id but does NOT use MultiTenant — company-level leak risk. Add the trait during the company-scope review.',

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Enums\PayrollStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 use App\Services\Nepal\NepaliDateService;
@@ -12,10 +13,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PayrollRun extends Model
 {
+    use BranchTenant;
     use MultiTenant;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'fiscal_year_id',
         'bs_year',
         'bs_month',

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Enums\FixedAssetDepreciationMethodEnum;
@@ -10,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FixedAsset extends Model
 {
+    use BranchTenant;
     use MultiTenant;
     use SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'fixed_asset_category_id',
         'asset_code',
         'name',

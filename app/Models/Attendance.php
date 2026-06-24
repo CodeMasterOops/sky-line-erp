@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Services\TenantService;
 use App\Enums\AttendanceStatusEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -11,10 +12,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
+    use BranchTenant;
     use MultiTenant;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'employee_id',
         'date',
         'check_in',

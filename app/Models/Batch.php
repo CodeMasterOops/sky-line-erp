@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\Auditable;
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Enums\BatchStatusEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,10 +14,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Batch extends Model
 {
+    use BranchTenant;
     use Auditable, MultiTenant, SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'product_variant_id',
         'warehouse_id',
         'batch_no',

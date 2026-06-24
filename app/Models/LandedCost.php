@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use App\Enums\LandedCostTreatmentEnum;
 use Illuminate\Database\Eloquent\Model;
 use App\Enums\LandedCostAllocationMethodEnum;
@@ -11,10 +12,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LandedCost extends Model
 {
+    use BranchTenant;
     use MultiTenant;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'bill_id',
         'goods_received_note_id',
         'cost_type',

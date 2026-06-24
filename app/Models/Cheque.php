@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\MultiTenant;
+use App\Traits\BranchTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,10 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Cheque extends Model
 {
-    use MultiTenant, SoftDeletes;
+    use BranchTenant, MultiTenant, SoftDeletes;
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'fiscal_year_id',
         'party_id',
         'bank_account_id',
