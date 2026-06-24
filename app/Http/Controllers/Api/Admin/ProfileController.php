@@ -87,6 +87,18 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function updateReportPinnedLinks(UpdatePinnedLinksRequest $request)
+    {
+        auth('admin')->user()->update([
+            'report_pinned_links' => $request->validated('links'),
+        ]);
+
+        return response()->json([
+            'data' => ProfileResource::make(auth('admin')->user()),
+            'message' => 'Pinned reports updated successfully',
+        ]);
+    }
+
     public function changePassword(ChangePasswordRequest $request)
     {
         $user = auth('admin')->user();

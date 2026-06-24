@@ -31,6 +31,41 @@
             </p>
         </div>
 
+        <div v-if="pinnedReports.length && !searchQuery" class="reports-hub__pinned">
+            <div class="reports-hub__pinned-head">
+                <span class="reports-hub__pinned-title">
+                    <i class="ti ti-pinned-filled"></i> Pinned Reports
+                </span>
+                <span class="reports-hub__pinned-count">{{ pinnedReports.length }}</span>
+            </div>
+            <div class="reports-hub__pinned-grid">
+                <div
+                    v-for="rep in pinnedReports"
+                    :key="rep.name"
+                    class="reports-hub__pinned-card"
+                >
+                    <router-link :to="{ name: rep.name }" class="reports-hub__pinned-link">
+                        <span class="reports-hub__pinned-icon" :class="rep.accentClass">
+                            <i :class="rep.icon"></i>
+                        </span>
+                        <span class="reports-hub__pinned-text">
+                            <span class="reports-hub__pinned-label">{{ rep.label }}</span>
+                            <span class="reports-hub__pinned-cat">{{ rep.category }}</span>
+                        </span>
+                    </router-link>
+                    <button
+                        type="button"
+                        class="reports-hub__pinned-remove"
+                        title="Unpin report"
+                        aria-label="Unpin report"
+                        @click="togglePin(rep.name)"
+                    >
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div
             v-if="filteredCategories.length > 0"
             id="reportsHubAccordion"
@@ -74,7 +109,11 @@
                 >
                     <div class="accordion-body reports-hub__body">
                         <ul class="reports-hub__list list-unstyled mb-0">
-                            <li v-for="item in cat.items" :key="item.name">
+                            <li
+                                v-for="item in cat.items"
+                                :key="item.name"
+                                class="reports-hub__item"
+                            >
                                 <router-link
                                     class="reports-hub__link"
                                     :to="{ name: item.name }"
@@ -85,6 +124,16 @@
                                     ></span>
                                     <template v-else>{{ item.label }}</template>
                                 </router-link>
+                                <button
+                                    type="button"
+                                    class="reports-hub__pin"
+                                    :class="{ 'is-pinned': isPinned(item.name) }"
+                                    :title="isPinned(item.name) ? 'Unpin report' : 'Pin report'"
+                                    :aria-label="isPinned(item.name) ? 'Unpin report' : 'Pin report'"
+                                    @click="togglePin(item.name)"
+                                >
+                                    <i :class="isPinned(item.name) ? 'ti ti-pinned-filled' : 'ti ti-pin'"></i>
+                                </button>
                             </li>
                         </ul>
                     </div>
@@ -103,6 +152,9 @@
 import { computed, ref } from 'vue';
 import PageHeader from '@/components/shared/PageHeader.vue';
 import { hasPermission } from '@/helpers/checkPermission';
+import { useReportPinnedLinksStore } from '@/stores/admin/reportPinnedLinks';
+import { toast } from '@/helpers/toast.js';
+import showErrors from '@/helpers/showErrors';
 
 const REPORT_CATEGORIES = [
     // 0 — Revenue (most checked daily)
@@ -320,6 +372,49 @@ const filteredCategories = computed(() => {
 const totalVisible = computed(() =>
     filteredCategories.value.reduce((n, cat) => n + cat.items.length, 0),
 );
+
+/* ── Pinned reports ─────────────────────────────────────── */
+const reportPins = useReportPinnedLinksStore();
+
+/**
+ * Map every visible report's route name to its display metadata. Built from the
+ * permission-filtered categories so reports the user can no longer access drop
+ * out of the pinned list automatically. First occurrence of a duplicated route
+ * name wins (some reports are surfaced under multiple categories).
+ */
+const reportIndex = computed(() => {
+    const index = {};
+    visibleCategories.value.forEach((cat) => {
+        cat.items.forEach((item) => {
+            if (!index[item.name]) {
+                index[item.name] = {
+                    name: item.name,
+                    label: item.label,
+                    category: cat.title,
+                    icon: cat.icon,
+                    accentClass: cat.accentClass,
+                };
+            }
+        });
+    });
+    return index;
+});
+
+const pinnedReports = computed(() =>
+    reportPins.links.map((name) => reportIndex.value[name]).filter(Boolean),
+);
+
+function isPinned(name) {
+    return reportPins.links.includes(name);
+}
+
+function togglePin(name) {
+    const wasPinned = isPinned(name);
+    reportPins
+        .toggle(name)
+        .then(() => toast(200, wasPinned ? 'Report unpinned' : 'Report pinned'))
+        .catch(showErrors);
+}
 
 function isFirstAndNoSearch(idx) {
     return idx === 0 && !searchQuery.value;
@@ -552,9 +647,20 @@ function highlight(label) {
     }
 }
 
+.reports-hub__item {
+    display: flex;
+    align-items: center;
+
+    &:hover .reports-hub__pin {
+        opacity: 1;
+    }
+}
+
 .reports-hub__link {
     display: flex;
     align-items: center;
+    flex: 1;
+    min-width: 0;
     font-size: 0.875rem;
     font-weight: 600;
     color: #64748b;
@@ -583,6 +689,192 @@ function highlight(label) {
         &::before {
             background: #2563eb;
         }
+    }
+}
+
+/* ── Per-item pin toggle ────────────────────────────────── */
+.reports-hub__pin {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    margin-left: 0.15rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.13s ease, color 0.13s ease, background 0.13s ease;
+
+    &:hover {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    &.is-pinned {
+        opacity: 1;
+        color: #2563eb;
+    }
+}
+
+/* ── Pinned reports panel ───────────────────────────────── */
+.reports-hub__pinned {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem 1.25rem;
+    border: 1px solid #e6e9ed;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #f8fbff, #fff);
+}
+
+.reports-hub__pinned-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.reports-hub__pinned-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1e293b;
+
+    i {
+        color: #2563eb;
+        font-size: 1rem;
+    }
+}
+
+.reports-hub__pinned-count {
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: #e0ecff;
+    color: #2563eb;
+    border-radius: 20px;
+    padding: 0.15em 0.6em;
+}
+
+.reports-hub__pinned-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+
+    @media (max-width: 1199.98px) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 767.98px) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 479.98px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.reports-hub__pinned-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    &:hover .reports-hub__pinned-remove {
+        opacity: 1;
+    }
+}
+
+.reports-hub__pinned-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid #e6e9ed;
+    border-radius: 10px;
+    background: #fff;
+    text-decoration: none;
+    transition: border-color 0.13s ease, box-shadow 0.13s ease;
+
+    &:hover {
+        border-color: #bcd4ff;
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    }
+}
+
+.reports-hub__pinned-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    color: #fff;
+
+    &.is-blue   { background: linear-gradient(145deg, #2563eb, #1d4ed8); }
+    &.is-green  { background: linear-gradient(145deg, #059669, #047857); }
+    &.is-orange { background: linear-gradient(145deg, #ea580c, #c2410c); }
+    &.is-teal   { background: linear-gradient(145deg, #0d9488, #0f766e); }
+    &.is-amber  { background: linear-gradient(145deg, #d97706, #b45309); }
+    &.is-cyan   { background: linear-gradient(145deg, #0891b2, #0e7490); }
+    &.is-mint   { background: linear-gradient(145deg, #16a34a, #15803d); }
+    &.is-violet { background: linear-gradient(145deg, #7c3aed, #6d28d9); }
+    &.is-slate  { background: linear-gradient(145deg, #475569, #334155); }
+}
+
+.reports-hub__pinned-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.reports-hub__pinned-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1e293b;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.reports-hub__pinned-cat {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: #94a3b8;
+    line-height: 1.3;
+}
+
+.reports-hub__pinned-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid #e6e9ed;
+    border-radius: 50%;
+    background: #fff;
+    color: #94a3b8;
+    font-size: 0.7rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.13s ease, color 0.13s ease, border-color 0.13s ease;
+
+    &:hover {
+        color: #dc2626;
+        border-color: #fca5a5;
     }
 }
 

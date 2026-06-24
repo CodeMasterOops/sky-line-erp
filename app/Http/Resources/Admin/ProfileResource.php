@@ -18,6 +18,7 @@ class ProfileResource extends JsonResource
             'user_type' => $this->user_type ?? '',
             'date_mode' => $this->date_mode?->value ?? '',
             'dashboard_pinned_links' => $this->dashboard_pinned_links ?? [],
+            'report_pinned_links' => $this->report_pinned_links ?? [],
             'company' => [
                 'name' => $this->company?->company_name ?? '',
             ],

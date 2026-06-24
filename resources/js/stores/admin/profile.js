@@ -4,6 +4,7 @@ import showErrors from "@/helpers/showErrors";
 import {useAdminAuthStore} from "@/stores/admin/auth";
 import {useDatePreferenceStore} from "@/stores/admin/datePreference";
 import {usePinnedLinksStore} from "@/stores/admin/pinnedLinks";
+import {useReportPinnedLinksStore} from "@/stores/admin/reportPinnedLinks";
 
 export const useProfileStore = defineStore('admin-profile', {
     state: () => {
@@ -69,6 +70,7 @@ export const useProfileStore = defineStore('admin-profile', {
             }
             if (user) {
                 usePinnedLinksStore().applyLinks(user.dashboard_pinned_links ?? []);
+                useReportPinnedLinksStore().applyLinks(user.report_pinned_links ?? []);
             }
         },
     }
