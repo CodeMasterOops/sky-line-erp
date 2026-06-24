@@ -16,16 +16,20 @@ class SalaryComponent extends Model
         'company_id',
         'name',
         'type',
+        'is_basic',
         'calculation_type',
+        'percentage_base',
         'is_taxable',
         'is_active',
         'is_system',
         'system_code',
         'account_id',
+        'contra_account_id',
     ];
 
     protected $casts = [
         'type' => SalaryComponentTypeEnum::class,
+        'is_basic' => 'boolean',
         'is_taxable' => 'boolean',
         'is_active' => 'boolean',
         'is_system' => 'boolean',
@@ -39,5 +43,10 @@ class SalaryComponent extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function contraAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'contra_account_id');
     }
 }

@@ -107,6 +107,14 @@ export const usePayrollStore = defineStore('payroll', {
                 return res;
             });
         },
+        approveRun(id) {
+            return apiAdmin(`hr/payroll/${id}/approve`, 'post').then((res) => {
+                this.run.data = res.data.data;
+                const idx = this.runs.data.findIndex(d => d.id === id);
+                if (idx !== -1) this.runs.data[idx] = res.data.data;
+                return res;
+            });
+        },
         confirmRun(id, payload = {}) {
             return apiAdmin(`hr/payroll/${id}/confirm`, 'post', payload).then((res) => {
                 this.run.data = res.data.data;

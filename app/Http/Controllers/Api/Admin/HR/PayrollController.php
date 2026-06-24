@@ -72,7 +72,11 @@ class PayrollController extends Controller
     #[Permissions('edit_payroll', group: 'payroll', desc: 'Process Payroll Run')]
     public function process(PayrollRun $payrollRun)
     {
-        abort_if($payrollRun->status === PayrollStatusEnum::PAID, 403, 'Paid payroll cannot be reprocessed.');
+        abort_if(
+            in_array($payrollRun->status, [PayrollStatusEnum::PROCESSED, PayrollStatusEnum::PAID], true),
+            403,
+            'Approved or paid payroll cannot be reprocessed.'
+        );
 
         $payrollRun = $this->payrollService->calculate($payrollRun);
 

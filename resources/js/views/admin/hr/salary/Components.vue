@@ -44,7 +44,7 @@
                             {{ (components.meta.from || ((filter.page - 1) * filter.limit + 1)) + index }}
                         </template>
                         <template v-else-if="column.key === 'type'">
-                            <span :class="record.type_label === 'Earning' ? 'badge bg-success' : 'badge bg-danger'">
+                            <span :class="typeBadge(record.type?.value ?? record.type)">
                                 {{ record.type_label }}
                             </span>
                         </template>
@@ -83,6 +83,7 @@
                     <select v-model="cForm.type" class="form-select">
                         <option value="earning">Earning</option>
                         <option value="deduction">Deduction</option>
+                        <option value="employer_contribution">Employer Contribution</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -92,14 +93,34 @@
                         <option value="percentage">Percentage</option>
                     </select>
                 </div>
+                <div v-if="cForm.calculation_type === 'percentage'" class="col-md-4">
+                    <label class="form-label">Percentage Of</label>
+                    <select v-model="cForm.percentage_base" class="form-select">
+                        <option value="gross_earnings">All Earnings</option>
+                        <option value="basic">Basic Salary</option>
+                    </select>
+                </div>
                 <div class="col-md-8">
-                    <label class="form-label">GL Account <span class="text-muted small">(for journal posting)</span></label>
+                    <label class="form-label">GL Account
+                        <span class="text-muted small">{{ cForm.type === 'employer_contribution' ? '(employer expense — debit)' : '(for journal posting)' }}</span>
+                    </label>
                     <select v-model="cForm.account_id" class="form-select">
                         <option value="">-- Select Account --</option>
                         <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
                     </select>
                 </div>
+                <div v-if="cForm.type === 'employer_contribution'" class="col-md-8">
+                    <label class="form-label">Payable Account <span class="text-muted small">(liability — credit)</span></label>
+                    <select v-model="cForm.contra_account_id" class="form-select">
+                        <option value="">-- Select Account --</option>
+                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
+                    </select>
+                </div>
                 <div class="col-md-4 pt-3">
+                    <div v-if="cForm.type === 'earning'" class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" v-model="cForm.is_basic" />
+                        <label class="form-check-label">Basic salary</label>
+                    </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" v-model="cForm.is_taxable" />
                         <label class="form-check-label">Taxable</label>
@@ -122,6 +143,7 @@
                     <select v-model="editItem.type" class="form-select">
                         <option value="earning">Earning</option>
                         <option value="deduction">Deduction</option>
+                        <option value="employer_contribution">Employer Contribution</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -131,14 +153,34 @@
                         <option value="percentage">Percentage</option>
                     </select>
                 </div>
+                <div v-if="editItem.calculation_type === 'percentage'" class="col-md-4">
+                    <label class="form-label">Percentage Of</label>
+                    <select v-model="editItem.percentage_base" class="form-select">
+                        <option value="gross_earnings">All Earnings</option>
+                        <option value="basic">Basic Salary</option>
+                    </select>
+                </div>
                 <div class="col-md-8">
-                    <label class="form-label">GL Account <span class="text-muted small">(for journal posting)</span></label>
+                    <label class="form-label">GL Account
+                        <span class="text-muted small">{{ editTypeValue === 'employer_contribution' ? '(employer expense — debit)' : '(for journal posting)' }}</span>
+                    </label>
                     <select v-model="editItem.account_id" class="form-select">
                         <option value="">-- Select Account --</option>
                         <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
                     </select>
                 </div>
+                <div v-if="editTypeValue === 'employer_contribution'" class="col-md-8">
+                    <label class="form-label">Payable Account <span class="text-muted small">(liability — credit)</span></label>
+                    <select v-model="editItem.contra_account_id" class="form-select">
+                        <option value="">-- Select Account --</option>
+                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
+                    </select>
+                </div>
                 <div class="col-md-4 pt-3">
+                    <div v-if="editTypeValue === 'earning'" class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" v-model="editItem.is_basic" />
+                        <label class="form-check-label">Basic salary</label>
+                    </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" v-model="editItem.is_taxable" />
                         <label class="form-check-label">Taxable</label>
@@ -178,7 +220,11 @@ const editItem = ref(null);
 const cSubmitting = ref(false);
 const eSubmitting = ref(false);
 const accountList = ref([]);
-const cForm = reactive({ name: '', type: 'earning', calculation_type: 'fixed', is_taxable: false, account_id: '' });
+const cForm = reactive({ name: '', type: 'earning', is_basic: false, calculation_type: 'fixed', percentage_base: 'gross_earnings', is_taxable: false, account_id: '', contra_account_id: '' });
+
+const editTypeValue = computed(() => editItem.value?.type?.value ?? editItem.value?.type);
+
+const typeBadge = (t) => ({ earning: 'badge bg-success', deduction: 'badge bg-danger', employer_contribution: 'badge bg-info text-dark' }[t] ?? 'badge bg-secondary');
 
 const fetchComponents = () => payrollStore.getComponents(filter);
 
@@ -215,7 +261,7 @@ const storeComp = async () => {
         const res = await payrollStore.storeComponent(cForm);
         toast(res.status, res.data.message);
         createModalOpened.value = false;
-        Object.assign(cForm, { name: '', type: 'earning', calculation_type: 'fixed', is_taxable: false, account_id: '' });
+        Object.assign(cForm, { name: '', type: 'earning', is_basic: false, calculation_type: 'fixed', percentage_base: 'gross_earnings', is_taxable: false, account_id: '', contra_account_id: '' });
         fetchComponents();
     } catch (e) {
         showErrors(e);
@@ -226,13 +272,17 @@ const storeComp = async () => {
 
 const updateComp = async () => {
     eSubmitting.value = true;
+    const type = editItem.value.type?.value ?? editItem.value.type;
     const payload = {
-        name:             editItem.value.name,
-        type:             editItem.value.type?.value ?? editItem.value.type,
-        calculation_type: editItem.value.calculation_type,
-        is_taxable:       editItem.value.is_taxable,
-        is_active:        editItem.value.is_active,
-        account_id:       editItem.value.account_id || null,
+        name:              editItem.value.name,
+        type,
+        is_basic:          type === 'earning' ? !!editItem.value.is_basic : false,
+        calculation_type:  editItem.value.calculation_type,
+        percentage_base:   editItem.value.percentage_base || 'gross_earnings',
+        is_taxable:        editItem.value.is_taxable,
+        is_active:         editItem.value.is_active,
+        account_id:        editItem.value.account_id || null,
+        contra_account_id: type === 'employer_contribution' ? (editItem.value.contra_account_id || null) : null,
     };
     try {
         const res = await payrollStore.updateComponent(editItem.value.id, payload);

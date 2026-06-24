@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\HR\LeaveTypeController;
 use App\Http\Controllers\Api\Admin\HR\AttendanceController;
 use App\Http\Controllers\Api\Admin\HR\DepartmentController;
 use App\Http\Controllers\Api\Admin\HR\DesignationController;
+use App\Http\Controllers\Api\Admin\HR\WorkScheduleController;
 use App\Http\Controllers\Api\Admin\HR\SalaryComponentController;
 use App\Http\Controllers\Api\Admin\HR\SalaryStructureController;
 use App\Http\Controllers\Api\Admin\HR\LeaveApplicationController;
@@ -23,6 +24,8 @@ Route::prefix('hr')->as('hr.')->group(function () {
     Route::apiResource('employee', EmployeeController::class);
 
     // Phase 2: Attendance & Leave
+    Route::get('work-schedule', [WorkScheduleController::class, 'show'])->name('work-schedule.show');
+    Route::put('work-schedule', [WorkScheduleController::class, 'update'])->name('work-schedule.update');
     Route::apiResource('holiday', HolidayController::class);
     Route::apiResource('leave-type', LeaveTypeController::class);
     Route::get('attendance/monthly', [AttendanceController::class, 'monthly'])->name('attendance.monthly');
@@ -36,6 +39,7 @@ Route::prefix('hr')->as('hr.')->group(function () {
     Route::apiResource('salary-component', SalaryComponentController::class);
     Route::apiResource('salary-structure', SalaryStructureController::class);
     Route::post('payroll/{payrollRun}/process', [PayrollController::class, 'process'])->name('payroll.process');
+    Route::post('payroll/{payrollRun}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
     Route::post('payroll/{payrollRun}/confirm', [PayrollController::class, 'confirm'])->name('payroll.confirm');
     Route::apiResource('payroll', PayrollController::class)->except('update');
     Route::get('payslip', [PayslipController::class, 'index'])->name('payslip.index');

@@ -29,7 +29,9 @@
                         <h6 class="text-muted mb-2">Attendance Summary</h6>
                         <p class="mb-1">Working Days: {{ payslip.data?.working_days }}</p>
                         <p class="mb-1">Present Days: {{ payslip.data?.present_days }}</p>
+                        <p v-if="(payslip.data?.half_days ?? 0) > 0" class="mb-1">Half Days: {{ payslip.data?.half_days }}</p>
                         <p class="mb-1">Leave Days: {{ payslip.data?.leave_days }}</p>
+                        <p class="mb-1">Absent Days: {{ payslip.data?.absent_days }}</p>
                         <p class="mb-0 no-print">
                             <strong>Status: </strong>
                             <span :class="statusBadge(payslip.data?.payroll_run?.status)">
@@ -82,6 +84,20 @@
                     </div>
                 </div>
 
+                <div v-if="employerContributions.length" class="row mt-3">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-info"><tr><th colspan="2">Employer Contributions <span class="fw-normal small">(not deducted from pay)</span></th></tr></thead>
+                            <tbody>
+                                <tr v-for="item in employerContributions" :key="item.id">
+                                    <td>{{ item.component_name }}</td>
+                                    <td class="text-end">{{ formatMoney(item.amount) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div v-if="payslip.data?.employee?.pan" class="row mt-2">
                     <div class="col-12 text-muted small">
                         Employee PAN: <strong>{{ payslip.data.employee.pan }}</strong>
@@ -114,6 +130,7 @@ onMounted(async () => {
 
 const earnings = computed(() => payslip.value.data?.items?.filter(i => i.component_type === 'earning') ?? []);
 const deductions = computed(() => payslip.value.data?.items?.filter(i => i.component_type === 'deduction') ?? []);
+const employerContributions = computed(() => payslip.value.data?.items?.filter(i => i.component_type === 'employer_contribution') ?? []);
 const totalDeductions = computed(() => {
     const ded = Number(payslip.value.data?.total_deductions ?? 0);
     const tds = Number(payslip.value.data?.tds_amount ?? 0);

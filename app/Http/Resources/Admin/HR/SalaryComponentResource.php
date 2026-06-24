@@ -14,11 +14,15 @@ class SalaryComponentResource extends JsonResource
             'name' => $this->name ?? '',
             'type' => $this->type ?? '',
             'type_label' => $this->type?->label() ?? '',
+            'is_basic' => $this->is_basic,
             'calculation_type' => $this->calculation_type ?? '',
+            'percentage_base' => $this->percentage_base ?? 'gross_earnings',
             'is_taxable' => $this->is_taxable,
             'is_active' => $this->is_active,
             'account_id' => $this->account_id,
             'account_name' => $this->whenLoaded('account', fn () => $this->account?->name),
+            'contra_account_id' => $this->contra_account_id,
+            'contra_account_name' => $this->whenLoaded('contraAccount', fn () => $this->contraAccount?->name),
         ];
     }
 }

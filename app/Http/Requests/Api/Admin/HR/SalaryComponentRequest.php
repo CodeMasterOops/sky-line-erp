@@ -18,10 +18,13 @@ class SalaryComponentRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', Rule::enum(SalaryComponentTypeEnum::class)],
+            'is_basic' => ['nullable', 'boolean'],
             'calculation_type' => ['required', Rule::in(['fixed', 'percentage'])],
+            'percentage_base' => ['nullable', Rule::in(['basic', 'gross_earnings'])],
             'is_taxable' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
             'account_id' => ['nullable', 'integer', 'exists:accounts,id'],
+            'contra_account_id' => ['nullable', 'integer', 'exists:accounts,id'],
         ];
     }
 }

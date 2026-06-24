@@ -1,10 +1,14 @@
 <template>
     <PageHeader title="Payroll Detail" :subtitle="run.data?.month_year_label">
         <template #actions>
-            <button v-if="run.data?.status !== 'paid'" type="button" @click="processRun" class="btn btn-primary me-2">
+            <button v-if="['draft', 'pending_approval'].includes(statusValue)" type="button" @click="processRun" class="btn btn-primary me-2">
                 <i class="ti ti-calculator me-1"></i> Calculate
             </button>
-            <button v-if="run.data?.status === 'processed'" type="button" @click="showConfirmModal = true" class="btn btn-success">
+            <button v-if="statusValue === 'pending_approval'" type="button" @click="approveRun" :disabled="isApproving" class="btn btn-warning me-2">
+                <span v-if="isApproving" class="spinner-border spinner-border-sm me-1"></span>
+                <i v-else class="ti ti-thumb-up me-1"></i> Approve
+            </button>
+            <button v-if="statusValue === 'processed'" type="button" @click="showConfirmModal = true" class="btn btn-success">
                 <i class="ti ti-check me-1"></i> Confirm & Pay
             </button>
         </template>
@@ -122,7 +126,7 @@
 
 <script setup>
 import {formatMoney} from '@/helpers/formatMoney.js';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
@@ -138,7 +142,13 @@ const showConfirmModal = ref(false);
 const paidAccountId = ref('');
 const confirmError = ref('');
 const isConfirming = ref(false);
+const isApproving = ref(false);
 const accountList = ref([]);
+
+const statusValue = computed(() => {
+    const s = run.value.data?.status;
+    return s?.value ?? s;
+});
 
 onMounted(async () => {
     payrollStore.getRun(route.params.id);
@@ -148,11 +158,18 @@ onMounted(async () => {
     } catch { /* ignore */ }
 });
 
-const statusBadge = (s) => ({ draft: 'badge bg-secondary', processed: 'badge bg-primary', paid: 'badge bg-success' }[s?.value ?? s] ?? 'badge bg-secondary');
+const statusBadge = (s) => ({ draft: 'badge bg-secondary', pending_approval: 'badge bg-warning', processed: 'badge bg-primary', paid: 'badge bg-success' }[s?.value ?? s] ?? 'badge bg-secondary');
 
 const processRun = async () => {
     try { const res = await payrollStore.processRun(route.params.id); toast(res.status, res.data.message); }
     catch (e) { showErrors(e); }
+};
+
+const approveRun = async () => {
+    isApproving.value = true;
+    try { const res = await payrollStore.approveRun(route.params.id); toast(res.status, res.data.message); }
+    catch (e) { showErrors(e); }
+    finally { isApproving.value = false; }
 };
 
 const confirmRun = async () => {

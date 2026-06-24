@@ -27,6 +27,7 @@ class SsfComponentService
                 'name' => 'SSF Employee Contribution (11%)',
                 'type' => SalaryComponentTypeEnum::DEDUCTION,
                 'calculation_type' => 'percentage',
+                'percentage_base' => 'basic',
                 'is_taxable' => false,
                 'is_active' => true,
                 'is_system' => true,
@@ -37,8 +38,9 @@ class SsfComponentService
             ['company_id' => $company->id, 'system_code' => self::EMPLOYER_CODE],
             [
                 'name' => 'SSF Employer Contribution (20%)',
-                'type' => SalaryComponentTypeEnum::DEDUCTION,
+                'type' => SalaryComponentTypeEnum::EMPLOYER_CONTRIBUTION,
                 'calculation_type' => 'percentage',
+                'percentage_base' => 'basic',
                 'is_taxable' => false,
                 'is_active' => true,
                 'is_system' => true,

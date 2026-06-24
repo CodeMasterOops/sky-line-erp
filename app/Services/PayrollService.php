@@ -14,9 +14,11 @@ use App\Models\PayrollRun;
 use App\Models\JournalItem;
 use App\Models\PayslipItem;
 use App\Models\TdsDeduction;
+use App\Models\WorkSchedule;
 use App\Enums\JournalTypeEnum;
 use App\Enums\LeaveStatusEnum;
 use App\Models\AccountSetting;
+use App\Models\SalaryComponent;
 use App\Enums\PayrollStatusEnum;
 use App\Models\LeaveApplication;
 use Illuminate\Support\Facades\DB;
@@ -43,25 +45,36 @@ class PayrollService
         $companyId = $payrollRun->company_id;
 
         $fiscalYear = $payrollRun->fiscalYear ?? FiscalYear::findOrFail($payrollRun->fiscal_year_id);
-        $year = $fiscalYear->start_date->year;
+        $year = $this->resolveCalendarYear($fiscalYear, $month);
 
-        $workingDays = $this->getWorkingDays($month, $year, $companyId);
+        $monthStart = Carbon::create($year, $month, 1)->startOfDay();
+        $monthEnd = $monthStart->copy()->endOfMonth()->endOfDay();
+
+        $schedule = WorkSchedule::withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('is_default', true)
+            ->first();
+
+        $weeklyOffDays = $schedule?->weeklyOffDays() ?? self::WEEKLY_OFF_DAYS;
+
+        $holidays = $this->monthlyHolidays($month, $year, $companyId);
+        $workingDays = $this->workingDaysBetween($monthStart, $monthEnd, $holidays, $weeklyOffDays);
 
         $employees = Employee::where('company_id', $companyId)
             ->where('status', 'active')
-            ->with(['salaryStructures' => fn ($q) => $q->where('is_active', true)->with('items.salaryComponent')])
+            ->with(['salaryStructures' => fn ($q) => $q->where('is_active', true)
+                ->where('effective_from', '<=', $monthEnd->toDateString())
+                ->orderByDesc('effective_from')
+                ->with('items.salaryComponent')])
             ->get();
 
-        return DB::transaction(function () use ($payrollRun, $employees, $month, $year, $workingDays) {
+        return DB::transaction(function () use ($payrollRun, $employees, $monthStart, $monthEnd, $workingDays, $holidays, $weeklyOffDays, $schedule, $companyId) {
             $payrollRun->payslips()->each(fn ($p) => $p->items()->delete());
             $payrollRun->payslips()->delete();
 
             $totalGross = 0;
             $totalDeductions = 0;
             $totalTds = 0;
-
-            $monthStart = Carbon::create($year, $month, 1)->startOfDay();
-            $monthEnd = $monthStart->copy()->endOfMonth()->endOfDay();
 
             foreach ($employees as $employee) {
                 $structure = $employee->salaryStructures->first();
@@ -70,14 +83,12 @@ class PayrollService
                 }
 
                 $presentDays = Attendance::where('employee_id', $employee->id)
-                    ->whereMonth('date', $month)
-                    ->whereYear('date', $year)
+                    ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                     ->whereIn('status', [AttendanceStatusEnum::PRESENT->value, AttendanceStatusEnum::LATE->value])
                     ->count();
 
                 $halfDays = Attendance::where('employee_id', $employee->id)
-                    ->whereMonth('date', $month)
-                    ->whereYear('date', $year)
+                    ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
                     ->where('status', AttendanceStatusEnum::HALF_DAY->value)
                     ->count();
 
@@ -87,26 +98,31 @@ class PayrollService
                     ->where('from_date', '<=', $monthEnd->toDateString())
                     ->where('to_date', '>=', $monthStart->toDateString())
                     ->get()
-                    ->sum(function (LeaveApplication $leave) use ($monthStart, $monthEnd): float {
-                        $start = max($leave->from_date, $monthStart->toDateString());
-                        $end = min($leave->to_date, $monthEnd->toDateString());
+                    ->sum(function (LeaveApplication $leave) use ($monthStart, $monthEnd, $holidays, $weeklyOffDays): float {
+                        $start = Carbon::parse(max($leave->from_date->toDateString(), $monthStart->toDateString()));
+                        $end = Carbon::parse(min($leave->to_date->toDateString(), $monthEnd->toDateString()));
 
-                        return (float) Carbon::parse($start)->diffInDays(Carbon::parse($end)) + 1;
+                        return (float) $this->workingDaysBetween($start, $end, $holidays, $weeklyOffDays);
                     });
 
                 $effectiveDays = $presentDays + ($halfDays * 0.5) + $approvedLeaveDays;
-                $leaveDays = max(0, $workingDays - $effectiveDays);
+                $absentDays = max(0, $workingDays - $effectiveDays);
 
-                $prorateRatio = $workingDays > 0 ? $effectiveDays / $workingDays : 1;
+                $prorateRatio = $workingDays > 0 ? min(1.0, $effectiveDays / $workingDays) : 1;
 
-                // First pass: total fixed earnings (base for percentage components)
+                // First pass: percentage bases. "basic" = Basic-flagged fixed earnings;
+                // "gross_earnings" = all fixed earnings.
                 $fixedEarningsBase = 0.0;
+                $basicBase = 0.0;
                 foreach ($structure->items as $item) {
                     $component = $item->salaryComponent;
                     if ($component && $component->is_active
                         && $component->type === SalaryComponentTypeEnum::EARNING
                         && $component->calculation_type !== 'percentage') {
                         $fixedEarningsBase += (float) $item->amount;
+                        if ($component->is_basic) {
+                            $basicBase += (float) $item->amount;
+                        }
                     }
                 }
 
@@ -120,9 +136,12 @@ class PayrollService
                         continue;
                     }
 
-                    $amount = $component->calculation_type === 'percentage'
-                        ? round($fixedEarningsBase * ((float) $item->percentage / 100), 2)
-                        : (float) $item->amount;
+                    if ($component->calculation_type === 'percentage') {
+                        $base = $component->percentage_base === 'basic' ? $basicBase : $fixedEarningsBase;
+                        $amount = round($base * ((float) $item->percentage / 100), 2);
+                    } else {
+                        $amount = (float) $item->amount;
+                    }
 
                     if ($component->type === SalaryComponentTypeEnum::EARNING) {
                         $proratedAmount = round($amount * $prorateRatio, 2);
@@ -133,7 +152,7 @@ class PayrollService
                             'component_type' => $component->type->value,
                             'amount' => $proratedAmount,
                         ];
-                    } else {
+                    } elseif ($component->type === SalaryComponentTypeEnum::DEDUCTION) {
                         $totalDed += $amount;
                         $payslipItems[] = [
                             'salary_component_id' => $component->id,
@@ -141,6 +160,37 @@ class PayrollService
                             'component_type' => $component->type->value,
                             'amount' => $amount,
                         ];
+                    } else {
+                        // Employer contribution: employer cost only — excluded from net pay.
+                        $payslipItems[] = [
+                            'salary_component_id' => $component->id,
+                            'component_name' => $component->name,
+                            'component_type' => $component->type->value,
+                            'amount' => $amount,
+                        ];
+                    }
+                }
+
+                // Overtime: paid only when the company schedule enables it.
+                if ($schedule && $schedule->overtime_enabled && $workingDays > 0 && $basicBase > 0) {
+                    $overtimeHours = (float) Attendance::where('employee_id', $employee->id)
+                        ->whereBetween('date', [$monthStart->toDateString(), $monthEnd->toDateString()])
+                        ->sum('overtime_hours');
+
+                    if ($overtimeHours > 0) {
+                        $hourlyRate = $basicBase / ($workingDays * (float) $schedule->standard_hours_per_day);
+                        $overtimeAmount = round($overtimeHours * $hourlyRate * (float) $schedule->overtime_multiplier, 2);
+
+                        if ($overtimeAmount > 0) {
+                            $otComponent = $this->ensureOvertimeComponent($companyId);
+                            $grossSalary += $overtimeAmount;
+                            $payslipItems[] = [
+                                'salary_component_id' => $otComponent->id,
+                                'component_name' => $otComponent->name,
+                                'component_type' => SalaryComponentTypeEnum::EARNING->value,
+                                'amount' => $overtimeAmount,
+                            ];
+                        }
                     }
                 }
 
@@ -151,8 +201,10 @@ class PayrollService
                     'payroll_run_id' => $payrollRun->id,
                     'employee_id' => $employee->id,
                     'working_days' => $workingDays,
-                    'present_days' => (int) $effectiveDays,
-                    'leave_days' => (int) $leaveDays,
+                    'present_days' => $presentDays,
+                    'half_days' => $halfDays,
+                    'leave_days' => (int) round($approvedLeaveDays),
+                    'absent_days' => (int) round($absentDays),
                     'gross_salary' => round($grossSalary, 2),
                     'total_deductions' => round($totalDed, 2),
                     'tds_amount' => round($tdsAmount, 2),
@@ -264,6 +316,12 @@ class PayrollService
             ]);
 
             $earningsByAccount = [];
+            $deductionsByAccount = [];
+            $employerExpenseByAccount = [];
+            $employerPayableByAccount = [];
+            $missingEarningAccount = false;
+            $missingDeductionAccount = false;
+            $missingEmployerAccount = false;
             $totalTds = 0;
 
             foreach ($payrollRun->payslips as $payslip) {
@@ -271,15 +329,71 @@ class PayrollService
 
                 foreach ($payslip->items as $item) {
                     $component = $item->salaryComponent;
-                    if (! $component || $component->type !== SalaryComponentTypeEnum::EARNING) {
+                    if (! $component) {
                         continue;
                     }
-                    $accountId = $component->account_id;
-                    if (! $accountId) {
+
+                    if ($component->type === SalaryComponentTypeEnum::EARNING) {
+                        if ((float) $item->amount == 0.0) {
+                            continue;
+                        }
+                        if (! $component->account_id) {
+                            $missingEarningAccount = true;
+
+                            continue;
+                        }
+                        $earningsByAccount[$component->account_id] = ($earningsByAccount[$component->account_id] ?? 0) + $item->amount;
+
                         continue;
                     }
-                    $earningsByAccount[$accountId] = ($earningsByAccount[$accountId] ?? 0) + $item->amount;
+
+                    if ((float) $item->amount == 0.0) {
+                        continue;
+                    }
+
+                    if ($component->type === SalaryComponentTypeEnum::EMPLOYER_CONTRIBUTION) {
+                        // Employer cost: Dr expense (account_id), Cr payable (contra_account_id).
+                        if (! $component->account_id || ! $component->contra_account_id) {
+                            $missingEmployerAccount = true;
+
+                            continue;
+                        }
+                        $employerExpenseByAccount[$component->account_id] = ($employerExpenseByAccount[$component->account_id] ?? 0) + $item->amount;
+                        $employerPayableByAccount[$component->contra_account_id] = ($employerPayableByAccount[$component->contra_account_id] ?? 0) + $item->amount;
+
+                        continue;
+                    }
+
+                    // Deduction component: must be credited to its liability account so the
+                    // journal balances (net pay already excludes deductions).
+                    if (! $component->account_id) {
+                        $missingDeductionAccount = true;
+
+                        continue;
+                    }
+                    $deductionsByAccount[$component->account_id] = ($deductionsByAccount[$component->account_id] ?? 0) + $item->amount;
                 }
+            }
+
+            if ($missingEarningAccount) {
+                throw ValidationException::withMessages([
+                    'salary_component' => 'Cannot post payroll journal: one or more earning components have no '
+                        .'ledger account configured. Set an account on each earning salary component.',
+                ]);
+            }
+
+            if ($missingDeductionAccount) {
+                throw ValidationException::withMessages([
+                    'salary_component' => 'Cannot post payroll journal: one or more deduction components have no '
+                        .'ledger account configured. Set an account on each deduction salary component.',
+                ]);
+            }
+
+            if ($missingEmployerAccount) {
+                throw ValidationException::withMessages([
+                    'salary_component' => 'Cannot post payroll journal: one or more employer-contribution components '
+                        .'are missing an expense or payable account. Set both the account and contra account.',
+                ]);
             }
 
             foreach ($earningsByAccount as $accountId => $amount) {
@@ -289,6 +403,37 @@ class PayrollService
                     'dr_amount' => round($amount, 2),
                     'cr_amount' => 0,
                     'remarks' => "Salary expense – {$monthLabel}",
+                ]);
+            }
+
+            foreach ($deductionsByAccount as $accountId => $amount) {
+                JournalItem::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $accountId,
+                    'dr_amount' => 0,
+                    'cr_amount' => round($amount, 2),
+                    'remarks' => "Salary deduction – {$monthLabel}",
+                ]);
+            }
+
+            // Employer contributions: self-balancing Dr expense / Cr payable pairs.
+            foreach ($employerExpenseByAccount as $accountId => $amount) {
+                JournalItem::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $accountId,
+                    'dr_amount' => round($amount, 2),
+                    'cr_amount' => 0,
+                    'remarks' => "Employer contribution expense – {$monthLabel}",
+                ]);
+            }
+
+            foreach ($employerPayableByAccount as $accountId => $amount) {
+                JournalItem::create([
+                    'journal_id' => $journal->id,
+                    'account_id' => $accountId,
+                    'dr_amount' => 0,
+                    'cr_amount' => round($amount, 2),
+                    'remarks' => "Employer contribution payable – {$monthLabel}",
                 ]);
             }
 
@@ -358,27 +503,83 @@ class PayrollService
         });
     }
 
-    protected function getWorkingDays(int $month, int $year, int $companyId): int
-    {
-        $start = Carbon::create($year, $month, 1);
-        $end = $start->copy()->endOfMonth();
+    /**
+     * Weekly off days for Nepal payroll. Saturday only — Sunday is a working day.
+     *
+     * @var array<int, int>
+     */
+    protected const WEEKLY_OFF_DAYS = [Carbon::SATURDAY];
 
-        $holidays = Holiday::where('company_id', $companyId)
+    /**
+     * Resolve the Gregorian calendar year for a payroll month within a fiscal year.
+     *
+     * A Nepali fiscal year spans two Gregorian years (e.g. mid-Jul 2024 → mid-Jul 2025).
+     * Months at or after the fiscal-year start month belong to the start year; earlier
+     * months roll into the following year.
+     */
+    protected function resolveCalendarYear(FiscalYear $fiscalYear, int $month): int
+    {
+        $startYear = $fiscalYear->start_date->year;
+        $startMonth = $fiscalYear->start_date->month;
+
+        return $month >= $startMonth ? $startYear : $startYear + 1;
+    }
+
+    /**
+     * Company holidays falling within a Gregorian month, as Y-m-d strings.
+     *
+     * @return array<int, string>
+     */
+    protected function monthlyHolidays(int $month, int $year, int $companyId): array
+    {
+        return Holiday::where('company_id', $companyId)
             ->whereMonth('date', $month)
             ->whereYear('date', $year)
             ->pluck('date')
             ->map(fn ($d) => $d->format('Y-m-d'))
             ->toArray();
+    }
+
+    /**
+     * Count working days (inclusive) in a date range, excluding weekly-off days and holidays.
+     *
+     * @param  array<int, string>  $holidays  Y-m-d strings
+     * @param  array<int, int>|null  $weeklyOffDays  Carbon dayOfWeek numbers; defaults to Saturday
+     */
+    protected function workingDaysBetween(Carbon $start, Carbon $end, array $holidays, ?array $weeklyOffDays = null): int
+    {
+        $weeklyOffDays ??= self::WEEKLY_OFF_DAYS;
 
         $days = 0;
-        $current = $start->copy();
-        while ($current <= $end) {
-            if (! $current->isWeekend() && ! in_array($current->format('Y-m-d'), $holidays)) {
+        $current = $start->copy()->startOfDay();
+        $last = $end->copy()->startOfDay();
+
+        while ($current <= $last) {
+            $isWeeklyOff = in_array($current->dayOfWeek, $weeklyOffDays, true);
+            if (! $isWeeklyOff && ! in_array($current->format('Y-m-d'), $holidays, true)) {
                 $days++;
             }
             $current->addDay();
         }
 
         return $days;
+    }
+
+    /**
+     * Ensure a company has the system Overtime earning component and return it.
+     */
+    protected function ensureOvertimeComponent(int $companyId): SalaryComponent
+    {
+        return SalaryComponent::withoutGlobalScopes()->firstOrCreate(
+            ['company_id' => $companyId, 'system_code' => 'OVERTIME'],
+            [
+                'name' => 'Overtime',
+                'type' => SalaryComponentTypeEnum::EARNING,
+                'calculation_type' => 'fixed',
+                'is_taxable' => true,
+                'is_active' => true,
+                'is_system' => true,
+            ],
+        );
     }
 }
