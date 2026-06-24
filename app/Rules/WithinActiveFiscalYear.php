@@ -5,6 +5,7 @@ namespace App\Rules;
 use Closure;
 use Carbon\Carbon;
 use App\Models\FiscalYear;
+use App\Services\Nepal\DateDisplayService;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 class WithinActiveFiscalYear implements ValidationRule
@@ -31,10 +32,12 @@ class WithinActiveFiscalYear implements ValidationRule
         $end = Carbon::parse($fiscalYear->end_date)->endOfDay();
 
         if ($date->lt($start) || $date->gt($end)) {
+            $display = app(DateDisplayService::class);
+
             $fail(__('The :attribute must fall within the active fiscal year (:start to :end).', [
                 'attribute' => str_replace('_', ' ', $attribute),
-                'start' => $start->toDateString(),
-                'end' => $end->toDateString(),
+                'start' => $display->format($start),
+                'end' => $display->format($end),
             ]));
         }
     }

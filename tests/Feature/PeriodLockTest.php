@@ -135,6 +135,31 @@ it('blocks GL posting when the document date falls in a closed period', function
     expect(Journal::withoutGlobalScopes()->count())->toBe(0);
 });
 
+it('reports the blocked posting date in BS in the validation message', function () {
+    // Default user date_mode is BS, so the message must show the Bikram Sambat date.
+    AccountingPeriod::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'period_number' => 1,
+        'period_name' => 'Magh 2082',
+        'start_date' => '2026-01-01',
+        'end_date' => '2026-01-31',
+        'status' => AccountingPeriodStatusEnum::CLOSED,
+        'closed_by' => $this->user->id,
+        'closed_at' => now(),
+    ]);
+
+    $invoice = makeUnpostedApprovedInvoice($this, 'INV-BSDATE', '2026-01-15');
+
+    $response = $this->postJson("/api/admin/account-report/invoice/{$invoice->id}/repost")
+        ->assertStatus(422);
+
+    // 2026-01-15 AD == 2082-10-02 BS, and the BS period name is echoed back.
+    expect($response->json('errors.period.0'))
+        ->toContain('2082-10-02')
+        ->toContain('Magh 2082');
+});
+
 it('allows GL posting when the document date falls in an open period', function () {
     AccountingPeriod::create([
         'company_id' => $this->company->id,

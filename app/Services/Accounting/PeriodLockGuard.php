@@ -4,6 +4,7 @@ namespace App\Services\Accounting;
 
 use Carbon\Carbon;
 use App\Models\AccountingPeriod;
+use App\Services\Nepal\DateDisplayService;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -18,6 +19,8 @@ use Illuminate\Validation\ValidationException;
  */
 class PeriodLockGuard
 {
+    public function __construct(private readonly DateDisplayService $dateDisplay) {}
+
     /**
      * @param  string|\DateTimeInterface|null  $date  Document date being posted.
      *
@@ -37,7 +40,7 @@ class PeriodLockGuard
                     'Cannot post into %s — the accounting period is %s. Re-open the period to post entries dated %s.',
                     $period->period_name,
                     $period->status->label(),
-                    $this->dateString($date),
+                    $this->dateDisplay->format($this->dateString($date)),
                 ),
             ]);
         }

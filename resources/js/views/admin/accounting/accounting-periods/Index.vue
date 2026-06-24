@@ -97,10 +97,11 @@ import { storeToRefs } from 'pinia';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { toast } from '@/helpers/toast.js';
-import { formatDate } from '@/helpers/helper.js';
 import { useAdminSettingStore } from '@/stores/admin/settings/admin-setting.js';
 import { useConfirmAction } from '@/composables/useConfirmAction.js';
+import { useDisplayDate } from '@/composables/useDisplayDate.js';
 
+const { formatDate } = useDisplayDate();
 const adminSettingStore = useAdminSettingStore();
 const { currentFiscalYear } = storeToRefs(adminSettingStore);
 const { confirmAction } = useConfirmAction();
