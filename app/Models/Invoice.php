@@ -73,7 +73,8 @@ class Invoice extends Model
         if (! empty($param['search'])) {
             $query->where(function ($query) use ($param) {
                 $key = '%'.trim($param['search']).'%';
-                $query->where('invoice_no', 'like', $key);
+                $query->where('invoice_no', 'like', $key)
+                    ->orWhere('bijak_no', 'like', $key);
             });
         }
 

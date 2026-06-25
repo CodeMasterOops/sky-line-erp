@@ -9,16 +9,21 @@ use App\Models\Stock;
 use App\Models\Branch;
 use App\Models\Expense;
 use App\Models\Invoice;
+use App\Models\Journal;
 use App\Models\Payment;
+use App\Models\Receipt;
 use App\Models\BranchUser;
 use App\Policies\BillPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Http\Request;
 use App\Models\StockMovement;
 use App\Policies\PartyPolicy;
+use App\Policies\StockPolicy;
 use App\Policies\BranchPolicy;
 use App\Policies\InvoicePolicy;
+use App\Policies\JournalPolicy;
 use App\Policies\PaymentPolicy;
+use App\Policies\ReceiptPolicy;
 use App\Services\TenantService;
 use App\Observers\StockObserver;
 use Illuminate\Support\Facades\URL;
@@ -154,6 +159,9 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Bill::class, BillPolicy::class);
         Gate::policy(Party::class, PartyPolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
+        Gate::policy(Receipt::class, ReceiptPolicy::class);
+        Gate::policy(Journal::class, JournalPolicy::class);
+        Gate::policy(Stock::class, StockPolicy::class);
 
         Gate::define('access-branch', function ($user, Branch $branch): bool {
             return app(BranchAccessService::class)->canUserAccessBranch($user, $branch->id);
