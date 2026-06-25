@@ -169,7 +169,9 @@ it('does not create duplicate work schedules when pipeline runs twice', function
 // HolidaysStep
 // ---------------------------------------------------------------------------
 
-it('seeds public holidays for the current year', function () {
+it('seeds public holidays for the current year via spatie/holidays fallback', function () {
+    // 2026 is not yet in spatie/holidays lookup tables, so the step falls back
+    // to the static config list.
     CompanyProvisioningPipeline::make()->run($this->company);
 
     $count = Holiday::where('company_id', $this->company->id)
@@ -179,6 +181,22 @@ it('seeds public holidays for the current year', function () {
     expect($count)->toBe(count(config('provisioning.hr.public_holidays')));
 });
 
+it('seeds more holidays via spatie/holidays when the year is fully covered', function () {
+    // 2024 has rich BS/lunar holiday data in spatie/holidays (Dashain, Tihar, etc.)
+    \Carbon\Carbon::setTestNow('2024-01-01');
+
+    CompanyProvisioningPipeline::make()->run($this->company);
+
+    $count = Holiday::where('company_id', $this->company->id)
+        ->whereYear('date', 2024)
+        ->count();
+
+    // spatie/holidays Nepal 2024 returns significantly more than the static fallback list
+    expect($count)->toBeGreaterThan(count(config('provisioning.hr.public_holidays')));
+
+    \Carbon\Carbon::setTestNow();
+});
+
 it('does not seed duplicate holidays when pipeline runs twice', function () {
     CompanyProvisioningPipeline::make()->run($this->company);
 
@@ -186,8 +204,9 @@ it('does not seed duplicate holidays when pipeline runs twice', function () {
 
     CompanyProvisioningPipeline::make()->run($this->company);
 
-    expect(Holiday::where('company_id', $this->company->id)->whereYear('date', now()->year)->count())
-        ->toBe(count(config('provisioning.hr.public_holidays')));
+    $count = Holiday::where('company_id', $this->company->id)->whereYear('date', now()->year)->count();
+
+    expect($count)->toBe(count(config('provisioning.hr.public_holidays')));
 });
 
 // ---------------------------------------------------------------------------

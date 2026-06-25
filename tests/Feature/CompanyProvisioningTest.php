@@ -75,11 +75,11 @@ it('marks every step as complete in the provision log', function () {
     expect($failedSteps)->toBeEmpty();
 });
 
-it('sets onboarding_completed_at on the company after successful provisioning', function () {
+it('does not set onboarding_completed_at during provisioning — that is the OnboardingController job', function () {
     CompanyProvisioningPipeline::make()->run($this->company);
 
     $this->company->refresh();
-    expect($this->company->onboarding_completed_at)->not->toBeNull();
+    expect($this->company->onboarding_completed_at)->toBeNull();
 });
 
 // ---------------------------------------------------------------------------

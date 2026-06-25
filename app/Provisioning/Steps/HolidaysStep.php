@@ -2,10 +2,11 @@
 
 namespace App\Provisioning\Steps;
 
-use Carbon\Carbon;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Holiday;
+use Spatie\Holidays\Holidays;
+use Spatie\Holidays\Countries\Nepal;
 use App\Provisioning\Contracts\ProvisioningStep;
 
 class HolidaysStep implements ProvisioningStep
@@ -24,18 +25,32 @@ class HolidaysStep implements ProvisioningStep
     {
         $year = now()->year;
 
-        if (Holiday::where('company_id', $company->id)->whereYear('date', $year)->exists()) {
+        if (Holiday::query()->where('company_id', $company->id)->whereYear('date', $year)->exists()) {
             return;
         }
 
-        foreach (config('provisioning.hr.public_holidays') as $holiday) {
-            $date = Carbon::createFromDate($year, $holiday['month'], $holiday['day']);
+        $holidays = Holidays::for(Nepal::make(), $year)->get();
 
-            Holiday::create([
-                'company_id' => $company->id,
-                'name' => $holiday['name'],
-                'date' => $date->toDateString(),
-            ]);
+        // spatie/holidays uses per-year lookup tables for BS/lunar holidays.
+        // When data isn't yet available for the current year only the two fixed
+        // Gregorian entries are returned. Fall back to the static config list so
+        // that new companies always get a reasonable set of public holidays.
+        if (count($holidays) <= 2) {
+            foreach (config('provisioning.hr.public_holidays') as $entry) {
+                Holiday::firstOrCreate(
+                    ['company_id' => $company->id, 'date' => "{$year}-".str_pad($entry['month'], 2, '0', STR_PAD_LEFT).'-'.str_pad($entry['day'], 2, '0', STR_PAD_LEFT)],
+                    ['name' => $entry['name']],
+                );
+            }
+
+            return;
+        }
+
+        foreach ($holidays as $holiday) {
+            Holiday::firstOrCreate(
+                ['company_id' => $company->id, 'date' => $holiday->date->toDateString()],
+                ['name' => $holiday->name],
+            );
         }
     }
 }

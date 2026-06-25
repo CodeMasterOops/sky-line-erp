@@ -569,7 +569,7 @@ const finishOnboarding = async () => {
 
     try {
         await authStore.completeOnboarding();
-        router.push({ name: 'admin.branch-select' });
+        router.push({ name: 'admin.dashboard' });
     } catch (err) {
         stepError.value = err?.response?.data?.message || 'Something went wrong. Please try again.';
     } finally {

@@ -73,9 +73,11 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiAdmin } from '@/helpers/api';
 import { useAdminAuthStore } from '@/stores/admin/auth';
+import { useBranchStore } from '@/stores/admin/settings/branch.js';
 
 const router = useRouter();
 const authStore = useAdminAuthStore();
+const branchStore = useBranchStore();
 
 const status = ref('not_started');
 const steps = ref([]);
@@ -99,8 +101,14 @@ async function pollStatus() {
     }
 }
 
-function proceed() {
+async function proceed() {
     authStore.setNeedsOnboarding(true);
+    try {
+        await branchStore.getMyBranches();
+        branchStore.autoSelectDefault();
+    } catch {
+        // Non-fatal — user can select branch manually later
+    }
     router.push({ name: 'admin.onboarding' });
 }
 

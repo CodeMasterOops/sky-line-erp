@@ -34,17 +34,21 @@ class CoaInsertService
     {
         $accountType = $group['account_type'] ?? $inheritedType;
 
-        $accountGroup = AccountGroup::create(Arr::except($group, ['children', 'accounts']) + [
-            'parent_id' => $parentId,
-            'company_id' => $companyId,
-            'account_type' => $accountType,
-        ]);
+        $accountGroup = AccountGroup::firstOrCreate(
+            ['company_id' => $companyId, 'code' => $group['code']],
+            Arr::except($group, ['children', 'accounts', 'code']) + [
+                'parent_id' => $parentId,
+                'account_type' => $accountType,
+            ],
+        );
 
         foreach ($group['accounts'] ?? [] as $account) {
-            Account::create($account + [
-                'account_group_id' => $accountGroup->id,
-                'company_id' => $companyId,
-            ]);
+            Account::firstOrCreate(
+                ['company_id' => $companyId, 'code' => $account['code']],
+                Arr::except($account, ['code']) + [
+                    'account_group_id' => $accountGroup->id,
+                ],
+            );
         }
 
         foreach ($group['children'] ?? [] as $child) {
