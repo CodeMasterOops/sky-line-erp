@@ -76,6 +76,7 @@
                                 <th>Step</th>
                                 <th>Status</th>
                                 <th>Duration</th>
+                                <th>Error</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -88,6 +89,7 @@
                                 <td class="text-muted">
                                     {{ step.duration_ms != null ? step.duration_ms + ' ms' : '—' }}
                                 </td>
+                                <td class="text-danger small">{{ step.error || '' }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -156,7 +158,7 @@ function statusBadge(status) {
 function stepBadge(status) {
     return {
         badge: true,
-        'bg-success': status === 'ok',
+        'bg-success': status === 'complete',
         'bg-danger': status === 'failed',
         'bg-secondary': !status,
     };
