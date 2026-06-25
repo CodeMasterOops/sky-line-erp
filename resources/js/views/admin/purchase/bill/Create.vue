@@ -480,7 +480,7 @@ import {useBillStore} from '@/stores/admin/purchase/bill.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {lineDiscountMoneyFromItem, lineNetFromItem, orderDiscountMoney, buildOrderAllocations, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection, taxSelectionValue} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import BatchLineInput from '@/components/inventory/BatchLineInput.vue';
@@ -759,7 +759,7 @@ const onVariantSelected = (variant) => {
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
-        tax_id: variant.tax_id ? String(variant.tax_id) : '',
+        tax_id: taxSelectionValue({tax_id: variant.tax_id, tax_group_id: variant.tax_group_id}),
         tax_line_type: 'taxable',
         line_discount_type: 'fixed',
         line_discount_value: '0',

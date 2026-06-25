@@ -344,7 +344,7 @@ import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
-import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection, taxSelectionValue} from '@/composables/useLineItemTaxOptions.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {lineDiscountMoneyFromItem, lineNetFromItem, orderDiscountMoney, buildOrderAllocations} from '@/composables/purchaseOrderTotals.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -537,7 +537,7 @@ function addOrMergeLineFromBillItem(billItemId) {
         unit_id: row.unit_id ?? '',
         quantity: String(Math.min(1, maxBill)),
         rate: String(Number(row.rate ?? 0)),
-        tax_id: row.tax_id || '',
+        tax_id: taxSelectionValue({tax_id: row.tax_id, tax_group_id: row.tax_group_id}),
         line_discount_type: row.line_discount_type || 'fixed',
         line_discount_value: ldv,
         warehouse_id: row.warehouse_id || '',
@@ -599,7 +599,7 @@ const onVariantSelected = async (variant) => {
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
-        tax_id: '',
+        tax_id: taxSelectionValue({tax_id: variant.tax_id, tax_group_id: variant.tax_group_id}),
         line_discount_type: 'fixed',
         line_discount_value: '0',
         ...buildLineWarehouseFields(result.warehouse),
@@ -714,7 +714,7 @@ watch(
                 unit_id: item.unit_id || '',
                 quantity: item.quantity != null ? String(item.quantity) : '',
                 rate: item.rate != null ? String(item.rate) : '',
-                tax_id: item.tax_id || '',
+                tax_id: taxSelectionValue({tax_id: item.tax_id, tax_group_id: item.tax_group_id}),
                 line_discount_type,
                 line_discount_value,
                 warehouse_id: item.warehouse_id || '',

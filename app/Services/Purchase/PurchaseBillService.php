@@ -5,6 +5,7 @@ namespace App\Services\Purchase;
 use App\Models\Bill;
 use App\Models\GrnItem;
 use App\Models\Journal;
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Enums\ChangeTypeEnum;
 use App\Enums\JournalTypeEnum;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use App\Services\DocumentLineItemSyncer;
 use App\Services\DocumentNumberGenerator;
 use App\Services\Inventory\BatchResolver;
+use App\Services\Tax\TaxCalculationEngine;
 use App\Services\Accounting\PeriodLockGuard;
 use App\Services\Inventory\LandedCostService;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
@@ -39,6 +41,7 @@ readonly class PurchaseBillService
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
         private BatchResolver $batchResolver,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     /**
@@ -133,6 +136,7 @@ readonly class PurchaseBillService
                     'unit_id' => $item['unit_id'] ?? null,
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
@@ -141,6 +145,7 @@ readonly class PurchaseBillService
                     'mfg_date' => ! empty($item['grn_item_id']) ? null : ($item['mfg_date'] ?? null),
                     'expiry_date' => ! empty($item['grn_item_id']) ? null : ($item['expiry_date'] ?? null),
                 ],
+                fn ($item) => $this->resolveItemTax($item),
             );
 
             $this->syncBillLandedCosts($bill, $formData);
@@ -193,6 +198,7 @@ readonly class PurchaseBillService
                     'unit_id' => $item['unit_id'] ?? null,
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'],
                     'discount_amount' => $item['discount_amount'],
                     'tax_line_type' => $item['tax_line_type'] ?? null,
@@ -201,6 +207,7 @@ readonly class PurchaseBillService
                     'mfg_date' => ! empty($item['grn_item_id']) ? null : ($item['mfg_date'] ?? null),
                     'expiry_date' => ! empty($item['grn_item_id']) ? null : ($item['expiry_date'] ?? null),
                 ],
+                fn ($item) => $this->resolveItemTax($item),
             );
 
             $this->syncBillLandedCosts($bill, $formData);
@@ -379,10 +386,21 @@ readonly class PurchaseBillService
             ]);
         }
 
-        if ($taxTotal > 0) {
+        $taxGroupLines = $this->buildTaxGroupGlLines($bill, $accountSetting->vat_account_id);
+
+        if (! empty($taxGroupLines)) {
+            foreach ($taxGroupLines as $line) {
+                $journal->journalItems()->create([
+                    'account_id' => $line['account_id'],
+                    'dr_amount' => $line['amount'],
+                    'cr_amount' => 0,
+                    'remarks' => $line['remarks'],
+                ]);
+            }
+        } elseif ($taxTotal > 0) {
             $journal->journalItems()->create([
                 'account_id' => $accountSetting->vat_account_id,
-                'dr_amount' => $taxTotal,
+                'dr_amount' => round($taxTotal, 2),
                 'cr_amount' => 0,
                 'remarks' => 'To-'.($bill->party->name ?? ''),
             ]);
@@ -391,11 +409,90 @@ readonly class PurchaseBillService
         $journal->journalItems()->create([
             'account_id' => $accountSetting->supplier_account_id,
             'dr_amount' => 0,
-            'cr_amount' => $grandTotal,
+            'cr_amount' => round($grandTotal, 2),
             'remarks' => 'To-Purchase Account',
         ]);
 
         $this->balanceGuard->assertBalanced($journal);
+    }
+
+    /**
+     * @return array<int, array{account_id: int, amount: float, remarks: string}>
+     */
+    private function buildTaxGroupGlLines(Bill $bill, ?int $fallbackVatAccountId): array
+    {
+        $groupItems = $bill->billItems->filter(fn ($item) => $item->tax_group_id !== null);
+
+        if ($groupItems->isEmpty()) {
+            return [];
+        }
+
+        $accountTotals = [];
+
+        foreach ($groupItems as $item) {
+            $group = TaxGroup::withoutGlobalScopes()->find($item->tax_group_id);
+            if (! $group) {
+                continue;
+            }
+
+            $baseAmount = round(
+                ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount,
+                2,
+            );
+
+            $result = $this->taxEngine->calculateForGroup($baseAmount, $group);
+
+            foreach ($result->lines as $taxLine) {
+                $accountId = $taxLine['gl_account_id'] ?? $fallbackVatAccountId;
+                if (! $accountId) {
+                    continue;
+                }
+                $accountTotals[$accountId] = round(
+                    ($accountTotals[$accountId] ?? 0.0) + $taxLine['amount'],
+                    2,
+                );
+            }
+        }
+
+        $lines = [];
+        foreach ($accountTotals as $accountId => $amount) {
+            if ($amount > 0) {
+                $lines[] = [
+                    'account_id' => $accountId,
+                    'amount' => $amount,
+                    'remarks' => 'Input VAT (tax group) – '.$bill->bill_no,
+                ];
+            }
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function resolveItemTax(array $item): array
+    {
+        $taxGroupId = $item['tax_group_id'] ?? null;
+        if (! $taxGroupId) {
+            return $item;
+        }
+
+        $group = TaxGroup::withoutGlobalScopes()->find($taxGroupId);
+        if (! $group) {
+            return $item;
+        }
+
+        $baseAmount = round(
+            ((float) $item['quantity'] * (float) $item['rate']) - (float) ($item['discount_amount'] ?? 0),
+            2,
+        );
+
+        $result = $this->taxEngine->calculateForGroup($baseAmount, $group);
+        $item['tax_amount'] = $result->totalTaxAmount;
+
+        return $item;
     }
 
     public function voidBill(Bill $bill): void

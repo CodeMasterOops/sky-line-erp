@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin\Purchase;
 
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Models\DebitNote;
 use Illuminate\Http\Request;
@@ -10,6 +11,7 @@ use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Tax\TaxCalculationEngine;
 use App\Enums\AmountOrPercentDiscountTypeEnum;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalVoidService;
@@ -29,6 +31,7 @@ class DebitNoteController extends Controller
         private DebitNoteGlPostingService $debitNoteGl,
         private JournalVoidService $journalVoid,
         private PurchaseOrderTotalsCalculator $totalsCalculator,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     #[Permissions('list_debit_note', group: 'debit_note', desc: 'List Debit Note')]
@@ -86,6 +89,7 @@ class DebitNoteController extends Controller
                 );
 
                 foreach ($formData['items'] ?? [] as $item) {
+                    $item = $this->resolveItemTax($item);
                     $debitNoteItem = $debitNote->debitNoteItems()->create([
                         'product_variant_id' => $item['product_variant_id'],
                         'warehouse_id' => $item['warehouse_id'],
@@ -93,6 +97,7 @@ class DebitNoteController extends Controller
                         'quantity' => $item['quantity'],
                         'rate' => $item['rate'],
                         'tax_id' => $item['tax_id'] ?? null,
+                        'tax_group_id' => $item['tax_group_id'] ?? null,
                         'tax_amount' => $item['tax_amount'] ?? 0,
                         'discount_amount' => $item['discount_amount'] ?? 0,
                     ]);
@@ -185,6 +190,7 @@ class DebitNoteController extends Controller
             );
 
             foreach ($formData['items'] ?? [] as $item) {
+                $item = $this->resolveItemTax($item);
                 $debitNoteItem = $debitNote->debitNoteItems()->create([
                     'product_variant_id' => $item['product_variant_id'],
                     'warehouse_id' => $item['warehouse_id'],
@@ -192,6 +198,7 @@ class DebitNoteController extends Controller
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                 ]);
@@ -362,6 +369,33 @@ class DebitNoteController extends Controller
         $formData['order_discount_amount'] = $result['order_discount_amount'];
 
         return $formData;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function resolveItemTax(array $item): array
+    {
+        $taxGroupId = $item['tax_group_id'] ?? null;
+        if (! $taxGroupId) {
+            return $item;
+        }
+
+        $group = TaxGroup::withoutGlobalScopes()->find($taxGroupId);
+        if (! $group) {
+            return $item;
+        }
+
+        $baseAmount = round(
+            ((float) $item['quantity'] * (float) $item['rate']) - (float) ($item['discount_amount'] ?? 0),
+            2,
+        );
+
+        $result = $this->taxEngine->calculateForGroup($baseAmount, $group);
+        $item['tax_amount'] = $result->totalTaxAmount;
+
+        return $item;
     }
 
     private function applyInventoryForApprovedDebitNote(DebitNote $debitNote, \App\Models\Company $company, \App\Models\User $user): void

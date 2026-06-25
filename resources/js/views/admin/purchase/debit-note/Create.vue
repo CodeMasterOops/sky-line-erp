@@ -332,7 +332,7 @@ import {useDebitNoteStore} from '@/stores/admin/purchase/debit-note.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import {useResolvedParty} from '@/composables/useResolvedParty.js';
-import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection, taxSelectionValue} from '@/composables/useLineItemTaxOptions.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
 import {lineDiscountMoneyFromItem, lineNetFromItem, orderDiscountMoney, buildOrderAllocations} from '@/composables/purchaseOrderTotals.js';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -586,7 +586,7 @@ function lineFromBillItem(billItem, billedQty) {
         unit_id: billItem.unit_id ?? '',
         quantity: String(qtyDefault),
         rate: String(Number(billItem.rate ?? 0)),
-        tax_id: billItem.tax_id || '',
+        tax_id: taxSelectionValue({tax_id: billItem.tax_id, tax_group_id: billItem.tax_group_id}),
         line_discount_type: billItem.line_discount_type || 'fixed',
         line_discount_value: ldv,
         warehouse_id: billItem.warehouse_id || '',
@@ -638,7 +638,7 @@ const onVariantSelected = async (variant) => {
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
-        tax_id: variant.tax_id ? String(variant.tax_id) : '',
+        tax_id: taxSelectionValue({tax_id: variant.tax_id, tax_group_id: variant.tax_group_id}),
         line_discount_type: 'fixed',
         line_discount_value: '0',
         ...buildLineWarehouseFields(result.warehouse),

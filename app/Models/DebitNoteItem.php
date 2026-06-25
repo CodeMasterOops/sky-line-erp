@@ -20,6 +20,7 @@ class DebitNoteItem extends Model
         'unit_id',
         'rate',
         'tax_id',
+        'tax_group_id',
         'tax_amount',
         'discount_amount',
     ];
@@ -30,6 +31,7 @@ class DebitNoteItem extends Model
         'warehouse_id' => 'integer',
         'unit_id' => 'integer',
         'tax_id' => 'integer',
+        'tax_group_id' => 'integer',
         'quantity' => 'float',
         'rate' => 'float',
         'tax_amount' => 'float',
@@ -54,6 +56,11 @@ class DebitNoteItem extends Model
     public function tax(): BelongsTo
     {
         return $this->belongsTo(Tax::class);
+    }
+
+    public function taxGroup(): BelongsTo
+    {
+        return $this->belongsTo(TaxGroup::class);
     }
 
     public function warehouse(): BelongsTo

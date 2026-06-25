@@ -5,12 +5,14 @@ namespace App\Services\Accounting;
 use App\Models\User;
 use App\Models\Company;
 use App\Models\Journal;
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Models\DebitNote;
 use App\Models\JournalItem;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\DB;
+use App\Services\Tax\TaxCalculationEngine;
 
 /**
  * Posts a balanced purchase-return journal when a debit note is approved,
@@ -30,6 +32,7 @@ class DebitNoteGlPostingService
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
         private BooksHealthService $booksHealth,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     public function isPosted(DebitNote $debitNote): bool
@@ -92,10 +95,12 @@ class DebitNoteGlPostingService
         $yearCode = $company->fiscalYear?->year_code ?? '';
         $voucherNo = 'PRET-JV-'.$debitNote->id.($yearCode ? '/'.$yearCode : '');
 
+        $taxGroupLines = $this->buildTaxGroupGlLines($debitNote, $vatAccountId);
+
         DB::transaction(function () use (
             $debitNote, $grandTotal, $purchaseBase, $vatAmount,
             $payableAccountId, $purchaseAccountId, $vatAccountId,
-            $user, $company, $voucherNo
+            $user, $company, $voucherNo, $taxGroupLines
         ) {
             $journal = Journal::withoutGlobalScopes()->create([
                 'company_id' => $debitNote->company_id,
@@ -132,8 +137,18 @@ class DebitNoteGlPostingService
                 'remarks' => 'Purchase return – '.$debitNote->debit_note_no,
             ]);
 
-            // CR VAT Input — reverse the reclaimable input VAT
-            if ($vatAmount > 0 && $vatAccountId) {
+            // CR VAT Input — reverse the reclaimable input VAT (per-tax-group or single account)
+            if (! empty($taxGroupLines)) {
+                foreach ($taxGroupLines as $line) {
+                    JournalItem::create([
+                        'journal_id' => $journal->id,
+                        'account_id' => $line['account_id'],
+                        'dr_amount' => 0,
+                        'cr_amount' => $line['amount'],
+                        'remarks' => $line['remarks'],
+                    ]);
+                }
+            } elseif ($vatAmount > 0 && $vatAccountId) {
                 JournalItem::create([
                     'journal_id' => $journal->id,
                     'account_id' => $vatAccountId,
@@ -151,5 +166,57 @@ class DebitNoteGlPostingService
             $this->balanceGuard->assertBalanced($journal);
             $this->booksHealth->invalidateCache($debitNote->company_id);
         });
+    }
+
+    /**
+     * @return array<int, array{account_id: int, amount: float, remarks: string}>
+     */
+    private function buildTaxGroupGlLines(DebitNote $debitNote, ?int $fallbackVatAccountId): array
+    {
+        $groupItems = $debitNote->debitNoteItems->filter(fn ($item) => $item->tax_group_id !== null);
+
+        if ($groupItems->isEmpty()) {
+            return [];
+        }
+
+        $accountTotals = [];
+
+        foreach ($groupItems as $item) {
+            $group = TaxGroup::withoutGlobalScopes()->find($item->tax_group_id);
+            if (! $group) {
+                continue;
+            }
+
+            $baseAmount = round(
+                ((float) $item->quantity * (float) $item->rate) - (float) $item->discount_amount,
+                2,
+            );
+
+            $result = $this->taxEngine->calculateForGroup($baseAmount, $group);
+
+            foreach ($result->lines as $taxLine) {
+                $accountId = $taxLine['gl_account_id'] ?? $fallbackVatAccountId;
+                if (! $accountId) {
+                    continue;
+                }
+                $accountTotals[$accountId] = round(
+                    ($accountTotals[$accountId] ?? 0.0) + $taxLine['amount'],
+                    2,
+                );
+            }
+        }
+
+        $lines = [];
+        foreach ($accountTotals as $accountId => $amount) {
+            if ($amount > 0) {
+                $lines[] = [
+                    'account_id' => $accountId,
+                    'amount' => $amount,
+                    'remarks' => 'VAT reversed (tax group) – '.$debitNote->debit_note_no,
+                ];
+            }
+        }
+
+        return $lines;
     }
 }
