@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\Admin\Nepal\TdsReceivableController;
 use App\Http\Controllers\Api\Admin\AdminNotificationController;
 use App\Http\Controllers\Api\Admin\BillingController;
 use App\Http\Controllers\Api\Admin\Settings\AdminSettingController;
+use App\Http\Controllers\Api\Admin\ProvisionStatusController;
 use App\Http\Controllers\Api\Admin\SupportController;
 
 // Phase 3 — Inventory Enhancements
@@ -38,6 +39,8 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         Route::put('company', [OnboardingController::class, 'updateCompany'])->name('company');
         Route::post('complete', [OnboardingController::class, 'complete'])->name('complete');
     });
+
+    Route::get('provision/status', [ProvisionStatusController::class, 'show'])->name('provision.status');
 
     Route::middleware('checkRole')->group(function () {
         // profile

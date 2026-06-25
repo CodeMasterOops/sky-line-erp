@@ -9,6 +9,7 @@ use App\Provisioning\Steps\TaxConfigStep;
 use App\Provisioning\Steps\FiscalYearStep;
 use App\Provisioning\Steps\LeaveTypesStep;
 use App\Provisioning\Steps\DepartmentsStep;
+use App\Provisioning\Steps\PartyGroupsStep;
 use App\Provisioning\Steps\DesignationsStep;
 use App\Provisioning\Steps\PaymentModesStep;
 use App\Provisioning\Steps\WorkScheduleStep;
@@ -19,7 +20,9 @@ use App\Provisioning\CompanyProvisioningPipeline;
 use App\Provisioning\Steps\AccountingPeriodsStep;
 use App\Provisioning\Steps\DocumentSequencesStep;
 use App\Provisioning\Steps\BranchAndWarehouseStep;
+use App\Provisioning\Steps\CompanyPreferencesStep;
 use App\Provisioning\Steps\RolesAndPermissionsStep;
+use App\Provisioning\Steps\NotificationSettingsStep;
 
 class ProvisioningServiceProvider extends ServiceProvider
 {
@@ -42,6 +45,9 @@ class ProvisioningServiceProvider extends ServiceProvider
             new HolidaysStep,
             new SalaryComponentsStep,
             new DocumentSequencesStep,
+            new PartyGroupsStep,
+            new CompanyPreferencesStep,
+            new NotificationSettingsStep,
         ]);
 
         // Bind the pipeline so the container can inject it into the queued job.
