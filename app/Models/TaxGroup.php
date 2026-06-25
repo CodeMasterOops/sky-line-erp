@@ -18,10 +18,14 @@ class TaxGroup extends Model
         'name',
         'description',
         'is_active',
+        'is_system',
+        'is_default',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_system' => 'boolean',
+        'is_default' => 'boolean',
     ];
 
     public function taxGroupMembers(): HasMany

@@ -22,5 +22,6 @@ class TaxConfigStep implements ProvisioningStep
     public function run(Company $company, Branch $headOffice): void
     {
         TaxSeeder::seedForCompany($company->id);
+        TaxSeeder::seedGroupsForCompany($company->id);
     }
 }
