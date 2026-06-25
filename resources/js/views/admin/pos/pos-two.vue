@@ -17,13 +17,13 @@
                 <i class="ti ti-shopping-cart me-1"></i>Held Orders
                 <span v-if="posStore.heldOrders.length" class="badge bg-white text-teal ms-1">{{ posStore.heldOrders.length }}</span>
               </a>
-              <a class="btn btn-info btn-sm" href="javascript:void(0);" @click="posStore.openModal('recents')"
+              <a class="btn btn-info btn-sm" href="javascript:void(0);" @click="posStore.openModal('recents')">
                 <i class="ti ti-refresh-dot me-1"></i>Transactions
               </a>
               <a class="btn btn-secondary btn-sm"
                  href="javascript:void(0);"
                  :class="{ disabled: !posStore.cart.length }"
-                 @click="posStore.cart.length && posStore.openModal('reset')"
+                 @click="posStore.cart.length && posStore.openModal('reset')">
                 <i class="ti ti-reload me-1"></i>Reset
               </a>
               <div v-if="posStore.cartWarehouseSummary.length" class="ms-auto d-flex flex-wrap gap-1 justify-content-end">
