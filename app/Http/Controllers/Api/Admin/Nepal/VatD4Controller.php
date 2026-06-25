@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\Admin\Nepal;
 
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\VatReportService;
 use App\Services\Nepal\NepaliDateService;
 
 /**
@@ -16,7 +16,10 @@ use App\Services\Nepal\NepaliDateService;
  */
 class VatD4Controller extends Controller
 {
-    public function __construct(private NepaliDateService $nepaliDate) {}
+    public function __construct(
+        private NepaliDateService $nepaliDate,
+        private VatReportService $vatReport,
+    ) {}
 
     #[Permissions('list_bill', group: 'bill', desc: 'Export VAT D4 Purchase CSV')]
     public function exportCsv(Request $request)
@@ -43,7 +46,7 @@ class VatD4Controller extends Controller
 
         $rows = [];
 
-        $purchases = $this->fetchPurchaseRows($companyId, $startDate, $endDate);
+        $purchases = $this->vatReport->fetchPurchaseRows($companyId, $startDate, $endDate);
         foreach ($purchases as $row) {
             $dateBs = $this->safeAdToBs($row->bill_date);
             $rows[] = [
@@ -61,7 +64,7 @@ class VatD4Controller extends Controller
             ];
         }
 
-        $debitNotes = $this->fetchDebitNoteRows($companyId, $startDate, $endDate);
+        $debitNotes = $this->vatReport->fetchDebitNoteRows($companyId, $startDate, $endDate);
         foreach ($debitNotes as $row) {
             $dateBs = $this->safeAdToBs($row->debit_note_date);
             $rows[] = [
@@ -143,61 +146,5 @@ class VatD4Controller extends Controller
         } catch (\Throwable) {
             return '';
         }
-    }
-
-    private function fetchPurchaseRows(int $companyId, string $startDate, string $endDate)
-    {
-        return DB::table('bills')
-            ->leftJoin('parties', 'parties.id', '=', 'bills.party_id')
-            ->leftJoin('bill_items', 'bill_items.bill_id', '=', 'bills.id')
-            ->where('bills.company_id', $companyId)
-            ->where('bills.status', 'approved')
-            ->whereNull('bills.voided_at')
-            ->whereNull('bills.deleted_at')
-            ->whereNull('bill_items.deleted_at')
-            ->whereBetween('bills.bill_date', [$startDate, $endDate])
-            ->groupBy(
-                'bills.id', 'bills.bill_no', 'bills.bill_date',
-                'parties.pan', 'parties.name'
-            )
-            ->select([
-                'bills.bill_no',
-                'bills.bill_date',
-                'parties.pan as party_pan',
-                'parties.name as party_name',
-                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as taxable_amount"),
-                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'taxable' THEN bill_items.tax_amount ELSE 0 END) as input_vat"),
-                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'zero_rated' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as zero_rated_amount"),
-                DB::raw("SUM(CASE WHEN bill_items.tax_line_type = 'exempt' THEN (bill_items.quantity * bill_items.rate) - bill_items.discount_amount ELSE 0 END) as exempt_amount"),
-            ])
-            ->get();
-    }
-
-    private function fetchDebitNoteRows(int $companyId, string $startDate, string $endDate)
-    {
-        return DB::table('debit_notes')
-            ->leftJoin('parties', 'parties.id', '=', 'debit_notes.party_id')
-            ->leftJoin('debit_note_items', 'debit_note_items.debit_note_id', '=', 'debit_notes.id')
-            ->where('debit_notes.company_id', $companyId)
-            ->where('debit_notes.status', 'approved')
-            ->whereNull('debit_notes.voided_at')
-            ->whereNull('debit_notes.deleted_at')
-            ->whereNull('debit_note_items.deleted_at')
-            ->whereBetween('debit_notes.debit_note_date', [$startDate, $endDate])
-            ->groupBy(
-                'debit_notes.id', 'debit_notes.debit_note_no', 'debit_notes.debit_note_date',
-                'parties.pan', 'parties.name'
-            )
-            ->select([
-                'debit_notes.debit_note_no',
-                'debit_notes.debit_note_date',
-                'parties.pan as party_pan',
-                'parties.name as party_name',
-                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'taxable' THEN (debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount ELSE 0 END) as taxable_amount"),
-                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'taxable' THEN debit_note_items.tax_amount ELSE 0 END) as input_vat"),
-                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'zero_rated' THEN (debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount ELSE 0 END) as zero_rated_amount"),
-                DB::raw("SUM(CASE WHEN debit_note_items.tax_line_type = 'exempt' THEN (debit_note_items.quantity * debit_note_items.rate) - debit_note_items.discount_amount ELSE 0 END) as exempt_amount"),
-            ])
-            ->get();
     }
 }

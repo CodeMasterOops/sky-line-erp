@@ -19,7 +19,7 @@ Route::post('sales-order/{salesOrder}/approve', [SalesOrderController::class, 'a
 Route::apiResource('sales-order', SalesOrderController::class);
 
 // sales reports
-Route::prefix('sales-report')->as('sales-report.')->controller(SalesReportController::class)->group(function () {
+Route::middleware('throttle:reports')->prefix('sales-report')->as('sales-report.')->controller(SalesReportController::class)->group(function () {
     Route::get('dashboard', 'dashboard')->name('dashboard');
     Route::get('report', 'salesReport')->name('report');
     Route::get('sales-by-item', 'salesByItems')->name('sales-by-item');

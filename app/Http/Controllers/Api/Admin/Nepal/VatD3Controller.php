@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\Admin\Nepal;
 
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Nepal\VatReportService;
 use App\Services\Nepal\NepaliDateService;
 use App\Services\Accounting\AccountReportService;
 
@@ -20,6 +20,7 @@ class VatD3Controller extends Controller
     public function __construct(
         private AccountReportService $reportService,
         private NepaliDateService $nepaliDate,
+        private VatReportService $vatReport,
     ) {}
 
     #[Permissions('list_invoice', group: 'invoice', desc: 'VAT D3 Return Summary')]
@@ -60,7 +61,7 @@ class VatD3Controller extends Controller
 
         $rows = [];
 
-        $sales = $this->fetchSalesRows($companyId, $startDate, $endDate);
+        $sales = $this->vatReport->fetchSalesRows($companyId, $startDate, $endDate);
         foreach ($sales as $row) {
             $dateBs = $this->safeAdToBs($row->invoice_date);
             $rows[] = [
@@ -79,7 +80,7 @@ class VatD3Controller extends Controller
         }
 
         // IRD D3 requires credit notes (sales returns) as negative rows.
-        $creditNotes = $this->fetchCreditNoteRows($companyId, $startDate, $endDate);
+        $creditNotes = $this->vatReport->fetchCreditNoteRows($companyId, $startDate, $endDate);
         foreach ($creditNotes as $row) {
             $dateBs = $this->safeAdToBs($row->credit_note_date);
             $rows[] = [
@@ -165,62 +166,5 @@ class VatD3Controller extends Controller
         } catch (\Throwable) {
             return '';
         }
-    }
-
-    private function fetchSalesRows(int $companyId, string $startDate, string $endDate)
-    {
-        return DB::table('invoices')
-            ->leftJoin('parties', 'parties.id', '=', 'invoices.party_id')
-            ->leftJoin('invoice_items', 'invoice_items.invoice_id', '=', 'invoices.id')
-            ->leftJoin('taxes', 'taxes.id', '=', 'invoice_items.tax_id')
-            ->where('invoices.company_id', $companyId)
-            ->where('invoices.status', 'approved')
-            ->whereNull('invoices.voided_at')
-            ->whereNull('invoices.deleted_at')
-            ->whereNull('invoice_items.deleted_at')
-            ->whereBetween('invoices.invoice_date', [$startDate, $endDate])
-            ->groupBy(
-                'invoices.id', 'invoices.invoice_no', 'invoices.invoice_date',
-                'parties.pan', 'parties.name'
-            )
-            ->select([
-                'invoices.invoice_no',
-                'invoices.invoice_date',
-                'parties.pan as party_pan',
-                'parties.name as party_name',
-                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as taxable_amount"),
-                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'taxable' THEN invoice_items.tax_amount ELSE 0 END) as vat_amount"),
-                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'zero_rated' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as zero_rated_amount"),
-                DB::raw("SUM(CASE WHEN invoice_items.tax_line_type = 'exempt' THEN (invoice_items.quantity * invoice_items.rate) - invoice_items.discount_amount ELSE 0 END) as exempt_amount"),
-            ])
-            ->get();
-    }
-
-    private function fetchCreditNoteRows(int $companyId, string $startDate, string $endDate)
-    {
-        return DB::table('credit_notes')
-            ->leftJoin('parties', 'parties.id', '=', 'credit_notes.party_id')
-            ->leftJoin('credit_note_items', 'credit_note_items.credit_note_id', '=', 'credit_notes.id')
-            ->where('credit_notes.company_id', $companyId)
-            ->where('credit_notes.status', 'approved')
-            ->whereNull('credit_notes.voided_at')
-            ->whereNull('credit_notes.deleted_at')
-            ->whereNull('credit_note_items.deleted_at')
-            ->whereBetween('credit_notes.credit_note_date', [$startDate, $endDate])
-            ->groupBy(
-                'credit_notes.id', 'credit_notes.credit_note_no', 'credit_notes.credit_note_date',
-                'parties.pan', 'parties.name'
-            )
-            ->select([
-                'credit_notes.credit_note_no',
-                'credit_notes.credit_note_date',
-                'parties.pan as party_pan',
-                'parties.name as party_name',
-                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'taxable' THEN (credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount ELSE 0 END) as taxable_amount"),
-                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'taxable' THEN credit_note_items.tax_amount ELSE 0 END) as vat_amount"),
-                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'zero_rated' THEN (credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount ELSE 0 END) as zero_rated_amount"),
-                DB::raw("SUM(CASE WHEN credit_note_items.tax_line_type = 'exempt' THEN (credit_note_items.quantity * credit_note_items.rate) - credit_note_items.discount_amount ELSE 0 END) as exempt_amount"),
-            ])
-            ->get();
     }
 }

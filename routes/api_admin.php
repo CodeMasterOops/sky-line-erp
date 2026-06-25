@@ -133,13 +133,13 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
             });
 
             // VAT D3 Sales Register (Bikri Kitab)
-            Route::prefix('vat-d3')->as('vat-d3.')->controller(VatD3Controller::class)->group(function () {
+            Route::middleware('throttle:reports')->prefix('vat-d3')->as('vat-d3.')->controller(VatD3Controller::class)->group(function () {
                 Route::get('summary', 'summary')->name('summary');
                 Route::get('export-csv', 'exportCsv')->name('export-csv');
             });
 
             // VAT D4 Purchase Register (Kharid Kitab)
-            Route::prefix('vat-d4')->as('vat-d4.')->controller(VatD4Controller::class)->group(function () {
+            Route::middleware('throttle:reports')->prefix('vat-d4')->as('vat-d4.')->controller(VatD4Controller::class)->group(function () {
                 Route::get('export-csv', 'exportCsv')->name('export-csv');
             });
 

@@ -2,6 +2,7 @@
 
 namespace App\Services\Purchase;
 
+use App\Models\Journal;
 use App\Models\Payment;
 use App\Enums\StatusEnum;
 use App\Models\TdsDeduction;
@@ -23,6 +24,29 @@ readonly class PaymentService
         private NepaliDateService $nepaliDate,
         private JournalVoidService $journalVoid,
     ) {}
+
+    public function isPosted(Payment $payment): bool
+    {
+        return Journal::withoutGlobalScopes()
+            ->where('company_id', $payment->company_id)
+            ->where('reference_type', $payment->getMorphClass())
+            ->where('reference_id', $payment->id)
+            ->where('type', JournalTypeEnum::PAYMENT->value)
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Idempotently post a payment journal. No-ops when already posted.
+     */
+    public function repost(Payment $payment): void
+    {
+        if ($this->isPosted($payment)) {
+            return;
+        }
+
+        DB::transaction(fn () => $this->createJournal($payment));
+    }
 
     public function createPayment(array $formData): Payment
     {
@@ -151,6 +175,10 @@ readonly class PaymentService
 
     private function createJournal(Payment $payment): void
     {
+        if ($this->isPosted($payment)) {
+            return;
+        }
+
         $payment->loadMissing('party:id,name', 'account', 'tdsAccount:id,name')
             ->loadSum('allocations', 'amount');
 

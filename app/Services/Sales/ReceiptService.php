@@ -3,6 +3,7 @@
 namespace App\Services\Sales;
 
 use App\Models\Invoice;
+use App\Models\Journal;
 use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Models\TdsDeduction;
@@ -27,6 +28,29 @@ readonly class ReceiptService
         private JournalVoidService $journalVoid,
         private NepaliDateService $nepaliDate,
     ) {}
+
+    public function isPosted(Receipt $receipt): bool
+    {
+        return Journal::withoutGlobalScopes()
+            ->where('company_id', $receipt->company_id)
+            ->where('reference_type', $receipt->getMorphClass())
+            ->where('reference_id', $receipt->id)
+            ->where('type', JournalTypeEnum::RECEIPT->value)
+            ->whereNull('deleted_at')
+            ->exists();
+    }
+
+    /**
+     * Idempotently post a receipt journal. No-ops when already posted.
+     */
+    public function repost(Receipt $receipt): void
+    {
+        if ($this->isPosted($receipt)) {
+            return;
+        }
+
+        DB::transaction(fn () => $this->createJournal($receipt));
+    }
 
     public function createReceipt(array $formData): Receipt
     {

@@ -5,9 +5,13 @@ namespace App\Services\Accounting;
 use App\Models\Bill;
 use App\Models\Expense;
 use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\Receipt;
 use App\Models\DebitNote;
 use App\Models\CreditNote;
+use App\Services\Sales\ReceiptService;
 use Illuminate\Database\Eloquent\Model;
+use App\Services\Purchase\PaymentService;
 use App\Services\Purchase\PurchaseBillService;
 
 /**
@@ -27,6 +31,8 @@ class GlPostingRegistry
         private readonly DebitNoteGlPostingService $debitNote,
         private readonly PurchaseBillService $bill,
         private readonly ExpenseService $expense,
+        private readonly ReceiptService $receipt,
+        private readonly PaymentService $payment,
         private readonly JournalVoidService $voider,
     ) {}
 
@@ -41,6 +47,8 @@ class GlPostingRegistry
             $document instanceof DebitNote => $this->debitNote->isPosted($document),
             $document instanceof Bill => $this->bill->isPosted($document),
             $document instanceof Expense => $this->expense->isPosted($document),
+            $document instanceof Receipt => $this->receipt->isPosted($document),
+            $document instanceof Payment => $this->payment->isPosted($document),
             default => throw $this->unsupported($document),
         };
     }
@@ -56,6 +64,8 @@ class GlPostingRegistry
             $document instanceof DebitNote => $this->debitNote->postFromDebitNote($document),
             $document instanceof Bill => $this->bill->repost($document),
             $document instanceof Expense => $this->expense->repost($document),
+            $document instanceof Receipt => $this->receipt->repost($document),
+            $document instanceof Payment => $this->payment->repost($document),
             default => throw $this->unsupported($document),
         };
     }
@@ -84,7 +94,9 @@ class GlPostingRegistry
             || $document instanceof CreditNote
             || $document instanceof DebitNote
             || $document instanceof Bill
-            || $document instanceof Expense;
+            || $document instanceof Expense
+            || $document instanceof Receipt
+            || $document instanceof Payment;
     }
 
     private function unsupported(Model $document): \InvalidArgumentException
