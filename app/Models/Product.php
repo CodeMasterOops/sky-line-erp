@@ -34,6 +34,7 @@ class Product extends Model
         'unit_id',
         'brand_id',
         'tax_id',
+        'tax_group_id',
         'has_variants',
         'reorder_quantity',
         'min_stock_level',
@@ -161,6 +162,11 @@ class Product extends Model
     public function tax(): BelongsTo
     {
         return $this->belongsTo(Tax::class);
+    }
+
+    public function taxGroup(): BelongsTo
+    {
+        return $this->belongsTo(TaxGroup::class);
     }
 
     public function defaultVariant(): HasOne

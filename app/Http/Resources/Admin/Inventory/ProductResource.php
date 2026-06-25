@@ -32,6 +32,11 @@ class ProductResource extends JsonResource
                 $this->relationLoaded('tax') && $this->tax,
                 fn () => TaxResource::make($this->tax)
             ),
+            'tax_group_id' => $this->tax_group_id ?? '',
+            'tax_group' => $this->when(
+                $this->relationLoaded('taxGroup') && $this->taxGroup,
+                fn () => ['id' => $this->taxGroup->id, 'name' => $this->taxGroup->name]
+            ),
             'has_variants' => (bool) ($this->has_variants ?? false),
             'reorder_quantity' => $this->reorder_quantity ?? 0,
             'min_stock_level' => $this->min_stock_level ?? 0,

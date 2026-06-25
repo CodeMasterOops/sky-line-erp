@@ -27,7 +27,7 @@ class ProductController extends Controller
         $limit = min((int) $request->get('limit', 500), 1000);
         $search = trim((string) $request->get('search', ''));
 
-        $query = ProductVariant::with(['product:id,name,unit_id,product_type,item_role', 'variantOptions']);
+        $query = ProductVariant::with(['product:id,name,unit_id,product_type,item_role,tax_id,tax_group_id', 'variantOptions']);
 
         if ($search !== '') {
             $like = '%'.$search.'%';
@@ -55,7 +55,7 @@ class ProductController extends Controller
 
         $query = ProductVariant::query()
             ->with([
-                'product:id,name,code,unit_id,product_type,item_role,is_saleable,is_purchasable',
+                'product:id,name,code,unit_id,product_type,item_role,is_saleable,is_purchasable,tax_id,tax_group_id',
                 'variantOptions.attribute',
             ]);
 
@@ -203,7 +203,7 @@ class ProductController extends Controller
             return $product;
         });
 
-        $product->load('tax');
+        $product->load(['tax', 'taxGroup']);
 
         return response()->json([
             'data' => ProductResource::make($product),
@@ -219,6 +219,7 @@ class ProductController extends Controller
             'brand',
             'unit',
             'tax',
+            'taxGroup',
             'variants.variantOptions.attribute',
             'variants.stocks.warehouse',
         ]);
@@ -285,6 +286,7 @@ class ProductController extends Controller
 
         $product->load([
             'tax',
+            'taxGroup',
             'variants.variantOptions.attribute',
             'variants.stocks.warehouse',
         ]);
@@ -374,6 +376,7 @@ class ProductController extends Controller
             'unit_id',
             'brand_id',
             'tax_id',
+            'tax_group_id',
             'has_variants',
             'reorder_quantity',
             'min_stock_level',

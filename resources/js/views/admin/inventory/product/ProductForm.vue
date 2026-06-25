@@ -146,11 +146,13 @@
                                     :error="errors.hsn_code" />
                             </div>
                             <div class="col">
-                                <VSelect id="tax_id" v-model="form.tax_id" label="VAT"
-                                    placeholder="default VAT"
-                                    :options="taxes.data"
-                                    @validate="validateField('tax_id')"
-                                    :error="errors.tax_id" />
+                                <VSelect id="default_tax"
+                                    :model-value="taxSelectValue"
+                                    @update:model-value="onTaxChange"
+                                    label="Default Tax"
+                                    placeholder="No tax"
+                                    :options="taxOptions"
+                                    :error="errors.tax_id || errors.tax_group_id" />
                             </div>
 
                             <div class="col">
@@ -581,6 +583,7 @@ import { storeToRefs } from 'pinia';
 import { useAttributeStore } from '@/stores/admin/inventory/attribute.js';
 import { useSettingStore } from '@/stores/admin/settings/setting.js';
 import { useTaxStore } from '@/stores/admin/settings/tax.js';
+import { useLineItemTaxOptions, parseTaxSelection, taxSelectionValue } from '@/composables/useLineItemTaxOptions.js';
 import { useNextCode } from '@/helpers/useNextCode.js';
 import CreateUnit from '@/views/admin/inventory/unit/Create.vue';
 import CreateBrand from '@/views/admin/inventory/brand/Create.vue';
@@ -620,7 +623,17 @@ const { brands } = storeToRefs(brandStore);
 const { attributes } = storeToRefs(attributeStore);
 const { product } = storeToRefs(productStore);
 const { setting } = storeToRefs(settingStore);
-const { taxes } = storeToRefs(taxStore);
+const { taxes, taxGroupsList } = storeToRefs(taxStore);
+
+const taxOptions = useLineItemTaxOptions(taxes, taxGroupsList);
+
+const taxSelectValue = computed(() => taxSelectionValue({ tax_id: form.tax_id, tax_group_id: form.tax_group_id }));
+
+function onTaxChange(value) {
+    const { tax_id, tax_group_id } = parseTaxSelection(value);
+    form.tax_id = tax_id ? String(tax_id) : '';
+    form.tax_group_id = tax_group_id ?? null;
+}
 
 const inventoryCostingMethodName = computed(() => {
     const raw = setting.value?.data?.inventory_costing_method;
@@ -665,6 +678,7 @@ const initialState = {
     unit_id: '',
     brand_id: '',
     tax_id: '',
+    tax_group_id: null,
     reorder_quantity: '',
     min_stock_level: '',
     hsn_code: '',
@@ -748,6 +762,7 @@ async function hydrateFromProduct(data) {
             unit_id: data.unit_id ?? '',
             brand_id: data.brand_id ?? '',
             tax_id: data.tax_id != null && data.tax_id !== '' ? String(data.tax_id) : '',
+            tax_group_id: data.tax_group_id ?? null,
             reorder_quantity: data.reorder_quantity != null ? String(data.reorder_quantity) : '',
             min_stock_level: data.min_stock_level != null ? String(data.min_stock_level) : '',
             hsn_code: data.hsn_code ?? '',
@@ -1238,6 +1253,7 @@ onMounted(async () => {
     attributeStore.getAttributes();
     await settingStore.getSetting();
     await taxStore.getTaxes({ filter: { for: 'line_item' } });
+    taxStore.getTaxGroupsList();
     if (isEdit.value && props.productId) {
         ready.value = false;
         await productStore.getProduct(props.productId);

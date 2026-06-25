@@ -108,7 +108,14 @@ class ProductRequest extends FormRequest
                     if (! Tax::query()->whereKey($value)->lineItem()->exists()) {
                         $fail(__('The selected tax must be a VAT rate.'));
                     }
+                    if ($this->filled('tax_group_id')) {
+                        $fail(__('A product cannot have both a tax and a tax group.'));
+                    }
                 },
+            ],
+            'tax_group_id' => [
+                'nullable',
+                TRule::exists('tax_groups', 'id')->withoutTrashed(),
             ],
             'reorder_quantity' => ['nullable', 'integer'],
             'description' => ['nullable'],

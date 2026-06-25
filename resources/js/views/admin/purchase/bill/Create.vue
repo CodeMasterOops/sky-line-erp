@@ -759,7 +759,7 @@ const onVariantSelected = (variant) => {
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
-        tax_id: '',
+        tax_id: variant.tax_id ? String(variant.tax_id) : '',
         tax_line_type: 'taxable',
         line_discount_type: 'fixed',
         line_discount_value: '0',
