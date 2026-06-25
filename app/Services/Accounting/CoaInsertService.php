@@ -13,7 +13,11 @@ class CoaInsertService
 
     public function saveCoaData(): void
     {
-        if (AccountGroup::where('company_id', $this->company->id)->count() > 0) {
+        $rootGroupCount = count(config('coa', []));
+
+        // Check root groups only so a single manually-created group doesn't block
+        // the full COA import for an otherwise empty company.
+        if ($rootGroupCount > 0 && AccountGroup::where('company_id', $this->company->id)->whereNull('parent_id')->count() >= $rootGroupCount) {
             return;
         }
 

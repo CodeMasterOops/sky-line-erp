@@ -2,17 +2,17 @@
 
 namespace App\Services;
 
-use Database\Seeders\TaxSeeder;
-use Database\Seeders\CompanyCatalogSeeder;
-use App\Services\Accounting\CoaInsertService;
+use App\Models\Company;
+use App\Provisioning\CompanyProvisioningPipeline;
 
+/**
+ * Thin wrapper kept for backward compatibility with existing callers
+ * (controllers, seeders). New code should use CompanyProvisioningPipeline directly.
+ */
 class SetCompanyDefaultDataService
 {
-    public static function setData($company): void
+    public static function setData(Company $company): void
     {
-        (new CoaInsertService($company))->saveCoaData();
-        CompanyBootstrapService::runForCompany($company->id);
-        TaxSeeder::seedForCompany($company->id);
-        CompanyCatalogSeeder::seedForCompany($company->id);
+        CompanyProvisioningPipeline::make()->run($company);
     }
 }
