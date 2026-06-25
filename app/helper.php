@@ -31,10 +31,27 @@ if (! function_exists('allTables')) {
         // Schema::getTableListing() works on MySQL, PostgreSQL, and SQLite alike.
         // SQLite in Laravel 12 returns schema-qualified names like 'main.users';
         // Schema::getColumnListing() requires the plain name, so strip the prefix.
+        //
+        // On MySQL shared servers, Schema::getTableListing() may return schema-
+        // qualified names for ALL databases the user can see ('dbname.tablename').
+        // We filter to only the current database and store plain table names so
+        // columnExists() works regardless of how many databases the server hosts.
+        $connection = config('database.default');
+        $currentDb = config("database.connections.{$connection}.database");
+
         $list = [];
         foreach (Schema::getTableListing() as $table) {
             $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
-            $list[$table] = Schema::getColumnListing($plainName);
+
+            if ($currentDb && str_contains($plainName, '.')) {
+                [$schema, $name] = explode('.', $plainName, 2);
+                if ($schema !== $currentDb) {
+                    continue;
+                }
+                $plainName = $name;
+            }
+
+            $list[$plainName] = Schema::getColumnListing($plainName);
         }
 
         if (! empty($list)) {
@@ -48,13 +65,26 @@ if (! function_exists('allTables')) {
 if (! function_exists('tableColumns')) {
     function tableColumns($table)
     {
-        // Tolerate the SQLite schema-qualified key (`main.<table>`) returned by
-        // Schema::getTableListing() in Laravel 12. Without this, columnExists()
-        // returns false in SQLite tests for every table, so the MultiTenant /
-        // BranchTenant global scopes never register in the test harness.
         $all = allTables();
 
-        return $all[$table] ?? $all['main.'.$table] ?? [];
+        if (isset($all[$table])) {
+            return $all[$table];
+        }
+
+        // SQLite in Laravel 12: 'main.tablename' — tolerate old cache format.
+        if (isset($all['main.'.$table])) {
+            return $all['main.'.$table];
+        }
+
+        // MySQL on shared servers may have cached schema-qualified keys
+        // ('dbname.tablename') before this fix was applied. Tolerate old cache.
+        $connection = config('database.default');
+        $currentDb = config("database.connections.{$connection}.database");
+        if ($currentDb && isset($all[$currentDb.'.'.$table])) {
+            return $all[$currentDb.'.'.$table];
+        }
+
+        return [];
     }
 }
 
