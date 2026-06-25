@@ -2,7 +2,6 @@
 
 use Carbon\Carbon;
 use App\NepaliDateConverter;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -28,29 +27,14 @@ if (! function_exists('allTables')) {
             return $cached;
         }
 
-        if (Schema::getConnection()->getDriverName() === 'sqlite') {
-            $list = [];
-            foreach (Schema::getTableListing() as $table) {
-                // SQLite in Laravel 12 returns schema-qualified names like
-                // 'main.users'. Schema::getColumnListing() requires the plain
-                // name — the qualified form returns an empty array.
-                $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
-                $list[$table] = Schema::getColumnListing($plainName);
-            }
-
-            if (! empty($list)) {
-                Cache::forever(allTablesCacheKey(), $list);
-            }
-
-            return $list;
-        }
-
-        $tables = DB::select('SHOW TABLES');
+        // Use the Laravel cross-DB API instead of MySQL-specific 'SHOW TABLES'.
+        // Schema::getTableListing() works on MySQL, PostgreSQL, and SQLite alike.
+        // SQLite in Laravel 12 returns schema-qualified names like 'main.users';
+        // Schema::getColumnListing() requires the plain name, so strip the prefix.
         $list = [];
-        foreach ($tables as $table) {
-            foreach ($table as $key => $value) {
-                $list[$value] = Schema::getColumnListing($value);
-            }
+        foreach (Schema::getTableListing() as $table) {
+            $plainName = str_starts_with($table, 'main.') ? substr($table, 5) : $table;
+            $list[$table] = Schema::getColumnListing($plainName);
         }
 
         if (! empty($list)) {

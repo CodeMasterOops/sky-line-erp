@@ -109,6 +109,7 @@ use App\Models\DamageReportItem;
 use App\Models\ImportValueAlias;
 use App\Models\LeaveApplication;
 use App\Models\RecurringJournal;
+use App\Models\SecurityActivity;
 use App\Models\StockReservation;
 use App\Models\BankStatementLine;
 use App\Models\GoodsReceivedNote;
@@ -314,6 +315,7 @@ return [
         ProductCategory::class,
         Role::class,
         SalaryComponent::class,
+        SecurityActivity::class,
         SalaryStructure::class,
         Subscription::class,
         Tag::class,

@@ -198,8 +198,11 @@ class PosController extends Controller
     public function warehouses()
     {
         $companyId = auth('admin')->user()->company_id;
+        // Warehouses are branch-scoped; include branch_id in the cache key so
+        // users in Branch A cannot receive Branch B's cached warehouse list.
+        $branchId = TenantService::branchId() ?? 'all';
 
-        $warehouses = Cache::remember("pos_warehouses_{$companyId}", 300, function () {
+        $warehouses = Cache::remember("pos_warehouses_{$companyId}_{$branchId}", 300, function () {
             return Warehouse::select('id', 'name', 'code')->get()->toArray();
         });
 

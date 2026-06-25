@@ -3,17 +3,23 @@
 use App\Models\Bill;
 use App\Models\User;
 use App\Models\Party;
+use App\Models\Account;
 use App\Models\Company;
 use App\Models\Expense;
 use App\Models\Invoice;
+use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Receipt;
 use App\Enums\StatusEnum;
 use App\Models\DebitNote;
+use App\Models\Quotation;
 use App\Models\CreditNote;
 use App\Models\FiscalYear;
+use App\Models\SalesOrder;
 use App\Enums\UserTypeEnum;
 use App\Models\InvoiceItem;
 use App\Enums\PartyTypeEnum;
+use App\Models\PurchaseOrder;
 use App\Models\ProductVariant;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\Cache;
@@ -75,6 +81,12 @@ beforeEach(function () {
     $this->variant = ProductVariant::create([
         'company_id' => $this->company->id, 'product_id' => $product->id,
         'sku' => 'SKU-UQ', 'sales_price' => 100, 'is_default' => true,
+    ]);
+
+    $this->cashAccount = Account::create([
+        'company_id' => $this->company->id,
+        'name' => 'Cash',
+        'code' => 'CASH-UQ',
     ]);
 
     TenantService::setCompanyId($this->company->id);
@@ -215,6 +227,124 @@ it('rejects duplicate expense numbers within (company, fiscal year)', function (
         'party_id' => $this->supplier->id,
         'expense_no' => 'EXP-UQ-1',
         'date' => '2026-03-11',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]))->toThrow(QueryException::class);
+});
+
+it('rejects duplicate payment numbers within (company, fiscal year)', function () {
+    Payment::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'account_id' => $this->cashAccount->id,
+        'payment_no' => 'PAY-UQ-1',
+        'payment_date' => '2026-03-10',
+        'amount' => 1000,
+        'payment_method' => 'cash',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    expect(fn () => Payment::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'account_id' => $this->cashAccount->id,
+        'payment_no' => 'PAY-UQ-1',
+        'payment_date' => '2026-03-11',
+        'amount' => 500,
+        'payment_method' => 'cash',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]))->toThrow(QueryException::class);
+});
+
+it('rejects duplicate receipt numbers within (company, fiscal year)', function () {
+    Receipt::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'account_id' => $this->cashAccount->id,
+        'receipt_no' => 'RC-UQ-1',
+        'receipt_date' => '2026-03-10',
+        'payment_method' => 'cash',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    expect(fn () => Receipt::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'account_id' => $this->cashAccount->id,
+        'receipt_no' => 'RC-UQ-1',
+        'receipt_date' => '2026-03-11',
+        'payment_method' => 'cash',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]))->toThrow(QueryException::class);
+});
+
+it('rejects duplicate sales order numbers within (company, fiscal year)', function () {
+    SalesOrder::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->customer->id,
+        'order_no' => 'SO-UQ-1',
+        'order_date' => '2026-03-10',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    expect(fn () => SalesOrder::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->customer->id,
+        'order_no' => 'SO-UQ-1',
+        'order_date' => '2026-03-11',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]))->toThrow(QueryException::class);
+});
+
+it('rejects duplicate purchase order numbers within (company, fiscal year)', function () {
+    PurchaseOrder::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'order_no' => 'PO-UQ-1',
+        'order_date' => '2026-03-10',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    expect(fn () => PurchaseOrder::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->supplier->id,
+        'order_no' => 'PO-UQ-1',
+        'order_date' => '2026-03-11',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]))->toThrow(QueryException::class);
+});
+
+it('rejects duplicate quotation numbers within (company, fiscal year)', function () {
+    Quotation::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->customer->id,
+        'quotation_no' => 'QT-UQ-1',
+        'quotation_date' => '2026-03-10',
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::DRAFT,
+    ]);
+
+    expect(fn () => Quotation::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $this->customer->id,
+        'quotation_no' => 'QT-UQ-1',
+        'quotation_date' => '2026-03-11',
         'create_user_id' => $this->user->id,
         'status' => StatusEnum::DRAFT,
     ]))->toThrow(QueryException::class);
