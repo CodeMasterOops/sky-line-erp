@@ -47,9 +47,8 @@
       >
         <a
           href="javascript:void(0);"
-          data-bs-toggle="modal"
-          :data-bs-target="posStore.tillSession ? '#cash-register' : '#till-open'"
           :class="posStore.tillSession ? 'pos-till-open' : 'pos-till-closed'"
+          @click="posStore.openModal(posStore.tillSession ? 'cashRegister' : 'tillOpen')"
         >
           <i :class="posStore.tillSession ? 'ti ti-lock-open' : 'ti ti-lock'"></i>
           <span v-if="!posStore.tillSession" class="pos-till-pulse"></span>
@@ -60,9 +59,8 @@
       <li class="nav-item nav-item-box">
         <a
           href="javascript:void(0);"
-          data-bs-toggle="modal"
-          data-bs-target="#calculator"
           class="bg-orange border-orange text-white"
+          @click="posStore.openModal('calculator')"
         ><i class="ti ti-calculator"></i></a>
       </li>
 
@@ -85,7 +83,7 @@
         data-bs-placement="top"
         data-bs-title="Cash Register"
       >
-        <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#cash-register">
+        <a href="javascript:void(0);" @click="posStore.openModal('cashRegister')">
           <i class="ti ti-cash"></i>
         </a>
       </li>
@@ -99,9 +97,7 @@
       >
         <a
           href="javascript:void(0);"
-          @click="printLastReceipt"
-          data-bs-toggle="modal"
-          data-bs-target="#print-receipt"
+          @click="onPrintLastReceipt"
         ><i class="ti ti-printer"></i></a>
       </li>
 
@@ -112,7 +108,7 @@
         data-bs-placement="top"
         data-bs-title="Today's Sale"
       >
-        <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#today-sale">
+        <a href="javascript:void(0);" @click="posStore.openModal('todaySale')">
           <i class="ti ti-progress"></i>
         </a>
       </li>
@@ -124,7 +120,7 @@
         data-bs-placement="top"
         data-bs-title="Today's Profit"
       >
-        <a href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#today-profit">
+        <a href="javascript:void(0);" @click="posStore.openModal('todayProfit')">
           <i class="ti ti-chart-infographic"></i>
         </a>
       </li>
@@ -245,10 +241,12 @@ export default {
       this.currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     },
 
-    printLastReceipt() {
+    onPrintLastReceipt() {
       if (!this.posStore.lastSale) {
         useToast().warning('No recent sale to print');
+        return;
       }
+      this.posStore.openModal('printReceipt');
     },
 
     initFullScreen() {

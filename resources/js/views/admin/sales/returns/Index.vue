@@ -4,8 +4,6 @@
       <a
         href="javascript:void(0);"
         class="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#add-sales-new"
         ><i class="ti ti-circle-plus me-2"></i>Add Sales
         Return</a
       >
@@ -183,16 +181,12 @@
                   <a
                     class="me-2 p-2"
                     href="#"
-                    data-bs-toggle="modal"
-                    data-bs-target="#edit-sales-new"
                   >
                     <i class="ti ti-edit"></i>
                   </a>
                   <a
                     class="p-2"
                     href="javascript:void(0);"
-                    data-bs-toggle="modal"
-                    data-bs-target="#delete"
                   >
                     <i class="ti ti-trash"></i>
                   </a>
@@ -206,7 +200,6 @@
   </div>
   <!-- /product list -->
 
-  <sales-returns-modal></sales-returns-modal>
 </template>
 
 <script setup>

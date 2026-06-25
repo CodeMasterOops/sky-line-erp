@@ -1,7 +1,7 @@
 <template>
     <PageHeader hide-action-buttons title="Purchase List" subtitle="Manage your purchases">
         <template #actions>
-            <a href="#" class="btn btn-primary d-inline-flex align-items-center me-2" data-bs-toggle="modal" data-bs-target="#add-units">
+            <a href="#" class="btn btn-primary d-inline-flex align-items-center me-2">
                 <i class="ti ti-circle-plus me-2"></i>Add Product
             </a>
         </template>
@@ -78,10 +78,10 @@
                                     <a class="me-2 p-2" href="javascript:void(0);">
                                         <i class="ti ti-eye"></i>
                                     </a>
-                                    <a class="me-2 p-2" href="#" data-bs-toggle="modal" data-bs-target="#edit-units">
+                                    <a class="me-2 p-2" href="#">
                                         <i class="ti ti-edit"></i>
                                     </a>
-                                    <a class="p-2" href="javascript:void(0);" data-bs-toggle="modal" data-bs-target="#delete-modal">
+                                    <a class="p-2" href="javascript:void(0);">
                                         <i class="ti ti-trash"></i>
                                     </a>
                                 </div>
@@ -93,7 +93,6 @@
         </div>
     </div>
 
-    <purchase-list-modal></purchase-list-modal>
 </template>
 
 <script setup>

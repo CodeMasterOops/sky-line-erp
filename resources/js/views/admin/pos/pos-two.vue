@@ -12,16 +12,18 @@
             <!-- Top action bar -->
             <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
               <a class="btn btn-teal btn-sm"
-                 data-bs-toggle="modal" data-bs-target="#orders"
-                 @click="posStore.fetchHeldOrders()">
+                 href="javascript:void(0);"
+                 @click="posStore.fetchHeldOrders(); posStore.openModal('orders')">
                 <i class="ti ti-shopping-cart me-1"></i>Held Orders
                 <span v-if="posStore.heldOrders.length" class="badge bg-white text-teal ms-1">{{ posStore.heldOrders.length }}</span>
               </a>
-              <a class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#recents">
+              <a class="btn btn-info btn-sm" href="javascript:void(0);" @click="posStore.openModal('recents')"
                 <i class="ti ti-refresh-dot me-1"></i>Transactions
               </a>
-              <a class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reset"
-                 :class="{ disabled: !posStore.cart.length }">
+              <a class="btn btn-secondary btn-sm"
+                 href="javascript:void(0);"
+                 :class="{ disabled: !posStore.cart.length }"
+                 @click="posStore.cart.length && posStore.openModal('reset')"
                 <i class="ti ti-reload me-1"></i>Reset
               </a>
               <div v-if="posStore.cartWarehouseSummary.length" class="ms-auto d-flex flex-wrap gap-1 justify-content-end">
@@ -287,8 +289,9 @@
                   />
                 </div>
                 <a class="btn btn-primary btn-icon flex-shrink-0"
-                   data-bs-toggle="modal" data-bs-target="#create"
-                   title="Add Customer">
+                   href="javascript:void(0);"
+                   title="Add Customer"
+                   @click="posStore.openModal('createCustomer')">
                   <vue-feather type="user-plus" class="feather-16"></vue-feather>
                 </a>
               </div>
@@ -450,20 +453,18 @@
                 <button
                   type="button"
                   class="btn btn-warning flex-fill"
-                  data-bs-toggle="modal"
-                  data-bs-target="#credit-sale"
                   :disabled="!posStore.canCheckout || posStore.checkoutLoading"
                   title="Sell on credit (Udhaaro)"
+                  @click="posStore.openModal('creditSale')"
                 >
                   <i class="ti ti-clock-dollar me-1"></i>Credit
                 </button>
                 <button
                   type="button"
                   class="btn btn-info flex-fill"
-                  data-bs-toggle="modal"
-                  data-bs-target="#split-payment"
                   :disabled="!posStore.canCheckout || posStore.checkoutLoading"
                   title="Split across multiple payment methods"
+                  @click="posStore.openModal('splitPayment')"
                 >
                   <i class="ti ti-arrows-split me-1"></i>Split
                 </button>
@@ -482,9 +483,8 @@
                 <button
                   type="button"
                   class="btn btn-purple flex-fill"
-                  data-bs-toggle="modal"
-                  data-bs-target="#hold-order"
                   :disabled="!posStore.canCheckout"
+                  @click="posStore.openModal('holdOrder')"
                 >
                   <i class="ti ti-player-pause me-1"></i>Hold
                 </button>
@@ -592,8 +592,6 @@
 </template>
 
 <script>
-import { Modal } from 'bootstrap';
-import { cleanupModalArtifacts } from '@/helpers/cleanupModalArtifacts.js';
 import {formatMoney} from '@/helpers/formatMoney.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
@@ -674,17 +672,13 @@ export default {
     // Prompt cashier to open till if no active session
     if (!this.posStore.tillSession) {
       await this.$nextTick();
-      const tillOpenEl = document.getElementById('till-open');
-      if (tillOpenEl) {
-        Modal.getOrCreateInstance(tillOpenEl).show();
-      }
+      this.posStore.openModal('tillOpen');
     }
     document.addEventListener('keydown', this.onGlobalKeydown);
   },
 
   beforeUnmount() {
     document.removeEventListener('keydown', this.onGlobalKeydown);
-    cleanupModalArtifacts();
   },
 
   methods: {
@@ -711,7 +705,7 @@ export default {
       if (e.key === 'F8') {
         e.preventDefault();
         if (this.posStore.canCheckout) {
-          Modal.getOrCreateInstance(document.getElementById('hold-order')).show();
+          this.posStore.openModal('holdOrder');
         }
         return;
       }
@@ -910,18 +904,15 @@ export default {
       }
 
       const name = (this.selectedPaymentMethod || 'cash').toLowerCase();
-      let targetId = '#payment-cash';
+      let modalName = 'paymentCash';
       if (name.includes('card') || name.includes('debit') || name.includes('credit')) {
-        targetId = '#payment-card';
+        modalName = 'paymentCard';
       } else if (name.includes('scan') || name.includes('qr')) {
-        targetId = '#scan-payment';
+        modalName = 'scanPayment';
       } else if (!name.includes('cash')) {
-        targetId = '#payment-generic';
+        modalName = 'paymentGeneric';
       }
-      const el = document.querySelector(targetId);
-      if (el) {
-        Modal.getOrCreateInstance(el).show();
-      }
+      this.posStore.openModal(modalName);
     },
 
     async processCheckout(paymentMethod, splitPayments = null, paymentModeId = null) {
@@ -935,10 +926,7 @@ export default {
           paymentModeId ?? this.selectedPaymentModeId,
         );
         useToast().success('Sale completed successfully!');
-        const el = document.getElementById('payment-completed');
-        if (el) {
-          Modal.getOrCreateInstance(el).show();
-        }
+        this.posStore.openModal('paymentCompleted');
         this.posStore.clearCart();
         this.selectedCustomerOption = null;
         this.$refs.productSearch?.focus();

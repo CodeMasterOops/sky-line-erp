@@ -34,8 +34,6 @@
           <a
             href="#"
             class="btn btn-primary btn-md d-inline-flex align-items-center"
-            data-bs-toggle="modal"
-            data-bs-target="#add-sales-new"
             ><vue-feather type="plus-circle" class="me-2"></vue-feather> Add Sales</a
           >
         </div>
@@ -219,8 +217,6 @@
                         <a
                           href="javascript:void(0);"
                           class="dropdown-item"
-                          data-bs-toggle="modal"
-                          data-bs-target="#sales-details-new"
                           ><i data-feather="eye" class="info-img"></i>Sale Detail</a
                         >
                       </li>
@@ -228,8 +224,6 @@
                         <a
                           href="javascript:void(0);"
                           class="dropdown-item"
-                          data-bs-toggle="modal"
-                          data-bs-target="#edit-sales-new"
                           ><i data-feather="edit" class="info-img"></i>Edit Sale</a
                         >
                       </li>
@@ -237,8 +231,6 @@
                         <a
                           href="javascript:void(0);"
                           class="dropdown-item"
-                          data-bs-toggle="modal"
-                          data-bs-target="#showpayment"
                           ><i data-feather="dollar-sign" class="info-img"></i>Show
                           Payments</a
                         >
@@ -247,8 +239,6 @@
                         <a
                           href="javascript:void(0);"
                           class="dropdown-item"
-                          data-bs-toggle="modal"
-                          data-bs-target="#createpayment"
                           ><i class="ti ti-circle-plus me-1"></i>Create
                           Payment</a
                         >
@@ -262,8 +252,6 @@
                         <a
                           href="javascript:void(0);"
                           class="dropdown-item mb-0"
-                          data-bs-toggle="modal"
-                          data-bs-target="#delete"
                           ><i data-feather="trash-2" class="info-img"></i>Delete Sale</a
                         >
                       </li>
@@ -287,7 +275,6 @@
       </p>
     </div>
   </div>
-  <online-orders-modal></online-orders-modal>
 </template>
 <script>
 const columns = [

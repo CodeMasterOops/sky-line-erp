@@ -2,896 +2,859 @@
   <!-- ═══════════════════════════════════════════════════════════════
        PAYMENT — CASH
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="payment-cash" aria-labelledby="payment-cash">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Cash Payment</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="bg-light br-10 p-4 text-center mb-3">
-            <p class="mb-1 text-muted">Amount Due</p>
-            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Amount Tendered <span class="text-danger">*</span></label>
-            <div class="input-icon-start position-relative">
-              <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
-              <input
-                type="number"
-                class="form-control"
-                v-model.number="cashTendered"
-                min="0"
-                step="0.01"
-                :placeholder="grandTotal.toFixed(2)"
-              />
-            </div>
-          </div>
-          <div v-if="cashTendered > 0" class="alert alert-success">
-            <strong>Change:</strong> {{ formatMoney(Math.max(cashTendered - grandTotal, 0)) }}
-          </div>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button
-            type="button"
-            class="btn btn-md btn-success"
-            :disabled="cashTendered < grandTotal || checkoutLoading"
-            @click="doCheckout()"
-          >
-            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
-            {{ checkoutLoading ? 'Processing...' : 'Confirm Payment' }}
-          </button>
+  <VModal
+    :show-modal="posStore.modals.paymentCash"
+    size="md"
+    title="Cash Payment"
+    @close-click="posStore.closeModal('paymentCash')"
+  >
+    <template #modal-body>
+      <div class="bg-light br-10 p-4 text-center mb-3">
+        <p class="mb-1 text-muted">Amount Due</p>
+        <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Amount Tendered <span class="text-danger">*</span></label>
+        <div class="input-icon-start position-relative">
+          <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
+          <input
+            type="number"
+            class="form-control"
+            v-model.number="cashTendered"
+            min="0"
+            step="0.01"
+            :placeholder="grandTotal.toFixed(2)"
+          />
         </div>
       </div>
-    </div>
-  </div>
+      <div v-if="cashTendered > 0" class="alert alert-success">
+        <strong>Change:</strong> {{ formatMoney(Math.max(cashTendered - grandTotal, 0)) }}
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('paymentCash')">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-md btn-success"
+          :disabled="cashTendered < grandTotal || checkoutLoading"
+          @click="doCheckout()"
+        >
+          <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+          {{ checkoutLoading ? 'Processing...' : 'Confirm Payment' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        PAYMENT — GENERIC (dynamic payment modes)
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="payment-generic" aria-labelledby="payment-generic">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ paymentMethod }} Payment</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="bg-light br-10 p-4 text-center mb-3">
-            <p class="mb-1 text-muted">Amount Due</p>
-            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
-          </div>
-          <p class="text-muted text-center mb-0">Confirm payment via {{ paymentMethod }}.</p>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-primary" :disabled="checkoutLoading" @click="doCheckout()">
-            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
-            {{ checkoutLoading ? 'Processing...' : 'Confirm Payment' }}
-          </button>
-        </div>
+  <VModal
+    :show-modal="posStore.modals.paymentGeneric"
+    size="md"
+    :title="`${paymentMethod} Payment`"
+    @close-click="posStore.closeModal('paymentGeneric')"
+  >
+    <template #modal-body>
+      <div class="bg-light br-10 p-4 text-center mb-3">
+        <p class="mb-1 text-muted">Amount Due</p>
+        <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
       </div>
-    </div>
-  </div>
+      <p class="text-muted text-center mb-0">Confirm payment via {{ paymentMethod }}.</p>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('paymentGeneric')">Cancel</button>
+        <button type="button" class="btn btn-md btn-primary" :disabled="checkoutLoading" @click="doCheckout()">
+          <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+          {{ checkoutLoading ? 'Processing...' : 'Confirm Payment' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        PAYMENT — CARD
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="payment-card" aria-labelledby="payment-card">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Card Payment</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="bg-light br-10 p-4 text-center mb-3">
-            <p class="mb-1 text-muted">Amount to Charge</p>
-            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
-          </div>
-          <p class="text-muted text-center">Present card to the terminal to complete payment.</p>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-primary" :disabled="checkoutLoading" @click="doCheckout()">
-            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="ti ti-credit-card me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Charge Card' }}
-          </button>
-        </div>
+  <VModal
+    :show-modal="posStore.modals.paymentCard"
+    size="md"
+    title="Card Payment"
+    @close-click="posStore.closeModal('paymentCard')"
+  >
+    <template #modal-body>
+      <div class="bg-light br-10 p-4 text-center mb-3">
+        <p class="mb-1 text-muted">Amount to Charge</p>
+        <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
       </div>
-    </div>
-  </div>
+      <p class="text-muted text-center">Present card to the terminal to complete payment.</p>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('paymentCard')">Cancel</button>
+        <button type="button" class="btn btn-md btn-primary" :disabled="checkoutLoading" @click="doCheckout()">
+          <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="ti ti-credit-card me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Charge Card' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        PAYMENT — SCAN / QR
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="scan-payment" aria-labelledby="scan-payment">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">QR / Scan Payment</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body text-center">
-          <div class="bg-light br-10 p-4 mb-3">
-            <p class="mb-1 text-muted">Amount</p>
-            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
-          </div>
-          <i class="ti ti-qrcode fs-64 text-muted"></i>
-          <p class="text-muted mt-2">Ask customer to scan the QR code to complete payment.</p>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-info" :disabled="checkoutLoading" @click="doCheckout()">
-            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="ti ti-scan me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Scan' }}
-          </button>
-        </div>
+  <VModal
+    :show-modal="posStore.modals.scanPayment"
+    size="md"
+    title="QR / Scan Payment"
+    @close-click="posStore.closeModal('scanPayment')"
+  >
+    <template #modal-body>
+      <div class="bg-light br-10 p-4 mb-3 text-center">
+        <p class="mb-1 text-muted">Amount</p>
+        <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
       </div>
-    </div>
-  </div>
+      <div class="text-center">
+        <i class="ti ti-qrcode fs-64 text-muted"></i>
+        <p class="text-muted mt-2">Ask customer to scan the QR code to complete payment.</p>
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('scanPayment')">Cancel</button>
+        <button type="button" class="btn btn-md btn-info" :disabled="checkoutLoading" @click="doCheckout()">
+          <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="ti ti-scan me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Scan' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        CREDIT SALE (UDHAARO)
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="credit-sale" aria-labelledby="credit-sale">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="ti ti-clock-dollar me-2 text-warning"></i>Credit Sale (Udhaaro)</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="bg-light br-10 p-4 text-center mb-3">
-            <p class="mb-1 text-muted">Amount Due on Credit</p>
-            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
-          </div>
-          <div v-if="selectedCustomer" class="alert alert-info py-2">
-            <i class="ti ti-user me-1"></i>
-            Credit to: <strong>{{ selectedCustomer.name }}</strong>
-          </div>
-          <div v-else class="alert alert-warning py-2">
-            <i class="ti ti-alert-triangle me-1"></i>
-            No customer selected — credit will be posted to the walk-in account.
-          </div>
-          <p class="text-muted small mb-0">No receipt will be issued. The outstanding balance will appear in the customer's account.</p>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-md btn-warning" :disabled="checkoutLoading" @click="doCheckout('credit')">
-            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="ti ti-clock-dollar me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Credit Sale' }}
-          </button>
-        </div>
+  <VModal
+    :show-modal="posStore.modals.creditSale"
+    size="md"
+    @close-click="posStore.closeModal('creditSale')"
+  >
+    <template #header>
+      <div class="page-title">
+        <h4><i class="ti ti-clock-dollar me-2 text-warning"></i>Credit Sale (Udhaaro)</h4>
       </div>
-    </div>
-  </div>
+    </template>
+    <template #modal-body>
+      <div class="bg-light br-10 p-4 text-center mb-3">
+        <p class="mb-1 text-muted">Amount Due on Credit</p>
+        <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
+      </div>
+      <div v-if="selectedCustomer" class="alert alert-info py-2">
+        <i class="ti ti-user me-1"></i>
+        Credit to: <strong>{{ selectedCustomer.name }}</strong>
+      </div>
+      <div v-else class="alert alert-warning py-2">
+        <i class="ti ti-alert-triangle me-1"></i>
+        No customer selected — credit will be posted to the walk-in account.
+      </div>
+      <p class="text-muted small mb-0">No receipt will be issued. The outstanding balance will appear in the customer's account.</p>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('creditSale')">Cancel</button>
+        <button type="button" class="btn btn-md btn-warning" :disabled="checkoutLoading" @click="doCheckout('credit')">
+          <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="ti ti-clock-dollar me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Credit Sale' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        SPLIT PAYMENT
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="split-payment" aria-labelledby="split-payment">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="ti ti-arrows-split me-2 text-primary"></i>Split Payment</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <span class="text-muted">Total Due:</span>
-            <span class="fw-bold fs-5">{{ formatMoney(grandTotal) }}</span>
-          </div>
-
-          <div v-for="(pay, idx) in splitPayments" :key="idx" class="d-flex align-items-center gap-2 mb-2">
-            <select
-              class="form-select form-select-sm"
-              :value="pay.payment_mode_id"
-              style="width:150px; flex-shrink:0;"
-              @change="onSplitModeChange(pay, $event)"
-            >
-              <option value="">-- Select --</option>
-              <option v-for="mode in paymentModes" :key="mode.id" :value="mode.id">
-                {{ mode.name }}
-              </option>
-            </select>
-            <input
-              type="number"
-              class="form-control form-control-sm"
-              v-model.number="pay.amount"
-              min="0"
-              step="0.01"
-              placeholder="Amount"
-            />
-            <button
-              v-if="splitPayments.length > 1"
-              type="button"
-              class="btn btn-xs btn-outline-danger"
-              @click="splitPayments.splice(idx, 1)"
-            ><i class="ti ti-trash"></i></button>
-          </div>
-
-          <button type="button" class="btn btn-sm btn-outline-secondary mt-1" @click="splitPayments.push({ payment_mode_id: null, method: '', amount: '' })">
-            <i class="ti ti-plus me-1"></i>Add Payment
-          </button>
-
-          <div class="mt-3 pt-3 border-top d-flex justify-content-between">
-            <span class="text-muted">Allocated:</span>
-            <span :class="splitAllocated >= grandTotal ? 'text-success fw-bold' : 'text-danger fw-bold'">
-              {{ formatMoney(splitAllocated) }}
-            </span>
-          </div>
-          <div v-if="splitAllocated > grandTotal" class="text-muted small">
-            Change: {{ formatMoney(splitAllocated - grandTotal) }}
-          </div>
-          <div v-if="splitAllocated < grandTotal" class="text-danger small">
-            Short by {{ formatMoney(grandTotal - splitAllocated) }}
-          </div>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button
-            type="button"
-            class="btn btn-md btn-primary"
-            :disabled="splitAllocated < grandTotal || checkoutLoading"
-            @click="doSplitCheckout()"
-          >
-            <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="ti ti-arrows-split me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Split Payment' }}
-          </button>
-        </div>
+  <VModal
+    :show-modal="posStore.modals.splitPayment"
+    size="md"
+    @close-click="posStore.closeModal('splitPayment')"
+  >
+    <template #header>
+      <div class="page-title">
+        <h4><i class="ti ti-arrows-split me-2 text-primary"></i>Split Payment</h4>
       </div>
-    </div>
-  </div>
+    </template>
+    <template #modal-body>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted">Total Due:</span>
+        <span class="fw-bold fs-5">{{ formatMoney(grandTotal) }}</span>
+      </div>
+
+      <div v-for="(pay, idx) in splitPayments" :key="idx" class="d-flex align-items-center gap-2 mb-2">
+        <select
+          class="form-select form-select-sm"
+          :value="pay.payment_mode_id"
+          style="width:150px; flex-shrink:0;"
+          @change="onSplitModeChange(pay, $event)"
+        >
+          <option value="">-- Select --</option>
+          <option v-for="mode in paymentModes" :key="mode.id" :value="mode.id">
+            {{ mode.name }}
+          </option>
+        </select>
+        <input
+          type="number"
+          class="form-control form-control-sm"
+          v-model.number="pay.amount"
+          min="0"
+          step="0.01"
+          placeholder="Amount"
+        />
+        <button
+          v-if="splitPayments.length > 1"
+          type="button"
+          class="btn btn-xs btn-outline-danger"
+          @click="splitPayments.splice(idx, 1)"
+        ><i class="ti ti-trash"></i></button>
+      </div>
+
+      <button type="button" class="btn btn-sm btn-outline-secondary mt-1" @click="splitPayments.push({ payment_mode_id: null, method: '', amount: '' })">
+        <i class="ti ti-plus me-1"></i>Add Payment
+      </button>
+
+      <div class="mt-3 pt-3 border-top d-flex justify-content-between">
+        <span class="text-muted">Allocated:</span>
+        <span :class="splitAllocated >= grandTotal ? 'text-success fw-bold' : 'text-danger fw-bold'">
+          {{ formatMoney(splitAllocated) }}
+        </span>
+      </div>
+      <div v-if="splitAllocated > grandTotal" class="text-muted small">
+        Change: {{ formatMoney(splitAllocated - grandTotal) }}
+      </div>
+      <div v-if="splitAllocated < grandTotal" class="text-danger small">
+        Short by {{ formatMoney(grandTotal - splitAllocated) }}
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('splitPayment')">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-md btn-primary"
+          :disabled="splitAllocated < grandTotal || checkoutLoading"
+          @click="doSplitCheckout()"
+        >
+          <span v-if="checkoutLoading" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="ti ti-arrows-split me-1"></i>{{ checkoutLoading ? 'Processing...' : 'Confirm Split Payment' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        PAYMENT COMPLETED
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="payment-completed" aria-labelledby="payment-completed">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body p-0">
-          <div class="success-wrap text-center">
-            <div class="icon-success bg-success text-white mb-2">
-              <i class="ti ti-check"></i>
-            </div>
-            <h3 class="mb-2">Payment Completed</h3>
-            <p class="mb-1">Invoice: <strong>{{ lastSale?.invoice_no }}</strong></p>
-            <p class="mb-1">Total: <strong>{{ formatMoney(lastSale?.grand_total) }}</strong></p>
-            <p class="mb-3">Customer: <strong>{{ lastSale?.party_name ?? 'Walk-in Customer' }}</strong></p>
-            <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-              <button
-                type="button"
-                class="btn btn-md btn-secondary"
-                @click="switchToPrintReceipt"
-              >Print Receipt <i class="feather-arrow-right-circle icon-me-5 ms-2"></i></button>
-              <button
-                type="button"
-                class="btn btn-md btn-primary"
-                data-bs-dismiss="modal"
-                @click="$emit('clear-cart')"
-              >Next Order</button>
-            </div>
-          </div>
+  <VModal
+    :show-modal="posStore.modals.paymentCompleted"
+    size="md"
+    title=""
+    @close-click="posStore.closeModal('paymentCompleted')"
+  >
+    <template #modal-body>
+      <div class="success-wrap text-center">
+        <div class="icon-success bg-success text-white mb-2">
+          <i class="ti ti-check"></i>
+        </div>
+        <h3 class="mb-2">Payment Completed</h3>
+        <p class="mb-1">Invoice: <strong>{{ lastSale?.invoice_no }}</strong></p>
+        <p class="mb-1">Total: <strong>{{ formatMoney(lastSale?.grand_total) }}</strong></p>
+        <p class="mb-3">Customer: <strong>{{ lastSale?.party_name ?? 'Walk-in Customer' }}</strong></p>
+        <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+          <button
+            type="button"
+            class="btn btn-md btn-secondary"
+            @click="switchToPrintReceipt"
+          >Print Receipt <i class="feather-arrow-right-circle icon-me-5 ms-2"></i></button>
+          <button
+            type="button"
+            class="btn btn-md btn-primary"
+            @click="posStore.closeModal('paymentCompleted'); $emit('clear-cart')"
+          >Next Order</button>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        PRINT RECEIPT
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default pos-receipt-modal" id="print-receipt" aria-labelledby="print-receipt">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body p-0">
-          <!-- Customer PAN input (outside print area) -->
-          <div class="pos-receipt-pan-bar px-3 pt-3 pb-2">
-            <label class="form-label small mb-1 text-muted">
-              <i class="ti ti-id-badge me-1"></i>Customer PAN No. (optional — printed on bill)
-            </label>
-            <input
-              type="text"
-              class="form-control form-control-sm"
-              v-model="customerPan"
-              placeholder="Enter customer PAN number"
-              maxlength="15"
-            />
+  <VModal
+    :show-modal="posStore.modals.printReceipt"
+    size="md"
+    modal-class="pos-receipt-modal"
+    title="Print Receipt"
+    @close-click="posStore.closeModal('printReceipt')"
+  >
+    <template #modal-body>
+      <!-- Customer PAN input (outside print area) -->
+      <div class="pos-receipt-pan-bar px-3 pt-3 pb-2">
+        <label class="form-label small mb-1 text-muted">
+          <i class="ti ti-id-badge me-1"></i>Customer PAN No. (optional — printed on bill)
+        </label>
+        <input
+          type="text"
+          class="form-control form-control-sm"
+          v-model="customerPan"
+          placeholder="Enter customer PAN number"
+          maxlength="15"
+        />
 
-            <!-- Thermal printer (QZ Tray) — only shown when QZ Tray is reachable -->
-            <div v-if="thermal.connected" class="mt-2">
-              <label class="form-label small mb-1 text-muted d-flex align-items-center justify-content-between">
-                <span><i class="ti ti-printer me-1"></i>Thermal printer (direct)</span>
-                <span class="badge bg-success-subtle text-success">QZ Tray connected</span>
-              </label>
-              <div class="input-group input-group-sm">
-                <select class="form-select" v-model="thermalPrinter">
-                  <option value="">Use browser printing</option>
-                  <option v-for="p in thermal.printers" :key="p" :value="p">{{ p }}</option>
-                </select>
-                <button type="button" class="btn btn-outline-secondary" @click="refreshThermalPrinters" title="Refresh printer list">
-                  <i class="ti ti-refresh"></i>
-                </button>
-              </div>
-            </div>
+        <!-- Thermal printer (QZ Tray) — only shown when QZ Tray is reachable -->
+        <div v-if="thermal.connected" class="mt-2">
+          <label class="form-label small mb-1 text-muted d-flex align-items-center justify-content-between">
+            <span><i class="ti ti-printer me-1"></i>Thermal printer (direct)</span>
+            <span class="badge bg-success-subtle text-success">QZ Tray connected</span>
+          </label>
+          <div class="input-group input-group-sm">
+            <select class="form-select" v-model="thermalPrinter">
+              <option value="">Use browser printing</option>
+              <option v-for="p in thermal.printers" :key="p" :value="p">{{ p }}</option>
+            </select>
+            <button type="button" class="btn btn-outline-secondary" @click="refreshThermalPrinters" title="Refresh printer list">
+              <i class="ti ti-refresh"></i>
+            </button>
           </div>
-
-          <!-- Receipt preview (this is what gets printed) -->
-          <div id="receipt-print-area" class="pos-receipt">
-            <!-- Header: Company identity -->
-            <header class="pos-receipt__header">
-              <img
-                v-if="receiptLogoUrl"
-                :src="receiptLogoUrl"
-                alt="Company logo"
-                class="pos-receipt__logo"
-              />
-              <h5 class="pos-receipt__company">{{ companyName }}</h5>
-              <p v-if="companyLegalName && companyLegalName !== companyName" class="pos-receipt__legal">
-                {{ companyLegalName }}
-              </p>
-              <p v-if="companyAddress" class="pos-receipt__meta">{{ companyAddress }}</p>
-              <p v-if="companyLocation" class="pos-receipt__meta">{{ companyLocation }}</p>
-              <p v-if="companyPhone" class="pos-receipt__meta">Tel: {{ companyPhone }}</p>
-              <p v-if="companyPan" class="pos-receipt__pan-badge">PAN: {{ companyPan }}</p>
-            </header>
-
-            <div class="pos-receipt__divider"></div>
-            <p class="pos-receipt__title">{{ receiptTitle }}</p>
-            <div class="pos-receipt__divider"></div>
-
-            <!-- Invoice metadata -->
-            <section class="pos-receipt__info">
-              <div class="pos-receipt__info-row">
-                <span>Invoice No</span>
-                <strong>{{ activeReceipt?.invoice_no ?? '—' }}</strong>
-              </div>
-              <div class="pos-receipt__info-row">
-                <span>Date (AD)</span>
-                <strong>{{ activeReceipt?.invoice_date ?? '—' }}</strong>
-              </div>
-              <div v-if="activeReceipt?.invoice_date_bs" class="pos-receipt__info-row">
-                <span>Date (BS)</span>
-                <strong>{{ activeReceipt.invoice_date_bs }}</strong>
-              </div>
-              <div class="pos-receipt__info-row">
-                <span>Payment</span>
-                <span>
-                  <template v-if="activeReceipt?.payment_method === 'credit'">
-                    <strong class="text-warning">CREDIT (Udhaaro)</strong>
-                  </template>
-                  <template v-else-if="activeReceipt?.payments?.length > 1">
-                    <div v-for="p in activeReceipt.payments" :key="p.method" class="d-flex justify-content-between">
-                      <span class="text-capitalize me-2">{{ p.method }}</span>
-                      <strong>{{ formatMoney(p.amount) }}</strong>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <strong class="text-capitalize">{{ activeReceipt?.payment_method ?? '—' }}</strong>
-                  </template>
-                </span>
-              </div>
-            </section>
-
-            <div class="pos-receipt__divider"></div>
-
-            <!-- Customer section -->
-            <section class="pos-receipt__customer">
-              <div class="pos-receipt__customer-row">
-                <span>Customer</span>
-                <span>{{ activeReceipt?.party_name ?? 'Walk-in Customer' }}</span>
-              </div>
-              <div class="pos-receipt__customer-row">
-                <span>PAN No.</span>
-                <span>{{ customerPan || '—' }}</span>
-              </div>
-            </section>
-
-            <div class="pos-receipt__divider"></div>
-
-            <!-- Items table -->
-            <table class="pos-receipt__items">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Item</th>
-                  <th class="text-end">Qty</th>
-                  <th class="text-end">Rate</th>
-                  <th class="text-end">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in (activeReceipt?.items ?? [])" :key="idx">
-                  <td class="pos-receipt__item-sn">{{ idx + 1 }}</td>
-                  <td>
-                    <span class="pos-receipt__item-name">{{ item.name }}</span>
-                    <span v-if="item.sku" class="pos-receipt__item-sku">{{ item.sku }}</span>
-                  </td>
-                  <td class="text-end">{{ item.quantity }}</td>
-                  <td class="text-end">{{ formatMoneyPlain(item.rate) }}</td>
-                  <td class="text-end">{{ formatMoneyPlain(item.total) }}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <!-- Totals -->
-            <section class="pos-receipt__totals">
-              <div v-if="activeReceipt?.subtotal != null" class="pos-receipt__total-row">
-                <span>Subtotal</span>
-                <span>{{ formatMoney(activeReceipt.subtotal) }}</span>
-              </div>
-              <div v-if="Number(activeReceipt?.line_discount_total) > 0" class="pos-receipt__total-row is-discount">
-                <span>Item Discount</span>
-                <span>- {{ formatMoney(activeReceipt.line_discount_total) }}</span>
-              </div>
-              <div v-if="Number(activeReceipt?.order_discount_amount) > 0" class="pos-receipt__total-row is-discount">
-                <span>Order Discount</span>
-                <span>- {{ formatMoney(activeReceipt.order_discount_amount) }}</span>
-              </div>
-
-              <!-- VAT breakdown — only when tax is present -->
-              <template v-if="Number(activeReceipt?.tax_total) > 0">
-                <div class="pos-receipt__divider pos-receipt__divider--sm"></div>
-                <div class="pos-receipt__total-row">
-                  <span>Taxable Amount</span>
-                  <span>{{ formatMoney(receiptTaxableAmount) }}</span>
-                </div>
-                <div class="pos-receipt__total-row is-tax">
-                  <span>VAT (13%)</span>
-                  <span>{{ formatMoney(activeReceipt.tax_total) }}</span>
-                </div>
-              </template>
-
-              <div class="pos-receipt__total-row is-grand">
-                <span>TOTAL</span>
-                <span>{{ formatMoney(activeReceipt?.grand_total) }}</span>
-              </div>
-            </section>
-
-            <!-- Amount in words -->
-            <div class="pos-receipt__words">
-              {{ amountToWords(activeReceipt?.grand_total ?? 0) }}
-            </div>
-
-            <footer class="pos-receipt__footer">
-              <p v-if="companyInvoiceNote" class="pos-receipt__footer-note">{{ companyInvoiceNote }}</p>
-              <p>Thank you for your business!</p>
-            </footer>
-          </div>
-        </div>
-
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-md btn-primary" :disabled="printing" @click="printReceipt">
-            <span v-if="printing" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="ti ti-printer me-1"></i>
-            {{ useThermalPrint ? 'Print (Thermal)' : 'Print' }}
-          </button>
         </div>
       </div>
-    </div>
-  </div>
+
+      <!-- Receipt preview (this is what gets printed) -->
+      <div id="receipt-print-area" class="pos-receipt">
+        <!-- Header: Company identity -->
+        <header class="pos-receipt__header">
+          <img
+            v-if="receiptLogoUrl"
+            :src="receiptLogoUrl"
+            alt="Company logo"
+            class="pos-receipt__logo"
+          />
+          <h5 class="pos-receipt__company">{{ companyName }}</h5>
+          <p v-if="companyLegalName && companyLegalName !== companyName" class="pos-receipt__legal">
+            {{ companyLegalName }}
+          </p>
+          <p v-if="companyAddress" class="pos-receipt__meta">{{ companyAddress }}</p>
+          <p v-if="companyLocation" class="pos-receipt__meta">{{ companyLocation }}</p>
+          <p v-if="companyPhone" class="pos-receipt__meta">Tel: {{ companyPhone }}</p>
+          <p v-if="companyPan" class="pos-receipt__pan-badge">PAN: {{ companyPan }}</p>
+        </header>
+
+        <div class="pos-receipt__divider"></div>
+        <p class="pos-receipt__title">{{ receiptTitle }}</p>
+        <div class="pos-receipt__divider"></div>
+
+        <!-- Invoice metadata -->
+        <section class="pos-receipt__info">
+          <div class="pos-receipt__info-row">
+            <span>Invoice No</span>
+            <strong>{{ activeReceipt?.invoice_no ?? '—' }}</strong>
+          </div>
+          <div class="pos-receipt__info-row">
+            <span>Date (AD)</span>
+            <strong>{{ activeReceipt?.invoice_date ?? '—' }}</strong>
+          </div>
+          <div v-if="activeReceipt?.invoice_date_bs" class="pos-receipt__info-row">
+            <span>Date (BS)</span>
+            <strong>{{ activeReceipt.invoice_date_bs }}</strong>
+          </div>
+          <div class="pos-receipt__info-row">
+            <span>Payment</span>
+            <span>
+              <template v-if="activeReceipt?.payment_method === 'credit'">
+                <strong class="text-warning">CREDIT (Udhaaro)</strong>
+              </template>
+              <template v-else-if="activeReceipt?.payments?.length > 1">
+                <div v-for="p in activeReceipt.payments" :key="p.method" class="d-flex justify-content-between">
+                  <span class="text-capitalize me-2">{{ p.method }}</span>
+                  <strong>{{ formatMoney(p.amount) }}</strong>
+                </div>
+              </template>
+              <template v-else>
+                <strong class="text-capitalize">{{ activeReceipt?.payment_method ?? '—' }}</strong>
+              </template>
+            </span>
+          </div>
+        </section>
+
+        <div class="pos-receipt__divider"></div>
+
+        <!-- Customer section -->
+        <section class="pos-receipt__customer">
+          <div class="pos-receipt__customer-row">
+            <span>Customer</span>
+            <span>{{ activeReceipt?.party_name ?? 'Walk-in Customer' }}</span>
+          </div>
+          <div class="pos-receipt__customer-row">
+            <span>PAN No.</span>
+            <span>{{ customerPan || '—' }}</span>
+          </div>
+        </section>
+
+        <div class="pos-receipt__divider"></div>
+
+        <!-- Items table -->
+        <table class="pos-receipt__items">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Item</th>
+              <th class="text-end">Qty</th>
+              <th class="text-end">Rate</th>
+              <th class="text-end">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, idx) in (activeReceipt?.items ?? [])" :key="idx">
+              <td class="pos-receipt__item-sn">{{ idx + 1 }}</td>
+              <td>
+                <span class="pos-receipt__item-name">{{ item.name }}</span>
+                <span v-if="item.sku" class="pos-receipt__item-sku">{{ item.sku }}</span>
+              </td>
+              <td class="text-end">{{ item.quantity }}</td>
+              <td class="text-end">{{ formatMoneyPlain(item.rate) }}</td>
+              <td class="text-end">{{ formatMoneyPlain(item.total) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Totals -->
+        <section class="pos-receipt__totals">
+          <div v-if="activeReceipt?.subtotal != null" class="pos-receipt__total-row">
+            <span>Subtotal</span>
+            <span>{{ formatMoney(activeReceipt.subtotal) }}</span>
+          </div>
+          <div v-if="Number(activeReceipt?.line_discount_total) > 0" class="pos-receipt__total-row is-discount">
+            <span>Item Discount</span>
+            <span>- {{ formatMoney(activeReceipt.line_discount_total) }}</span>
+          </div>
+          <div v-if="Number(activeReceipt?.order_discount_amount) > 0" class="pos-receipt__total-row is-discount">
+            <span>Order Discount</span>
+            <span>- {{ formatMoney(activeReceipt.order_discount_amount) }}</span>
+          </div>
+
+          <!-- VAT breakdown — only when tax is present -->
+          <template v-if="Number(activeReceipt?.tax_total) > 0">
+            <div class="pos-receipt__divider pos-receipt__divider--sm"></div>
+            <div class="pos-receipt__total-row">
+              <span>Taxable Amount</span>
+              <span>{{ formatMoney(receiptTaxableAmount) }}</span>
+            </div>
+            <div class="pos-receipt__total-row is-tax">
+              <span>VAT (13%)</span>
+              <span>{{ formatMoney(activeReceipt.tax_total) }}</span>
+            </div>
+          </template>
+
+          <div class="pos-receipt__total-row is-grand">
+            <span>TOTAL</span>
+            <span>{{ formatMoney(activeReceipt?.grand_total) }}</span>
+          </div>
+        </section>
+
+        <!-- Amount in words -->
+        <div class="pos-receipt__words">
+          {{ amountToWords(activeReceipt?.grand_total ?? 0) }}
+        </div>
+
+        <footer class="pos-receipt__footer">
+          <p v-if="companyInvoiceNote" class="pos-receipt__footer-note">{{ companyInvoiceNote }}</p>
+          <p>Thank you for your business!</p>
+        </footer>
+      </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('printReceipt')">Close</button>
+        <button type="button" class="btn btn-md btn-primary" :disabled="printing" @click="printReceipt">
+          <span v-if="printing" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="ti ti-printer me-1"></i>
+          {{ useThermalPrint ? 'Print (Thermal)' : 'Print' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        HOLD ORDER
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default pos-modal" id="hold-order" aria-labelledby="hold-order">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Hold Order</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="bg-light br-10 p-4 text-center mb-3">
-            <p class="mb-1 text-muted">Order Total</p>
-            <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Order Reference (optional)</label>
-            <input
-              class="form-control"
-              type="text"
-              v-model="holdLabel"
-              placeholder="e.g. Table 5, John"
-            />
-          </div>
-          <p class="text-muted small">
-            The current order will be put on hold. You can retrieve it from the "View Orders" button.
-          </p>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button
-            type="button"
-            class="btn btn-md btn-primary"
-            data-bs-dismiss="modal"
-            @click="doHold"
-          >Confirm Hold</button>
-        </div>
+  <VModal
+    :show-modal="posStore.modals.holdOrder"
+    size="md"
+    title="Hold Order"
+    @close-click="posStore.closeModal('holdOrder')"
+  >
+    <template #modal-body>
+      <div class="bg-light br-10 p-4 text-center mb-3">
+        <p class="mb-1 text-muted">Order Total</p>
+        <h2 class="display-1">{{ formatMoney(grandTotal) }}</h2>
       </div>
-    </div>
-  </div>
+      <div class="mb-3">
+        <label class="form-label">Order Reference (optional)</label>
+        <input
+          class="form-control"
+          type="text"
+          v-model="holdLabel"
+          placeholder="e.g. Table 5, John"
+        />
+      </div>
+      <p class="text-muted small">
+        The current order will be put on hold. You can retrieve it from the "View Orders" button.
+      </p>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('holdOrder')">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-md btn-primary"
+          @click="doHold"
+        >Confirm Hold</button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        VIEW HELD ORDERS
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade pos-modal" id="orders" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Held Orders</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div v-if="!heldOrders.length" class="text-center py-4 text-muted">
-            <i class="ti ti-inbox fs-32 d-block mb-2"></i>
-            No held orders
-          </div>
-          <div v-else class="table-responsive">
-            <table class="table table-hover">
-              <thead>
-                <tr>
-                  <th>Reference</th>
-                  <th>Customer</th>
-                  <th>Items</th>
-                  <th>Time</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="order in heldOrders" :key="order.id">
-                  <td>{{ order.label || `Order #${order.id}` }}</td>
-                  <td>{{ order.party_name }}</td>
-                  <td>{{ order.order_data?.items?.length ?? 0 }} items</td>
-                  <td>{{ formatTime(order.created_at) }}</td>
-                  <td>
-                    <button
-                      class="btn btn-sm btn-success me-1"
-                      data-bs-dismiss="modal"
-                      @click="$emit('restore-held-order', order)"
-                    >Restore</button>
-                    <button
-                      class="btn btn-sm btn-danger"
-                      @click="$emit('delete-held-order', order.id)"
-                    >Delete</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+  <VModal
+    :show-modal="posStore.modals.orders"
+    size="lg"
+    title="Held Orders"
+    @close-click="posStore.closeModal('orders')"
+  >
+    <template #modal-body>
+      <div v-if="!heldOrders.length" class="text-center py-4 text-muted">
+        <i class="ti ti-inbox fs-32 d-block mb-2"></i>
+        No held orders
       </div>
-    </div>
-  </div>
+      <div v-else class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Customer</th>
+              <th>Items</th>
+              <th>Time</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in heldOrders" :key="order.id">
+              <td>{{ order.label || `Order #${order.id}` }}</td>
+              <td>{{ order.party_name }}</td>
+              <td>{{ order.order_data?.items?.length ?? 0 }} items</td>
+              <td>{{ formatTime(order.created_at) }}</td>
+              <td>
+                <button
+                  class="btn btn-sm btn-success me-1"
+                  @click="posStore.closeModal('orders'); $emit('restore-held-order', order)"
+                >Restore</button>
+                <button
+                  class="btn btn-sm btn-danger"
+                  @click="$emit('delete-held-order', order.id)"
+                >Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        RESET
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="reset" aria-labelledby="reset">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body p-0">
-          <div class="success-wrap text-center">
-            <div class="icon-success bg-purple-transparent text-purple mb-2">
-              <i class="ti ti-transition-top"></i>
-            </div>
-            <h3 class="mb-2">Confirm Reset</h3>
-            <p class="fs-16 mb-3">This will clear all items from the current order.</p>
-            <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-              <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">No, Cancel</button>
-              <button
-                type="button"
-                class="btn btn-md btn-primary"
-                data-bs-dismiss="modal"
-                @click="$emit('clear-cart')"
-              >Yes, Reset</button>
-            </div>
-          </div>
+  <VModal
+    :show-modal="posStore.modals.reset"
+    size="md"
+    title=""
+    @close-click="posStore.closeModal('reset')"
+  >
+    <template #modal-body>
+      <div class="success-wrap text-center">
+        <div class="icon-success bg-purple-transparent text-purple mb-2">
+          <i class="ti ti-transition-top"></i>
+        </div>
+        <h3 class="mb-2">Confirm Reset</h3>
+        <p class="fs-16 mb-3">This will clear all items from the current order.</p>
+        <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap">
+          <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('reset')">No, Cancel</button>
+          <button
+            type="button"
+            class="btn btn-md btn-primary"
+            @click="posStore.closeModal('reset'); $emit('clear-cart')"
+          >Yes, Reset</button>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        RECENT TRANSACTIONS
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade pos-modal" id="recents" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header pb-2">
-          <div>
-            <h5 class="modal-title mb-0">Recent Transactions</h5>
-            <small v-if="recentMeta.total > 0" class="text-muted">
-              {{ recentMeta.total }} result{{ recentMeta.total !== 1 ? 's' : '' }}
-            </small>
-          </div>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-
-        <!-- Filters -->
-        <div class="modal-body pt-2 pb-1 border-bottom">
-          <!-- Date preset tabs -->
-          <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
-            <div class="btn-group btn-group-sm" role="group">
-              <button
-                v-for="preset in recentPresets"
-                :key="preset.value"
-                type="button"
-                class="btn"
-                :class="recentDatePreset === preset.value ? 'btn-primary' : 'btn-outline-secondary'"
-                @click="setRecentPreset(preset.value)"
-              >{{ preset.label }}</button>
-            </div>
-            <template v-if="recentDatePreset === 'custom'">
-              <input
-                type="date"
-                class="form-control form-control-sm"
-                style="width:140px;"
-                v-model="recentDateFrom"
-                @change="loadRecentTransactions"
-              />
-              <span class="text-muted">–</span>
-              <input
-                type="date"
-                class="form-control form-control-sm"
-                style="width:140px;"
-                v-model="recentDateTo"
-                @change="loadRecentTransactions"
-              />
-            </template>
-          </div>
-          <!-- Search -->
-          <div class="input-group input-group-sm" style="max-width:320px;">
-            <span class="input-group-text"><i class="ti ti-search"></i></span>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Invoice no, customer, amount…"
-              v-model="recentSearch"
-              @input="onRecentSearchInput"
-            />
-            <button
-              v-if="recentSearch"
-              type="button"
-              class="btn btn-outline-secondary"
-              @click="recentSearch = ''; loadRecentTransactions()"
-            ><i class="ti ti-x"></i></button>
-          </div>
-        </div>
-
-        <div class="modal-body py-0" style="max-height:55vh; overflow-y:auto;">
-          <div v-if="recentLoading" class="text-center py-4">
-            <div class="spinner-border text-primary"></div>
-          </div>
-          <div v-else-if="!recentTransactions.length" class="text-center py-4 text-muted">
-            <i class="ti ti-receipt-off fs-32 d-block mb-2"></i>
-            No transactions found
-          </div>
-          <table v-else class="table table-hover align-middle mb-0">
-            <thead class="table-light sticky-top">
-              <tr>
-                <th>Invoice No</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th>Payment</th>
-                <th class="text-end">Total</th>
-                <th class="text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="txn in recentTransactions" :key="txn.id">
-                <td>
-                  <span class="fw-semibold">{{ txn.invoice_no }}</span>
-                  <span
-                    v-if="txn.has_returns"
-                    class="badge bg-warning text-dark ms-1"
-                    title="Has returns"
-                    style="font-size:0.65rem;"
-                  >RETURNED</span>
-                </td>
-                <td>{{ txn.party_name }}</td>
-                <td>
-                  <span>{{ txn.invoice_date }}</span>
-                  <small v-if="txn.invoice_date_bs" class="d-block text-muted" style="font-size:0.7rem;">{{ txn.invoice_date_bs }}</small>
-                </td>
-                <td>
-                  <span
-                    class="badge"
-                    :class="{
-                      'bg-success': txn.payment_method === 'cash',
-                      'bg-info': txn.payment_method === 'card',
-                      'bg-warning text-dark': txn.payment_method === 'credit',
-                      'bg-primary': txn.payment_method === 'split',
-                      'bg-secondary': !['cash','card','credit','split'].includes(txn.payment_method),
-                    }"
-                    style="font-size:0.7rem; text-transform:capitalize;"
-                  >{{ txn.payment_method }}</span>
-                </td>
-                <td class="text-end fw-semibold">{{ formatMoney(txn.grand_total) }}</td>
-                <td class="text-center" style="white-space:nowrap;">
-                  <button
-                    class="btn btn-xs btn-outline-primary"
-                    :disabled="reprintLoading === txn.id"
-                    @click="reprintTransaction(txn)"
-                    title="Reprint receipt"
-                  >
-                    <span v-if="reprintLoading === txn.id" class="spinner-border spinner-border-sm"></span>
-                    <i v-else class="ti ti-printer"></i>
-                  </button>
-                  <button
-                    class="btn btn-xs btn-outline-danger ms-1"
-                    :disabled="returnLoading === txn.id"
-                    @click="startReturn(txn)"
-                    title="Return items"
-                  >
-                    <span v-if="returnLoading === txn.id" class="spinner-border spinner-border-sm"></span>
-                    <i v-else class="ti ti-arrow-back-up"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Pagination -->
-        <div v-if="recentMeta.pages > 1" class="modal-body pt-2 pb-2 d-flex align-items-center justify-content-between border-top">
-          <small class="text-muted">Page {{ recentMeta.page }} of {{ recentMeta.pages }}</small>
-          <div class="d-flex gap-1">
-            <button
-              class="btn btn-sm btn-outline-secondary"
-              :disabled="recentMeta.page <= 1"
-              @click="recentPage--; loadRecentTransactions()"
-            ><i class="ti ti-chevron-left"></i></button>
-            <button
-              class="btn btn-sm btn-outline-secondary"
-              :disabled="recentMeta.page >= recentMeta.pages"
-              @click="recentPage++; loadRecentTransactions()"
-            ><i class="ti ti-chevron-right"></i></button>
-          </div>
-        </div>
-
+  <VModal
+    :show-modal="posStore.modals.recents"
+    size="xl"
+    title="Recent Transactions"
+    @close-click="posStore.closeModal('recents')"
+  >
+    <template #header>
+      <div class="page-title">
+        <h4 class="mb-0">Recent Transactions</h4>
+        <small v-if="recentMeta.total > 0" class="text-muted">
+          {{ recentMeta.total }} result{{ recentMeta.total !== 1 ? 's' : '' }}
+        </small>
       </div>
-    </div>
-  </div>
+    </template>
+    <template #modal-body>
+      <!-- Filters -->
+      <div class="pb-2 mb-2 border-bottom">
+        <!-- Date preset tabs -->
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+          <div class="btn-group btn-group-sm" role="group">
+            <button
+              v-for="preset in recentPresets"
+              :key="preset.value"
+              type="button"
+              class="btn"
+              :class="recentDatePreset === preset.value ? 'btn-primary' : 'btn-outline-secondary'"
+              @click="setRecentPreset(preset.value)"
+            >{{ preset.label }}</button>
+          </div>
+          <template v-if="recentDatePreset === 'custom'">
+            <input
+              type="date"
+              class="form-control form-control-sm"
+              style="width:140px;"
+              v-model="recentDateFrom"
+              @change="loadRecentTransactions"
+            />
+            <span class="text-muted">–</span>
+            <input
+              type="date"
+              class="form-control form-control-sm"
+              style="width:140px;"
+              v-model="recentDateTo"
+              @change="loadRecentTransactions"
+            />
+          </template>
+        </div>
+        <!-- Search -->
+        <div class="input-group input-group-sm" style="max-width:320px;">
+          <span class="input-group-text"><i class="ti ti-search"></i></span>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Invoice no, customer, amount…"
+            v-model="recentSearch"
+            @input="onRecentSearchInput"
+          />
+          <button
+            v-if="recentSearch"
+            type="button"
+            class="btn btn-outline-secondary"
+            @click="recentSearch = ''; loadRecentTransactions()"
+          ><i class="ti ti-x"></i></button>
+        </div>
+      </div>
+
+      <div style="max-height:55vh; overflow-y:auto;">
+        <div v-if="recentLoading" class="text-center py-4">
+          <div class="spinner-border text-primary"></div>
+        </div>
+        <div v-else-if="!recentTransactions.length" class="text-center py-4 text-muted">
+          <i class="ti ti-receipt-off fs-32 d-block mb-2"></i>
+          No transactions found
+        </div>
+        <table v-else class="table table-hover align-middle mb-0">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th>Invoice No</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Payment</th>
+              <th class="text-end">Total</th>
+              <th class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="txn in recentTransactions" :key="txn.id">
+              <td>
+                <span class="fw-semibold">{{ txn.invoice_no }}</span>
+                <span
+                  v-if="txn.has_returns"
+                  class="badge bg-warning text-dark ms-1"
+                  title="Has returns"
+                  style="font-size:0.65rem;"
+                >RETURNED</span>
+              </td>
+              <td>{{ txn.party_name }}</td>
+              <td>
+                <span>{{ txn.invoice_date }}</span>
+                <small v-if="txn.invoice_date_bs" class="d-block text-muted" style="font-size:0.7rem;">{{ txn.invoice_date_bs }}</small>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  :class="{
+                    'bg-success': txn.payment_method === 'cash',
+                    'bg-info': txn.payment_method === 'card',
+                    'bg-warning text-dark': txn.payment_method === 'credit',
+                    'bg-primary': txn.payment_method === 'split',
+                    'bg-secondary': !['cash','card','credit','split'].includes(txn.payment_method),
+                  }"
+                  style="font-size:0.7rem; text-transform:capitalize;"
+                >{{ txn.payment_method }}</span>
+              </td>
+              <td class="text-end fw-semibold">{{ formatMoney(txn.grand_total) }}</td>
+              <td class="text-center" style="white-space:nowrap;">
+                <button
+                  class="btn btn-xs btn-outline-primary"
+                  :disabled="reprintLoading === txn.id"
+                  @click="reprintTransaction(txn)"
+                  title="Reprint receipt"
+                >
+                  <span v-if="reprintLoading === txn.id" class="spinner-border spinner-border-sm"></span>
+                  <i v-else class="ti ti-printer"></i>
+                </button>
+                <button
+                  class="btn btn-xs btn-outline-danger ms-1"
+                  :disabled="returnLoading === txn.id"
+                  @click="startReturn(txn)"
+                  title="Return items"
+                >
+                  <span v-if="returnLoading === txn.id" class="spinner-border spinner-border-sm"></span>
+                  <i v-else class="ti ti-arrow-back-up"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="recentMeta.pages > 1" class="d-flex align-items-center justify-content-between border-top pt-2 mt-2">
+        <small class="text-muted">Page {{ recentMeta.page }} of {{ recentMeta.pages }}</small>
+        <div class="d-flex gap-1">
+          <button
+            class="btn btn-sm btn-outline-secondary"
+            :disabled="recentMeta.page <= 1"
+            @click="recentPage--; loadRecentTransactions()"
+          ><i class="ti ti-chevron-left"></i></button>
+          <button
+            class="btn btn-sm btn-outline-secondary"
+            :disabled="recentMeta.page >= recentMeta.pages"
+            @click="recentPage++; loadRecentTransactions()"
+          ><i class="ti ti-chevron-right"></i></button>
+        </div>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        POS RETURN
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade pos-modal" id="pos-return" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            <i class="ti ti-arrow-back-up me-2 text-danger"></i>
-            Process Return
-            <small v-if="returnInvoice" class="text-muted ms-2">— {{ returnInvoice.invoice_no }}</small>
-          </h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
+  <VModal
+    :show-modal="posStore.modals.posReturn"
+    size="lg"
+    @close-click="posStore.closeModal('posReturn')"
+  >
+    <template #header>
+      <div class="page-title">
+        <h4>
+          <i class="ti ti-arrow-back-up me-2 text-danger"></i>
+          Process Return
+          <small v-if="returnInvoice" class="text-muted ms-2">— {{ returnInvoice.invoice_no }}</small>
+        </h4>
+      </div>
+    </template>
+    <template #modal-body>
+      <!-- Return result (shown after success) -->
+      <div v-if="returnResult" class="text-center py-3">
+        <div class="mb-3">
+          <i class="ti ti-check-circle text-success" style="font-size:3rem;"></i>
         </div>
-        <div class="modal-body">
-
-          <!-- Return result (shown after success) -->
-          <div v-if="returnResult" class="text-center py-3">
-            <div class="mb-3">
-              <i class="ti ti-check-circle text-success" style="font-size:3rem;"></i>
-            </div>
-            <h5 class="fw-bold text-success mb-1">Return Processed</h5>
-            <p class="text-muted mb-1">Credit Note: <strong>{{ returnResult.credit_note_no }}</strong></p>
-            <p class="mb-3">Refund Amount: <strong class="text-danger fs-5">{{ formatMoney(returnResult.refund_total) }}</strong></p>
-            <div class="table-responsive mb-3">
-              <table class="table table-sm align-middle">
-                <thead class="table-light">
-                  <tr>
-                    <th>Item</th>
-                    <th class="text-end">Qty</th>
-                    <th class="text-end">Rate</th>
-                    <th class="text-end">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="item in returnResult.items" :key="item.sku">
-                    <td>{{ item.name }}</td>
-                    <td class="text-end">{{ item.quantity }}</td>
-                    <td class="text-end">{{ formatMoney(item.rate) }}</td>
-                    <td class="text-end fw-semibold">{{ formatMoney(item.total) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
-          </div>
-
-          <!-- Return form -->
-          <div v-else-if="returnInvoice">
-            <div class="alert alert-light border mb-3 py-2">
-              <div class="row g-2 text-sm">
-                <div class="col-4"><span class="text-muted">Invoice:</span> <strong>{{ returnInvoice.invoice_no }}</strong></div>
-                <div class="col-4"><span class="text-muted">Customer:</span> {{ returnInvoice.party_name }}</div>
-                <div class="col-4"><span class="text-muted">Total:</span> {{ formatMoney(returnInvoice.grand_total) }}</div>
-              </div>
-            </div>
-
-            <p class="text-muted small mb-2">Set return quantity to <strong>0</strong> for items you don't want to return.</p>
-
-            <div class="table-responsive mb-3">
-              <table class="table table-sm align-middle">
-                <thead class="table-light">
-                  <tr>
-                    <th>Item</th>
-                    <th class="text-end">Orig. Qty</th>
-                    <th class="text-end">Rate</th>
-                    <th style="width:110px;" class="text-center">Return Qty</th>
-                    <th class="text-end">Refund</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, idx) in returnItems" :key="idx">
-                    <td>
-                      <span class="fw-semibold">{{ item.name }}</span>
-                      <small class="text-muted d-block">{{ item.warehouse_name }}</small>
-                    </td>
-                    <td class="text-end">{{ item.quantity }}</td>
-                    <td class="text-end">{{ formatMoney(item.rate) }}</td>
-                    <td class="text-center">
-                      <input
-                        type="number"
-                        class="form-control form-control-sm text-center"
-                        v-model.number="item.returnQty"
-                        min="0"
-                        :max="item.quantity"
-                        style="width:80px; display:inline-block;"
-                      />
-                    </td>
-                    <td class="text-end fw-semibold" :class="item.returnQty > 0 ? 'text-danger' : 'text-muted'">
-                      {{ item.returnQty > 0 ? formatMoney(item.returnQty * item.rate) : '—' }}
-                    </td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr class="table-light fw-bold">
-                    <td colspan="4" class="text-end">Estimated Refund:</td>
-                    <td class="text-end text-danger">{{ formatMoney(returnItems.reduce((s, i) => s + i.returnQty * i.rate, 0)) }}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Reason <small class="text-muted">(optional)</small></label>
-              <input type="text" class="form-control" v-model="returnReason" placeholder="e.g. Defective item, Customer changed mind…" maxlength="500" />
-            </div>
-          </div>
-
-          <div v-else class="text-center py-4">
-            <div class="spinner-border text-primary"></div>
-          </div>
-
+        <h5 class="fw-bold text-success mb-1">Return Processed</h5>
+        <p class="text-muted mb-1">Credit Note: <strong>{{ returnResult.credit_note_no }}</strong></p>
+        <p class="mb-3">Refund Amount: <strong class="text-danger fs-5">{{ formatMoney(returnResult.refund_total) }}</strong></p>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Item</th>
+                <th class="text-end">Qty</th>
+                <th class="text-end">Rate</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in returnResult.items" :key="item.sku">
+                <td>{{ item.name }}</td>
+                <td class="text-end">{{ item.quantity }}</td>
+                <td class="text-end">{{ formatMoney(item.rate) }}</td>
+                <td class="text-end fw-semibold">{{ formatMoney(item.total) }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="modal-footer" v-if="returnInvoice && !returnResult">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-outline-secondary" @click="posStore.closeModal('posReturn')">Close</button>
+      </div>
+
+      <!-- Return form -->
+      <div v-else-if="returnInvoice">
+        <div class="alert alert-light border mb-3 py-2">
+          <div class="row g-2 text-sm">
+            <div class="col-4"><span class="text-muted">Invoice:</span> <strong>{{ returnInvoice.invoice_no }}</strong></div>
+            <div class="col-4"><span class="text-muted">Customer:</span> {{ returnInvoice.party_name }}</div>
+            <div class="col-4"><span class="text-muted">Total:</span> {{ formatMoney(returnInvoice.grand_total) }}</div>
+          </div>
+        </div>
+
+        <p class="text-muted small mb-2">Set return quantity to <strong>0</strong> for items you don't want to return.</p>
+
+        <div class="table-responsive mb-3">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Item</th>
+                <th class="text-end">Orig. Qty</th>
+                <th class="text-end">Rate</th>
+                <th style="width:110px;" class="text-center">Return Qty</th>
+                <th class="text-end">Refund</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in returnItems" :key="idx">
+                <td>
+                  <span class="fw-semibold">{{ item.name }}</span>
+                  <small class="text-muted d-block">{{ item.warehouse_name }}</small>
+                </td>
+                <td class="text-end">{{ item.quantity }}</td>
+                <td class="text-end">{{ formatMoney(item.rate) }}</td>
+                <td class="text-center">
+                  <input
+                    type="number"
+                    class="form-control form-control-sm text-center"
+                    v-model.number="item.returnQty"
+                    min="0"
+                    :max="item.quantity"
+                    style="width:80px; display:inline-block;"
+                  />
+                </td>
+                <td class="text-end fw-semibold" :class="item.returnQty > 0 ? 'text-danger' : 'text-muted'">
+                  {{ item.returnQty > 0 ? formatMoney(item.returnQty * item.rate) : '—' }}
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="table-light fw-bold">
+                <td colspan="4" class="text-end">Estimated Refund:</td>
+                <td class="text-end text-danger">{{ formatMoney(returnItems.reduce((s, i) => s + i.returnQty * i.rate, 0)) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Reason <small class="text-muted">(optional)</small></label>
+          <input type="text" class="form-control" v-model="returnReason" placeholder="e.g. Defective item, Customer changed mind…" maxlength="500" />
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-3">
+          <button type="button" class="btn btn-secondary" @click="posStore.closeModal('posReturn')">Cancel</button>
           <button
             type="button"
             class="btn btn-danger"
@@ -904,507 +867,481 @@
           </button>
         </div>
       </div>
-    </div>
-  </div>
+
+      <div v-else class="text-center py-4">
+        <div class="spinner-border text-primary"></div>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        CREATE CUSTOMER
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade" id="create" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Create Customer</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <form @submit.prevent="createCustomer">
-          <div class="modal-body pb-1">
-            <div class="row">
-              <div class="col-lg-6 col-sm-12">
-                <div class="mb-3">
-                  <label class="form-label">Customer Name <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" v-model="newCustomer.name" required />
-                </div>
-              </div>
-              <div class="col-lg-6 col-sm-12">
-                <div class="mb-3">
-                  <label class="form-label">Phone</label>
-                  <input type="text" class="form-control" v-model="newCustomer.phone" />
-                </div>
-              </div>
-              <div class="col-lg-12">
-                <div class="mb-3">
-                  <label class="form-label">Email</label>
-                  <input type="email" class="form-control" v-model="newCustomer.email" />
-                </div>
-              </div>
-              <div class="col-lg-12">
-                <div class="mb-3">
-                  <label class="form-label">Address</label>
-                  <input type="text" class="form-control" v-model="newCustomer.address" />
-                </div>
-              </div>
+  <VModal
+    :show-modal="posStore.modals.createCustomer"
+    size="lg"
+    title="Create Customer"
+    @close-click="posStore.closeModal('createCustomer')"
+  >
+    <template #modal-body>
+      <form @submit.prevent="createCustomer">
+        <div class="row">
+          <div class="col-lg-6 col-sm-12">
+            <div class="mb-3">
+              <label class="form-label">Customer Name <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" v-model="newCustomer.name" required />
             </div>
           </div>
-          <div class="modal-footer d-flex justify-content-end gap-2 flex-wrap">
-            <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-md btn-primary" :disabled="customerSaving">
-              <span v-if="customerSaving" class="spinner-border spinner-border-sm me-1"></span>
-              Save Customer
-            </button>
+          <div class="col-lg-6 col-sm-12">
+            <div class="mb-3">
+              <label class="form-label">Phone</label>
+              <input type="text" class="form-control" v-model="newCustomer.phone" />
+            </div>
           </div>
-        </form>
-      </div>
-    </div>
-  </div>
+          <div class="col-lg-12">
+            <div class="mb-3">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" v-model="newCustomer.email" />
+            </div>
+          </div>
+          <div class="col-lg-12">
+            <div class="mb-3">
+              <label class="form-label">Address</label>
+              <input type="text" class="form-control" v-model="newCustomer.address" />
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-2">
+          <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('createCustomer')">Cancel</button>
+          <button type="submit" class="btn btn-md btn-primary" :disabled="customerSaving">
+            <span v-if="customerSaving" class="spinner-border spinner-border-sm me-1"></span>
+            Save Customer
+          </button>
+        </div>
+      </form>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        TODAY'S SALES
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade pos-modal" id="today-sale" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Today's Sales</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
+  <VModal
+    :show-modal="posStore.modals.todaySale"
+    size="md"
+    title="Today's Sales"
+    @close-click="posStore.closeModal('todaySale')"
+  >
+    <template #modal-body>
+      <div class="row g-3 text-center">
+        <div class="col-6">
+          <div class="bg-light p-3 br-10">
+            <i class="ti ti-receipt fs-32 text-primary d-block mb-2"></i>
+            <h4>{{ todaySummary.sale_count }}</h4>
+            <p class="text-muted mb-0">Total Sales</p>
+          </div>
         </div>
-        <div class="modal-body text-center">
-          <div class="row g-3">
-            <div class="col-6">
-              <div class="bg-light p-3 br-10">
-                <i class="ti ti-receipt fs-32 text-primary d-block mb-2"></i>
-                <h4>{{ todaySummary.sale_count }}</h4>
-                <p class="text-muted mb-0">Total Sales</p>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="bg-light p-3 br-10">
-                <i class="ti ti-currency-rupee fs-32 text-success d-block mb-2"></i>
-                <h4>{{ formatMoney(todaySummary.sale_total) }}</h4>
-                <p class="text-muted mb-0">Revenue</p>
-              </div>
-            </div>
+        <div class="col-6">
+          <div class="bg-light p-3 br-10">
+            <i class="ti ti-currency-rupee fs-32 text-success d-block mb-2"></i>
+            <h4>{{ formatMoney(todaySummary.sale_total) }}</h4>
+            <p class="text-muted mb-0">Revenue</p>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        TODAY'S PROFIT
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade pos-modal" id="today-profit" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Today's Profit</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
+  <VModal
+    :show-modal="posStore.modals.todayProfit"
+    size="md"
+    title="Today's Profit"
+    @close-click="posStore.closeModal('todayProfit')"
+  >
+    <template #modal-body>
+      <div class="row g-3 text-center">
+        <div class="col-4">
+          <div class="bg-light p-3 br-10">
+            <i class="ti ti-currency-rupee fs-28 text-primary d-block mb-1"></i>
+            <h5>{{ formatMoney(todaySummary.sale_total) }}</h5>
+            <p class="text-muted mb-0 small">Revenue</p>
+          </div>
         </div>
-        <div class="modal-body text-center">
-          <div class="row g-3">
-            <div class="col-4">
-              <div class="bg-light p-3 br-10">
-                <i class="ti ti-currency-rupee fs-28 text-primary d-block mb-1"></i>
-                <h5>{{ formatMoney(todaySummary.sale_total) }}</h5>
-                <p class="text-muted mb-0 small">Revenue</p>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="bg-light p-3 br-10">
-                <i class="ti ti-minus-circle fs-28 text-danger d-block mb-1"></i>
-                <h5>{{ formatMoney(todaySummary.cogs) }}</h5>
-                <p class="text-muted mb-0 small">COGS</p>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="bg-light p-3 br-10">
-                <i class="ti ti-trending-up fs-28 text-success d-block mb-1"></i>
-                <h5>{{ formatMoney(todaySummary.profit) }}</h5>
-                <p class="text-muted mb-0 small">Profit</p>
-              </div>
-            </div>
+        <div class="col-4">
+          <div class="bg-light p-3 br-10">
+            <i class="ti ti-minus-circle fs-28 text-danger d-block mb-1"></i>
+            <h5>{{ formatMoney(todaySummary.cogs) }}</h5>
+            <p class="text-muted mb-0 small">COGS</p>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="bg-light p-3 br-10">
+            <i class="ti ti-trending-up fs-28 text-success d-block mb-1"></i>
+            <h5>{{ formatMoney(todaySummary.profit) }}</h5>
+            <p class="text-muted mb-0 small">Profit</p>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        CASH REGISTER (Till Summary)
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade pos-modal" id="cash-register" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Cash Register</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
+  <VModal
+    :show-modal="posStore.modals.cashRegister"
+    size="md"
+    title="Cash Register"
+    @close-click="posStore.closeModal('cashRegister')"
+  >
+    <template #modal-body>
+      <!-- No active session -->
+      <div v-if="!tillSession" class="text-center py-3">
+        <i class="ti ti-lock fs-32 text-muted d-block mb-2"></i>
+        <p class="text-muted mb-3">Till is not open</p>
+        <button
+          type="button"
+          class="btn btn-success btn-sm"
+          @click="posStore.switchModal('cashRegister', 'tillOpen')"
+        >
+          <i class="ti ti-lock-open me-1"></i>Open Till
+        </button>
+      </div>
+
+      <!-- Active session summary -->
+      <div v-else>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <span class="badge bg-success">Till Open</span>
+          <small class="text-muted">Since {{ formatTime(tillSession.opened_at) }}</small>
+        </div>
+
+        <!-- Live summary (loaded when modal opens) -->
+        <div v-if="tillSummaryLoading" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-primary"></div>
+        </div>
+        <div v-else-if="tillSummaryData">
+          <table class="table table-sm table-borderless mb-0">
+            <tbody>
+              <tr>
+                <td class="text-muted">Opening Cash</td>
+                <td class="text-end fw-semibold">{{ formatMoney(tillSession.opening_cash) }}</td>
+              </tr>
+              <tr v-for="(amount, method) in tillSummaryData.sales_by_method" :key="method">
+                <td class="text-muted text-capitalize">{{ method }} Sales</td>
+                <td class="text-end fw-semibold">{{ formatMoney(amount) }}</td>
+              </tr>
+              <template v-if="tillSummaryData.cash_ins > 0 || tillSummaryData.cash_outs > 0">
+                <tr class="border-top">
+                  <td class="text-muted">Cash In</td>
+                  <td class="text-end text-success fw-semibold">+ {{ formatMoney(tillSummaryData.cash_ins) }}</td>
+                </tr>
+                <tr>
+                  <td class="text-muted">Cash Out</td>
+                  <td class="text-end text-danger fw-semibold">- {{ formatMoney(tillSummaryData.cash_outs) }}</td>
+                </tr>
+              </template>
+              <tr class="border-top">
+                <td class="fw-bold">Expected Cash</td>
+                <td class="text-end fw-bold text-primary">{{ formatMoney(tillSummaryData.expected_cash) }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Cash movements log -->
+          <div v-if="tillSummaryData.movements.length" class="mt-3">
+            <p class="small text-muted mb-1 fw-semibold">Cash Movements</p>
+            <div
+              v-for="m in tillSummaryData.movements"
+              :key="m.id"
+              class="d-flex justify-content-between align-items-center py-1 border-bottom small"
+            >
+              <span>
+                <span :class="m.type === 'cash_in' ? 'badge bg-success-subtle text-success' : 'badge bg-danger-subtle text-danger'">
+                  {{ m.type === 'cash_in' ? '+' : '−' }}
+                </span>
+                {{ m.reason || (m.type === 'cash_in' ? 'Cash In' : 'Cash Out') }}
+              </span>
+              <span :class="m.type === 'cash_in' ? 'text-success' : 'text-danger'" class="fw-semibold">
+                {{ formatMoney(m.amount) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary flex-grow-1"
+            @click="posStore.switchModal('cashRegister', 'cashMovement')"
+          >
+            <i class="ti ti-arrows-exchange me-1"></i>Cash In/Out
+          </button>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-danger flex-grow-1"
+            @click="loadTillSummaryForClose(); posStore.switchModal('cashRegister', 'tillClose')"
+          >
+            <i class="ti ti-lock me-1"></i>Close Till
           </button>
         </div>
-        <div class="modal-body">
-          <!-- No active session -->
-          <div v-if="!tillSession" class="text-center py-3">
-            <i class="ti ti-lock fs-32 text-muted d-block mb-2"></i>
-            <p class="text-muted mb-3">Till is not open</p>
-            <button
-              type="button"
-              class="btn btn-success btn-sm"
-              data-bs-dismiss="modal"
-              data-bs-toggle="modal"
-              data-bs-target="#till-open"
-            >
-              <i class="ti ti-lock-open me-1"></i>Open Till
-            </button>
-          </div>
-
-          <!-- Active session summary -->
-          <div v-else>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="badge bg-success">Till Open</span>
-              <small class="text-muted">Since {{ formatTime(tillSession.opened_at) }}</small>
-            </div>
-
-            <!-- Live summary (loaded when modal opens) -->
-            <div v-if="tillSummaryLoading" class="text-center py-3">
-              <div class="spinner-border spinner-border-sm text-primary"></div>
-            </div>
-            <div v-else-if="tillSummaryData">
-              <table class="table table-sm table-borderless mb-0">
-                <tbody>
-                  <tr>
-                    <td class="text-muted">Opening Cash</td>
-                    <td class="text-end fw-semibold">{{ formatMoney(tillSession.opening_cash) }}</td>
-                  </tr>
-                  <tr v-for="(amount, method) in tillSummaryData.sales_by_method" :key="method">
-                    <td class="text-muted text-capitalize">{{ method }} Sales</td>
-                    <td class="text-end fw-semibold">{{ formatMoney(amount) }}</td>
-                  </tr>
-                  <template v-if="tillSummaryData.cash_ins > 0 || tillSummaryData.cash_outs > 0">
-                    <tr class="border-top">
-                      <td class="text-muted">Cash In</td>
-                      <td class="text-end text-success fw-semibold">+ {{ formatMoney(tillSummaryData.cash_ins) }}</td>
-                    </tr>
-                    <tr>
-                      <td class="text-muted">Cash Out</td>
-                      <td class="text-end text-danger fw-semibold">- {{ formatMoney(tillSummaryData.cash_outs) }}</td>
-                    </tr>
-                  </template>
-                  <tr class="border-top">
-                    <td class="fw-bold">Expected Cash</td>
-                    <td class="text-end fw-bold text-primary">{{ formatMoney(tillSummaryData.expected_cash) }}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <!-- Cash movements log -->
-              <div v-if="tillSummaryData.movements.length" class="mt-3">
-                <p class="small text-muted mb-1 fw-semibold">Cash Movements</p>
-                <div
-                  v-for="m in tillSummaryData.movements"
-                  :key="m.id"
-                  class="d-flex justify-content-between align-items-center py-1 border-bottom small"
-                >
-                  <span>
-                    <span :class="m.type === 'cash_in' ? 'badge bg-success-subtle text-success' : 'badge bg-danger-subtle text-danger'">
-                      {{ m.type === 'cash_in' ? '+' : '−' }}
-                    </span>
-                    {{ m.reason || (m.type === 'cash_in' ? 'Cash In' : 'Cash Out') }}
-                  </span>
-                  <span :class="m.type === 'cash_in' ? 'text-success' : 'text-danger'" class="fw-semibold">
-                    {{ formatMoney(m.amount) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex gap-2 mt-3 flex-wrap">
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-primary flex-grow-1"
-                data-bs-dismiss="modal"
-                data-bs-toggle="modal"
-                data-bs-target="#cash-movement"
-              >
-                <i class="ti ti-arrows-exchange me-1"></i>Cash In/Out
-              </button>
-              <button
-                type="button"
-                class="btn btn-sm btn-outline-danger flex-grow-1"
-                data-bs-dismiss="modal"
-                data-bs-toggle="modal"
-                data-bs-target="#till-close"
-                @click="loadTillSummaryForClose"
-              >
-                <i class="ti ti-lock me-1"></i>Close Till
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        TILL OPEN
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="till-open" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="ti ti-lock-open me-2 text-success"></i>Open Till</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <p class="text-muted small mb-3">Count the cash in the drawer and enter the opening balance to start your shift.</p>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Opening Cash <span class="text-danger">*</span></label>
-            <div class="input-icon-start position-relative">
-              <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
-              <input
-                type="number"
-                class="form-control"
-                v-model.number="tillOpeningCash"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button
-            type="button"
-            class="btn btn-md btn-success"
-            :disabled="tillOpening || tillOpeningCash < 0"
-            @click="doOpenTill"
-          >
-            <span v-if="tillOpening" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="ti ti-lock-open me-1"></i>Open Till
-          </button>
+  <VModal
+    :show-modal="posStore.modals.tillOpen"
+    size="md"
+    @close-click="posStore.closeModal('tillOpen')"
+  >
+    <template #header>
+      <div class="page-title">
+        <h4><i class="ti ti-lock-open me-2 text-success"></i>Open Till</h4>
+      </div>
+    </template>
+    <template #modal-body>
+      <p class="text-muted small mb-3">Count the cash in the drawer and enter the opening balance to start your shift.</p>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Opening Cash <span class="text-danger">*</span></label>
+        <div class="input-icon-start position-relative">
+          <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
+          <input
+            type="number"
+            class="form-control"
+            v-model.number="tillOpeningCash"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+          />
         </div>
       </div>
-    </div>
-  </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('tillOpen')">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-md btn-success"
+          :disabled="tillOpening || tillOpeningCash < 0"
+          @click="doOpenTill"
+        >
+          <span v-if="tillOpening" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="ti ti-lock-open me-1"></i>Open Till
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        CASH MOVEMENT (Cash In / Cash Out)
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade modal-default" id="cash-movement" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="ti ti-arrows-exchange me-2"></i>Cash In / Cash Out</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
-            <div class="d-flex gap-2">
-              <button
-                type="button"
-                class="btn flex-grow-1"
-                :class="movementType === 'cash_in' ? 'btn-success' : 'btn-outline-success'"
-                @click="movementType = 'cash_in'"
-              >
-                <i class="ti ti-arrow-down-circle me-1"></i>Cash In
-              </button>
-              <button
-                type="button"
-                class="btn flex-grow-1"
-                :class="movementType === 'cash_out' ? 'btn-danger' : 'btn-outline-danger'"
-                @click="movementType = 'cash_out'"
-              >
-                <i class="ti ti-arrow-up-circle me-1"></i>Cash Out
-              </button>
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
-            <div class="input-icon-start position-relative">
-              <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
-              <input
-                type="number"
-                class="form-control"
-                v-model.number="movementAmount"
-                min="0.01"
-                step="0.01"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Reason / Note</label>
-            <input
-              type="text"
-              class="form-control"
-              v-model="movementReason"
-              placeholder="e.g. Petty cash, Expense, Received from bank…"
-              maxlength="255"
-            />
-          </div>
-        </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
+  <VModal
+    :show-modal="posStore.modals.cashMovement"
+    size="md"
+    @close-click="posStore.closeModal('cashMovement')"
+  >
+    <template #header>
+      <div class="page-title">
+        <h4><i class="ti ti-arrows-exchange me-2"></i>Cash In / Cash Out</h4>
+      </div>
+    </template>
+    <template #modal-body>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
+        <div class="d-flex gap-2">
           <button
             type="button"
-            class="btn btn-md"
-            :class="movementType === 'cash_in' ? 'btn-success' : 'btn-danger'"
-            :disabled="movementSaving || !movementAmount || movementAmount <= 0"
-            @click="doMovement"
+            class="btn flex-grow-1"
+            :class="movementType === 'cash_in' ? 'btn-success' : 'btn-outline-success'"
+            @click="movementType = 'cash_in'"
           >
-            <span v-if="movementSaving" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else :class="movementType === 'cash_in' ? 'ti ti-arrow-down-circle' : 'ti ti-arrow-up-circle'" class="me-1"></i>
-            Confirm {{ movementType === 'cash_in' ? 'Cash In' : 'Cash Out' }}
+            <i class="ti ti-arrow-down-circle me-1"></i>Cash In
+          </button>
+          <button
+            type="button"
+            class="btn flex-grow-1"
+            :class="movementType === 'cash_out' ? 'btn-danger' : 'btn-outline-danger'"
+            @click="movementType = 'cash_out'"
+          >
+            <i class="ti ti-arrow-up-circle me-1"></i>Cash Out
           </button>
         </div>
       </div>
-    </div>
-  </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Amount <span class="text-danger">*</span></label>
+        <div class="input-icon-start position-relative">
+          <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
+          <input
+            type="number"
+            class="form-control"
+            v-model.number="movementAmount"
+            min="0.01"
+            step="0.01"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Reason / Note</label>
+        <input
+          type="text"
+          class="form-control"
+          v-model="movementReason"
+          placeholder="e.g. Petty cash, Expense, Received from bank…"
+          maxlength="255"
+        />
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('cashMovement')">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-md"
+          :class="movementType === 'cash_in' ? 'btn-success' : 'btn-danger'"
+          :disabled="movementSaving || !movementAmount || movementAmount <= 0"
+          @click="doMovement"
+        >
+          <span v-if="movementSaving" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else :class="movementType === 'cash_in' ? 'ti ti-arrow-down-circle' : 'ti ti-arrow-up-circle'" class="me-1"></i>
+          Confirm {{ movementType === 'cash_in' ? 'Cash In' : 'Cash Out' }}
+        </button>
+      </div>
+    </template>
+  </VModal>
 
   <!-- ═══════════════════════════════════════════════════════════════
        TILL CLOSE (Z-Report)
   ════════════════════════════════════════════════════════════════ -->
-  <div class="modal fade pos-modal" id="till-close" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title"><i class="ti ti-lock me-2 text-danger"></i>Close Till — Z-Report</h5>
-          <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div v-if="tillCloseLoading" class="text-center py-4">
-            <div class="spinner-border text-primary"></div>
+  <VModal
+    :show-modal="posStore.modals.tillClose"
+    size="lg"
+    @close-click="posStore.closeModal('tillClose')"
+  >
+    <template #header>
+      <div class="page-title">
+        <h4><i class="ti ti-lock me-2 text-danger"></i>Close Till — Z-Report</h4>
+      </div>
+    </template>
+    <template #modal-body>
+      <div v-if="tillCloseLoading" class="text-center py-4">
+        <div class="spinner-border text-primary"></div>
+      </div>
+      <div v-else-if="tillCloseData">
+        <div class="row g-3 mb-3">
+          <!-- Sales breakdown -->
+          <div class="col-md-6">
+            <div class="bg-light br-10 p-3">
+              <h6 class="text-muted mb-2 small text-uppercase fw-bold">Sales by Payment Method</h6>
+              <div
+                v-for="(amount, method) in tillCloseData.sales_by_method"
+                :key="method"
+                class="d-flex justify-content-between py-1 border-bottom small"
+              >
+                <span class="text-capitalize">{{ method }}</span>
+                <span class="fw-semibold">{{ formatMoney(amount) }}</span>
+              </div>
+              <div v-if="!Object.keys(tillCloseData.sales_by_method || {}).length" class="text-muted small">
+                No sales this session
+              </div>
+            </div>
           </div>
-          <div v-else-if="tillCloseData">
-            <div class="row g-3 mb-3">
-              <!-- Sales breakdown -->
-              <div class="col-md-6">
-                <div class="bg-light br-10 p-3">
-                  <h6 class="text-muted mb-2 small text-uppercase fw-bold">Sales by Payment Method</h6>
-                  <div
-                    v-for="(amount, method) in tillCloseData.sales_by_method"
-                    :key="method"
-                    class="d-flex justify-content-between py-1 border-bottom small"
-                  >
-                    <span class="text-capitalize">{{ method }}</span>
-                    <span class="fw-semibold">{{ formatMoney(amount) }}</span>
-                  </div>
-                  <div v-if="!Object.keys(tillCloseData.sales_by_method || {}).length" class="text-muted small">
-                    No sales this session
-                  </div>
-                </div>
-              </div>
 
-              <!-- Cash summary -->
-              <div class="col-md-6">
-                <div class="bg-light br-10 p-3">
-                  <h6 class="text-muted mb-2 small text-uppercase fw-bold">Cash Summary</h6>
-                  <div class="d-flex justify-content-between py-1 border-bottom small">
-                    <span>Opening Cash</span>
-                    <span class="fw-semibold">{{ formatMoney(tillCloseData.opening_cash) }}</span>
-                  </div>
-                  <div class="d-flex justify-content-between py-1 border-bottom small">
-                    <span>Cash Sales</span>
-                    <span class="fw-semibold text-success">+ {{ formatMoney(tillCloseData.cash_sales) }}</span>
-                  </div>
-                  <div v-if="tillCloseData.cash_ins > 0" class="d-flex justify-content-between py-1 border-bottom small">
-                    <span>Cash In</span>
-                    <span class="fw-semibold text-success">+ {{ formatMoney(tillCloseData.cash_ins) }}</span>
-                  </div>
-                  <div v-if="tillCloseData.cash_outs > 0" class="d-flex justify-content-between py-1 border-bottom small">
-                    <span>Cash Out</span>
-                    <span class="fw-semibold text-danger">− {{ formatMoney(tillCloseData.cash_outs) }}</span>
-                  </div>
-                  <div class="d-flex justify-content-between py-1 fw-bold">
-                    <span>Expected in Drawer</span>
-                    <span class="text-primary">{{ formatMoney(tillCloseData.expected_cash) }}</span>
-                  </div>
-                </div>
+          <!-- Cash summary -->
+          <div class="col-md-6">
+            <div class="bg-light br-10 p-3">
+              <h6 class="text-muted mb-2 small text-uppercase fw-bold">Cash Summary</h6>
+              <div class="d-flex justify-content-between py-1 border-bottom small">
+                <span>Opening Cash</span>
+                <span class="fw-semibold">{{ formatMoney(tillCloseData.opening_cash) }}</span>
               </div>
-            </div>
-
-            <!-- Closing count input -->
-            <div class="mb-3">
-              <label class="form-label fw-semibold">
-                Actual Cash Counted <span class="text-danger">*</span>
-              </label>
-              <div class="input-icon-start position-relative">
-                <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
-                <input
-                  type="number"
-                  class="form-control"
-                  v-model.number="tillClosingCash"
-                  min="0"
-                  step="0.01"
-                  placeholder="Count the cash in your drawer"
-                />
+              <div class="d-flex justify-content-between py-1 border-bottom small">
+                <span>Cash Sales</span>
+                <span class="fw-semibold text-success">+ {{ formatMoney(tillCloseData.cash_sales) }}</span>
               </div>
-            </div>
-
-            <!-- Difference indicator -->
-            <div
-              v-if="tillClosingCash !== null && tillClosingCash !== ''"
-              class="alert mb-3"
-              :class="tillCashDifference === 0 ? 'alert-success' : (tillCashDifference > 0 ? 'alert-info' : 'alert-danger')"
-            >
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="fw-semibold">
-                  <i :class="tillCashDifference === 0 ? 'ti ti-check' : (tillCashDifference > 0 ? 'ti ti-trending-up' : 'ti ti-trending-down')" class="me-1"></i>
-                  {{ tillCashDifference === 0 ? 'Balanced' : (tillCashDifference > 0 ? 'Overage' : 'Shortage') }}
-                </span>
-                <span class="fw-bold">{{ formatMoney(Math.abs(tillCashDifference)) }}</span>
+              <div v-if="tillCloseData.cash_ins > 0" class="d-flex justify-content-between py-1 border-bottom small">
+                <span>Cash In</span>
+                <span class="fw-semibold text-success">+ {{ formatMoney(tillCloseData.cash_ins) }}</span>
               </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label">Notes (optional)</label>
-              <textarea
-                class="form-control"
-                rows="2"
-                v-model="tillCloseNotes"
-                placeholder="Any notes about this closing…"
-              ></textarea>
+              <div v-if="tillCloseData.cash_outs > 0" class="d-flex justify-content-between py-1 border-bottom small">
+                <span>Cash Out</span>
+                <span class="fw-semibold text-danger">− {{ formatMoney(tillCloseData.cash_outs) }}</span>
+              </div>
+              <div class="d-flex justify-content-between py-1 fw-bold">
+                <span>Expected in Drawer</span>
+                <span class="text-primary">{{ formatMoney(tillCloseData.expected_cash) }}</span>
+              </div>
             </div>
           </div>
         </div>
-        <div class="modal-footer d-flex justify-content-end gap-2">
-          <button type="button" class="btn btn-md btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button
-            type="button"
-            class="btn btn-md btn-danger"
-            :disabled="tillClosing || tillClosingCash === null || tillClosingCash === ''"
-            @click="doCloseTill"
-          >
-            <span v-if="tillClosing" class="spinner-border spinner-border-sm me-1"></span>
-            <i v-else class="ti ti-lock me-1"></i>Close Till
-          </button>
+
+        <!-- Closing count input -->
+        <div class="mb-3">
+          <label class="form-label fw-semibold">
+            Actual Cash Counted <span class="text-danger">*</span>
+          </label>
+          <div class="input-icon-start position-relative">
+            <span class="input-icon-addon text-gray-9"><i class="ti ti-currency-rupee"></i></span>
+            <input
+              type="number"
+              class="form-control"
+              v-model.number="tillClosingCash"
+              min="0"
+              step="0.01"
+              placeholder="Count the cash in your drawer"
+            />
+          </div>
+        </div>
+
+        <!-- Difference indicator -->
+        <div
+          v-if="tillClosingCash !== null && tillClosingCash !== ''"
+          class="alert mb-3"
+          :class="tillCashDifference === 0 ? 'alert-success' : (tillCashDifference > 0 ? 'alert-info' : 'alert-danger')"
+        >
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-semibold">
+              <i :class="tillCashDifference === 0 ? 'ti ti-check' : (tillCashDifference > 0 ? 'ti ti-trending-up' : 'ti ti-trending-down')" class="me-1"></i>
+              {{ tillCashDifference === 0 ? 'Balanced' : (tillCashDifference > 0 ? 'Overage' : 'Shortage') }}
+            </span>
+            <span class="fw-bold">{{ formatMoney(Math.abs(tillCashDifference)) }}</span>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Notes (optional)</label>
+          <textarea
+            class="form-control"
+            rows="2"
+            v-model="tillCloseNotes"
+            placeholder="Any notes about this closing…"
+          ></textarea>
         </div>
       </div>
-    </div>
-  </div>
+
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-md btn-secondary" @click="posStore.closeModal('tillClose')">Cancel</button>
+        <button
+          type="button"
+          class="btn btn-md btn-danger"
+          :disabled="tillClosing || tillClosingCash === null || tillClosingCash === ''"
+          @click="doCloseTill"
+        >
+          <span v-if="tillClosing" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="ti ti-lock me-1"></i>Close Till
+        </button>
+      </div>
+    </template>
+  </VModal>
 </template>
 
 <script>
-import { Modal } from 'bootstrap';
-import { cleanupModalArtifacts } from '@/helpers/cleanupModalArtifacts.js';
 import {formatMoney, formatMoneyPlain} from '@/helpers/formatMoney.js';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors.js';
 import { useToast } from 'vue-toastification';
 import { useThermalPrinter } from '@/composables/useThermalPrinter.js';
+import { usePosStore } from '@/stores/admin/pos/pos.js';
 
 // ─── Amount-in-words helper (Nepali Rupees, lakh/crore system) ───────────────
 function numberToWords(n) {
@@ -1581,10 +1518,12 @@ export default {
 
   setup() {
     const thermalPrinter = useThermalPrinter();
+    const posStore = usePosStore();
 
     return {
       thermalCtl: thermalPrinter,
       thermal: thermalPrinter.state,
+      posStore,
     };
   },
 
@@ -1657,12 +1596,10 @@ export default {
       return this.companyLogoUrl;
     },
 
-    /** The receipt being previewed — either a reprint or the last completed sale. */
     activeReceipt() {
       return this.reprintSale ?? this.lastSale;
     },
 
-    /** Two-way bound to the terminal's selected QZ Tray printer. */
     thermalPrinter: {
       get() {
         return this.thermal.selectedPrinter;
@@ -1672,12 +1609,10 @@ export default {
       },
     },
 
-    /** True when a thermal printer is connected and selected for direct printing. */
     useThermalPrint() {
       return this.thermal.connected && !!this.thermal.selectedPrinter;
     },
 
-    /** Company identity fields passed to the ESC/POS builder. */
     receiptCompany() {
       return {
         companyName: this.companyName,
@@ -1690,12 +1625,10 @@ export default {
       };
     },
 
-    /** "TAX INVOICE" when VAT is present, otherwise "CASH MEMO". */
     receiptTitle() {
       return Number(this.activeReceipt?.tax_total) > 0 ? 'TAX INVOICE' : 'CASH MEMO';
     },
 
-    /** Taxable amount — uses server value when available, otherwise computes client-side. */
     receiptTaxableAmount() {
       const r = this.activeReceipt;
       if (!r) { return 0; }
@@ -1720,32 +1653,28 @@ export default {
     activeReceipt(val) {
       this.customerPan = val?.party_pan ?? '';
     },
+
+    'posStore.modals.recents'(isOpen) {
+      if (isOpen) {
+        this.loadRecentTransactions();
+      }
+    },
+
+    'posStore.modals.cashRegister'(isOpen) {
+      if (isOpen) {
+        this.loadTillSummary();
+      }
+    },
+
+    'posStore.modals.printReceipt'(isOpen) {
+      if (isOpen) {
+        this.probeThermalPrinter();
+      }
+    },
   },
 
   mounted() {
-    const recentsEl = document.getElementById('recents');
-    if (recentsEl) {
-      recentsEl.addEventListener('show.bs.modal', () => this.loadRecentTransactions());
-    }
-    const cashRegisterEl = document.getElementById('cash-register');
-    if (cashRegisterEl) {
-      cashRegisterEl.addEventListener('show.bs.modal', () => this.loadTillSummary());
-    }
-    const receiptEl = document.getElementById('print-receipt');
-    if (receiptEl) {
-      receiptEl.addEventListener('show.bs.modal', () => this.probeThermalPrinter());
-    }
     this.loadCompanyInfo();
-  },
-
-  beforeUnmount() {
-    // Dispose this component's native Bootstrap modals so their backdrops are
-    // not orphaned on the body when POS unmounts on a route change. The
-    // warehouse picker owns its own lifecycle, so it is excluded here.
-    document.querySelectorAll('.modal:not(#pos-warehouse-picker)').forEach((el) => {
-      Modal.getInstance(el)?.dispose();
-    });
-    cleanupModalArtifacts();
   },
 
   methods: {
@@ -1765,7 +1694,7 @@ export default {
 
     switchToPrintReceipt() {
       this.openPrintReceiptForLastSale();
-      this.closeModal('payment-completed', () => this.openModal('print-receipt'));
+      this.posStore.switchModal('paymentCompleted', 'printReceipt');
     },
 
     async doCheckout(overrideMethod = null, splitPayments = null) {
@@ -1773,8 +1702,8 @@ export default {
       this.loading = true;
       try {
         this.$emit('checkout', overrideMethod ?? this.paymentMethod, splitPayments, this.paymentModeId);
-        ['payment-cash', 'payment-card', 'scan-payment', 'payment-generic', 'credit-sale', 'split-payment'].forEach(id => {
-          this.closeModal(id);
+        ['paymentCash', 'paymentCard', 'scanPayment', 'paymentGeneric', 'creditSale', 'splitPayment'].forEach(name => {
+          this.posStore.closeModal(name);
         });
         this.cashTendered = 0;
       } finally {
@@ -1803,9 +1732,9 @@ export default {
     doHold() {
       this.$emit('hold', this.holdLabel.trim() || null);
       this.holdLabel = '';
+      this.posStore.closeModal('holdOrder');
     },
 
-    /** Detect QZ Tray and load printers when the receipt modal opens. */
     async probeThermalPrinter() {
       try {
         if (await this.thermalCtl.isAvailable()) {
@@ -1824,7 +1753,6 @@ export default {
       }
     },
 
-    /** Print dispatcher — direct ESC/POS when a thermal printer is selected, else browser. */
     async printReceipt() {
       if (!this.activeReceipt) {
         useToast().error('Nothing to print — open a completed sale first.');
@@ -1842,8 +1770,6 @@ export default {
 
           return;
         } catch (error) {
-          // Do NOT fall back to browser when a thermal printer is explicitly selected —
-          // that would send an A4-sized page to the thermal driver and waste a long strip of paper.
           useToast().error(`Thermal print failed: ${error.message || 'Unknown error. Check QZ Tray is running and the printer is online.'}`);
 
           return;
@@ -1863,8 +1789,6 @@ export default {
         return;
       }
 
-      // Use the live element's rendered height as the initial popup size.
-      // 60px accounts for the browser's title bar / chrome.
       const initialH = area.scrollHeight + 60;
       const printWindow = window.open('', '_blank', `width=420,height=${initialH}`);
       if (!printWindow) {
@@ -1878,9 +1802,6 @@ export default {
       doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${this.activeReceipt?.invoice_no ?? ''}</title><style>${RECEIPT_PRINT_STYLES}</style></head><body>${area.outerHTML}</body></html>`);
       doc.close();
 
-      // Guarantees the popup is torn down exactly once, regardless of which
-      // signal fires first (afterprint, or the safety timeout for browsers /
-      // thermal drivers that never emit afterprint).
       let closed = false;
       const closeOnce = () => {
         if (closed) { return; }
@@ -1889,23 +1810,16 @@ export default {
       };
 
       const doActualPrint = () => {
-        // Resize to the popup's own rendered height now that print CSS has been applied.
         try {
           const h = printWindow.document.body.scrollHeight;
           if (h > 0) { printWindow.resizeTo(420, h + 60); }
         } catch { /* resizeTo blocked by some browser configs — no-op */ }
 
-        // Close only AFTER the OS has accepted the job. Closing immediately
-        // after print() (the old behaviour) tears the document down before the
-        // spooler reads it, which silently cancels the job on many thermal
-        // drivers — the #1 cause of "I click print and nothing comes out".
         printWindow.onafterprint = closeOnce;
 
         printWindow.focus();
         printWindow.print();
 
-        // Fallback: some browsers never fire afterprint. Keep the window alive
-        // long enough for the spooler, then clean it up.
         setTimeout(closeOnce, 2000);
       };
 
@@ -1946,7 +1860,7 @@ export default {
         const res = await apiAdmin(`pos/receipt/${txn.id}`);
         this.reprintSale = res.data.data;
         this.customerPan = this.reprintSale?.party_pan ?? '';
-        this.closeModal('recents', () => this.openModal('print-receipt'));
+        this.posStore.switchModal('recents', 'printReceipt');
       } catch (err) {
         showErrors(err);
       } finally {
@@ -1964,7 +1878,7 @@ export default {
         const res = await apiAdmin(`pos/receipt/${txn.id}`);
         this.returnInvoice = res.data.data;
         this.returnItems = res.data.data.items.map(item => ({ ...item, returnQty: 0 }));
-        this.closeModal('recents', () => this.openModal('pos-return'));
+        this.posStore.switchModal('recents', 'posReturn');
       } catch (err) {
         showErrors(err);
       } finally {
@@ -2024,37 +1938,13 @@ export default {
         const customer = res.data.data;
         this.$emit('customer-created', customer);
         useToast().success('Customer created successfully');
-        this.closeModal('create');
+        this.posStore.closeModal('createCustomer');
         this.newCustomer = { name: '', phone: '', email: '', address: '' };
       } catch (err) {
         showErrors(err);
       } finally {
         this.customerSaving = false;
       }
-    },
-
-    closeModal(id, then = null) {
-      const el = document.getElementById(id);
-      if (!el) {
-        then?.();
-        return;
-      }
-      Modal.getOrCreateInstance(el).hide();
-      el.addEventListener('hidden.bs.modal', () => {
-        // Only force-clean when no other modal is still open
-        if (!document.querySelector('.modal.show')) {
-          document.querySelectorAll('.modal-backdrop').forEach((b) => b.remove());
-          document.body.classList.remove('modal-open');
-          document.body.style.paddingRight = '';
-          document.body.style.overflow = '';
-        }
-        then?.();
-      }, { once: true });
-    },
-
-    openModal(id) {
-      const el = document.getElementById(id);
-      if (el) { Modal.getOrCreateInstance(el).show(); }
     },
 
     async doOpenTill() {
@@ -2064,7 +1954,7 @@ export default {
         const res = await apiAdmin('pos/till/open', 'post', { opening_cash: this.tillOpeningCash ?? 0 });
         this.$emit('till-opened', res.data.data);
         useToast().success(res.data.message ?? 'Till opened');
-        this.closeModal('till-open');
+        this.posStore.closeModal('tillOpen');
         this.tillOpeningCash = 0;
       } catch (err) {
         showErrors(err);
@@ -2083,7 +1973,7 @@ export default {
           reason: this.movementReason || null,
         });
         useToast().success(res.data.message ?? 'Movement recorded');
-        this.closeModal('cash-movement');
+        this.posStore.closeModal('cashMovement');
         this.movementAmount = null;
         this.movementReason = '';
       } catch (err) {
@@ -2130,7 +2020,7 @@ export default {
         });
         this.$emit('till-closed', res.data.data);
         useToast().success('Till closed successfully');
-        this.closeModal('till-close');
+        this.posStore.closeModal('tillClose');
         this.tillCloseData = null;
         this.tillClosingCash = null;
         this.tillCloseNotes = '';

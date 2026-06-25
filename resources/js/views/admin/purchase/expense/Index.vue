@@ -97,7 +97,7 @@
                                         @click="approveExpense(record.id)">
                                         <i class="ti ti-check"></i>
                                     </a>
-                                    <a data-bs-toggle="modal" class="p-2" href="javascript:void(0);"
+                                    <a class="p-2" href="javascript:void(0);"
                                        @click="deleteExpense(record.id)">
                                         <i class="ti ti-trash"></i>
                                     </a>

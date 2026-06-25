@@ -50,6 +50,30 @@ export const usePosStore = defineStore('pos', {
         checkoutLoading: false,
         holdLoading: false,
         initialized: false,
+
+        modals: {
+            calculator: false,
+            orders: false,
+            recents: false,
+            reset: false,
+            holdOrder: false,
+            cashRegister: false,
+            tillOpen: false,
+            tillClose: false,
+            cashMovement: false,
+            paymentCash: false,
+            paymentCard: false,
+            paymentGeneric: false,
+            scanPayment: false,
+            creditSale: false,
+            splitPayment: false,
+            paymentCompleted: false,
+            printReceipt: false,
+            createCustomer: false,
+            todaySale: false,
+            todayProfit: false,
+            posReturn: false,
+        },
     }),
 
     getters: {
@@ -141,6 +165,23 @@ export const usePosStore = defineStore('pos', {
     },
 
     actions: {
+        openModal(name) {
+            if (name in this.modals) {
+                this.modals[name] = true;
+            }
+        },
+
+        closeModal(name) {
+            if (name in this.modals) {
+                this.modals[name] = false;
+            }
+        },
+
+        switchModal(close, open) {
+            this.closeModal(close);
+            this.openModal(open);
+        },
+
         async init() {
             if (this.initialized) {
                 return;

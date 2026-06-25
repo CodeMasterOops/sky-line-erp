@@ -102,8 +102,7 @@
                   <a
                     href="javascript:void(0);"
                     class="btn btn-primary mt-0"
-                    data-bs-toggle="modal"
-                    data-bs-target="#phone-verification"
+                    @click.prevent="phoneVerificationModalOpened = true"
                     >Change</a
                   >
                   <a
@@ -132,8 +131,7 @@
                   <a
                     href="javascript:void(0);"
                     class="btn btn-primary mt-0"
-                    data-bs-toggle="modal"
-                    data-bs-target="#email-verification"
+                    @click.prevent="emailVerificationModalOpened = true"
                     >Change</a
                   >
                   <a
@@ -240,6 +238,44 @@
   <AccountActivityModal v-model:show="activityModalOpened" />
   <DeactivateAccountModal v-model:show="deactivateModalOpened" />
   <DeleteAccountModal v-model:show="deleteModalOpened" />
+
+  <VModal
+    :show-modal="phoneVerificationModalOpened"
+    size="md"
+    title="Phone Number Verification"
+    @close-click="phoneVerificationModalOpened = false"
+  >
+    <template #modal-body>
+      <p class="text-muted mb-3">Enter your new phone number to update your verified mobile number.</p>
+      <div class="mb-3">
+        <label class="form-label fw-medium">New Phone Number <span class="text-danger">*</span></label>
+        <input type="tel" class="form-control" placeholder="+977 98XXXXXXXX" />
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @click="phoneVerificationModalOpened = false">Cancel</button>
+        <button type="button" class="btn btn-primary">Send OTP</button>
+      </div>
+    </template>
+  </VModal>
+
+  <VModal
+    :show-modal="emailVerificationModalOpened"
+    size="md"
+    title="Email Verification"
+    @close-click="emailVerificationModalOpened = false"
+  >
+    <template #modal-body>
+      <p class="text-muted mb-3">Enter your new email address to update your verified email.</p>
+      <div class="mb-3">
+        <label class="form-label fw-medium">New Email Address <span class="text-danger">*</span></label>
+        <input type="email" class="form-control" placeholder="you@example.com" />
+      </div>
+      <div class="d-flex justify-content-end gap-2 mt-3">
+        <button type="button" class="btn btn-secondary" @click="emailVerificationModalOpened = false">Cancel</button>
+        <button type="button" class="btn btn-primary">Send Verification Link</button>
+      </div>
+    </template>
+  </VModal>
 </template>
 
 <script setup>
@@ -255,4 +291,6 @@ const deviceModalOpened = ref(false);
 const activityModalOpened = ref(false);
 const deactivateModalOpened = ref(false);
 const deleteModalOpened = ref(false);
+const phoneVerificationModalOpened = ref(false);
+const emailVerificationModalOpened = ref(false);
 </script>
