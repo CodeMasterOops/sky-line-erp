@@ -28,7 +28,7 @@ return [
 
     'worker_queues' => env(
         'QUEUE_WORKER_QUEUES',
-        'data-transfer-heavy,data-transfer,default,ird',
+        'provisioning,data-transfer-heavy,data-transfer,default,ird',
     ),
 
     /*

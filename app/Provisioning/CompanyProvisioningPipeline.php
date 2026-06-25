@@ -41,8 +41,6 @@ class CompanyProvisioningPipeline
             });
 
             $log->markComplete();
-
-            $company->update(['onboarding_completed_at' => $company->onboarding_completed_at ?? now()]);
         } catch (\Throwable $e) {
             $log->markFailed($e);
             throw $e;

@@ -264,9 +264,7 @@ const submitForm = async () => {
 
         successMessage.value = 'Account created! Setting up your workspace...';
 
-        setTimeout(() => {
-            router.push({ name: 'admin.onboarding' });
-        }, 800);
+        router.push({ name: 'admin.workspace-setup' });
     } catch (err) {
         const response = err?.response;
         if (response?.status === 422 && response.data?.errors) {

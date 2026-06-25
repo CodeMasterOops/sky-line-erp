@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\SuperAdmin\FiscalYearController;
 use App\Http\Controllers\Api\SuperAdmin\TaxTemplateController;
 use App\Http\Controllers\Api\SuperAdmin\SubscriptionController;
 use App\Http\Controllers\Api\SuperAdmin\CompanyBranchController;
+use App\Http\Controllers\Api\SuperAdmin\CompanyProvisionLogController;
 
 Route::controller(AuthController::class)->group(function () {
     Route::post('login', 'login')->middleware('throttle:auth')->name('login');
@@ -57,6 +58,8 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::post('company/{company}/login', [CompanyController::class, 'companyLogin'])->name('company.login');
     Route::put('company/{company}/update-status', [CompanyController::class, 'updateStatus'])->name('company.update-status');
     Route::put('company/{company}/reset-password', [CompanyController::class, 'resetPassword'])->name('company.reset-password');
+    Route::get('company/{company}/provision-log', [CompanyProvisionLogController::class, 'index'])->name('company.provision-log.index');
+    Route::post('company/{company}/reprovision', [CompanyProvisionLogController::class, 'reprovision'])->name('company.reprovision');
     Route::apiResource('company.branch', CompanyBranchController::class)->only('index', 'store', 'update', 'destroy');
     Route::apiResource('company', CompanyController::class);
 

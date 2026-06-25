@@ -5,6 +5,8 @@ use App\Models\User;
 use App\Models\Company;
 use App\Enums\UserTypeEnum;
 use App\Models\Subscription;
+use App\Jobs\ProvisionCompanyJob;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -23,6 +25,10 @@ function warmTablesCache(): void
 
 beforeEach(function () {
     warmTablesCache();
+
+    // Prevent the provisioning job from running synchronously so that
+    // registration tests stay focused on account creation, not provisioning.
+    Bus::fake([ProvisionCompanyJob::class]);
 
     Plan::create([
         'name' => 'Basic',
@@ -158,4 +164,58 @@ it('fails validation when email format is invalid', function () {
         'password_confirmation' => 'password123',
     ])->assertUnprocessable()
         ->assertJsonValidationErrors(['email']);
+});
+
+// ---------------------------------------------------------------------------
+// Async provisioning
+// ---------------------------------------------------------------------------
+
+it('dispatches ProvisionCompanyJob asynchronously after registration', function () {
+    Bus::fake([ProvisionCompanyJob::class]);
+
+    $response = $this->postJson('/api/admin/register', [
+        'company_name' => 'Async Provision Co',
+        'name' => 'Async User',
+        'email' => 'async@provision.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ]);
+
+    $response->assertStatus(201);
+
+    $company = Company::where('email', 'async@provision.com')->first();
+
+    Bus::assertDispatched(ProvisionCompanyJob::class, function (ProvisionCompanyJob $job) use ($company): bool {
+        return $job->companyId === $company->id;
+    });
+});
+
+it('returns provisioning_pending flag in registration response', function () {
+    Bus::fake([ProvisionCompanyJob::class]);
+
+    $this->postJson('/api/admin/register', [
+        'company_name' => 'Pending Co',
+        'name' => 'Pending User',
+        'email' => 'pending@provision.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ])->assertStatus(201)
+        ->assertJsonFragment(['provisioning_pending' => true]);
+});
+
+it('does not synchronously run provisioning steps during registration', function () {
+    Bus::fake([ProvisionCompanyJob::class]);
+
+    $this->postJson('/api/admin/register', [
+        'company_name' => 'No Sync Co',
+        'name' => 'No Sync User',
+        'email' => 'nosync@provision.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+    ])->assertStatus(201);
+
+    $company = Company::where('email', 'nosync@provision.com')->first();
+
+    // No provision log should exist yet because the job was faked (not executed)
+    expect(\App\Models\CompanyProvisionLog::where('company_id', $company->id)->exists())->toBeFalse();
 });

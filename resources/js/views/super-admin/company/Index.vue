@@ -118,8 +118,14 @@
                                     </button>
                                     <router-link
                                         :to="{name:'super-admin.company-edit',params:{id:record.id}}"
-                                        class="btn btn-xs btn-outline-primary">
+                                        class="btn btn-xs btn-outline-primary me-2">
                                         <i class="fa fa-edit"></i>
+                                    </router-link>
+                                    <router-link
+                                        :to="{name:'super-admin.company-provision-log',params:{id:record.id}}"
+                                        class="btn btn-xs btn-outline-info"
+                                        title="Provision Log">
+                                        <i class="ti ti-database"></i>
                                     </router-link>
                                 </div>
                             </template>

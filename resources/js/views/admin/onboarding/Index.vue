@@ -348,6 +348,7 @@ const companyForm = reactive({
 });
 
 const branchForm = reactive({
+    branchId: null,
     name: '',
     code: '',
     phone: '',
@@ -414,7 +415,7 @@ const loadInitialData = async () => {
             branchForm.phone = headOffice.phone ?? '';
             branchForm.email = headOffice.email ?? '';
             branchForm.address = headOffice.address ?? '';
-            branchForm._id = headOffice.id;
+            branchForm.branchId = headOffice.id;
         }
     } finally {
         isLoadingData.value = false;
@@ -520,9 +521,9 @@ const submitBranchStep = async () => {
     isLoading.value = true;
 
     try {
-        if (branchForm._id) {
+        if (branchForm.branchId) {
             // Update the auto-created branch
-            await apiAdmin(`branch/${branchForm._id}`, 'put', {
+            await apiAdmin(`branch/${branchForm.branchId}`, 'put', {
                 name: branchForm.name,
                 code: branchForm.code,
                 phone: branchForm.phone || undefined,

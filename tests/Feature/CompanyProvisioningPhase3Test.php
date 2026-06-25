@@ -74,11 +74,13 @@ it('does not overwrite existing company preferences when pipeline runs twice', f
 
     CompanyProvisioningPipeline::make()->run($this->company);
 
-    // updateOrCreate should keep the manually overridden value on second run
-    // because the idempotency guard on the pipeline level prevents re-running.
-    // Verify no duplicate settings are created.
-    expect(Setting::where('key', 'like', "company.{$this->company->id}.%")->count())
-        ->toBe(count(config('provisioning.preferences')));
+    // Verify no duplicate preference settings are created (manufacturing settings excluded).
+    $prefKeys = array_map(
+        fn (string $k): string => "company.{$this->company->id}.{$k}",
+        array_keys(config('provisioning.preferences'))
+    );
+
+    expect(Setting::whereIn('key', $prefKeys)->count())->toBe(count($prefKeys));
 });
 
 // ---------------------------------------------------------------------------

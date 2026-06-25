@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Enums\UserTypeEnum;
 use Illuminate\Http\Request;
 use App\Services\TenantService;
+use App\Jobs\ProvisionCompanyJob;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,6 @@ use App\Services\SecurityActivityLogger;
 use Laravel\Sanctum\PersonalAccessToken;
 use App\Http\Requests\Api\Admin\LoginRequest;
 use App\Http\Resources\Admin\ProfileResource;
-use App\Services\SetCompanyDefaultDataService;
 use App\Http\Requests\Api\Admin\RegisterRequest;
 use App\Http\Resources\Admin\Settings\BranchResource;
 
@@ -103,12 +103,14 @@ class AuthController extends Controller
                 'user_type' => UserTypeEnum::ADMIN->value,
             ]);
 
-            SetCompanyDefaultDataService::setData($company);
-
             app(SubscriptionService::class)->assignDefaultPlan($company);
 
             return [$company, $user];
         });
+
+        // Dispatch provisioning after the transaction commits so a failure
+        // here does not roll back the user's account creation.
+        ProvisionCompanyJob::dispatch($company->id)->onQueue('provisioning');
 
         Auth::guard('admin')->setUser($user);
 
@@ -121,6 +123,7 @@ class AuthController extends Controller
             'user' => ProfileResource::make($user),
             'permissions' => base64_encode(json_encode(userPermissions($user))),
             'needs_onboarding' => true,
+            'provisioning_pending' => true,
             'message' => 'Account created successfully.',
         ], 201);
     }

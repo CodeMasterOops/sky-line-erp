@@ -73,6 +73,14 @@ const routes = [
                 component: () => import('@/views/super-admin/company/Edit.vue')
             },
             {
+                path: 'company/:id/provision-log',
+                name: 'super-admin.company-provision-log',
+                meta: {
+                    pageTitle: 'Provision Log'
+                },
+                component: () => import('@/views/super-admin/company/ProvisionLog.vue')
+            },
+            {
                 path: 'subscription',
                 name: 'super-admin.subscription',
                 meta: {

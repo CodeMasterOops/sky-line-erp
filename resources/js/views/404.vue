@@ -1,15 +1,20 @@
 <template>
     <main>
         <div class="container">
-            <section
-                class="section error-404 min-vh-100 d-flex flex-column align-items-center justify-content-center"
-            >
+            <section class="section error-404 min-vh-100 d-flex flex-column align-items-center justify-content-center">
+                <span class="error-badge">Error</span>
                 <h1>404</h1>
-                <h2>The page you are looking for doesn't exist.</h2>
-                <router-link :to="{ name:isSuperAdminRoute ? 'super-admin.dashboard' : 'user.dashboard' }" class="btn">
-                    Back to home
+                <h2>Page Not Found</h2>
+                <p>The page you are looking for doesn't exist or has been moved.</p>
+                <router-link
+                    :to="{ name: isSuperAdminRoute ? 'super-admin.dashboard' : 'admin.dashboard' }"
+                    class="btn btn-back"
+                >
+                    Back to Home
                 </router-link>
-                <img :src="notFoundImg" class="img-fluid py-5" alt="Page Not Found"/>
+                <div class="error-img">
+                    <img :src="notFoundImg" class="img-fluid" alt="Page Not Found" />
+                </div>
             </section>
         </div>
     </main>

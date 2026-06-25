@@ -1,28 +1,70 @@
+@use "../utils/variables";
+
 .error-404 {
   padding: 30px;
+  text-align: center;
+
+  .error-badge {
+    display: inline-block;
+    background: variables.$primary-transparent;
+    color: variables.$primary;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 50px;
+    margin-bottom: 20px;
+  }
+
   h1 {
-    font-size: 180px;
-    font-weight: 700;
-    color: #4154f1;
+    font-size: 160px;
+    font-weight: 800;
+    background: linear-gradient(135deg, variables.$primary 0%, variables.$info 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 0;
-    line-height: 150px;
+    line-height: 1;
   }
+
   h2 {
-    font-size: 24px;
-    font-weight: 700;
-    color: #012970;
-    margin-bottom: 30px;
+    font-size: 22px;
+    font-weight: 600;
+    color: variables.$title-color;
+    margin-bottom: 10px;
   }
-  .btn {
-    background: #51678f;
+
+  p {
+    color: variables.$text-color;
+    font-size: 15px;
+    max-width: 400px;
+    margin: 0 auto 28px;
+  }
+
+  .btn-back {
+    background: variables.$primary;
     color: #fff;
-    padding: 8px 30px;
+    padding: 10px 32px;
+    border-radius: variables.$border-radius-xl;
+    font-weight: 600;
+    font-size: 15px;
+    border: none;
+    transition: background 0.2s, box-shadow 0.2s;
+    box-shadow: variables.$box-shadow-primary;
+
+    &:hover {
+      background: variables.$primary-hover;
+      color: #fff;
+    }
   }
-  .btn:hover {
-    background: #3e4f6f;
+
+  .error-img {
+    margin-top: 40px;
   }
+
   @media (min-width: 992px) {
-    img {
+    .error-img img {
       max-width: 50%;
     }
   }

@@ -44,6 +44,18 @@ const routes = [
         component: () => import("@/views/admin/auth/ForgotPassword.vue"),
     },
     {
+        path: "/admin/workspace-setup",
+        name: "admin.workspace-setup",
+        meta: {
+            requiresAuth: true,
+            isAdmin: true,
+            allowWithoutBranch: true,
+            isOnboarding: true,
+            pageTitle: "Setting Up Your Workspace",
+        },
+        component: () => import("@/views/admin/auth/WorkspaceSetup.vue"),
+    },
+    {
         path: "/admin/onboarding",
         name: "admin.onboarding",
         meta: {
