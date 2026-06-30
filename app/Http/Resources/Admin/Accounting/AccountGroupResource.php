@@ -9,6 +9,8 @@ class AccountGroupResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $resolvedType = $this->resolvedAccountType();
+
         return [
             'id' => $this->id ?? '',
             'parent_id' => $this->parent_id ?? '',
@@ -16,6 +18,8 @@ class AccountGroupResource extends JsonResource
             'code' => $this->code ?? '',
             'description' => $this->description ?? '',
             'is_active' => $this->is_active ?? false,
+            'account_type' => $resolvedType?->value,
+            'normal_balance' => $resolvedType?->normalBalance(),
         ];
     }
 }

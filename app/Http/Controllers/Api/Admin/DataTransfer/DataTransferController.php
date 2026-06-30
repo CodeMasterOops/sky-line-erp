@@ -26,6 +26,7 @@ use App\Jobs\DataTransfer\ProcessImportChunkJob;
 use App\Enums\DataTransfer\DataTransferStatusEnum;
 use App\Services\DataTransfer\ImportTemplateService;
 use App\Enums\DataTransfer\DataTransferDirectionEnum;
+use App\Services\DataTransfer\PartyImportLookupCache;
 use App\Enums\DataTransfer\DataTransferEntityTypeEnum;
 use App\Services\DataTransfer\ProductImportLookupCache;
 use App\Services\DataTransfer\Import\ImportHandlerFactory;
@@ -117,7 +118,7 @@ class DataTransferController extends Controller
         $request->validate([
             'file' => ['required', 'file', 'max:'.((int) config('data_transfer.max_upload_bytes', 20971520) / 1024)],
             'entity_type' => ['required', Rule::enum(DataTransferEntityTypeEnum::class)],
-            'default_party_type' => ['nullable', Rule::in(['supplier'])],
+            'default_party_type' => ['nullable', Rule::in(['customer', 'supplier', 'lead'])],
         ]);
 
         $user = auth('admin')->user();
@@ -143,12 +144,8 @@ class DataTransferController extends Controller
         $this->authorizeImportEntity($entityType);
 
         $importOptions = [];
-        if ($entityType === DataTransferEntityTypeEnum::Party) {
-            if ($request->input('default_party_type') !== 'supplier') {
-                return response()->json(['message' => 'Supplier import requires default_party_type=supplier.'], 422);
-            }
-
-            $importOptions['default_party_type'] = 'supplier';
+        if ($entityType === DataTransferEntityTypeEnum::Party && $request->filled('default_party_type')) {
+            $importOptions['default_party_type'] = $request->input('default_party_type');
         }
 
         $job = $this->uploadService->storeImport(
@@ -240,6 +237,10 @@ class DataTransferController extends Controller
 
         $companyId = auth('admin')->user()->company_id;
 
+        if ($job->entity_type !== DataTransferEntityTypeEnum::Product) {
+            return response()->json(['data' => []]);
+        }
+
         return response()->json([
             'data' => ProductImportLookupCache::forCompany($companyId)->resolvableLabels(),
         ]);
@@ -257,7 +258,7 @@ class DataTransferController extends Controller
 
         $validated = $request->validate([
             'resolutions' => ['required', 'array', 'min:1'],
-            'resolutions.*.field' => ['required', 'string', Rule::in(['category', 'unit', 'brand', 'tax', 'product_type'])],
+            'resolutions.*.field' => ['required', 'string', Rule::in(['category', 'unit', 'brand', 'tax', 'product_type', 'type'])],
             'resolutions.*.source_value' => ['required', 'string'],
             'resolutions.*.action' => ['required', Rule::in(['map', 'create', 'skip'])],
             'resolutions.*.target_id' => ['nullable', 'integer'],
@@ -272,6 +273,7 @@ class DataTransferController extends Controller
         }
 
         ProductImportLookupCache::forget($companyId);
+        PartyImportLookupCache::forget($companyId);
         ValidateFileJob::dispatch($job);
 
         return response()->json(['message' => 'Resolutions saved. Re-validation started.']);
@@ -295,6 +297,10 @@ class DataTransferController extends Controller
             $targetValue = in_array($resolution['target_value'] ?? null, ['product', 'service'], true)
                 ? $resolution['target_value']
                 : 'product';
+        } elseif ($field === 'type') {
+            $targetValue = in_array($resolution['target_value'] ?? null, ['customer', 'supplier', 'lead'], true)
+                ? $resolution['target_value']
+                : 'customer';
         } elseif ($action === 'create') {
             $targetId = $this->createLookupRecord($field, $source, $companyId);
         } else {
@@ -486,12 +492,12 @@ class DataTransferController extends Controller
         return $this->templateService->downloadWarehouseTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
     }
 
-    #[Permissions('import_party', group: 'data_transfer', desc: 'Import Suppliers')]
+    #[Permissions('import_party', group: 'data_transfer', desc: 'Import Contacts')]
     public function partyTemplate(Request $request)
     {
         $format = $request->get('format', 'csv');
 
-        return $this->templateService->downloadSupplierTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
+        return $this->templateService->downloadContactTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
     }
 
     #[Permissions('export_data', group: 'data_transfer', desc: 'Export Business Data')]

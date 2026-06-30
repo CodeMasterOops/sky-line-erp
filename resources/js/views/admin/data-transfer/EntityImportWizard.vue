@@ -105,8 +105,8 @@
                             </div>
 
                             <div v-if="unresolvedCount" class="alert alert-warning py-2 small">
-                                {{ unresolvedCount }} value(s) couldn't be matched (category, unit, brand, tax or
-                                product type). Use <strong>Resolve values</strong> to map them once and re-validate.
+                                {{ unresolvedCount }} value(s) couldn't be matched automatically.
+                                Use <strong>Resolve values</strong> to map them once and re-validate.
                             </div>
 
                             <div v-if="previewRows.length" class="table-responsive" style="max-height: 240px">
@@ -206,13 +206,18 @@
                                         </div>
                                     </div>
 
-                                    <div v-if="resolutionState[keyOf(item)]?.action === 'map' && item.field === 'product_type'">
+                                    <div v-if="resolutionState[keyOf(item)]?.action === 'map' && enumOptions(item.field)">
                                         <select
                                             v-model="resolutionState[keyOf(item)].targetValue"
                                             class="form-select form-select-sm"
                                         >
-                                            <option value="product">Product</option>
-                                            <option value="service">Service</option>
+                                            <option
+                                                v-for="opt in enumOptions(item.field)"
+                                                :key="opt.value"
+                                                :value="opt.value"
+                                            >
+                                                {{ opt.label }}
+                                            </option>
                                         </select>
                                     </div>
                                     <div v-else-if="resolutionState[keyOf(item)]?.action === 'map'">
@@ -239,11 +244,11 @@
                     </div>
 
                     <div v-else-if="step === 4 && job">
-                        <div v-if="isActive(job.status)" class="mb-3">
+                        <div v-if="!isTerminal(job.status)" class="mb-3">
                             <label class="form-label">Import progress</label>
                             <div class="progress">
                                 <div
-                                    class="progress-bar"
+                                    class="progress-bar progress-bar-striped progress-bar-animated"
                                     :style="{ width: progressPercent + '%' }"
                                 />
                             </div>
@@ -404,6 +409,21 @@ const optionsLoading = ref(false);
 
 const CREATABLE_FIELDS = ['category', 'brand', 'unit'];
 
+const ENUM_FIELDS = {
+    product_type: [
+        { value: 'product', label: 'Product' },
+        { value: 'service', label: 'Service' },
+    ],
+    type: [
+        { value: 'customer', label: 'Customer' },
+        { value: 'supplier', label: 'Supplier' },
+        { value: 'lead', label: 'Lead' },
+    ],
+};
+
+const enumOptions = (field) => ENUM_FIELDS[field] ?? null;
+const isEnumField = (field) => Object.prototype.hasOwnProperty.call(ENUM_FIELDS, field);
+
 const detectedHeaders = computed(() => job.value?.stats?.detected_headers ?? Object.keys(mapping.value));
 
 const previewRows = computed(() => store.previewRows.data);
@@ -411,7 +431,13 @@ const previewRows = computed(() => store.previewRows.data);
 const unresolvedItems = computed(() => job.value?.stats?.unresolved ?? []);
 const unresolvedCount = computed(() => unresolvedItems.value.length);
 
-const { startPolling, stopPolling, isActive, fetchJob } = useDataTransferJob(() => job.value?.uuid);
+const { pollUntil, stopPolling, isActive, isTerminal } = useDataTransferJob(() => job.value?.uuid);
+
+const syncJob = (j) => {
+    if (j) {
+        job.value = j;
+    }
+};
 
 const progressPercent = computed(() => {
     const total = job.value?.stats?.valid || 1;
@@ -439,7 +465,7 @@ const allResolved = computed(() =>
         if (state.action !== 'map') {
             return true;
         }
-        return item.field === 'product_type' ? !!state.targetValue : !!state.targetId;
+        return isEnumField(item.field) ? !!state.targetValue : !!state.targetId;
     }),
 );
 
@@ -459,6 +485,10 @@ const show = () => {
 };
 
 const close = () => {
+    stopPolling();
+    parsing.value = false;
+    saving.value = false;
+    resolving.value = false;
     open.value = false;
 };
 
@@ -492,27 +522,21 @@ const applySuggestedMapping = (j) => {
     mapping.value = next;
 };
 
-const pollUntilParsed = () =>
-    new Promise((resolve) => {
-        parsing.value = true;
-        startPolling();
-        const poll = setInterval(async () => {
-            const j = await fetchJob();
-            if (!j) {
-                return;
-            }
-            job.value = j;
-            if (['parsed', 'mapped', 'validated', 'failed'].includes(j.status)) {
-                clearInterval(poll);
-                stopPolling();
-                parsing.value = false;
-                if (j.status !== 'failed') {
-                    applySuggestedMapping(j);
-                }
-                resolve(j);
-            }
-        }, 1500);
-    });
+const pollUntilParsed = async () => {
+    parsing.value = true;
+    try {
+        const j = await pollUntil(
+            (job) => ['parsed', 'mapped', 'validated'].includes(job.status),
+            { onUpdate: syncJob, ms: 1500 },
+        );
+        if (j && j.status !== 'failed') {
+            applySuggestedMapping(j);
+        }
+        return j;
+    } finally {
+        parsing.value = false;
+    }
+};
 
 const upload = async () => {
     if (!selectedFile.value) return;
@@ -532,22 +556,13 @@ const upload = async () => {
     }
 };
 
-const pollUntilValidated = () =>
-    new Promise((resolve) => {
-        startPolling();
-        const poll = setInterval(async () => {
-            const j = await fetchJob();
-            job.value = j;
-            if (j?.status === 'validated' || j?.status === 'failed') {
-                clearInterval(poll);
-                stopPolling();
-                if (j?.status === 'validated') {
-                    await store.getPreviewRows(j.uuid, 'invalid');
-                }
-                resolve(j);
-            }
-        }, 2000);
-    });
+const pollUntilValidated = async () => {
+    const j = await pollUntil((job) => job.status === 'validated', { onUpdate: syncJob });
+    if (j?.status === 'validated') {
+        await store.getPreviewRows(j.uuid, 'invalid');
+    }
+    return j;
+};
 
 const saveMappingAndValidate = async () => {
     saving.value = true;
@@ -566,11 +581,14 @@ const initResolutionState = () => {
     const state = {};
     unresolvedItems.value.forEach((item) => {
         const best = item.suggestions?.[0] ?? null;
-        if (item.field === 'product_type') {
+        const options = enumOptions(item.field);
+        if (options) {
+            const fallback = options[0].value;
+            const suggested = options.some((o) => o.value === best?.label) ? best.label : fallback;
             state[keyOf(item)] = {
                 action: 'map',
                 targetId: null,
-                targetValue: best?.label ?? 'product',
+                targetValue: suggested,
             };
             return;
         }
@@ -624,24 +642,20 @@ const startImport = async () => {
     await store.commit(job.value.uuid);
     step.value = 4;
     maxReachableStep.value = 4;
-    startPolling();
-    const pollImport = setInterval(async () => {
-        const j = await fetchJob();
-        job.value = j;
-        if (j && !isActive(j.status)) {
-            clearInterval(pollImport);
-            stopPolling();
-            if (j.status === 'failed') {
-                toast.error(j.error_summary || 'Import failed.');
-            } else if (j.status === 'completed_with_errors') {
-                toast.warning('Import finished with some errors.');
-                emit('imported');
-            } else {
-                toast.success('Import finished.');
-                emit('imported');
-            }
-        }
-    }, 2000);
+
+    const j = await pollUntil((job) => isTerminal(job.status), { onUpdate: syncJob });
+    if (!j) {
+        return;
+    }
+    if (j.status === 'failed') {
+        toast.error(j.error_summary || 'Import failed.');
+    } else if (j.status === 'completed_with_errors') {
+        toast.warning('Import finished with some errors.');
+        emit('imported');
+    } else {
+        toast.success('Import finished.');
+        emit('imported');
+    }
 };
 
 const downloadErrors = () => {

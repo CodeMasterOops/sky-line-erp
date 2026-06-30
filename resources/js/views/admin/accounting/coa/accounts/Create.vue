@@ -14,6 +14,12 @@
                         @validate="validateField('account_group_id')"
                         :error="errors.account_group_id"
                     />
+                    <div v-if="selectedGroupType" class="mt-1">
+                        <span :class="`badge bg-${groupTypeBadgeColor} fw-normal`">
+                            {{ selectedGroupType.charAt(0).toUpperCase() + selectedGroupType.slice(1) }}
+                        </span>
+                        <span class="text-muted ms-1 small">group type</span>
+                    </div>
                 </div>
                 <div class="col-md-6">
                     <VInput
@@ -63,7 +69,7 @@
 </template>
 
 <script setup>
-import {reactive, ref} from 'vue';
+import {computed, reactive, ref} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string} from 'yup';
@@ -78,6 +84,28 @@ const accountGroupStore = useAccountGroupStore();
 const {accountGroups} = storeToRefs(accountGroupStore);
 
 const createModalOpened = defineModel('createModalOpened');
+
+const TYPE_BADGE_COLORS = {
+    asset: 'primary',
+    liability: 'danger',
+    equity: 'purple',
+    income: 'success',
+    expense: 'warning',
+};
+
+const selectedGroupType = computed(() => {
+    if (!form.account_group_id) {
+        return null;
+    }
+    const group = accountGroups.value.data.find(
+        (g) => String(g.id) === String(form.account_group_id)
+    );
+    return group?.account_type ?? null;
+});
+
+const groupTypeBadgeColor = computed(
+    () => TYPE_BADGE_COLORS[selectedGroupType.value] ?? 'secondary'
+);
 
 const initialState = {
     account_group_id: '',

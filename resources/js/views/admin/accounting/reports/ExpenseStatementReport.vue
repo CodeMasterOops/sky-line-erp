@@ -5,7 +5,7 @@
         <div class="card border-0 shadow-sm no-print">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-xl-4 col-lg-5">
+                    <div class="col-xl-3 col-lg-5">
                         <label class="form-label">Date Range</label>
                         <div class="input-icon-start position-relative">
                             <input
@@ -18,6 +18,16 @@
                                 <i class="ti ti-calendar"></i>
                             </span>
                         </div>
+                    </div>
+                    <div class="col-xl-4 col-lg-4">
+                        <VMultiselect
+                            id="account_group_id"
+                            v-model="filter.account_group_id"
+                            label="Account Group"
+                            :options="accountGroups.data"
+                            :disabled="accountGroups.loading"
+                            placeholder="All Expense Groups"
+                        />
                     </div>
                     <div class="col-xl-2 col-lg-3">
                         <button
@@ -105,20 +115,24 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
+import {useAccountGroupStore} from '@/stores/admin/accounting/account-group.js';
 import {formatAmount} from '@/helpers/helper.js';
 import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
+const accountGroupStore = useAccountGroupStore();
 
 const {currentFiscalYear} = storeToRefs(adminSettingStore);
 const {expenseStatement} = storeToRefs(accountingReportStore);
+const {accountGroups} = storeToRefs(accountGroupStore);
 
 const dateRangeInput = ref(null);
 const dataLoaded = ref(false);
 
 const filter = reactive({
     fiscal_year_id: '',
+    account_group_id: '',
     start_date: '',
     end_date: '',
 });
@@ -171,6 +185,7 @@ const generateReport = async () => {
     dataLoaded.value = true;
     await accountingReportStore.getExpenseStatement({
         fiscal_year_id: filter.fiscal_year_id || undefined,
+        account_group_id: filter.account_group_id || undefined,
         start_date: filter.start_date,
         end_date: filter.end_date,
     });
@@ -189,6 +204,7 @@ const setFilterDate = async () => {
 };
 
 onMounted(() => {
+    accountGroupStore.getAccountGroups();
     setFilterDate();
     initializePicker();
     syncPicker();

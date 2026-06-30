@@ -5,7 +5,7 @@
         <div class="card border-0 shadow-sm no-print">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-xl-4 col-lg-5">
+                    <div class="col-xl-3 col-lg-5">
                         <label class="form-label">Date Range</label>
                         <div class="input-icon-start position-relative">
                             <input
@@ -19,11 +19,21 @@
                             </span>
                         </div>
                     </div>
-                    <div class="col-xl-4 col-lg-4">
+                    <div class="col-xl-3 col-lg-4">
+                        <VMultiselect
+                            id="account_group_id"
+                            v-model="filter.account_group_id"
+                            :options="accountGroups.data"
+                            label="Account Group"
+                            :disabled="accountGroups.loading"
+                            placeholder="All Groups"
+                        />
+                    </div>
+                    <div class="col-xl-3 col-lg-4">
                         <VMultiselect
                             id="account_id"
                             v-model="filter.account_id"
-                            :options="accounts.data"
+                            :options="filteredAccounts"
                             label="Account"
                             :disabled="generalLedger.loading"
                         />
@@ -107,25 +117,45 @@ import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
 import {formatAmount} from "@/helpers/helper.js";
 import {useAccountStore} from "@/stores/admin/accounting/account.js";
+import {useAccountGroupStore} from '@/stores/admin/accounting/account-group.js';
 import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
 const accountStore = useAccountStore();
+const accountGroupStore = useAccountGroupStore();
 
 const {currentFiscalYear} = storeToRefs(adminSettingStore);
 const {generalLedger} = storeToRefs(accountingReportStore);
 const {accounts} = storeToRefs(accountStore);
+const {accountGroups} = storeToRefs(accountGroupStore);
 
 const dateRangeInput = ref(null);
 const dataLoaded = ref(false);
 
 const filter = reactive({
     fiscal_year_id: '',
+    account_group_id: '',
     start_date: '',
     end_date: '',
     account_id: '',
 });
+
+const filteredAccounts = computed(() => {
+    if (!filter.account_group_id) {
+        return accounts.value.data;
+    }
+    return accounts.value.data.filter(
+        (a) => String(a.account_group_id) === String(filter.account_group_id)
+    );
+});
+
+watch(
+    () => filter.account_group_id,
+    () => {
+        filter.account_id = '';
+    }
+);
 
 let pickerInstance = null;
 
@@ -200,6 +230,7 @@ const generateReport = async () => {
     dataLoaded.value = true;
     await accountingReportStore.getGeneralLedger({
         fiscal_year_id: filter.fiscal_year_id || '',
+        account_group_id: filter.account_group_id || '',
         start_date: filter.start_date,
         end_date: filter.end_date,
         account_id: filter.account_id || '',
@@ -208,6 +239,7 @@ const generateReport = async () => {
 
 onMounted(() => {
     accountStore.getAccounts();
+    accountGroupStore.getAccountGroups();
     setFilterDate();
     initializePicker();
     syncPicker();

@@ -72,6 +72,7 @@ return [
     ],
 
     'party_fields' => [
+        'type',
         'name',
         'code',
         'phone',

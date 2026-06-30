@@ -6,6 +6,7 @@ use App\Models\Party;
 use App\Models\Product;
 use App\Models\Warehouse;
 use App\Services\DataTransfer\PartyImportService;
+use App\Services\DataTransfer\PartyImportLookupCache;
 use App\Services\DataTransfer\WarehouseImportService;
 use App\Enums\DataTransfer\DataTransferEntityTypeEnum;
 use App\Services\DataTransfer\PartyImportRowValidator;
@@ -41,7 +42,7 @@ class ImportHandlerFactory
         return match ($type) {
             DataTransferEntityTypeEnum::Product => ProductImportLookupCache::forCompany($companyId),
             DataTransferEntityTypeEnum::Warehouse => WarehouseImportLookupCache::forCompany($companyId),
-            DataTransferEntityTypeEnum::Party => null,
+            DataTransferEntityTypeEnum::Party => PartyImportLookupCache::forCompany($companyId),
             default => throw new \InvalidArgumentException("Import not supported for {$type->value}."),
         };
     }

@@ -15,6 +15,14 @@ enum AccountGroupTypeEnum: string
      * account_type set, using its code first and then its name. Returns null when
      * the group cannot be confidently classified.
      */
+    public function normalBalance(): string
+    {
+        return match ($this) {
+            self::Asset, self::Expense => 'debit',
+            self::Liability, self::Equity, self::Income => 'credit',
+        };
+    }
+
     public static function infer(?string $code, ?string $name): ?self
     {
         $byCode = [

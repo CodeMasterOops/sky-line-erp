@@ -29,7 +29,14 @@ class AccountReportService
     public function trialBalance(Request $request): array
     {
         $period = $this->resolvePeriod($request);
-        $groups = $this->loadSortedRootGroups();
+        $validated = $request->validate([
+            'account_group_id' => ['nullable', 'integer', 'exists:account_groups,id'],
+        ]);
+
+        $groups = isset($validated['account_group_id'])
+            ? $this->loadGroupSubtree((int) $validated['account_group_id'])
+            : $this->loadSortedRootGroups();
+
         $balances = $this->fetchBalancesForPeriod($groups, $period['start_date'], $period['end_date']);
 
         $rows = $groups
@@ -241,10 +248,15 @@ class AccountReportService
         $period = $this->resolvePeriod($request);
         $validated = $request->validate([
             'account_id' => ['nullable', 'integer', 'exists:accounts,id'],
+            'account_group_id' => ['nullable', 'integer', 'exists:account_groups,id'],
         ]);
 
-        $accounts = Account::query()
-            ->orderBy('name')
+        $accountQuery = Account::query()->orderBy('name');
+        if (isset($validated['account_group_id'])) {
+            $accountQuery->whereIn('account_group_id', $this->resolveGroupSubtreeIds((int) $validated['account_group_id']));
+        }
+
+        $accounts = $accountQuery
             ->get(['id', 'name', 'code'])
             ->map(fn ($account) => [
                 'id' => $account->id,
@@ -1791,6 +1803,44 @@ class AccountReportService
         return $this->sortGroupTree($groups);
     }
 
+    /**
+     * Load a single group (with its full recursive subtree) as a Collection,
+     * sorted the same way as loadSortedRootGroups.
+     */
+    private function loadGroupSubtree(int $groupId): Collection
+    {
+        $group = AccountGroup::with(['accounts', 'childrenRecursive'])->find($groupId);
+
+        return $group ? $this->sortGroupTree(collect([$group])) : collect();
+    }
+
+    /**
+     * Resolve all AccountGroup IDs within the subtree of a given group (inclusive).
+     *
+     * @return int[]
+     */
+    private function resolveGroupSubtreeIds(int $groupId): array
+    {
+        $group = AccountGroup::with('childrenRecursive')->find($groupId);
+        if (! $group) {
+            return [];
+        }
+
+        $ids = [$group->id];
+        $this->collectChildGroupIds($group, $ids);
+
+        return $ids;
+    }
+
+    /** @param int[] $ids */
+    private function collectChildGroupIds(AccountGroup $group, array &$ids): void
+    {
+        foreach ($group->childrenRecursive as $child) {
+            $ids[] = $child->id;
+            $this->collectChildGroupIds($child, $ids);
+        }
+    }
+
     private function sortGroupTree(Collection $groups): Collection
     {
         return $groups
@@ -2169,10 +2219,17 @@ class AccountReportService
     public function expenseStatement(Request $request): array
     {
         $period = $this->resolvePeriod($request);
+        $validated = $request->validate([
+            'account_group_id' => ['nullable', 'integer', 'exists:account_groups,id'],
+        ]);
 
-        $expenseGroups = $this->loadSortedRootGroups()
-            ->filter(fn (AccountGroup $group) => $group->account_type === AccountGroupTypeEnum::Expense)
-            ->values();
+        if (isset($validated['account_group_id'])) {
+            $expenseGroups = $this->loadGroupSubtree((int) $validated['account_group_id']);
+        } else {
+            $expenseGroups = $this->loadSortedRootGroups()
+                ->filter(fn (AccountGroup $group) => $group->account_type === AccountGroupTypeEnum::Expense)
+                ->values();
+        }
 
         $balances = $this->fetchBalancesForPeriod($expenseGroups, $period['start_date'], $period['end_date']);
 

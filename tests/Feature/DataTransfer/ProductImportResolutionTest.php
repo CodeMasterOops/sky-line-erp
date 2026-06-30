@@ -119,6 +119,44 @@ it('resolves unmatched values and imports the previously invalid rows', function
         ->and($service->product_type->value)->toBe('service');
 });
 
+it('imports every valid row when the file exceeds one chunk', function () {
+    config(['data_transfer.chunk_size' => 100]);
+
+    $csv = "name,code,product_type,category,unit,sales_price,purchase_price\n";
+    for ($i = 1; $i <= 150; $i++) {
+        $csv .= "Bulk {$i},BULK-{$i},product,Electronics,Piece,100,80\n";
+    }
+
+    $file = UploadedFile::fake()->createWithContent('bulk.csv', $csv);
+
+    $uuid = $this->postJson('/api/admin/data-transfers/imports', [
+        'file' => $file,
+        'entity_type' => 'product',
+    ])->assertCreated()->json('data.uuid');
+
+    $this->putJson("/api/admin/data-transfers/{$uuid}/mapping", [
+        'mapping' => [
+            'name' => 'name',
+            'code' => 'code',
+            'product_type' => 'product_type',
+            'category' => 'category',
+            'unit' => 'unit',
+            'sales_price' => 'sales_price',
+            'purchase_price' => 'purchase_price',
+        ],
+        'duplicate_mode' => 'update',
+    ])->assertSuccessful();
+
+    $this->postJson("/api/admin/data-transfers/{$uuid}/validate")->assertSuccessful();
+
+    $show = $this->getJson("/api/admin/data-transfers/{$uuid}")->assertSuccessful();
+    expect($show->json('data.stats.valid'))->toBe(150);
+
+    $this->postJson("/api/admin/data-transfers/{$uuid}/commit")->assertSuccessful();
+
+    expect(Product::where('company_id', $this->company->id)->count())->toBe(150);
+});
+
 it('returns the full list of existing values for resolvable lookup fields', function () {
     $file = UploadedFile::fake()->createWithContent('products.csv', "name,code\nA,A-1\n");
 

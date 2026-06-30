@@ -52,6 +52,10 @@ class ValidateFileJob implements ShouldQueue
             \App\Services\DataTransfer\ProductImportLookupCache::forget($job->company_id);
         }
 
+        if ($job->entity_type === DataTransferEntityTypeEnum::Party) {
+            \App\Services\DataTransfer\PartyImportLookupCache::forget($job->company_id);
+        }
+
         $lookups = $importFactory->lookups($job->entity_type, $job->company_id);
         $validator = $importFactory->validator($job->entity_type);
         $context = $this->buildContext($job);

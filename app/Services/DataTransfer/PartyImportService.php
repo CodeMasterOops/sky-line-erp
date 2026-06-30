@@ -24,9 +24,7 @@ class PartyImportService implements ImportServiceInterface
         $duplicateMode = $job->options['duplicate_mode'] ?? 'update';
         $companyId = $job->company_id;
 
-        if (($job->options['default_party_type'] ?? null) !== PartyTypeEnum::SUPPLIER->value) {
-            throw new \RuntimeException('Only supplier import is enabled.');
-        }
+        $type = PartyTypeEnum::tryFrom((string) ($normalized['type'] ?? '')) ?? PartyTypeEnum::CUSTOMER;
 
         $existing = null;
         if (! empty($normalized['code'])) {
@@ -44,9 +42,9 @@ class PartyImportService implements ImportServiceInterface
             throw new \RuntimeException('Party code already exists.');
         }
 
-        return DB::transaction(function () use ($job, $normalized, $existing, $companyId) {
+        return DB::transaction(function () use ($job, $normalized, $existing, $companyId, $type) {
             $data = [
-                'type' => PartyTypeEnum::SUPPLIER,
+                'type' => $type,
                 'name' => $normalized['name'],
                 'code' => $normalized['code'] ?? null,
                 'phone' => $normalized['phone'] ?? null,
@@ -66,7 +64,7 @@ class PartyImportService implements ImportServiceInterface
             } else {
                 if (blank($data['code'])) {
                     $data['code'] = $this->partyCodeGenerator->generate(
-                        PartyTypeEnum::SUPPLIER,
+                        $type,
                         $companyId,
                     );
                 }

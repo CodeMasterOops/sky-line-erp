@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Admin\Accounting;
 
 use App\Tenancy\TRule;
+use App\Rules\AccountGroupTypeCompatible;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AccountRequest extends FormRequest
@@ -15,7 +16,7 @@ class AccountRequest extends FormRequest
     public function rules(): array
     {
         $baseRules = [
-            'account_group_id' => ['nullable', TRule::exists('account_groups', 'id')->withoutTrashed()],
+            'account_group_id' => ['nullable', TRule::exists('account_groups', 'id')->withoutTrashed(), new AccountGroupTypeCompatible($this->input('category'))],
             'name' => ['required', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:255'],

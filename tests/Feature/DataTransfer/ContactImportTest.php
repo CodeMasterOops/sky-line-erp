@@ -24,6 +24,7 @@ uses(Illuminate\Foundation\Testing\RefreshDatabase::class);
 beforeEach(function () {
     Storage::fake('local');
     config(['data_transfer.disk' => 'local']);
+    config(['queue.default' => 'sync']);
 
     $fiscalYear = FiscalYear::create([
         'year_name' => '2026',
@@ -34,15 +35,15 @@ beforeEach(function () {
 
     $this->company = Company::create([
         'fiscal_year_id' => $fiscalYear->id,
-        'company_name' => 'Supplier Import Co',
-        'code' => 'SIC',
+        'company_name' => 'Contact Import Co',
+        'code' => 'CIC',
         'inventory_costing_method' => InventoryCostingMethodEnum::FIFO,
     ]);
 
     $this->user = User::create([
         'company_id' => $this->company->id,
-        'name' => 'Supplier Admin',
-        'email' => 'sup-'.uniqid().'@example.com',
+        'name' => 'Contact Admin',
+        'email' => 'contact-'.uniqid().'@example.com',
         'password' => bcrypt('password'),
         'user_type' => UserTypeEnum::ADMIN,
     ]);
@@ -51,67 +52,81 @@ beforeEach(function () {
     Sanctum::actingAs($this->user, ['*'], 'admin');
 });
 
-it('forces supplier type during validation', function () {
+it('defaults to customer when no type is given', function () {
     $validator = new PartyImportRowValidator;
 
-    $result = $validator->validate([
-        'name' => 'Acme Supplies',
-        'code' => 'SUP-001',
-    ], null, ['default_party_type' => PartyTypeEnum::SUPPLIER->value]);
+    $result = $validator->validate(['name' => 'No Type Co']);
 
     expect($result['errors'])->toBeEmpty()
-        ->and($result['normalized']['type'])->toBe(PartyTypeEnum::SUPPLIER->value);
+        ->and($result['normalized']['type'])->toBe(PartyTypeEnum::CUSTOMER->value);
 });
 
-it('rejects supplier validation without default party type context', function () {
+it('falls back to the default party type from context', function () {
     $validator = new PartyImportRowValidator;
 
-    $result = $validator->validate([
-        'name' => 'Acme Supplies',
-    ], null, []);
+    $result = $validator->validate(
+        ['name' => 'Context Co'],
+        null,
+        ['default_party_type' => PartyTypeEnum::SUPPLIER->value],
+    );
 
-    expect($result['errors'])->toContain('Only supplier import is enabled.');
+    expect($result['normalized']['type'])->toBe(PartyTypeEnum::SUPPLIER->value);
 });
 
-it('uploads a supplier import file and creates a job', function () {
+it('resolves type synonyms', function (string $input, string $expected) {
+    $validator = new PartyImportRowValidator;
+
+    $result = $validator->validate(['name' => 'Synonym Co', 'type' => $input]);
+
+    expect($result['errors'])->toBeEmpty()
+        ->and($result['normalized']['type'])->toBe($expected);
+})->with([
+    'vendor is a supplier' => ['vendor', 'supplier'],
+    'client is a customer' => ['client', 'customer'],
+    'prospect is a lead' => ['prospect', 'lead'],
+    'exact lead' => ['Lead', 'lead'],
+]);
+
+it('flags an unrecognised type as invalid with suggestions', function () {
+    $validator = new PartyImportRowValidator;
+
+    $result = $validator->validate(['name' => 'Weird Co', 'type' => 'partnerz']);
+
+    expect($result['errors'])->not->toBeEmpty()
+        ->and($result['field_errors'])->toHaveCount(1)
+        ->and($result['field_errors'][0]['field'])->toBe('type')
+        ->and(collect($result['field_errors'][0]['suggestions'])->pluck('label')->all())
+        ->toBe(['customer', 'supplier', 'lead']);
+});
+
+it('uploads a contact import file without requiring a default type', function () {
     Queue::fake();
 
-    $csv = "name,code,phone,email\n";
-    $csv .= "Acme Supplies,SUP-001,9801111111,acme@example.com\n";
-
-    $file = UploadedFile::fake()->createWithContent('suppliers.csv', $csv);
+    $csv = "type,name,code\ncustomer,Acme,CUST-9\n";
+    $file = UploadedFile::fake()->createWithContent('contacts.csv', $csv);
 
     $response = $this->postJson('/api/admin/data-transfers/imports', [
         'file' => $file,
         'entity_type' => 'party',
-        'default_party_type' => 'supplier',
     ]);
 
     $response->assertCreated();
-    expect(DataTransferJob::count())->toBe(1)
-        ->and(DataTransferJob::first()->options['default_party_type'])->toBe('supplier');
+    expect(DataTransferJob::count())->toBe(1);
 
     Queue::assertPushed(ParseFileJob::class);
 });
 
-it('rejects party import without default_party_type supplier', function () {
-    $file = UploadedFile::fake()->createWithContent('suppliers.csv', "name\nAcme\n");
+it('imports contacts of mixed types end to end with code generation', function () {
+    $csv = "type,name,code,phone,email\n";
+    $csv .= "customer,Alpha Buyer,CUST-001,9801111111,alpha@example.com\n";
+    $csv .= "vendor,Beta Traders,,9802222222,beta@example.com\n";
+    $csv .= "lead,Gamma Prospect,,,gamma@example.com\n";
 
-    $this->postJson('/api/admin/data-transfers/imports', [
-        'file' => $file,
-        'entity_type' => 'party',
-    ])->assertUnprocessable()
-        ->assertJsonPath('message', 'Supplier import requires default_party_type=supplier.');
-});
-
-it('imports suppliers end to end with auto generated codes', function () {
-    $csv = file_get_contents(base_path('tests/fixtures/imports/suppliers_valid.csv'));
-    $file = UploadedFile::fake()->createWithContent('suppliers.csv', $csv);
+    $file = UploadedFile::fake()->createWithContent('contacts.csv', $csv);
 
     $response = $this->postJson('/api/admin/data-transfers/imports', [
         'file' => $file,
         'entity_type' => 'party',
-        'default_party_type' => 'supplier',
     ]);
 
     $response->assertCreated();
@@ -125,24 +140,29 @@ it('imports suppliers end to end with auto generated codes', function () {
     $job->refresh();
 
     expect($job->status)->toBe(DataTransferStatusEnum::Validated)
-        ->and($job->stats['valid'])->toBe(2);
+        ->and($job->stats['valid'])->toBe(3);
 
-    (new ProcessImportChunkJob($job, 0))->handle(
+    (new ProcessImportChunkJob($job))->handle(
         app(\App\Services\DataTransfer\Import\ImportHandlerFactory::class),
         app(\App\Services\DataTransfer\ErrorReportGenerator::class),
     );
 
-    $coded = Party::query()->where('code', 'SUP-001')->first();
-    $generated = Party::query()->where('name', 'Beta Traders')->first();
+    $customer = Party::query()->where('code', 'CUST-001')->first();
+    $supplier = Party::query()->where('name', 'Beta Traders')->first();
+    $lead = Party::query()->where('name', 'Gamma Prospect')->first();
 
-    expect($coded)->not->toBeNull()
-        ->and($coded->type)->toBe(PartyTypeEnum::SUPPLIER)
-        ->and($generated)->not->toBeNull()
-        ->and($generated->code)->toStartWith('SUP-')
-        ->and($generated->import_batch_id)->toBe($job->batch_id);
+    expect($customer)->not->toBeNull()
+        ->and($customer->type)->toBe(PartyTypeEnum::CUSTOMER)
+        ->and($supplier)->not->toBeNull()
+        ->and($supplier->type)->toBe(PartyTypeEnum::SUPPLIER)
+        ->and($supplier->code)->toStartWith('SUP-')
+        ->and($supplier->import_batch_id)->toBe($job->batch_id)
+        ->and($lead)->not->toBeNull()
+        ->and($lead->type)->toBe(PartyTypeEnum::LEAD)
+        ->and($lead->code)->toStartWith('LEAD-');
 });
 
-it('rolls back imported suppliers when they have no dependents', function () {
+it('rolls back imported contacts when they have no dependents', function () {
     $job = DataTransferJob::create([
         'company_id' => $this->company->id,
         'user_id' => $this->user->id,
@@ -154,14 +174,14 @@ it('rolls back imported suppliers when they have no dependents', function () {
 
     Party::create([
         'company_id' => $this->company->id,
-        'type' => PartyTypeEnum::SUPPLIER,
-        'name' => 'Imported Supplier',
-        'code' => 'SUP-IMP',
+        'type' => PartyTypeEnum::CUSTOMER,
+        'name' => 'Imported Contact',
+        'code' => 'CUST-IMP',
         'import_batch_id' => $job->batch_id,
     ]);
 
     (new \App\Jobs\DataTransfer\RollbackImportJob($job))->handle();
 
-    expect(Party::query()->where('code', 'SUP-IMP')->exists())->toBeFalse()
+    expect(Party::query()->where('code', 'CUST-IMP')->exists())->toBeFalse()
         ->and($job->fresh()->status)->toBe(DataTransferStatusEnum::RolledBack);
 });

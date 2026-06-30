@@ -1,15 +1,19 @@
 import { onUnmounted, ref } from 'vue';
 import { useDataTransferStore } from '@/stores/admin/data-transfer.js';
+import {
+    TERMINAL_STATUSES,
+    isActiveStatus,
+    isTerminalStatus,
+    pollShouldStop,
+} from '@/composables/dataTransferStatus.js';
 
-const TERMINAL_STATUSES = [
-    'completed',
-    'completed_with_errors',
-    'failed',
-    'cancelled',
-    'rolled_back',
-];
-
-const ACTIVE_STATUSES = ['uploaded', 'parsing', 'parsed', 'mapped', 'validating', 'processing'];
+export {
+    ACTIVE_STATUSES,
+    TERMINAL_STATUSES,
+    isActiveStatus,
+    isTerminalStatus,
+    pollShouldStop,
+} from '@/composables/dataTransferStatus.js';
 
 export function useDataTransferJob(uuidRef) {
     const store = useDataTransferStore();
@@ -22,17 +26,6 @@ export function useDataTransferJob(uuidRef) {
         return store.getJob(uuid);
     };
 
-    const startPolling = (ms = 2000) => {
-        if (intervalId) return;
-        polling.value = true;
-        intervalId = setInterval(async () => {
-            const job = await fetchJob();
-            if (!job || TERMINAL_STATUSES.includes(job.status)) {
-                stopPolling();
-            }
-        }, ms);
-    };
-
     const stopPolling = () => {
         polling.value = false;
         if (intervalId) {
@@ -41,17 +34,41 @@ export function useDataTransferJob(uuidRef) {
         }
     };
 
-    onUnmounted(stopPolling);
+    /**
+     * Run a single managed poll. Only one poll runs at a time; calling again
+     * cancels the previous one. The latest job is handed to `onUpdate` every
+     * tick so the caller can keep its view in sync with the backend.
+     */
+    const pollUntil = (matches, { onUpdate = null, ms = 2000 } = {}) => {
+        stopPolling();
+        polling.value = true;
 
-    const isActive = (status) => ACTIVE_STATUSES.includes(status);
+        return new Promise((resolve) => {
+            const tick = async () => {
+                const job = await fetchJob();
+                if (onUpdate) {
+                    onUpdate(job);
+                }
+                if (pollShouldStop(job, matches)) {
+                    stopPolling();
+                    resolve(job);
+                }
+            };
+
+            intervalId = setInterval(tick, ms);
+        });
+    };
+
+    onUnmounted(stopPolling);
 
     return {
         store,
         polling,
         fetchJob,
-        startPolling,
+        pollUntil,
         stopPolling,
-        isActive,
+        isActive: isActiveStatus,
+        isTerminal: isTerminalStatus,
         TERMINAL_STATUSES,
     };
 }

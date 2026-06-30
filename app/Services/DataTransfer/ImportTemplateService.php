@@ -24,11 +24,11 @@ class ImportTemplateService
         );
     }
 
-    public function downloadSupplierTemplate(string $format = 'csv'): StreamedResponse
+    public function downloadContactTemplate(string $format = 'csv'): StreamedResponse
     {
         return $this->downloadTemplate(
             config('data_transfer.party_fields', []),
-            'supplier-import-template',
+            'contact-import-template',
             $format
         );
     }

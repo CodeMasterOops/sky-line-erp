@@ -8,6 +8,15 @@
     >
         <template #actions>
             <button
+                v-can="'import_party'"
+                type="button"
+                class="btn btn-secondary color d-flex align-items-center me-2"
+                @click="openImportWizard"
+            >
+                <i class="ti ti-upload me-2"></i>
+                Import
+            </button>
+            <button
                 v-can="'create_party'"
                 type="button"
                 class="btn btn-primary d-flex align-items-center"
@@ -61,6 +70,7 @@
 
     <CreateParty v-model:create-modal-opened="createModalOpened" />
     <EditParty v-model:party_id="edit_party_id" />
+    <ContactImportWizard ref="importWizardRef" @imported="fetchContacts" />
 </template>
 
 <script setup>
@@ -69,6 +79,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import CreateParty from '@/views/admin/party/Create.vue';
 import EditParty from '@/views/admin/party/Edit.vue';
+import ContactImportWizard from '@/views/admin/data-transfer/ContactImportWizard.vue';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import { usePartyStore } from '@/stores/admin/party.js';
@@ -90,6 +101,9 @@ const { partyTypes } = storeToRefs(enumStore);
 
 const edit_party_id = ref('');
 const createModalOpened = ref(false);
+const importWizardRef = ref(null);
+
+const openImportWizard = () => importWizardRef.value?.show();
 
 const fetchContacts = () => partyStore.getParties({ filter });
 

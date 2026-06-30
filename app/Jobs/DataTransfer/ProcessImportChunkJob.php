@@ -63,7 +63,6 @@ class ProcessImportChunkJob implements ShouldQueue
                 ->where('data_transfer_job_id', $job->id)
                 ->where('status', DataTransferRowStatusEnum::Valid)
                 ->orderBy('row_number')
-                ->skip($this->offset)
                 ->take($chunkSize)
                 ->get();
 
@@ -113,7 +112,7 @@ class ProcessImportChunkJob implements ShouldQueue
             if ($rows->count() < $chunkSize) {
                 $this->finalize($job->fresh(), $errorReport);
             } else {
-                self::dispatch($job, $this->offset + $chunkSize);
+                self::dispatch($job);
             }
         } finally {
             TenantService::reset();

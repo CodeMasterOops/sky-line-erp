@@ -5,7 +5,7 @@
         <div class="card border-0 shadow-sm no-print">
             <div class="card-body">
                 <div class="row g-3 align-items-end">
-                    <div class="col-xl-4 col-lg-5">
+                    <div class="col-xl-3 col-lg-5">
                         <label class="form-label">Date Range</label>
                         <div class="input-icon-start position-relative">
                             <input
@@ -19,6 +19,26 @@
                             </span>
                         </div>
                     </div>
+                    <div class="col-xl-3 col-lg-4">
+                        <VMultiselect
+                            id="compare_fiscal_year"
+                            v-model="filter.compare_fiscal_year_id"
+                            label="Compare Fiscal Year"
+                            :options="compareFiscalYearSelectOptions"
+                            :disabled="fiscalYears.loading"
+                            placeholder="None"
+                        />
+                    </div>
+                    <div class="col-xl-3 col-lg-4">
+                        <VMultiselect
+                            id="account_group_id"
+                            v-model="filter.account_group_id"
+                            label="Account Group"
+                            :options="accountGroups.data"
+                            :disabled="accountGroups.loading"
+                            placeholder="All Groups"
+                        />
+                    </div>
                     <div class="col-xl-2 col-lg-3">
                         <button
                             type="button"
@@ -28,16 +48,6 @@
                         >
                             {{ trialBalance.loading ? 'Generating...' : 'Generate' }}
                         </button>
-                    </div>
-                    <div class="col-xl-4 col-lg-4">
-                        <VMultiselect
-                            id="compare_fiscal_year"
-                            v-model="filter.compare_fiscal_year_id"
-                            label="Compare Fiscal Year"
-                            :options="compareFiscalYearSelectOptions"
-                            :disabled="fiscalYears.loading"
-                            placeholder="None"
-                        />
                     </div>
                 </div>
             </div>
@@ -142,14 +152,17 @@ import 'daterangepicker/daterangepicker.css';
 import {storeToRefs} from 'pinia';
 import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 import {useAccountingReportStore} from '@/stores/admin/accounting/report.js';
+import {useAccountGroupStore} from '@/stores/admin/accounting/account-group.js';
 import {formatAmount} from "@/helpers/helper.js";
 import ReportPrintShell from '@/components/print/ReportPrintShell.vue';
 
 const adminSettingStore = useAdminSettingStore();
 const accountingReportStore = useAccountingReportStore();
+const accountGroupStore = useAccountGroupStore();
 
 const {fiscalYears, currentFiscalYear} = storeToRefs(adminSettingStore);
 const {trialBalance} = storeToRefs(accountingReportStore);
+const {accountGroups} = storeToRefs(accountGroupStore);
 
 const dateRangeInput = ref(null);
 const expandedRows = ref(new Set());
@@ -159,6 +172,7 @@ const dataLoaded = ref(false);
 const filter = reactive({
     fiscal_year_id: '',
     compare_fiscal_year_id: '',
+    account_group_id: '',
     start_date: '',
     end_date: '',
 });
@@ -243,6 +257,7 @@ const generateReport = async () => {
     await accountingReportStore.getTrialBalance({
         fiscal_year_id: filter.fiscal_year_id || '',
         compare_fiscal_year_id: filter.compare_fiscal_year_id || '',
+        account_group_id: filter.account_group_id || '',
         start_date: filter.start_date,
         end_date: filter.end_date,
     });
@@ -308,6 +323,7 @@ watch(
 
 onMounted(() => {
     adminSettingStore.getFiscalYears();
+    accountGroupStore.getAccountGroups();
     setFilterDate();
 
     initializePicker();

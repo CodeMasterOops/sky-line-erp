@@ -9,6 +9,8 @@ class AccountResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $groupType = $this->whenLoaded('accountGroup', fn () => $this->accountGroup?->resolvedAccountType());
+
         return [
             'id' => $this->id ?? '',
             'account_group_id' => $this->account_group_id ?? '',
@@ -18,6 +20,7 @@ class AccountResource extends JsonResource
             'category' => $this->category ?? '',
             'description' => $this->description ?? '',
             'is_active' => $this->is_active ?? false,
+            'normal_balance' => $groupType instanceof \App\Enums\AccountGroupTypeEnum ? $groupType->normalBalance() : null,
         ];
     }
 }

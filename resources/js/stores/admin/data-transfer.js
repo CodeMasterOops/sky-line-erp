@@ -167,10 +167,10 @@ export const useDataTransferStore = defineStore('dataTransfer', {
             );
         },
 
-        downloadSupplierTemplate(format = 'csv') {
+        downloadContactTemplate(format = 'csv') {
             return downloadAdminFile(
                 `${apiUrl}/templates/party?format=${format}`,
-                `supplier-import-template.${format}`,
+                `contact-import-template.${format}`,
             );
         },
     },
