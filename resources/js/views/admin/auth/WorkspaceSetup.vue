@@ -90,10 +90,12 @@ async function pollStatus() {
         steps.value = data.steps ?? [];
 
         if (data.status === 'complete') {
+            authStore.setProvisioningPending(false);
             authStore.setNeedsOnboarding(true);
             clearInterval(pollTimer);
             setTimeout(proceed, 1200);
         } else if (data.status === 'failed') {
+            authStore.setProvisioningPending(false);
             clearInterval(pollTimer);
         }
     } catch {
@@ -102,6 +104,7 @@ async function pollStatus() {
 }
 
 async function proceed() {
+    authStore.setProvisioningPending(false);
     authStore.setNeedsOnboarding(true);
     try {
         await branchStore.getMyBranches();

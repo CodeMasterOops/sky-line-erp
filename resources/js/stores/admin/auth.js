@@ -1,6 +1,8 @@
 import {defineStore} from 'pinia'
+import {getActivePinia} from 'pinia';
 import {apiAdmin, apiFront} from "@/helpers/api";
 import Cookies from "js-cookie";
+import {useBranchStore} from '@/stores/admin/settings/branch.js';
 
 export const useAdminAuthStore = defineStore('admin-auth', {
     state: () => {
@@ -11,6 +13,7 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                 permissions: [],
                 permissionsLoaded: false,
                 needsOnboarding: localStorage.getItem('needs_onboarding') === 'true',
+                provisioningPending: localStorage.getItem('provisioning_pending') === 'true',
             },
             appSettings: {
                 registrationEnabled: true,
@@ -36,8 +39,10 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             return apiFront('admin/login', 'post', form)
                 .then((res) => {
                     this.setAuthToken(res.data.access_token, res.data.expires_at);
+                    this.clearBranchContext();
                     this.setPermissions(res.data.user?.user_type, res.data.permissions);
                     this.setNeedsOnboarding(res.data.needs_onboarding ?? false);
+                    this.setProvisioningPending(false);
                     return res;
                 }).catch((err) => {
                     throw err;
@@ -47,8 +52,10 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             return apiFront('admin/register', 'post', form)
                 .then((res) => {
                     this.setAuthToken(res.data.access_token, res.data.expires_at);
+                    this.clearBranchContext();
                     this.setPermissions(res.data.user?.user_type, res.data.permissions);
                     this.setNeedsOnboarding(res.data.needs_onboarding ?? true);
+                    this.setProvisioningPending(res.data.provisioning_pending ?? true);
                     return res;
                 }).catch((err) => {
                     throw err;
@@ -99,6 +106,16 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             this.authUser.needsOnboarding = value;
             localStorage.setItem('needs_onboarding', value ? 'true' : 'false');
         },
+        setProvisioningPending(value) {
+            this.authUser.provisioningPending = value;
+            localStorage.setItem('provisioning_pending', value ? 'true' : 'false');
+        },
+        clearBranchContext() {
+            const pinia = getActivePinia();
+            if (pinia) {
+                useBranchStore(pinia).clearSelectedBranch();
+            }
+        },
         refreshPermissions() {
             return apiAdmin('profile/permissions')
                 .then((res) => {
@@ -111,7 +128,9 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             this.authUser.permissions = [];
             this.authUser.permissionsLoaded = false;
             this.authUser.needsOnboarding = false;
+            this.authUser.provisioningPending = false;
             localStorage.removeItem('needs_onboarding');
+            localStorage.removeItem('provisioning_pending');
             Cookies.remove('access_token', {
                 secure: window.location.protocol === 'https:',
                 sameSite: "Strict",

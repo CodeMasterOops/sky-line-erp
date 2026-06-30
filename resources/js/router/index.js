@@ -47,14 +47,33 @@ router.beforeEach(async (to, from, next) => {
             return;
         }
         if (adminAuth.authUser.access_token && to.meta.isGuest) {
-            next({ name: 'admin.dashboard' });
+            next({
+                name: adminAuth.authUser.provisioningPending
+                    ? 'admin.workspace-setup'
+                    : 'admin.dashboard',
+            });
             return;
         }
 
         // Fetch permissions from the server on the first navigation after page load.
         // Permissions are no longer persisted in localStorage.
-        if (adminAuth.authUser.access_token && !adminAuth.authUser.permissionsLoaded) {
+        if (
+            adminAuth.authUser.access_token &&
+            !adminAuth.authUser.permissionsLoaded &&
+            !to.meta.isOnboarding &&
+            !to.meta.allowWithoutBranch
+        ) {
             await adminAuth.refreshPermissions();
+        }
+
+        if (
+            adminAuth.authUser.access_token &&
+            adminAuth.authUser.provisioningPending &&
+            to.name !== 'admin.workspace-setup' &&
+            !to.meta.isGuest
+        ) {
+            next({ name: 'admin.workspace-setup' });
+            return;
         }
 
         if (adminAuth.authUser.access_token && !to.meta.isGuest) {

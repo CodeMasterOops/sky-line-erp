@@ -5,6 +5,7 @@ import {useSuperAdminAuthStore} from '@/stores/super-admin/auth.js';
 import {useBranchStore} from '@/stores/admin/settings/branch.js';
 import {formattedRequest} from '@/helpers/apiRequest.js';
 import {sanitizeDownloadFilename} from '@/helpers/helper.js';
+import {ADMIN_BRANCH_SELECT_PATH} from '@/helpers/adminPaths.js';
 
 function piniaStore(useStore) {
     const pinia = getActivePinia();
@@ -51,10 +52,10 @@ adminClient.interceptors.response.use((response) => response, async (error) => {
     if (
         error.response?.status === 403 &&
         error.response?.data?.message === 'You do not have access to this branch.' &&
-        !window.location.pathname.startsWith('/admin/branch-select')
+        !window.location.pathname.startsWith(ADMIN_BRANCH_SELECT_PATH)
     ) {
         piniaStore(useBranchStore)?.clearSelectedBranch();
-        window.location.href = '/admin/branch-select';
+        window.location.href = ADMIN_BRANCH_SELECT_PATH;
     } else if (
         error.response?.status === 403 &&
         !error.config?.url?.includes('profile/permissions')
