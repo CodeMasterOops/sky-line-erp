@@ -235,7 +235,7 @@ import {useResolvedParty} from '@/composables/useResolvedParty.js';
 import {usePartyDefaultOrderDiscount} from '@/composables/usePartyDefaultOrderDiscount.js';
 import {lineDiscountMoneyFromItem, mergePoOrderDiscountIntoLineDiscounts} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection, taxSelectionValue} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
@@ -330,7 +330,7 @@ const loadFromQuotation = async () => {
                 unit_id: item.unit_id ?? '',
                 quantity: String(item.quantity),
                 rate: String(item.rate),
-                tax_id: item.tax_id || '',
+                tax_id: taxSelectionValue({tax_id: item.tax_id, tax_group_id: item.tax_group_id}),
                 line_discount_type: item.line_discount_type || 'fixed',
                 line_discount_value: String(item.line_discount_value ?? 0),
             });
@@ -350,7 +350,7 @@ const loadFromQuotation = async () => {
             unit_id: item.unit_id ?? '',
             quantity: String(item.quantity),
             rate: String(item.rate),
-            tax_id: item.tax_id || '',
+            tax_id: taxSelectionValue({tax_id: item.tax_id, tax_group_id: item.tax_group_id}),
             line_discount_type: 'fixed',
             line_discount_value: String(mergedDiscounts[i] ?? item.discount_amount ?? 0),
         });
@@ -386,7 +386,7 @@ const onVariantSelected = (variant) => {
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
-        tax_id: variant.tax_id ? String(variant.tax_id) : '',
+        tax_id: taxSelectionValue({tax_id: variant.tax_id, tax_group_id: variant.tax_group_id}),
         line_discount_type: 'fixed',
         line_discount_value: '0',
     });

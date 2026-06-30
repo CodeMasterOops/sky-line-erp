@@ -278,7 +278,7 @@ import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {usePurchaseOrderStore} from '@/stores/admin/purchase/purchase-order.js';
 import {lineDiscountMoneyFromItem, lineNetFromItem, orderDiscountMoney, buildOrderAllocations} from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
-import {useLineItemTaxOptions, parseTaxSelection} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection, taxSelectionValue} from '@/composables/useLineItemTaxOptions.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 
@@ -361,7 +361,7 @@ const onVariantSelected = (variant) => {
         unit_id: variant.unit_id ?? '',
         quantity: '1',
         rate: defaultLineRateString(variant),
-        tax_id: '',
+        tax_id: taxSelectionValue({tax_id: variant.tax_id, tax_group_id: variant.tax_group_id}),
         line_discount_type: 'fixed',
         line_discount_value: '0',
     });
@@ -409,7 +409,7 @@ watch(
                         unit_id: item.unit_id || '',
                         quantity: String(item.quantity ?? '1'),
                         rate: rateStringFromApiLine(item),
-                        tax_id: item.tax_id || '',
+                        tax_id: taxSelectionValue({tax_id: item.tax_id, tax_group_id: item.tax_group_id}),
                         line_discount_type: lineType,
                         line_discount_value: lineVal,
                     };

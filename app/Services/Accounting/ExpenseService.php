@@ -4,12 +4,14 @@ namespace App\Services\Accounting;
 
 use App\Models\Expense;
 use App\Models\Journal;
+use App\Models\TaxGroup;
 use App\Enums\StatusEnum;
 use App\Enums\JournalTypeEnum;
 use App\Models\AccountSetting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Services\DocumentNumberGenerator;
+use App\Services\Tax\TaxCalculationEngine;
 
 readonly class ExpenseService
 {
@@ -19,6 +21,7 @@ readonly class ExpenseService
         private JournalBalanceGuard $balanceGuard,
         private PeriodLockGuard $periodGuard,
         private JournalVoidService $journalVoid,
+        private TaxCalculationEngine $taxEngine,
     ) {}
 
     /**
@@ -95,7 +98,8 @@ readonly class ExpenseService
                 'status' => $status,
             ]);
 
-            $expense->expenseItems()->createMany($this->mapItems($formData['items'] ?? []));
+            $items = array_map(fn ($item) => $this->resolveItemTax($item), $formData['items'] ?? []);
+            $expense->expenseItems()->createMany($this->mapItems($items));
 
             if ($status === StatusEnum::APPROVED->value) {
                 $this->createJournal($expense);
@@ -117,7 +121,8 @@ readonly class ExpenseService
             ]);
 
             $expense->expenseItems()->delete();
-            $expense->expenseItems()->createMany($this->mapItems($formData['items'] ?? []));
+            $items = array_map(fn ($item) => $this->resolveItemTax($item), $formData['items'] ?? []);
+            $expense->expenseItems()->createMany($this->mapItems($items));
         });
     }
 
@@ -138,7 +143,7 @@ readonly class ExpenseService
 
     private function createJournal(Expense $expense): void
     {
-        $expense->loadMissing('expenseItems.account', 'party:id,name');
+        $expense->loadMissing('expenseItems.account', 'expenseItems.taxGroup.taxGroupMembers.tax', 'party:id,name');
 
         // Single chokepoint guard: protects approve-on-create, approveExpense and repost.
         $hasTax = (float) $expense->expenseItems->sum('tax_amount') > 0;
@@ -188,7 +193,17 @@ readonly class ExpenseService
             ]);
         }
 
-        if ($taxTotal > 0) {
+        $taxGroupLines = $this->buildTaxGroupGlLines($expense, $accountSetting->vat_account_id);
+        if (! empty($taxGroupLines)) {
+            foreach ($taxGroupLines as $line) {
+                $journal->journalItems()->create([
+                    'account_id' => $line['account_id'],
+                    'dr_amount' => $line['amount'],
+                    'cr_amount' => 0,
+                    'remarks' => $line['remarks'],
+                ]);
+            }
+        } elseif ($taxTotal > 0) {
             $journal->journalItems()->create([
                 'account_id' => $accountSetting->vat_account_id,
                 'dr_amount' => round($taxTotal, 2),
@@ -230,9 +245,79 @@ readonly class ExpenseService
                 'account_id' => $item['account_id'],
                 'amount' => $item['amount'],
                 'tax_id' => $item['tax_id'] ?? null,
+                'tax_group_id' => $item['tax_group_id'] ?? null,
                 'tax_amount' => $item['tax_amount'] ?? 0,
                 'discount_amount' => $item['discount_amount'] ?? 0,
             ];
         })->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>
+     */
+    private function resolveItemTax(array $item): array
+    {
+        $taxGroupId = $item['tax_group_id'] ?? null;
+        if (! $taxGroupId) {
+            return $item;
+        }
+
+        $group = TaxGroup::withoutGlobalScopes()->find($taxGroupId);
+        if (! $group) {
+            return $item;
+        }
+
+        $baseAmount = round((float) $item['amount'] - (float) ($item['discount_amount'] ?? 0), 2);
+        $result = $this->taxEngine->calculateForGroup($baseAmount, $group);
+        $item['tax_amount'] = $result->totalTaxAmount;
+
+        return $item;
+    }
+
+    /**
+     * @return array<int, array{account_id: int, amount: float, remarks: string}>
+     */
+    private function buildTaxGroupGlLines(Expense $expense, ?int $fallbackVatAccountId): array
+    {
+        $totals = [];
+
+        foreach ($expense->expenseItems as $item) {
+            if (! $item->taxGroup) {
+                continue;
+            }
+
+            $baseAmount = round((float) $item->amount - (float) $item->discount_amount, 2);
+            $result = $this->taxEngine->calculateForGroup($baseAmount, $item->taxGroup);
+
+            foreach ($result->lines as $line) {
+                $glAccountId = $line['gl_account_id'] ?? $fallbackVatAccountId;
+                if (! $glAccountId) {
+                    continue;
+                }
+
+                $totals[$glAccountId] = ($totals[$glAccountId] ?? 0.0) + $line['amount'];
+            }
+        }
+
+        if (empty($totals)) {
+            return [];
+        }
+
+        $remarks = 'Input VAT (tax group) – '.$expense->expense_no;
+        $lines = [];
+        foreach ($totals as $accountId => $amount) {
+            if (round($amount, 2) <= 0) {
+                continue;
+            }
+
+            $lines[] = [
+                'account_id' => $accountId,
+                'amount' => round($amount, 2),
+                'remarks' => $remarks,
+            ];
+        }
+
+        return $lines;
     }
 }

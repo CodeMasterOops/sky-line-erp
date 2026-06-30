@@ -28,6 +28,7 @@ class ExpenseRequest extends FormRequest
             'items.*.account_id' => ['required', TRule::exists('accounts', 'id')->withoutTrashed()],
             'items.*.amount' => ['required', 'numeric', 'min:0'],
             'items.*.tax_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
+            'items.*.tax_group_id' => ['nullable', TRule::exists('tax_groups', 'id')->withoutTrashed()],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
         ];

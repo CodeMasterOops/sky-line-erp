@@ -60,6 +60,7 @@ readonly class SalesOrderService
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                 ],
@@ -99,6 +100,7 @@ readonly class SalesOrderService
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                 ]);

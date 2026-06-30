@@ -17,6 +17,7 @@ class ExpenseItem extends Model
         'account_id',
         'amount',
         'tax_id',
+        'tax_group_id',
         'tax_amount',
         'discount_amount',
     ];
@@ -24,6 +25,8 @@ class ExpenseItem extends Model
     protected $casts = [
         'expense_id' => 'integer',
         'account_id' => 'integer',
+        'tax_id' => 'integer',
+        'tax_group_id' => 'integer',
         'amount' => 'float',
         'tax_amount' => 'float',
         'discount_amount' => 'float',
@@ -42,5 +45,10 @@ class ExpenseItem extends Model
     public function tax(): BelongsTo
     {
         return $this->belongsTo(Tax::class);
+    }
+
+    public function taxGroup(): BelongsTo
+    {
+        return $this->belongsTo(TaxGroup::class);
     }
 }

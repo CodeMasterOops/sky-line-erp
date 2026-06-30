@@ -249,7 +249,7 @@ import {usePartyStore} from '@/stores/admin/party.js';
 import {useTaxStore} from '@/stores/admin/settings/tax.js';
 import {useExpenseStore} from '@/stores/admin/purchase/expense.js';
 import {useEnumStore} from '@/stores/admin/enum.js';
-import {useLineItemTaxOptions} from '@/composables/useLineItemTaxOptions.js';
+import {useLineItemTaxOptions, parseTaxSelection, taxSelectionValue} from '@/composables/useLineItemTaxOptions.js';
 
 const expenseStore = useExpenseStore();
 const accountStore = useAccountStore();
@@ -261,16 +261,17 @@ const createModalOpened = defineModel('createModalOpened');
 
 const {accounts} = storeToRefs(accountStore);
 const {parties} = storeToRefs(partyStore);
-const {taxes} = storeToRefs(taxStore);
+const {taxes, taxGroups} = storeToRefs(taxStore);
 const {tdsCategories} = storeToRefs(enumStore);
 
-const lineTaxOptions = useLineItemTaxOptions(taxes);
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 const showTds = ref(false);
 
 onMounted(() => {
     accountStore.getAccounts();
     partyStore.getParties({filter: {type: 'supplier'}});
     taxStore.getTaxes();
+    taxStore.getTaxGroups();
     enumStore.getTdsCategories();
 });
 
@@ -348,11 +349,22 @@ const validations = object({
 
 const {errors, validateField, validateForm} = useYup(form, validations);
 
-const getTaxRate = (taxId) => {
-    if (!taxId) return 0;
-    const numericId = parseInt(taxId, 10);
-    const tax = taxes.value.data.find(t => t.id === numericId);
-    return tax ? Number(tax.rate || 0) : 0;
+const getLineTaxAmount = (item) => {
+    const val = item.tax_id;
+    if (!val) return 0;
+    const amount = Number(item.amount || 0);
+    const lineDiscount = Number(item.discount_amount || 0);
+    const taxable = Math.max(amount - lineDiscount, 0);
+    if (String(val).startsWith('group:')) {
+        const groupId = parseInt(String(val).replace('group:', ''), 10);
+        const group = (taxGroups.value?.data || []).find((g) => g.id === groupId);
+        if (!group) return 0;
+        const totalRate = (group.taxGroupMembers || []).reduce((sum, m) => sum + Number(m.tax?.rate || 0), 0);
+        return taxable * totalRate / 100;
+    }
+    const numericId = parseInt(val, 10);
+    const tax = (taxes.value?.data || []).find((t) => t.id === numericId);
+    return taxable * Number(tax?.rate || 0) / 100;
 };
 
 const summary = computed(() => {
@@ -361,15 +373,9 @@ const summary = computed(() => {
     let tax = 0;
 
     form.items.forEach((item) => {
-        const amount = Number(item.amount || 0);
-        const lineDiscount = Number(item.discount_amount || 0);
-        const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(amount - lineDiscount, 0);
-        const lineTax = taxable * taxRate / 100;
-
-        subtotal += amount;
-        discount += lineDiscount;
-        tax += lineTax;
+        subtotal += Number(item.amount || 0);
+        discount += Number(item.discount_amount || 0);
+        tax += getLineTaxAmount(item);
     });
 
     const grandTotal = subtotal - discount + tax;
@@ -383,18 +389,24 @@ const summary = computed(() => {
 });
 
 const syncLineItems = () => {
-    form.items = form.items.map((item) => {
-        const amount = Number(item.amount || 0);
-        const lineDiscount = Number(item.discount_amount || 0);
-        const taxRate = getTaxRate(item.tax_id);
-        const taxable = Math.max(amount - lineDiscount, 0);
-        const lineTax = taxable * taxRate / 100;
+    form.items = form.items.map((item) => ({
+        ...item,
+        tax_amount: getLineTaxAmount(item),
+    }));
+};
 
-        return {
-            ...item,
-            tax_amount: lineTax,
-        };
-    });
+const buildExpensePayload = () => {
+    syncLineItems();
+    return {
+        ...form,
+        items: form.items.map((item) => ({
+            account_id: item.account_id,
+            amount: item.amount,
+            ...parseTaxSelection(item.tax_id),
+            tax_amount: item.tax_amount ?? 0,
+            discount_amount: item.discount_amount || '0',
+        })),
+    };
 };
 
 const storeExpenseWithStatus = async (status) => {
@@ -403,8 +415,7 @@ const storeExpenseWithStatus = async (status) => {
     if (validated) {
         isSubmitting.value = true;
         try {
-            syncLineItems();
-            let res = await expenseStore.storeExpense(form);
+            let res = await expenseStore.storeExpense(buildExpensePayload());
             toast(res.status, res.data.message);
             closeCreateModal();
         } catch (e) {

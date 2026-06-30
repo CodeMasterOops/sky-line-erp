@@ -19,6 +19,7 @@ class PurchaseOrderItem extends Model
         'unit_id',
         'rate',
         'tax_id',
+        'tax_group_id',
         'tax_amount',
         'discount_amount',
     ];
@@ -28,6 +29,7 @@ class PurchaseOrderItem extends Model
         'product_variant_id' => 'integer',
         'unit_id' => 'integer',
         'tax_id' => 'integer',
+        'tax_group_id' => 'integer',
         'quantity' => 'integer',
         'rate' => 'float',
         'tax_amount' => 'float',
@@ -52,5 +54,10 @@ class PurchaseOrderItem extends Model
     public function tax(): BelongsTo
     {
         return $this->belongsTo(Tax::class);
+    }
+
+    public function taxGroup(): BelongsTo
+    {
+        return $this->belongsTo(TaxGroup::class);
     }
 }
