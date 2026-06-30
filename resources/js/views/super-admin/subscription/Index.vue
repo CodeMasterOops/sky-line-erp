@@ -60,13 +60,15 @@
           </div>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-          <select v-model="filter.status" class="form-select form-select-sm" @change="fetchSubscriptions(true)">
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="trialing">Trialing</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="expired">Expired</option>
-          </select>
+          <VMultiselect
+            id="filter_status"
+            v-model="filter.status"
+            placeholder="All statuses"
+            :options="subscriptionStatusOptions"
+            value-prop="value"
+            name-prop="label"
+            size="sm"
+          />
         </div>
       </div>
       <div class="card-body">
@@ -155,6 +157,13 @@ const filter = reactive({
     limit: 25,
 });
 
+const subscriptionStatusOptions = [
+    { value: 'active', label: 'Active' },
+    { value: 'trialing', label: 'Trialing' },
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'expired', label: 'Expired' },
+];
+
 const columns = [
     {title: 'SN', key: 'sn', width: 60},
     {title: 'Company', key: 'company'},
@@ -179,6 +188,10 @@ const fetchSubscriptions = (refetch = false) => {
 
 watch(() => [filter.page, filter.limit], () => {
     fetchSubscriptions();
+});
+
+watch(() => filter.status, () => {
+    fetchSubscriptions(true);
 });
 
 const formatPrice = formatSuperAdminMoney;

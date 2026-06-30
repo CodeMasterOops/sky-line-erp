@@ -9,13 +9,14 @@
                     <Multiselect v-model="filters.product_id" :options="productOptions" value-prop="value" label="label" :searchable="true" placeholder="All Products" clearable @update:modelValue="load" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" v-model="filters.status" @change="load">
-                        <option value="">All</option>
-                        <option value="in_stock">In Stock</option>
-                        <option value="sold">Sold</option>
-                        <option value="returned">Returned</option>
-                    </select>
+                    <VMultiselect
+                        id="filter_status"
+                        v-model="filters.status"
+                        :options="statusOptions"
+                        label="Status"
+                        placeholder="All"
+                        @update:model-value="load"
+                    />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Serial / Lot No</label>
@@ -89,6 +90,12 @@ const meta = ref(null);
 const productOptions = ref([]);
 
 const filters = ref({ product_id: null, status: '', search: '', batch_no: '', expiry_within_days: null, page: 1 });
+
+const statusOptions = [
+    { id: 'in_stock', name: 'In Stock' },
+    { id: 'sold', name: 'Sold' },
+    { id: 'returned', name: 'Returned' },
+];
 
 const load = async () => {
     loading.value = true;

@@ -28,20 +28,15 @@
                             />
                         </div>
                         <div class="col-lg-4 col-sm-6 col-12">
-                            <label class="form-label">Warehouse <VRequiredMark /></label>
-                            <select
-                                class="form-select"
+                            <VMultiselect
+                                id="dr_warehouse_id"
                                 v-model="form.warehouse_id"
-                                @blur="validateField('warehouse_id')">
-                                <option value="">— Select Warehouse —</option>
-                                <option
-                                    v-for="w in warehouses.data"
-                                    :key="w.id"
-                                    :value="w.id">
-                                    {{ w.name }}
-                                </option>
-                            </select>
-                            <div v-if="errors.warehouse_id" class="invalid-feedback d-block">{{ errors.warehouse_id }}</div>
+                                :options="warehouses.data"
+                                label="Warehouse"
+                                required
+                                @validate="validateField('warehouse_id')"
+                                :error="errors.warehouse_id"
+                            />
                         </div>
                         <div class="col-12">
                             <VInput

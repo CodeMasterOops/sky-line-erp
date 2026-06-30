@@ -5,6 +5,7 @@
     </label>
     <Multiselect
         :id="id"
+        :class="multiselectClass"
         :label="nameProp"
         :model-value="modelValue"
         @update:model-value="updateModelValue"
@@ -15,7 +16,7 @@
         :searchable="true"
         :track-by="nameProp"
         :options="flattenOptions(options)"
-        :placeholder="'Select '+ (placeholder??label??'')"
+        :placeholder="resolvedPlaceholder"
         :mode="mode"
         :multiple-label="formatMultipleLabel"
         :hide-selected="false"
@@ -24,12 +25,13 @@
         :append-to-body="appendToBody"
         :close-on-scroll="appendToBody"
     />
-    <div v-if="error" class="text-danger">
+    <div v-if="error" :class="errorClass">
         {{ error }}
     </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import Multiselect from "@vueform/multiselect"
 
 const emit = defineEmits(['update:modelValue', 'validate', 'onInput', 'searchChange']);
@@ -92,6 +94,36 @@ const props = defineProps({
         type: Boolean,
         default: true,
     },
+    size: {
+        type: String,
+        default: 'default',
+        validator: (value) => ['default', 'sm'].includes(value),
+    },
+    invalid: {
+        type: Boolean,
+        default: false,
+    },
+})
+
+const multiselectClass = computed(() => ({
+    'multiselect-sm': props.size === 'sm',
+    'is-invalid': props.invalid || !!props.error,
+}))
+
+const errorClass = computed(() => (props.invalid ? 'invalid-feedback' : 'text-danger'))
+
+const resolvedPlaceholder = computed(() => {
+    const text = props.placeholder ?? props.label ?? '';
+
+    if (!text) {
+        return 'Select';
+    }
+
+    if (/^(all|select|none|--)/i.test(text.trim())) {
+        return text;
+    }
+
+    return `Select ${text}`;
 })
 
 const onSearchChange = (query) => {

@@ -27,30 +27,26 @@
                         @reset="resetFilters"
                     >
                         <template #filters>
-                            <select
-                                v-model="filter.direction"
-                                class="form-select form-select-sm"
-                                style="width: auto; min-width: 130px;"
-                                @change="applyFilters"
-                            >
-                                <option value="">All directions</option>
-                                <option value="import">Import</option>
-                                <option value="export">Export</option>
-                            </select>
-                            <select
-                                v-model="filter.status"
-                                class="form-select form-select-sm"
-                                style="width: auto; min-width: 150px;"
-                                @change="applyFilters"
-                            >
-                                <option value="">All statuses</option>
-                                <option value="completed">Completed</option>
-                                <option value="completed_with_errors">Completed with errors</option>
-                                <option value="processing">Processing</option>
-                                <option value="validating">Validating</option>
-                                <option value="failed">Failed</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
+                            <div style="min-width: 130px;">
+                                <VMultiselect
+                                    id="filter_direction"
+                                    v-model="filter.direction"
+                                    :options="directionOptions"
+                                    placeholder="All directions"
+                                    size="sm"
+                                    @update:model-value="applyFilters"
+                                />
+                            </div>
+                            <div style="min-width: 150px;">
+                                <VMultiselect
+                                    id="filter_status"
+                                    v-model="filter.status"
+                                    :options="transferStatusOptions"
+                                    placeholder="All statuses"
+                                    size="sm"
+                                    @update:model-value="applyFilters"
+                                />
+                            </div>
                         </template>
                     </VTableToolbar>
                     <div class="card-body">
@@ -156,6 +152,20 @@ const columns = [
     { title: 'Progress', key: 'progress', width: 110, align: 'center' },
     { title: 'Date', key: 'created_at', width: 130 },
     { title: 'Action', key: 'action', width: 90, align: 'center' },
+];
+
+const directionOptions = [
+    { id: 'import', name: 'Import' },
+    { id: 'export', name: 'Export' },
+];
+
+const transferStatusOptions = [
+    { id: 'completed', name: 'Completed' },
+    { id: 'completed_with_errors', name: 'Completed with errors' },
+    { id: 'processing', name: 'Processing' },
+    { id: 'validating', name: 'Validating' },
+    { id: 'failed', name: 'Failed' },
+    { id: 'cancelled', name: 'Cancelled' },
 ];
 
 const { filter, fetch, resetPageAndFetch } = usePaginatedList({

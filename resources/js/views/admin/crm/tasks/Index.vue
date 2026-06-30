@@ -36,14 +36,25 @@
                         />
                         <label class="form-check-label" for="mine-only">My tasks</label>
                     </div>
-                    <select v-model="filter.status" class="form-select form-select-sm" :disabled="mineOnly" @change="fetchTasks">
-                        <option value="">All statuses</option>
-                        <option v-for="s in taskStatuses" :key="s.id" :value="s.id">{{ s.name }}</option>
-                    </select>
-                    <select v-model="filter.priority" class="form-select form-select-sm" @change="fetchTasks">
-                        <option value="">All priorities</option>
-                        <option v-for="p in taskPriorities" :key="p.id" :value="p.id">{{ p.name }}</option>
-                    </select>
+                    <div style="min-width: 150px;">
+                        <VMultiselect
+                            id="filter_status"
+                            v-model="filter.status"
+                            :options="taskStatuses"
+                            placeholder="All statuses"
+                            size="sm"
+                            :disabled="mineOnly"
+                        />
+                    </div>
+                    <div style="min-width: 150px;">
+                        <VMultiselect
+                            id="filter_priority"
+                            v-model="filter.priority"
+                            :options="taskPriorities"
+                            placeholder="All priorities"
+                            size="sm"
+                        />
+                    </div>
                     <div class="form-check form-switch d-flex align-items-center ms-2">
                         <input
                             id="overdue-only"

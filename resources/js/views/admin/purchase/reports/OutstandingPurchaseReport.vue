@@ -48,11 +48,13 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Supplier</label>
-                        <select class="form-select" v-model="filters.party_id">
-                            <option value="">All Suppliers</option>
-                            <option v-for="p in partyOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="party_id"
+                            v-model="filters.party_id"
+                            :options="partyOptions"
+                            label="Supplier"
+                            placeholder="All Suppliers"
+                        />
                     </div>
                     <div class="col-md-3 d-flex align-items-center pt-4">
                         <div class="form-check">

@@ -52,20 +52,22 @@
                         <input type="text" class="form-control" v-model="filters.search" placeholder="Search..." />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" v-model="filters.status">
-                            <option value="">All</option>
-                            <option value="active">Active</option>
-                            <option value="expired">Expired</option>
-                            <option value="depleted">Depleted</option>
-                        </select>
+                        <VMultiselect
+                            id="status"
+                            v-model="filters.status"
+                            :options="statusOptions"
+                            label="Status"
+                            placeholder="All"
+                        />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Warehouse</label>
-                        <select class="form-select" v-model="filters.warehouse_id">
-                            <option value="">All Warehouses</option>
-                            <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="warehouse_id"
+                            v-model="filters.warehouse_id"
+                            :options="warehouseOptions"
+                            label="Warehouse"
+                            placeholder="All Warehouses"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success flex-grow-1" @click="loadReport" :disabled="loading">
@@ -150,6 +152,12 @@ const summary = ref(null);
 const pagination = ref(null);
 const warehouseOptions = ref([]);
 const loading = ref(false);
+
+const statusOptions = [
+    { id: 'active', name: 'Active' },
+    { id: 'expired', name: 'Expired' },
+    { id: 'depleted', name: 'Depleted' },
+];
 
 const filters = ref({search: '', status: '', warehouse_id: '', page: 1, limit: 50});
 

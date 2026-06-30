@@ -103,11 +103,13 @@
                             />
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Subcontractor</label>
-                            <select v-model="form.subcontractor_party_id" class="form-select">
-                                <option :value="null">Select vendor…</option>
-                                <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.name }}</option>
-                            </select>
+                            <VMultiselect
+                                id="edit_subcontractor_party_id"
+                                v-model="form.subcontractor_party_id"
+                                :options="suppliers"
+                                label="Subcontractor"
+                                placeholder="Select vendor…"
+                            />
                         </div>
                     </div>
                 </div>
@@ -180,11 +182,13 @@
                                         />
                                     </td>
                                     <td>
-                                        <select v-model="item.item_type" class="form-select form-select-sm">
-                                            <option value="material">Material</option>
-                                            <option value="labour">Labour</option>
-                                            <option value="overhead">Overhead</option>
-                                        </select>
+                                        <VMultiselect
+                                            :id="`bom_edit_item_type_${i}`"
+                                            v-model="item.item_type"
+                                            :options="itemTypeOptions"
+                                            size="sm"
+                                            placeholder="Type"
+                                        />
                                     </td>
                                     <td>
                                         <input
@@ -260,6 +264,12 @@ const showAllRoles = ref(false);
 
 const OUTPUT_ROLES = ['finished_good', 'semi_finished'];
 const COMPONENT_ROLES = ['raw_material', 'semi_finished', 'consumable'];
+
+const itemTypeOptions = [
+    { id: 'material', name: 'Material' },
+    { id: 'labour', name: 'Labour' },
+    { id: 'overhead', name: 'Overhead' },
+];
 
 const componentRoleFilter = computed(() => (showAllRoles.value ? [] : COMPONENT_ROLES));
 

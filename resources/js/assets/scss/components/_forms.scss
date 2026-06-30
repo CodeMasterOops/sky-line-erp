@@ -1127,3 +1127,16 @@ select.form-select-sm.line-item-tax-select {
   background-size: 0.9rem;
   background-position: right 0.45rem center;
 }
+
+// Compact @vueform/multiselect (tables, pagination, POS line items)
+.multiselect.multiselect-sm {
+  --ms-font-size: 0.8rem;
+  --ms-line-height: 1.5;
+  --ms-py: 0.25rem;
+  --ms-px: 0.8rem;
+  min-height: calc(2px + 0.5rem + 0.8rem * 1.5);
+}
+
+.multiselect.is-invalid {
+  --ms-border-color: #{variables.$danger};
+}

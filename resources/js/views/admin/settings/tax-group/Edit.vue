@@ -42,12 +42,13 @@
                             <tbody>
                                 <tr v-for="(member, i) in form.taxes" :key="i">
                                     <td>
-                                        <select class="form-select form-select-sm" v-model="member.tax_id">
-                                            <option value="">-- Select Tax --</option>
-                                            <option v-for="t in taxes.data" :key="t.id" :value="t.id">
-                                                {{ t.name }}<template v-if="t.rate != null"> ({{ t.rate }}%)</template>
-                                            </option>
-                                        </select>
+                                        <VMultiselect
+                                            :id="`tax-edit-${i}`"
+                                            v-model="member.tax_id"
+                                            placeholder="-- Select Tax --"
+                                            :options="taxSelectOptions"
+                                            size="sm"
+                                        />
                                     </td>
                                     <td>
                                         <input type="number" class="form-control form-control-sm" v-model.number="member.sequence" min="1" />
@@ -76,7 +77,7 @@
 </template>
 
 <script setup>
-import {reactive, ref, watch} from 'vue';
+import {reactive, ref, watch, computed} from 'vue';
 import {toast} from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import {object, string, array} from 'yup';
@@ -89,6 +90,13 @@ const groupId = defineModel('group_id');
 
 const taxStore = useTaxStore();
 const {taxes, taxGroupDetail} = storeToRefs(taxStore);
+
+const taxSelectOptions = computed(() =>
+    taxes.value.data.map(t => ({
+        id: t.id,
+        name: t.rate != null ? `${t.name} (${t.rate}%)` : t.name,
+    }))
+);
 
 const initialState = () => ({
     name: '',

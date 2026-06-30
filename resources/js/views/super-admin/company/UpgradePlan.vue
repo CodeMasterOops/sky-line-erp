@@ -26,30 +26,25 @@
                     />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">New plan <span class="text-danger">*</span></label>
-                    <select
+                    <VMultiselect
+                        id="plan_id"
                         v-model="form.plan_id"
-                        class="form-select"
-                        :class="{ 'is-invalid': errors.plan_id }"
-                    >
-                        <option value="">Select plan</option>
-                        <option
-                            v-for="plan in plans.data"
-                            :key="plan.id"
-                            :value="plan.id"
-                        >
-                            {{ planLabel(plan) }}
-                        </option>
-                    </select>
-                    <small v-if="errors.plan_id" class="text-danger">{{ errors.plan_id[0] || errors.plan_id }}</small>
+                        label="New plan"
+                        placeholder="Select plan"
+                        :options="planOptions"
+                        required
+                        :error="errors.plan_id?.[0] ?? errors.plan_id"
+                    />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Billing cycle <span class="text-danger">*</span></label>
-                    <select v-model="form.billing_cycle" class="form-select">
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                    </select>
-                    <small v-if="errors.billing_cycle" class="text-danger">{{ errors.billing_cycle[0] || errors.billing_cycle }}</small>
+                    <VMultiselect
+                        id="billing_cycle"
+                        v-model="form.billing_cycle"
+                        label="Billing cycle"
+                        :options="billingCycleOptions"
+                        required
+                        :error="errors.billing_cycle?.[0] ?? errors.billing_cycle"
+                    />
                 </div>
                 <div class="col-md-6">
                     <VDatepicker
@@ -102,6 +97,11 @@ const subscriptionStore = useSubscriptionStore();
 const planStore = usePlanStore();
 const {plans} = storeToRefs(planStore);
 
+const billingCycleOptions = [
+    { id: 'monthly', name: 'Monthly' },
+    { id: 'yearly', name: 'Yearly' },
+];
+
 const company = defineModel('company');
 const emit = defineEmits(['upgraded']);
 
@@ -144,6 +144,13 @@ const planLabel = (plan) => {
 
     return `${plan.name} — ${monthly} / ${yearly}`;
 };
+
+const planOptions = computed(() =>
+    plans.value.data.map(plan => ({
+        id: plan.id,
+        name: planLabel(plan),
+    }))
+);
 
 watch(company, (selected) => {
     if (!selected) {

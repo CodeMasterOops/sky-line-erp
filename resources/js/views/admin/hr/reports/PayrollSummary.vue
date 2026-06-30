@@ -6,13 +6,15 @@
             <div class="card-header">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Fiscal Year</label>
-                        <select v-model="fiscalYearId" class="form-select" :disabled="loadingFY">
-                            <option value="">Select fiscal year</option>
-                            <option v-for="fy in fiscalYears" :key="fy.id" :value="fy.id">
-                                {{ fy.year_name }}{{ fy.is_current ? ' (Current)' : '' }}
-                            </option>
-                        </select>
+                        <VMultiselect
+                            id="fiscal_year_id"
+                            v-model="fiscalYearId"
+                            label="Fiscal Year"
+                            placeholder="Select fiscal year"
+                            :options="fiscalYearOptions"
+                            name-prop="year_name"
+                            :disabled="loadingFY"
+                        />
                     </div>
                     <div class="col-md-2">
                         <button type="button" @click="load" :disabled="!fiscalYearId" class="btn btn-primary w-100">Generate</button>
@@ -103,4 +105,11 @@ onMounted(loadFiscalYears);
 const totalGross = computed(() => data.value.reduce((s, r) => s + r.total_gross, 0).toFixed(2));
 const totalDed = computed(() => data.value.reduce((s, r) => s + r.total_deductions, 0).toFixed(2));
 const totalNet = computed(() => data.value.reduce((s, r) => s + r.total_net, 0).toFixed(2));
+
+const fiscalYearOptions = computed(() =>
+    fiscalYears.value.map(fy => ({
+        ...fy,
+        year_name: fy.is_current ? `${fy.year_name} (Current)` : fy.year_name,
+    }))
+);
 </script>

@@ -73,11 +73,16 @@
                         />
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <select v-model="filter.status" class="form-select form-select-sm" style="min-width:150px" @change="fetchLeads(true)">
-                        <option value="">All Statuses</option>
-                        <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-                    </select>
+                <div class="d-flex align-items-center gap-2" style="min-width:150px">
+                    <VMultiselect
+                        id="filter_status"
+                        v-model="filter.status"
+                        placeholder="All Statuses"
+                        :options="statuses"
+                        value-prop="value"
+                        name-prop="label"
+                        size="sm"
+                    />
                 </div>
             </div>
             <div class="card-body">
@@ -206,6 +211,10 @@ const fetchLeads = (refetch = false) => {
 
 watch(() => [filter.page, filter.limit], () => {
     fetchLeads();
+});
+
+watch(() => filter.status, () => {
+    fetchLeads(true);
 });
 
 const deleteLead = async (id) => {

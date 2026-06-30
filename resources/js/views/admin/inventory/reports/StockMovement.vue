@@ -54,11 +54,13 @@
                         <VDatepicker id="to_date" label="To Date" v-model="filters.to_date" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Product</label>
-                        <select class="form-select" v-model="filters.product_variant_id">
-                            <option value="">All Products</option>
-                            <option v-for="p in productOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="product_variant_id"
+                            v-model="filters.product_variant_id"
+                            :options="productOptions"
+                            label="Product"
+                            placeholder="All Products"
+                        />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Warehouse</label>
@@ -71,12 +73,13 @@
                         />
                     </div>
                     <div class="col-md-1">
-                        <label class="form-label">Direction</label>
-                        <select class="form-select" v-model="filters.direction">
-                            <option value="">All</option>
-                            <option value="in">In</option>
-                            <option value="out">Out</option>
-                        </select>
+                        <VMultiselect
+                            id="direction"
+                            v-model="filters.direction"
+                            :options="directionOptions"
+                            label="Direction"
+                            placeholder="All"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success flex-grow-1" @click="loadReport(1)" :disabled="loading">
@@ -161,6 +164,11 @@ const summary = ref(null);
 const pagination = ref(null);
 const loading = ref(false);
 const productOptions = ref([]);
+
+const directionOptions = [
+    { id: 'in', name: 'In' },
+    { id: 'out', name: 'Out' },
+];
 
 const adminSettingStore = useAdminSettingStore();
 const {currentFiscalYear} = storeToRefs(adminSettingStore);

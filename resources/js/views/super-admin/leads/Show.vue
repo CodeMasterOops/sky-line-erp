@@ -89,10 +89,15 @@
                 <div class="card-body">
                     <form @submit.prevent="saveFollowUp">
                         <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <select v-model="form.status" class="form-select" required>
-                                <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-                            </select>
+                            <VMultiselect
+                                id="status"
+                                v-model="form.status"
+                                label="Status"
+                                :options="statuses"
+                                value-prop="value"
+                                name-prop="label"
+                                required
+                            />
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Follow-up Note</label>

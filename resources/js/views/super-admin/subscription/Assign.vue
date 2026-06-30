@@ -7,31 +7,33 @@
         <template #modal-body>
             <form @submit.prevent="assignSubscription" class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Company</label>
-                    <select v-model="form.company_id" class="form-select">
-                        <option value="">Select company</option>
-                        <option v-for="company in companies.data" :key="company.id" :value="company.id">
-                            {{ company.company_name }}
-                        </option>
-                    </select>
-                    <small v-if="errors.company_id" class="text-danger">{{ errors.company_id }}</small>
+                    <VMultiselect
+                        id="company_id"
+                        v-model="form.company_id"
+                        label="Company"
+                        placeholder="Select company"
+                        :options="companies.data"
+                        name-prop="company_name"
+                        :error="errors.company_id?.[0] ?? errors.company_id"
+                    />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Plan</label>
-                    <select v-model="form.plan_id" class="form-select">
-                        <option value="">Select plan</option>
-                        <option v-for="plan in plans.data" :key="plan.id" :value="plan.id">
-                            {{ plan.name }}
-                        </option>
-                    </select>
-                    <small v-if="errors.plan_id" class="text-danger">{{ errors.plan_id }}</small>
+                    <VMultiselect
+                        id="plan_id"
+                        v-model="form.plan_id"
+                        label="Plan"
+                        placeholder="Select plan"
+                        :options="plans.data"
+                        :error="errors.plan_id?.[0] ?? errors.plan_id"
+                    />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Billing Cycle</label>
-                    <select v-model="form.billing_cycle" class="form-select">
-                        <option value="monthly">Monthly</option>
-                        <option value="yearly">Yearly</option>
-                    </select>
+                    <VMultiselect
+                        id="billing_cycle"
+                        v-model="form.billing_cycle"
+                        label="Billing Cycle"
+                        :options="billingCycleOptions"
+                    />
                 </div>
                 <div class="col-md-6">
                     <VDatepicker
@@ -79,6 +81,11 @@ const assignModalOpened = defineModel('assignModalOpened');
 
 const {companies} = storeToRefs(companyStore);
 const {plans} = storeToRefs(planStore);
+
+const billingCycleOptions = [
+    { id: 'monthly', name: 'Monthly' },
+    { id: 'yearly', name: 'Yearly' },
+];
 
 const initialState = {
     company_id: '',

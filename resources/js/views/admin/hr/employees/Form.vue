@@ -49,20 +49,21 @@
                         <VInput id="phone" v-model="form.phone" label="Phone" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Gender</label>
-                        <select v-model="form.gender" class="form-select">
-                            <option value="">Select</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <VMultiselect
+                            id="gender"
+                            v-model="form.gender"
+                            label="Gender"
+                            placeholder="Select"
+                            :options="genderOptions"
+                        />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Marital Status</label>
-                        <select v-model="form.marital_status" class="form-select">
-                            <option value="single">Single</option>
-                            <option value="married">Married</option>
-                        </select>
+                        <VMultiselect
+                            id="marital_status"
+                            v-model="form.marital_status"
+                            label="Marital Status"
+                            :options="maritalStatusOptions"
+                        />
                         <small class="text-muted">Affects salary tax slab.</small>
                     </div>
                     <div class="col-md-3">
@@ -75,34 +76,38 @@
                     <div class="col-12 mt-2"><h6 class="text-muted fw-bold">Department & Role</h6></div>
 
                     <div class="col-md-4">
-                        <label class="form-label">Department</label>
-                        <select v-model="form.department_id" class="form-select">
-                            <option value="">Select Department</option>
-                            <option v-for="d in departments.data" :key="d.id" :value="d.id">{{ d.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="department_id"
+                            v-model="form.department_id"
+                            label="Department"
+                            placeholder="Select Department"
+                            :options="departments.data"
+                        />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Designation</label>
-                        <select v-model="form.designation_id" class="form-select">
-                            <option value="">Select Designation</option>
-                            <option v-for="d in designations.data" :key="d.id" :value="d.id">{{ d.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="designation_id"
+                            v-model="form.designation_id"
+                            label="Designation"
+                            placeholder="Select Designation"
+                            :options="designations.data"
+                        />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Employment Type</label>
-                        <select v-model="form.employment_type" class="form-select">
-                            <option value="full_time">Full Time</option>
-                            <option value="part_time">Part Time</option>
-                            <option value="contract">Contract</option>
-                        </select>
+                        <VMultiselect
+                            id="employment_type"
+                            v-model="form.employment_type"
+                            label="Employment Type"
+                            :options="employmentTypeOptions"
+                        />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Status</label>
-                        <select v-model="form.status" class="form-select">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="terminated">Terminated</option>
-                        </select>
+                        <VMultiselect
+                            id="status"
+                            v-model="form.status"
+                            label="Status"
+                            :options="statusOptions"
+                        />
                     </div>
 
                     <div class="col-12 mt-2"><h6 class="text-muted fw-bold">Bank Details</h6></div>
@@ -120,23 +125,13 @@
                         <VInput id="pan" v-model="form.pan" label="Employee PAN" placeholder="e.g. 123456789" />
                     </div>
                     <div class="col-md-8">
-                        <label class="form-label">TDS Category</label>
-                        <select v-model="form.tds_category" class="form-select">
-                            <option value="">None (no TDS deduction)</option>
-                            <option value="service_vat_bill">Service Fee (VAT Bill) – 1.5%</option>
-                            <option value="service_pan_bill">Service Fee (PAN Bill) – 15%</option>
-                            <option value="service_vat_exempt_institution">Service Fee (VAT-Exempt Institution) – 1%</option>
-                            <option value="contract_vat_registered">Contract Payment (VAT Registered) – 1.5%</option>
-                            <option value="rent_property">Rent (House/Land/Property) – 10%</option>
-                            <option value="rent_vehicle_vat">Vehicle Hire (VAT Bill) – 1.5%</option>
-                            <option value="rent_vehicle_no_vat">Vehicle Hire (No VAT Bill) – 10%</option>
-                            <option value="interest_bank_natural_person">Interest by Bank to Natural Person – 6%</option>
-                            <option value="interest_company">Interest by Company/Debenture – 15%</option>
-                            <option value="dividend">Dividend – 5%</option>
-                            <option value="royalty">Royalty – 15%</option>
-                            <option value="commission">Commission/Sales Bonus – 15%</option>
-                            <option value="windfall">Windfall Gains – 25%</option>
-                        </select>
+                        <VMultiselect
+                            id="tds_category"
+                            v-model="form.tds_category"
+                            label="TDS Category"
+                            placeholder="None (no TDS deduction)"
+                            :options="tdsCategoryOptions"
+                        />
                         <small class="text-muted">TDS will be auto-calculated on taxable salary components for this employee.</small>
                     </div>
 
@@ -169,6 +164,45 @@ import { useDesignationStore } from '@/stores/admin/hr/designation.js';
 import { useNextCode } from '@/helpers/useNextCode.js';
 import { apiAdmin } from '@/helpers/api.js';
 import VDatepicker from '@/components/base/VDatepicker.vue';
+
+const genderOptions = [
+    { id: 'male', name: 'Male' },
+    { id: 'female', name: 'Female' },
+    { id: 'other', name: 'Other' },
+];
+
+const maritalStatusOptions = [
+    { id: 'single', name: 'Single' },
+    { id: 'married', name: 'Married' },
+];
+
+const employmentTypeOptions = [
+    { id: 'full_time', name: 'Full Time' },
+    { id: 'part_time', name: 'Part Time' },
+    { id: 'contract', name: 'Contract' },
+];
+
+const statusOptions = [
+    { id: 'active', name: 'Active' },
+    { id: 'inactive', name: 'Inactive' },
+    { id: 'terminated', name: 'Terminated' },
+];
+
+const tdsCategoryOptions = [
+    { id: 'service_vat_bill', name: 'Service Fee (VAT Bill) – 1.5%' },
+    { id: 'service_pan_bill', name: 'Service Fee (PAN Bill) – 15%' },
+    { id: 'service_vat_exempt_institution', name: 'Service Fee (VAT-Exempt Institution) – 1%' },
+    { id: 'contract_vat_registered', name: 'Contract Payment (VAT Registered) – 1.5%' },
+    { id: 'rent_property', name: 'Rent (House/Land/Property) – 10%' },
+    { id: 'rent_vehicle_vat', name: 'Vehicle Hire (VAT Bill) – 1.5%' },
+    { id: 'rent_vehicle_no_vat', name: 'Vehicle Hire (No VAT Bill) – 10%' },
+    { id: 'interest_bank_natural_person', name: 'Interest by Bank to Natural Person – 6%' },
+    { id: 'interest_company', name: 'Interest by Company/Debenture – 15%' },
+    { id: 'dividend', name: 'Dividend – 5%' },
+    { id: 'royalty', name: 'Royalty – 15%' },
+    { id: 'commission', name: 'Commission/Sales Bonus – 15%' },
+    { id: 'windfall', name: 'Windfall Gains – 25%' },
+];
 
 const route = useRoute();
 const router = useRouter();

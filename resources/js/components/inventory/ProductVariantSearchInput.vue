@@ -358,12 +358,13 @@ const onDocClick = (e) => {
 };
 
 onMounted(() => {
-    document.addEventListener('click', onDocClick);
+    // Capture phase so clicks inside modals still reach this handler (VModal stops bubble on .modal-dialog).
+    document.addEventListener('click', onDocClick, true);
     loadDefaults();
 });
 
 onUnmounted(() => {
-    document.removeEventListener('click', onDocClick);
+    document.removeEventListener('click', onDocClick, true);
     debouncedSearch.cancel();
 });
 

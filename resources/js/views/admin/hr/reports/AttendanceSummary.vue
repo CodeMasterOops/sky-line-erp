@@ -6,19 +6,23 @@
             <div class="card-header">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Fiscal Year</label>
-                        <select v-model="filters.fiscal_year_id" class="form-select" :disabled="loadingFY">
-                            <option value="">Select fiscal year</option>
-                            <option v-for="fy in fiscalYears" :key="fy.id" :value="fy.id">
-                                {{ fy.year_name }}{{ fy.is_current ? ' (Current)' : '' }}
-                            </option>
-                        </select>
+                        <VMultiselect
+                            id="fiscal_year_id"
+                            v-model="filters.fiscal_year_id"
+                            label="Fiscal Year"
+                            placeholder="Select fiscal year"
+                            :options="fiscalYearOptions"
+                            name-prop="year_name"
+                            :disabled="loadingFY"
+                        />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Month</label>
-                        <select v-model="filters.month" class="form-select">
-                            <option v-for="m in 12" :key="m" :value="m">{{ monthName(m) }}</option>
-                        </select>
+                        <VMultiselect
+                            id="month"
+                            v-model="filters.month"
+                            label="Month"
+                            :options="monthOptions"
+                        />
                     </div>
                     <div class="col-md-2">
                         <button type="button" @click="load" :disabled="!filters.fiscal_year_id" class="btn btn-primary w-100">Generate</button>
@@ -58,7 +62,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { apiAdmin } from '@/helpers/api.js';
 import showErrors from '@/helpers/showErrors';
 
@@ -70,6 +74,18 @@ const loading = ref(false);
 const data = ref([]);
 
 const monthName = (m) => new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' });
+
+const monthOptions = Array.from({ length: 12 }, (_, i) => ({
+    id: i + 1,
+    name: monthName(i + 1),
+}));
+
+const fiscalYearOptions = computed(() =>
+    fiscalYears.value.map(fy => ({
+        ...fy,
+        year_name: fy.is_current ? `${fy.year_name} (Current)` : fy.year_name,
+    }))
+);
 
 const loadFiscalYears = async () => {
     loadingFY.value = true;

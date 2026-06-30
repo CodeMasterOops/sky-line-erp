@@ -48,11 +48,12 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Report Type</label>
-                        <select class="form-select" v-model="filters.type">
-                            <option value="near_expiry">Near Expiry</option>
-                            <option value="expired">Expired</option>
-                        </select>
+                        <VMultiselect
+                            id="type"
+                            v-model="filters.type"
+                            :options="reportTypeOptions"
+                            label="Report Type"
+                        />
                     </div>
                     <div v-if="filters.type === 'near_expiry'" class="col-md-2">
                         <label class="form-label">Days Ahead</label>
@@ -138,6 +139,11 @@ const rows = ref([]);
 const summary = ref(null);
 const loading = ref(false);
 const hasLoaded = ref(false);
+
+const reportTypeOptions = [
+    { id: 'near_expiry', name: 'Near Expiry' },
+    { id: 'expired', name: 'Expired' },
+];
 
 const filters = ref({type: 'near_expiry', days: 30});
 

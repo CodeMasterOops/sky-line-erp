@@ -18,23 +18,24 @@
 
                     <!-- Default format for newly added items -->
                     <div class="col-lg-3 col-md-3">
-                        <label class="form-label">Default Format</label>
-                        <select v-model="defaultFormat" class="form-select form-select-sm">
-                            <option value="code128">Code 128</option>
-                            <option value="ean13">EAN-13</option>
-                            <option value="qr">QR Code</option>
-                        </select>
+                        <VMultiselect
+                            id="default_format"
+                            v-model="defaultFormat"
+                            :options="formatOptions"
+                            label="Default Format"
+                            size="sm"
+                        />
                     </div>
 
                     <!-- Default value source -->
                     <div class="col-lg-3 col-md-3">
-                        <label class="form-label">Default Value Source</label>
-                        <select v-model="defaultSource" class="form-select form-select-sm">
-                            <option value="barcode">Variant Barcode</option>
-                            <option value="sku">Variant SKU</option>
-                            <option value="code">Product Code</option>
-                            <option value="custom">Custom</option>
-                        </select>
+                        <VMultiselect
+                            id="default_source"
+                            v-model="defaultSource"
+                            :options="sourceOptions"
+                            label="Default Value Source"
+                            size="sm"
+                        />
                     </div>
                 </div>
             </div>
@@ -79,29 +80,26 @@
 
                                 <!-- Barcode format per item -->
                                 <td>
-                                    <select
-                                        class="form-select form-select-sm"
-                                        :value="item.format"
-                                        @change="store.updateItemField(item.id, 'format', $event.target.value)"
-                                    >
-                                        <option value="code128">Code 128</option>
-                                        <option value="ean13">EAN-13</option>
-                                        <option value="qr">QR Code</option>
-                                    </select>
+                                    <VMultiselect
+                                        :id="`barcode_format_${item.id}`"
+                                        :model-value="item.format"
+                                        :options="formatOptions"
+                                        size="sm"
+                                        placeholder="Format"
+                                        @update:model-value="store.updateItemField(item.id, 'format', $event)"
+                                    />
                                 </td>
 
                                 <!-- Value source per item -->
                                 <td>
-                                    <select
-                                        class="form-select form-select-sm"
-                                        :value="item.source"
-                                        @change="store.updateItemField(item.id, 'source', $event.target.value)"
-                                    >
-                                        <option value="barcode">Variant Barcode</option>
-                                        <option value="sku">Variant SKU</option>
-                                        <option value="code">Product Code</option>
-                                        <option value="custom">Custom</option>
-                                    </select>
+                                    <VMultiselect
+                                        :id="`barcode_source_${item.id}`"
+                                        :model-value="item.source"
+                                        :options="sourceOptions"
+                                        size="sm"
+                                        placeholder="Source"
+                                        @update:model-value="store.updateItemField(item.id, 'source', $event)"
+                                    />
                                 </td>
 
                                 <!-- Barcode value (editable when custom) -->
@@ -183,12 +181,13 @@
                 <div class="row g-3 align-items-center">
                     <!-- Paper size -->
                     <div class="col-sm-4 col-lg-3">
-                        <label class="form-label">Paper Size</label>
-                        <select v-model="store.config.paper" class="form-select form-select-sm">
-                            <option value="a4">A4 (3-up grid)</option>
-                            <option value="letter">Letter (3-up grid)</option>
-                            <option value="roll">Roll Label (2"×1")</option>
-                        </select>
+                        <VMultiselect
+                            id="paper_size"
+                            v-model="store.config.paper"
+                            :options="paperOptions"
+                            label="Paper Size"
+                            size="sm"
+                        />
                     </div>
 
                     <!-- Toggles -->
@@ -300,6 +299,25 @@ const profileStore = useProfileStore();
 const defaultFormat = ref('code128');
 const defaultSource = ref('barcode');
 const printingBrowser = ref(false);
+
+const formatOptions = [
+    { id: 'code128', name: 'Code 128' },
+    { id: 'ean13', name: 'EAN-13' },
+    { id: 'qr', name: 'QR Code' },
+];
+
+const sourceOptions = [
+    { id: 'barcode', name: 'Variant Barcode' },
+    { id: 'sku', name: 'Variant SKU' },
+    { id: 'code', name: 'Product Code' },
+    { id: 'custom', name: 'Custom' },
+];
+
+const paperOptions = [
+    { id: 'a4', name: 'A4 (3-up grid)' },
+    { id: 'letter', name: 'Letter (3-up grid)' },
+    { id: 'roll', name: 'Roll Label (2"×1")' },
+];
 
 const companyName = computed(() => profileStore.profile.data?.company?.name || '');
 

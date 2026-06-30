@@ -20,13 +20,14 @@
             <!-- Per page selector -->
             <div class="d-flex align-items-center gap-2">
                 <label class="text-muted small mb-0 text-nowrap">Rows per page</label>
-                <select
-                    class="form-select form-select-sm"
-                    style="width: auto;"
-                    :value="limit"
-                    @change="onLimitChange">
-                    <option v-for="n in pageSizes" :key="n" :value="n">{{ n }}</option>
-                </select>
+                <div style="width: 5rem;">
+                    <VMultiselect
+                        size="sm"
+                        :model-value="limit"
+                        :options="pageSizeOptions"
+                        @update:model-value="onLimitChange"
+                    />
+                </div>
             </div>
 
             <!-- Page buttons -->
@@ -99,6 +100,10 @@ const totalPages = computed(() =>
         ?? 1
 );
 
+const pageSizeOptions = computed(() =>
+    props.pageSizes.map((n) => ({ id: n, name: String(n) }))
+);
+
 /**
  * Builds a smart page range with ellipsis for large page counts.
  * Always shows first, last, current ± 1, with ellipsis in gaps.
@@ -130,8 +135,8 @@ function go(p) {
     emit('update:page', p);
 }
 
-function onLimitChange(e) {
-    emit('update:limit', Number(e.target.value));
+function onLimitChange(value) {
+    emit('update:limit', Number(value));
     emit('update:page', 1); // reset to first page on limit change
 }
 </script>

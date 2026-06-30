@@ -23,12 +23,13 @@
                         />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" v-model="filters.status">
-                            <option value="">All</option>
-                            <option value="draft">Draft</option>
-                            <option value="approved">Approved</option>
-                        </select>
+                        <VMultiselect
+                            id="status"
+                            v-model="filters.status"
+                            :options="statusOptions"
+                            label="Status"
+                            placeholder="All"
+                        />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Reference</label>
@@ -170,6 +171,11 @@ const rows = ref([]);
 const summary = ref(null);
 const pagination = ref(null);
 const loading = ref(false);
+
+const statusOptions = [
+    { id: 'draft', name: 'Draft' },
+    { id: 'approved', name: 'Approved' },
+];
 
 const filters = ref({
     from_date: '',

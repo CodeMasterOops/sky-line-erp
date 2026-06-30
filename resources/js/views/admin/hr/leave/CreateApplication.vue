@@ -3,19 +3,27 @@
         <template #modal-body>
             <form @submit.prevent="submit" class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Employee *</label>
-                    <select v-model="form.employee_id" class="form-select" @change="validateField('employee_id')">
-                        <option value="">Select Employee</option>
-                        <option v-for="e in employees.data" :key="e.id" :value="e.id">{{ e.full_name }}</option>
-                    </select>
-                    <small class="text-danger">{{ errors.employee_id }}</small>
+                    <VMultiselect
+                        id="employee_id"
+                        v-model="form.employee_id"
+                        label="Employee"
+                        placeholder="Select Employee"
+                        :options="employees.data"
+                        name-prop="full_name"
+                        required
+                        :error="errors.employee_id"
+                        @validate="validateField('employee_id')"
+                    />
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Leave Type *</label>
-                    <select v-model="form.leave_type_id" class="form-select">
-                        <option value="">Select Type</option>
-                        <option v-for="t in leaveTypes.data" :key="t.id" :value="t.id">{{ t.name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="leave_type_id"
+                        v-model="form.leave_type_id"
+                        label="Leave Type"
+                        placeholder="Select Type"
+                        :options="leaveTypes.data"
+                        required
+                    />
                 </div>
                 <div class="col-md-4">
                     <VDatepicker id="from_date" v-model="form.from_date" label="From Date" required @validate="validateField('from_date')" :error="errors.from_date" />

@@ -105,12 +105,15 @@
                     <p class="text-muted">Select the bank or cash account from which salaries will be paid. A journal entry will be automatically posted to the ledger.</p>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Payment Account <span class="text-danger">*</span></label>
-                    <select v-model="paidAccountId" class="form-select">
-                        <option value="">-- Select Account --</option>
-                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                    </select>
-                    <div v-if="confirmError" class="text-danger small mt-1">{{ confirmError }}</div>
+                    <VMultiselect
+                        id="paid_account_id"
+                        v-model="paidAccountId"
+                        label="Payment Account"
+                        placeholder="-- Select Account --"
+                        :options="accountList"
+                        required
+                        :error="confirmError"
+                    />
                 </div>
                 <div class="col-12 d-flex justify-content-end gap-2">
                     <button type="button" @click="showConfirmModal = false" class="btn btn-cancel">Cancel</button>

@@ -79,42 +79,46 @@
             <form @submit.prevent="storeComp" class="row g-3">
                 <div class="col-md-6"><VInput v-model="cForm.name" label="Name *" /></div>
                 <div class="col-md-3">
-                    <label class="form-label">Type</label>
-                    <select v-model="cForm.type" class="form-select">
-                        <option value="earning">Earning</option>
-                        <option value="deduction">Deduction</option>
-                        <option value="employer_contribution">Employer Contribution</option>
-                    </select>
+                    <VMultiselect
+                        id="c-type"
+                        v-model="cForm.type"
+                        label="Type"
+                        :options="componentTypeOptions"
+                    />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Calculation</label>
-                    <select v-model="cForm.calculation_type" class="form-select">
-                        <option value="fixed">Fixed</option>
-                        <option value="percentage">Percentage</option>
-                    </select>
+                    <VMultiselect
+                        id="c-calculation_type"
+                        v-model="cForm.calculation_type"
+                        label="Calculation"
+                        :options="calculationTypeOptions"
+                    />
                 </div>
                 <div v-if="cForm.calculation_type === 'percentage'" class="col-md-4">
-                    <label class="form-label">Percentage Of</label>
-                    <select v-model="cForm.percentage_base" class="form-select">
-                        <option value="gross_earnings">All Earnings</option>
-                        <option value="basic">Basic Salary</option>
-                    </select>
+                    <VMultiselect
+                        id="c-percentage_base"
+                        v-model="cForm.percentage_base"
+                        label="Percentage Of"
+                        :options="percentageBaseOptions"
+                    />
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label">GL Account
-                        <span class="text-muted small">{{ cForm.type === 'employer_contribution' ? '(employer expense — debit)' : '(for journal posting)' }}</span>
-                    </label>
-                    <select v-model="cForm.account_id" class="form-select">
-                        <option value="">-- Select Account --</option>
-                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="c-account_id"
+                        v-model="cForm.account_id"
+                        :label="cForm.type === 'employer_contribution' ? 'GL Account (employer expense — debit)' : 'GL Account (for journal posting)'"
+                        placeholder="-- Select Account --"
+                        :options="accountList"
+                    />
                 </div>
                 <div v-if="cForm.type === 'employer_contribution'" class="col-md-8">
-                    <label class="form-label">Payable Account <span class="text-muted small">(liability — credit)</span></label>
-                    <select v-model="cForm.contra_account_id" class="form-select">
-                        <option value="">-- Select Account --</option>
-                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="c-contra_account_id"
+                        v-model="cForm.contra_account_id"
+                        label="Payable Account (liability — credit)"
+                        placeholder="-- Select Account --"
+                        :options="accountList"
+                    />
                 </div>
                 <div class="col-md-4 pt-3">
                     <div v-if="cForm.type === 'earning'" class="form-check form-switch">
@@ -139,42 +143,46 @@
             <form v-if="editItem" @submit.prevent="updateComp" class="row g-3">
                 <div class="col-md-6"><VInput v-model="editItem.name" label="Name *" /></div>
                 <div class="col-md-3">
-                    <label class="form-label">Type</label>
-                    <select v-model="editItem.type" class="form-select">
-                        <option value="earning">Earning</option>
-                        <option value="deduction">Deduction</option>
-                        <option value="employer_contribution">Employer Contribution</option>
-                    </select>
+                    <VMultiselect
+                        id="e-type"
+                        v-model="editItem.type"
+                        label="Type"
+                        :options="componentTypeOptions"
+                    />
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Calculation</label>
-                    <select v-model="editItem.calculation_type" class="form-select">
-                        <option value="fixed">Fixed</option>
-                        <option value="percentage">Percentage</option>
-                    </select>
+                    <VMultiselect
+                        id="e-calculation_type"
+                        v-model="editItem.calculation_type"
+                        label="Calculation"
+                        :options="calculationTypeOptions"
+                    />
                 </div>
                 <div v-if="editItem.calculation_type === 'percentage'" class="col-md-4">
-                    <label class="form-label">Percentage Of</label>
-                    <select v-model="editItem.percentage_base" class="form-select">
-                        <option value="gross_earnings">All Earnings</option>
-                        <option value="basic">Basic Salary</option>
-                    </select>
+                    <VMultiselect
+                        id="e-percentage_base"
+                        v-model="editItem.percentage_base"
+                        label="Percentage Of"
+                        :options="percentageBaseOptions"
+                    />
                 </div>
                 <div class="col-md-8">
-                    <label class="form-label">GL Account
-                        <span class="text-muted small">{{ editTypeValue === 'employer_contribution' ? '(employer expense — debit)' : '(for journal posting)' }}</span>
-                    </label>
-                    <select v-model="editItem.account_id" class="form-select">
-                        <option value="">-- Select Account --</option>
-                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="e-account_id"
+                        v-model="editItem.account_id"
+                        :label="editTypeValue === 'employer_contribution' ? 'GL Account (employer expense — debit)' : 'GL Account (for journal posting)'"
+                        placeholder="-- Select Account --"
+                        :options="accountList"
+                    />
                 </div>
                 <div v-if="editTypeValue === 'employer_contribution'" class="col-md-8">
-                    <label class="form-label">Payable Account <span class="text-muted small">(liability — credit)</span></label>
-                    <select v-model="editItem.contra_account_id" class="form-select">
-                        <option value="">-- Select Account --</option>
-                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="e-contra_account_id"
+                        v-model="editItem.contra_account_id"
+                        label="Payable Account (liability — credit)"
+                        placeholder="-- Select Account --"
+                        :options="accountList"
+                    />
                 </div>
                 <div class="col-md-4 pt-3">
                     <div v-if="editTypeValue === 'earning'" class="form-check form-switch">
@@ -212,6 +220,22 @@ import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { apiAdmin } from '@/helpers/api.js';
 import { componentColumns, createRowActions } from './componentsTableConfig.js';
+
+const componentTypeOptions = [
+    { id: 'earning', name: 'Earning' },
+    { id: 'deduction', name: 'Deduction' },
+    { id: 'employer_contribution', name: 'Employer Contribution' },
+];
+
+const calculationTypeOptions = [
+    { id: 'fixed', name: 'Fixed' },
+    { id: 'percentage', name: 'Percentage' },
+];
+
+const percentageBaseOptions = [
+    { id: 'gross_earnings', name: 'All Earnings' },
+    { id: 'basic', name: 'Basic Salary' },
+];
 
 const payrollStore = usePayrollStore();
 const { components } = storeToRefs(payrollStore);

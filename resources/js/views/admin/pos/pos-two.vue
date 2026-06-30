@@ -210,16 +210,14 @@
                         />
                       </td>
                       <td class="pos-col-tax">
-                        <select
-                          class="form-select form-select-sm pos-cart-select"
-                          :value="item.taxId ?? ''"
-                          @change="e => posStore.onLineTaxChange(item.lineKey, e.target.value)"
-                        >
-                          <option value="">None</option>
-                          <option v-for="t in posStore.taxes" :key="t.id" :value="t.id">
-                            {{ t.name }} ({{ t.rate }}%)
-                          </option>
-                        </select>
+                        <VMultiselect
+                          size="sm"
+                          :model-value="item.taxId ?? ''"
+                          :options="lineTaxOptions"
+                          placeholder="None"
+                          :append-to-body="true"
+                          @update:model-value="v => posStore.onLineTaxChange(item.lineKey, v)"
+                        />
                         <span v-if="item.taxAmount > 0" class="pos-cart-tax-amt">{{ formatMoney(item.taxAmount) }}</span>
                       </td>
                       <td class="pos-col-total text-end">
@@ -662,6 +660,16 @@ export default {
 
     isBankLinkedModeSelected() {
       return this.bankLinkedModes.some((m) => m.id === this.selectedPaymentModeId);
+    },
+
+    lineTaxOptions() {
+      return [
+        { id: '', name: 'None' },
+        ...this.posStore.taxes.map((t) => ({
+          id: t.id,
+          name: `${t.name} (${t.rate}%)`,
+        })),
+      ];
     },
   },
 
@@ -1129,7 +1137,8 @@ export default {
 }
 
 .pos-cart-input,
-.pos-cart-select {
+.pos-cart-select,
+.pos-col-tax .multiselect {
   background-color: var(--bs-body-bg);
   border-color: rgba(var(--bs-border-color-rgb, 222, 226, 230), 0.9);
   border-radius: 0.45rem;
@@ -1137,7 +1146,8 @@ export default {
 }
 
 .pos-cart-input:focus,
-.pos-cart-select:focus {
+.pos-cart-select:focus,
+.pos-col-tax .multiselect.is-active {
   border-color: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.45);
   box-shadow: 0 0 0 0.15rem rgba(var(--bs-primary-rgb, 13, 110, 253), 0.12);
 }

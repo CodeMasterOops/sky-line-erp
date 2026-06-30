@@ -195,14 +195,14 @@
                                 </div>
                                 <div class="card-body py-2 px-3 row g-2">
                                     <div class="col-md-6">
-                                        <label class="form-label small">Currency</label>
-                                        <select class="form-select form-select-sm" v-model="form.currency_code">
-                                            <option value="">NPR (default)</option>
-                                            <option value="USD">USD</option>
-                                            <option value="EUR">EUR</option>
-                                            <option value="INR">INR</option>
-                                            <option value="GBP">GBP</option>
-                                        </select>
+                                        <VMultiselect
+                                            id="currency_code"
+                                            v-model="form.currency_code"
+                                            :options="currencyOptions"
+                                            label="Currency"
+                                            placeholder="NPR (default)"
+                                            size="sm"
+                                        />
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label small">Exchange Rate</label>
@@ -218,23 +218,14 @@
                                         />
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label small">TDS Category</label>
-                                        <select class="form-select form-select-sm" v-model="form.tds_category">
-                                            <option value="">None</option>
-                                            <option value="service_vat_bill">Service Fee (VAT Bill) – 1.5%</option>
-                                            <option value="service_pan_bill">Service Fee (PAN Bill) – 15%</option>
-                                            <option value="service_vat_exempt_institution">Service Fee (VAT-Exempt Institution) – 1%</option>
-                                            <option value="contract_vat_registered">Contract Payment (VAT Registered) – 1.5%</option>
-                                            <option value="rent_property">Rent (House/Land/Property) – 10%</option>
-                                            <option value="rent_vehicle_vat">Vehicle Hire (VAT Bill) – 1.5%</option>
-                                            <option value="rent_vehicle_no_vat">Vehicle Hire (No VAT Bill) – 10%</option>
-                                            <option value="interest_bank_natural_person">Interest by Bank to Natural Person – 6%</option>
-                                            <option value="interest_company">Interest by Company/Debenture – 15%</option>
-                                            <option value="commission">Commission (15%)</option>
-                                            <option value="dividend">Dividend – 5%</option>
-                                            <option value="royalty">Royalty – 15%</option>
-                                            <option value="windfall">Windfall Gains – 25%</option>
-                                        </select>
+                                        <VMultiselect
+                                            id="tds_category"
+                                            v-model="form.tds_category"
+                                            :options="tdsCategoryOptions"
+                                            label="TDS Category"
+                                            placeholder="None"
+                                            size="sm"
+                                        />
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label small">TDS Rate (%)</label>
@@ -352,6 +343,29 @@ const showTdsCurrencySection = ref(false);
 const payableTypeOptions = [
     {id: 'bill', name: 'Bill'},
     {id: 'expense', name: 'Expense'},
+];
+
+const currencyOptions = [
+    { id: 'USD', name: 'USD' },
+    { id: 'EUR', name: 'EUR' },
+    { id: 'INR', name: 'INR' },
+    { id: 'GBP', name: 'GBP' },
+];
+
+const tdsCategoryOptions = [
+    { id: 'service_vat_bill', name: 'Service Fee (VAT Bill) – 1.5%' },
+    { id: 'service_pan_bill', name: 'Service Fee (PAN Bill) – 15%' },
+    { id: 'service_vat_exempt_institution', name: 'Service Fee (VAT-Exempt Institution) – 1%' },
+    { id: 'contract_vat_registered', name: 'Contract Payment (VAT Registered) – 1.5%' },
+    { id: 'rent_property', name: 'Rent (House/Land/Property) – 10%' },
+    { id: 'rent_vehicle_vat', name: 'Vehicle Hire (VAT Bill) – 1.5%' },
+    { id: 'rent_vehicle_no_vat', name: 'Vehicle Hire (No VAT Bill) – 10%' },
+    { id: 'interest_bank_natural_person', name: 'Interest by Bank to Natural Person – 6%' },
+    { id: 'interest_company', name: 'Interest by Company/Debenture – 15%' },
+    { id: 'commission', name: 'Commission (15%)' },
+    { id: 'dividend', name: 'Dividend – 5%' },
+    { id: 'royalty', name: 'Royalty – 15%' },
+    { id: 'windfall', name: 'Windfall Gains – 25%' },
 ];
 
 const selectedPayableType = ref(props.payableType || 'bill');

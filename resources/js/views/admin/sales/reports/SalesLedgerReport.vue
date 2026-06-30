@@ -54,11 +54,14 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Customer <span class="text-danger">*</span></label>
-                        <select class="form-select" v-model="filters.party_id">
-                            <option value="">— Select Customer —</option>
-                            <option v-for="p in partyOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="party_id"
+                            v-model="filters.party_id"
+                            :options="partyOptions"
+                            label="Customer"
+                            placeholder="— Select Customer —"
+                            required
+                        />
                     </div>
                     <div class="col-md-2">
                         <VDatepicker id="from_date" label="From Date" v-model="filters.from_date" />

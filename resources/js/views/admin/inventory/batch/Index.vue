@@ -18,14 +18,15 @@
             @search="onSearchInput"
             @reset="resetFilters">
             <template #filters>
-                <select class="form-select form-select-sm" v-model="filter.status">
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="quarantine">Quarantine</option>
-                    <option value="expired">Expired</option>
-                    <option value="depleted">Depleted</option>
-                    <option value="recalled">Recalled</option>
-                </select>
+                <div style="min-width: 150px;">
+                    <VMultiselect
+                        id="filter_status"
+                        v-model="filter.status"
+                        :options="statusOptions"
+                        placeholder="All Status"
+                        size="sm"
+                    />
+                </div>
                 <input
                     type="number"
                     class="form-control form-control-sm"
@@ -127,6 +128,14 @@ const editBatchId = ref('');
 const alertModal = ref(false);
 const alerts = ref([]);
 const alertDays = ref(30);
+
+const statusOptions = [
+    { id: 'active', name: 'Active' },
+    { id: 'quarantine', name: 'Quarantine' },
+    { id: 'expired', name: 'Expired' },
+    { id: 'depleted', name: 'Depleted' },
+    { id: 'recalled', name: 'Recalled' },
+];
 
 const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
     defaults: { search: '', status: '', expiring_days: '', page: 1, limit: 25 },

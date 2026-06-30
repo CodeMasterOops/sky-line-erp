@@ -37,12 +37,13 @@
                                 Matching columns are auto-selected — review and adjust as needed.
                             </p>
                             <div class="mb-3">
-                                <label class="form-label">Duplicate handling</label>
-                                <select v-model="duplicateMode" class="form-select form-select-sm">
-                                    <option value="update">Update existing (match by code)</option>
-                                    <option value="skip">Skip existing</option>
-                                    <option value="create_only">Create only (fail if exists)</option>
-                                </select>
+                                <VMultiselect
+                                    id="duplicate_mode"
+                                    v-model="duplicateMode"
+                                    :options="duplicateModeOptions"
+                                    label="Duplicate handling"
+                                    size="sm"
+                                />
                             </div>
                             <div class="table-responsive" style="max-height: 320px">
                                 <table class="table table-sm">
@@ -59,10 +60,13 @@
                                                 <span v-if="mapping[header]" class="badge bg-success-subtle text-success ms-1">matched</span>
                                             </td>
                                             <td>
-                                                <select v-model="mapping[header]" class="form-select form-select-sm">
-                                                    <option value="">— Skip —</option>
-                                                    <option v-for="f in fields" :key="f" :value="f">{{ f }}</option>
-                                                </select>
+                                                <VMultiselect
+                                                    :id="`mapping_${header}`"
+                                                    v-model="mapping[header]"
+                                                    :options="fieldOptions"
+                                                    size="sm"
+                                                    placeholder="— Skip —"
+                                                />
                                             </td>
                                         </tr>
                                     </tbody>
@@ -207,18 +211,14 @@
                                     </div>
 
                                     <div v-if="resolutionState[keyOf(item)]?.action === 'map' && enumOptions(item.field)">
-                                        <select
+                                        <VMultiselect
+                                            :id="`resolve_enum_${keyOf(item)}`"
                                             v-model="resolutionState[keyOf(item)].targetValue"
-                                            class="form-select form-select-sm"
-                                        >
-                                            <option
-                                                v-for="opt in enumOptions(item.field)"
-                                                :key="opt.value"
-                                                :value="opt.value"
-                                            >
-                                                {{ opt.label }}
-                                            </option>
-                                        </select>
+                                            :options="enumOptions(item.field)"
+                                            name-prop="label"
+                                            value-prop="value"
+                                            size="sm"
+                                        />
                                     </div>
                                     <div v-else-if="resolutionState[keyOf(item)]?.action === 'map'">
                                         <VMultiselect
@@ -406,6 +406,16 @@ const duplicateMode = ref('update');
 const resolutionState = ref({});
 const optionLists = ref({ category: [], unit: [], brand: [], tax: [] });
 const optionsLoading = ref(false);
+
+const duplicateModeOptions = [
+    { id: 'update', name: 'Update existing (match by code)' },
+    { id: 'skip', name: 'Skip existing' },
+    { id: 'create_only', name: 'Create only (fail if exists)' },
+];
+
+const fieldOptions = computed(() =>
+    props.fields.map((field) => ({ id: field, name: field })),
+);
 
 const CREATABLE_FIELDS = ['category', 'brand', 'unit'];
 

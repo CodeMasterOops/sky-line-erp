@@ -6,11 +6,14 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
-                        <label class="form-label">Fiscal Year</label>
-                        <select v-model="filter.fiscal_year_id" class="form-select">
-                            <option value="">-- Select Fiscal Year --</option>
-                            <option v-for="fy in fiscalYears" :key="fy.id" :value="fy.id">{{ fy.year_name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="fiscal_year_id"
+                            v-model="filter.fiscal_year_id"
+                            label="Fiscal Year"
+                            placeholder="-- Select Fiscal Year --"
+                            :options="fiscalYears"
+                            name-prop="year_name"
+                        />
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-primary w-100" @click="loadReport" :disabled="!filter.fiscal_year_id || loading">

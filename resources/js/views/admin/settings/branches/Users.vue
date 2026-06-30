@@ -77,26 +77,27 @@
         <template #modal-body>
             <form @submit.prevent="saveAssignment" class="row g-3">
                 <div v-if="!editingUser" class="col-12">
-                    <label class="form-label">User <span class="text-danger">*</span></label>
-                    <select v-model="form.user_id" class="form-select" required>
-                        <option value="">Select user...</option>
-                        <option
-                            v-for="u in availableUsers"
-                            :key="u.id"
-                            :value="u.id"
-                        >{{ u.name }} ({{ u.email }})</option>
-                    </select>
+                    <VMultiselect
+                        id="user_id"
+                        v-model="form.user_id"
+                        label="User"
+                        placeholder="Select user..."
+                        :options="availableUserOptions"
+                        required
+                    />
                 </div>
                 <div v-else class="col-12">
                     <label class="form-label">User</label>
                     <input :value="editingUser.name" class="form-control" disabled />
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Branch Role</label>
-                    <select v-model="form.role_id" class="form-select">
-                        <option :value="null">No specific role (inherit company role)</option>
-                        <option v-for="r in roles.data" :key="r.id" :value="r.id">{{ r.name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="role_id"
+                        v-model="form.role_id"
+                        label="Branch Role"
+                        placeholder="No specific role (inherit company role)"
+                        :options="branchRoleOptions"
+                    />
                 </div>
                 <div v-if="editingUser" class="col-12">
                     <div class="form-check form-switch">
@@ -152,11 +153,22 @@ const showModal = ref(false);
 const saving = ref(false);
 const editingUser = ref(null);
 
-const form = ref({ user_id: '', role_id: null, is_active: true });
+const form = ref({ user_id: '', role_id: '', is_active: true });
 
 const assignedUserIds = computed(() => assignments.value.map(a => a.id));
 const availableUsers = computed(() =>
     (users.value.data ?? []).filter(u => !assignedUserIds.value.includes(u.id))
+);
+
+const availableUserOptions = computed(() =>
+    availableUsers.value.map(u => ({
+        id: u.id,
+        name: `${u.name} (${u.email})`,
+    }))
+);
+
+const branchRoleOptions = computed(() =>
+    (roles.value.data ?? []).map(r => ({ id: r.id, name: r.name }))
 );
 
 const columns = [
@@ -190,7 +202,7 @@ onMounted(async () => {
 
 const openAssignModal = () => {
     editingUser.value = null;
-    form.value = { user_id: '', role_id: null, is_active: true };
+    form.value = { user_id: '', role_id: '', is_active: true };
     showModal.value = true;
 };
 
@@ -198,7 +210,7 @@ const openEditModal = (record) => {
     editingUser.value = record;
     form.value = {
         user_id: record.id,
-        role_id: record.branch_role?.id ?? null,
+        role_id: record.branch_role?.id ?? '',
         is_active: record.is_active,
     };
     showModal.value = true;
@@ -215,14 +227,14 @@ const saveAssignment = async () => {
         if (editingUser.value) {
             await apiAdmin(`branch/${branchId.value}/users/${editingUser.value.id}`, 'patch', {
                 user_id: editingUser.value.id,
-                role_id: form.value.role_id,
+                role_id: form.value.role_id || null,
                 is_active: form.value.is_active,
             });
             toast(200, 'Assignment updated successfully.');
         } else {
             await apiAdmin(`branch/${branchId.value}/users`, 'post', {
                 user_id: form.value.user_id,
-                role_id: form.value.role_id,
+                role_id: form.value.role_id || null,
             });
             toast(201, 'User assigned to branch successfully.');
         }

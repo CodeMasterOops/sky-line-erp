@@ -36,14 +36,25 @@
                         />
                         <label class="form-check-label" for="due-only">Due now</label>
                     </div>
-                    <select v-model="filter.status" class="form-select form-select-sm" :disabled="dueOnly" @change="fetchFollowUps">
-                        <option value="">All statuses</option>
-                        <option v-for="s in followUpStatuses" :key="s.id" :value="s.id">{{ s.name }}</option>
-                    </select>
-                    <select v-model="filter.channel" class="form-select form-select-sm" @change="fetchFollowUps">
-                        <option value="">All channels</option>
-                        <option v-for="c in followUpChannels" :key="c.id" :value="c.id">{{ c.name }}</option>
-                    </select>
+                    <div style="min-width: 150px;">
+                        <VMultiselect
+                            id="filter_status"
+                            v-model="filter.status"
+                            :options="followUpStatuses"
+                            placeholder="All statuses"
+                            size="sm"
+                            :disabled="dueOnly"
+                        />
+                    </div>
+                    <div style="min-width: 150px;">
+                        <VMultiselect
+                            id="filter_channel"
+                            v-model="filter.channel"
+                            :options="followUpChannels"
+                            placeholder="All channels"
+                            size="sm"
+                        />
+                    </div>
                 </template>
             </VTableToolbar>
             <div class="card-body">

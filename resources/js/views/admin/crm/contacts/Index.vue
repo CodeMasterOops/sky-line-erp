@@ -37,10 +37,15 @@
                 @reset="resetFilters"
             >
                 <template #filters>
-                    <select v-model="filter.type" class="form-select form-select-sm" @change="fetchContacts">
-                        <option value="">All types</option>
-                        <option v-for="t in partyTypes" :key="t.id" :value="t.id">{{ t.name }}</option>
-                    </select>
+                    <div style="min-width: 150px;">
+                        <VMultiselect
+                            id="filter_type"
+                            v-model="filter.type"
+                            :options="partyTypes"
+                            placeholder="All types"
+                            size="sm"
+                        />
+                    </div>
                 </template>
             </VTableToolbar>
             <div class="card-body">

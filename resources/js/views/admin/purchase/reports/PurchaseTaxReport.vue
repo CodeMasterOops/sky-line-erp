@@ -41,11 +41,13 @@
                         <VDatepicker id="to_date" label="To Date" v-model="filters.to_date" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Supplier</label>
-                        <select class="form-select" v-model="filters.party_id">
-                            <option value="">All Suppliers</option>
-                            <option v-for="p in partyOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="party_id"
+                            v-model="filters.party_id"
+                            :options="partyOptions"
+                            label="Supplier"
+                            placeholder="All Suppliers"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success w-100" @click="loadReport" :disabled="loading">

@@ -54,20 +54,22 @@
                         <VDatepicker id="to_date" label="To Date" v-model="filters.to_date" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Warehouse</label>
-                        <select class="form-select" v-model="filters.warehouse_id">
-                            <option value="">All Warehouses</option>
-                            <option v-for="w in warehouseOptions" :key="w.id" :value="w.id">{{ w.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="warehouse_id"
+                            v-model="filters.warehouse_id"
+                            :options="warehouseOptions"
+                            label="Warehouse"
+                            placeholder="All Warehouses"
+                        />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Billing Status</label>
-                        <select class="form-select" v-model="filters.billing_status">
-                            <option value="">All</option>
-                            <option value="billed">Billed</option>
-                            <option value="partial">Partially Billed</option>
-                            <option value="unbilled">Unbilled</option>
-                        </select>
+                        <VMultiselect
+                            id="billing_status"
+                            v-model="filters.billing_status"
+                            :options="billingStatusOptions"
+                            label="Billing Status"
+                            placeholder="All"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success w-100" @click="loadReport" :disabled="loading">
@@ -150,6 +152,12 @@ import {useAdminSettingStore} from '@/stores/admin/settings/admin-setting.js';
 const reportData = ref(null);
 const loading = ref(false);
 const warehouseOptions = ref([]);
+
+const billingStatusOptions = [
+    { id: 'billed', name: 'Billed' },
+    { id: 'partial', name: 'Partially Billed' },
+    { id: 'unbilled', name: 'Unbilled' },
+];
 
 const adminSettingStore = useAdminSettingStore();
 const {currentFiscalYear} = storeToRefs(adminSettingStore);

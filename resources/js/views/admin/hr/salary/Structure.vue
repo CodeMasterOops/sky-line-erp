@@ -45,11 +45,15 @@
         <template #modal-body>
             <form @submit.prevent="storeStructure" class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label">Employee *</label>
-                    <select v-model="cForm.employee_id" class="form-select">
-                        <option value="">Select Employee</option>
-                        <option v-for="e in employees.data" :key="e.id" :value="e.id">{{ e.full_name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="employee_id"
+                        v-model="cForm.employee_id"
+                        label="Employee"
+                        placeholder="Select Employee"
+                        :options="employees.data"
+                        name-prop="full_name"
+                        required
+                    />
                 </div>
                 <div class="col-md-6">
                     <VDatepicker id="effective_from" v-model="cForm.effective_from" label="Effective From" required />
@@ -68,12 +72,13 @@
                         <tbody>
                             <tr v-for="(item, idx) in cForm.items" :key="idx">
                                 <td>
-                                    <select v-model="item.salary_component_id" class="form-select form-select-sm">
-                                        <option value="">Select</option>
-                                        <option v-for="c in components.data" :key="c.id" :value="c.id">
-                                            {{ c.name }} ({{ c.type_label }})
-                                        </option>
-                                    </select>
+                                    <VMultiselect
+                                        :id="`component-${idx}`"
+                                        v-model="item.salary_component_id"
+                                        placeholder="Select"
+                                        :options="componentOptions"
+                                        size="sm"
+                                    />
                                 </td>
                                 <td>
                                     <input type="number" v-model="item.amount" class="form-control form-control-sm" step="0.01" />
@@ -121,7 +126,7 @@
 
 <script setup>
 import { formatMoney } from '@/helpers/formatMoney.js';
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
 import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
@@ -144,6 +149,13 @@ const showCreateModal = ref(false);
 const viewItem = ref(null);
 const cSubmitting = ref(false);
 const cForm = reactive({ employee_id: '', effective_from: '', items: [{ salary_component_id: '', amount: 0 }] });
+
+const componentOptions = computed(() =>
+    components.value.data.map(c => ({
+        id: c.id,
+        name: `${c.name} (${c.type_label})`,
+    }))
+);
 
 const fetchStructures = () => {
     payrollStore.getStructures(filter);

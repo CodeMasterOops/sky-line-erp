@@ -2,13 +2,15 @@
     <div class="dataTables_wrapper">
         <div class="dataTables_top">
             <div class="dataTables_length">
-                <label>
+                <label class="d-inline-flex align-items-center gap-1">
                     Show
-                    <select v-model="params.limit">
-                        <option v-for="(showEntry,index) in showEntries" :key="index" :value="showEntry">
-                            {{ showEntry }}
-                        </option>
-                    </select>
+                    <span style="width: 5rem; display: inline-block;">
+                        <VMultiselect
+                            size="sm"
+                            v-model="params.limit"
+                            :options="showEntryOptions"
+                        />
+                    </span>
                     entries
                 </label>
             </div>
@@ -75,7 +77,7 @@
 
 <script setup>
 
-import {reactive, watch} from 'vue';
+import {computed, reactive, watch} from 'vue';
 
 const props = defineProps({
     meta: {
@@ -88,6 +90,10 @@ const props = defineProps({
 })
 
 const showEntries = [10, 25, 50, 100, 500];
+
+const showEntryOptions = computed(() =>
+    showEntries.map((n) => ({ id: n, name: String(n) }))
+);
 
 const params = reactive({
     limit: props.filter.limit || 25,

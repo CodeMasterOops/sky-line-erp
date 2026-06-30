@@ -67,18 +67,22 @@
                         <VDatepicker id="to_date" label="To Date" v-model="filters.to_date" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Category</label>
-                        <select class="form-select" v-model="filters.category_id">
-                            <option value="">All Categories</option>
-                            <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="category_id"
+                            v-model="filters.category_id"
+                            :options="categoryOptions"
+                            label="Category"
+                            placeholder="All Categories"
+                        />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Customer</label>
-                        <select class="form-select" v-model="filters.party_id">
-                            <option value="">All Customers</option>
-                            <option v-for="p in partyOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="party_id"
+                            v-model="filters.party_id"
+                            :options="partyOptions"
+                            label="Customer"
+                            placeholder="All Customers"
+                        />
                     </div>
                     <div class="col-md-2 d-flex gap-2">
                         <button class="btn btn-success w-100" @click="loadReport" :disabled="loading">

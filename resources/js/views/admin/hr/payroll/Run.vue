@@ -44,13 +44,13 @@
                     </div>
                 </div>
                 <template v-else>
-                    <div class="col-12">
-                        <label class="form-label">Payroll Period</label>
-                    </div>
                     <div class="col-7">
-                        <select v-model="cForm.bs_month" class="form-select">
-                            <option v-for="(name, idx) in bsMonthNames" :key="idx" :value="idx + 1">{{ name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="bs_month"
+                            v-model="cForm.bs_month"
+                            label="Payroll Period"
+                            :options="bsMonthOptions"
+                        />
                     </div>
                     <div class="col-5">
                         <div class="form-control bg-light text-muted">
@@ -73,12 +73,15 @@
                     <p class="text-muted">Select the bank or cash account from which salaries will be paid. A journal entry will be automatically posted to the ledger.</p>
                 </div>
                 <div class="col-12">
-                    <label class="form-label">Payment Account <span class="text-danger">*</span></label>
-                    <select v-model="paidAccountId" class="form-select">
-                        <option value="">-- Select Account --</option>
-                        <option v-for="acc in accountList" :key="acc.id" :value="acc.id">{{ acc.name }}</option>
-                    </select>
-                    <div v-if="payError" class="text-danger small mt-1">{{ payError }}</div>
+                    <VMultiselect
+                        id="paid_account_id"
+                        v-model="paidAccountId"
+                        label="Payment Account"
+                        placeholder="-- Select Account --"
+                        :options="accountList"
+                        required
+                        :error="payError"
+                    />
                 </div>
                 <div class="col-12 d-flex justify-content-end gap-2">
                     <button type="button" @click="showPayModal = false" class="btn btn-cancel">Cancel</button>
@@ -123,6 +126,8 @@ const isPaying = ref(false);
 const accountList = ref([]);
 
 const bsMonthNames = ['Baisakh', 'Jestha', 'Ashadh', 'Shrawan', 'Bhadra', 'Ashwin', 'Kartik', 'Mangsir', 'Poush', 'Magh', 'Falgun', 'Chaitra'];
+
+const bsMonthOptions = bsMonthNames.map((name, idx) => ({ id: idx + 1, name }));
 
 const cForm = reactive({ fiscal_year_id: null, bs_month: 1, bs_year: null });
 

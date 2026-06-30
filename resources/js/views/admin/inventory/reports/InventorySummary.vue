@@ -67,11 +67,13 @@
                         <VDatepicker id="to_date" label="To Date" v-model="filters.to_date" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Category</label>
-                        <select class="form-select" v-model="filters.category_id">
-                            <option value="">All Categories</option>
-                            <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ c.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="category_id"
+                            v-model="filters.category_id"
+                            :options="categoryOptions"
+                            label="Category"
+                            placeholder="All Categories"
+                        />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Warehouse</label>

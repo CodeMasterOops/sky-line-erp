@@ -6,10 +6,13 @@
         <div class="card mb-3">
             <div class="card-body row g-3 align-items-end">
                 <div class="col-md-4">
-                    <label class="form-label">Fiscal Year</label>
-                    <select v-model="fiscalYearId" class="form-select" @change="fetchLedger">
-                        <option v-for="fy in fiscalYears" :key="fy.id" :value="fy.id">{{ fy.year_name }}</option>
-                    </select>
+                    <VMultiselect
+                        id="fiscal_year_id"
+                        v-model="fiscalYearId"
+                        label="Fiscal Year"
+                        :options="fiscalYearOptions"
+                        name-prop="year_name"
+                    />
                 </div>
                 <div class="col-md-8 text-md-end">
                     <router-link :to="{ name: 'admin.hr-employee-list' }" class="btn btn-outline-secondary">
@@ -71,7 +74,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { apiAdmin } from '@/helpers/api.js';
 import { formatMoney } from '@/helpers/formatMoney.js';
@@ -84,6 +87,15 @@ const fiscalYearId = ref(null);
 const rows = ref([]);
 const totals = reactive({ gross: 0, deductions: 0, tds: 0, net: 0 });
 const ledger = reactive({ employee: null });
+
+const fiscalYearOptions = computed(() =>
+    fiscalYears.value.map(fy => ({
+        ...fy,
+        year_name: fy.is_current ? `${fy.year_name} (Current)` : fy.year_name,
+    }))
+);
+
+watch(fiscalYearId, () => fetchLedger());
 
 const fetchLedger = async () => {
     if (!fiscalYearId.value) return;

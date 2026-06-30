@@ -61,11 +61,14 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Product <span class="text-danger">*</span></label>
-                        <select class="form-select" v-model="filters.product_variant_id">
-                            <option value="">— Select Product —</option>
-                            <option v-for="p in productOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-                        </select>
+                        <VMultiselect
+                            id="product_variant_id"
+                            v-model="filters.product_variant_id"
+                            :options="productOptions"
+                            label="Product"
+                            placeholder="— Select Product —"
+                            required
+                        />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Warehouse</label>

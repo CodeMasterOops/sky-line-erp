@@ -147,23 +147,15 @@
                                     />
                                 </td>
                                 <td class="inv-col-tax">
-                                    <select
-                                        class="form-select form-select-sm inv-line-tax-select"
-                                        :value="item.tax_group_id ? `group:${item.tax_group_id}` : (item.tax_id ?? '')"
+                                    <VMultiselect
+                                        :id="`invoice_edit_line_tax_${index}`"
+                                        :model-value="taxSelectionValue(item)"
+                                        :options="lineTaxOptions"
+                                        size="sm"
+                                        placeholder="None"
                                         :disabled="!isDraft"
-                                        @change="onLineTaxChange(index, $event.target.value)">
-                                        <option value="">None</option>
-                                        <optgroup v-if="taxGroups.data.length" label="Tax Groups">
-                                            <option v-for="g in taxGroups.data" :key="`group:${g.id}`" :value="`group:${g.id}`">
-                                                {{ g.name }}
-                                            </option>
-                                        </optgroup>
-                                        <optgroup label="Individual Taxes">
-                                            <option v-for="t in taxes.data" :key="t.id" :value="t.id">
-                                                {{ t.name }} ({{ t.rate }}%)
-                                            </option>
-                                        </optgroup>
-                                    </select>
+                                        @update:model-value="onLineTaxChange(index, $event)"
+                                    />
                                     <span v-if="calcLineTax(item, index) > 0" class="inv-line-tax-amt">
                                         {{ formatMoney(calcLineTax(item, index)) }}
                                     </span>
@@ -305,6 +297,7 @@ import {
     orderDiscountMoney,
 } from '@/composables/purchaseOrderTotals.js';
 import {useLineOrderDiscountTotals} from '@/composables/useLineOrderDiscountTotals.js';
+import {useLineItemTaxOptions, taxSelectionValue} from '@/composables/useLineItemTaxOptions.js';
 import {useProductLineWarehouse} from '@/composables/useProductLineWarehouse.js';
 import VDiscountAmountTypeGroup from '@/components/base/VDiscountAmountTypeGroup.vue';
 import PartyMetaPanel from '@/components/party/PartyMetaPanel.vue';
@@ -334,6 +327,8 @@ const {invoice} = storeToRefs(invoiceStore);
 const {productVariants} = storeToRefs(productStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes, taxGroups} = storeToRefs(taxStore);
+
+const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);
 
 onMounted(() => {
     productStore.getProductVariants();

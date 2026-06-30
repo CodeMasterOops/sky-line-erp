@@ -180,17 +180,15 @@
       </div>
 
       <div v-for="(pay, idx) in splitPayments" :key="idx" class="d-flex align-items-center gap-2 mb-2">
-        <select
-          class="form-select form-select-sm"
-          :value="pay.payment_mode_id"
-          style="width:150px; flex-shrink:0;"
-          @change="onSplitModeChange(pay, $event)"
-        >
-          <option value="">-- Select --</option>
-          <option v-for="mode in paymentModes" :key="mode.id" :value="mode.id">
-            {{ mode.name }}
-          </option>
-        </select>
+        <div style="width:150px; flex-shrink:0;">
+          <VMultiselect
+            size="sm"
+            :model-value="pay.payment_mode_id"
+            :options="paymentModes"
+            placeholder="-- Select --"
+            @update:model-value="v => onSplitModeChange(pay, v)"
+          />
+        </div>
         <input
           type="number"
           class="form-control form-control-sm"
@@ -304,10 +302,15 @@
             <span class="badge bg-success-subtle text-success">QZ Tray connected</span>
           </label>
           <div class="input-group input-group-sm">
-            <select class="form-select" v-model="thermalPrinter">
-              <option value="">Use browser printing</option>
-              <option v-for="p in thermal.printers" :key="p" :value="p">{{ p }}</option>
-            </select>
+            <div class="flex-grow-1">
+              <VMultiselect
+                size="sm"
+                v-model="thermalPrinter"
+                :options="thermalPrinterOptions"
+                placeholder="Use browser printing"
+                :append-to-body="true"
+              />
+            </div>
             <button type="button" class="btn btn-outline-secondary" @click="refreshThermalPrinters" title="Refresh printer list">
               <i class="ti ti-refresh"></i>
             </button>
@@ -1609,6 +1612,13 @@ export default {
       },
     },
 
+    thermalPrinterOptions() {
+      return [
+        { id: '', name: 'Use browser printing' },
+        ...this.thermal.printers.map((p) => ({ id: p, name: p })),
+      ];
+    },
+
     useThermalPrint() {
       return this.thermal.connected && !!this.thermal.selectedPrinter;
     },
@@ -1722,10 +1732,10 @@ export default {
       this.doCheckout('split', payments);
     },
 
-    onSplitModeChange(pay, event) {
-      const modeId = parseInt(event.target.value) || null;
-      pay.payment_mode_id = modeId;
-      const mode = this.paymentModes.find(m => m.id === modeId);
+    onSplitModeChange(pay, modeId) {
+      const parsed = parseInt(modeId) || null;
+      pay.payment_mode_id = parsed;
+      const mode = this.paymentModes.find(m => m.id === parsed);
       pay.method = mode ? mode.name.toLowerCase() : '';
     },
 

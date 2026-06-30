@@ -19,11 +19,15 @@
             @search="onSearchInput"
             @reset="resetFilters">
             <template #filters>
-                <select v-model="filter.status" class="form-select form-select-sm w-auto">
-                    <option value="">All Status</option>
-                    <option value="draft">Draft</option>
-                    <option value="approved">Approved</option>
-                </select>
+                <div style="min-width: 140px;">
+                    <VMultiselect
+                        id="filter_status"
+                        v-model="filter.status"
+                        :options="statusOptions"
+                        placeholder="All Status"
+                        size="sm"
+                    />
+                </div>
             </template>
         </VTableToolbar>
 
@@ -91,6 +95,11 @@ const { confirmDelete, confirmAction } = useConfirmAction();
 
 const createModalOpened = ref(false);
 const editChallanId = ref('');
+
+const statusOptions = [
+    { id: 'draft', name: 'Draft' },
+    { id: 'approved', name: 'Approved' },
+];
 
 const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
     defaults: { search: '', status: '', page: 1, limit: 25 },
