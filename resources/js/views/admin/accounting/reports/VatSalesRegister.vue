@@ -48,6 +48,7 @@
                             <th>Bijak No</th>
                             <th>Buyer Name (Kretako Naam)</th>
                             <th>Buyer PAN</th>
+                            <th>Tax Group</th>
                             <th class="text-end">Taxable Amount (Kar Laagne Mulya)</th>
                             <th class="text-end">VAT 13% (Bhyaat)</th>
                             <th class="text-end">Exempt (Kar Mukta)</th>
@@ -56,7 +57,7 @@
                     </thead>
                     <tbody>
                         <tr v-if="!rows.length && !loading">
-                            <td colspan="9" class="text-center text-muted py-4">No data. Select a period and generate.</td>
+                            <td colspan="10" class="text-center text-muted py-4">No data. Select a period and generate.</td>
                         </tr>
                         <tr v-for="(row, idx) in rows" :key="idx">
                             <td>{{ idx + 1 }}</td>
@@ -64,6 +65,7 @@
                             <td>{{ row.bijak_no }}</td>
                             <td>{{ row.buyer_name }}</td>
                             <td>{{ row.buyer_pan }}</td>
+                            <td>{{ row.tax_group_name || '—' }}</td>
                             <td class="text-end">{{ formatMoney(row.taxable_amount) }}</td>
                             <td class="text-end text-danger">{{ formatMoney(row.vat_amount) }}</td>
                             <td class="text-end">{{ formatMoney(row.exempt_amount) }}</td>
@@ -72,7 +74,7 @@
                     </tbody>
                     <tfoot v-if="summary" class="table-secondary fw-bold">
                         <tr>
-                            <td colspan="5">Total</td>
+                            <td colspan="6">Total</td>
                             <td class="text-end">{{ formatMoney(summary.taxable_amount) }}</td>
                             <td class="text-end text-danger">{{ formatMoney(summary.vat_amount) }}</td>
                             <td class="text-end">{{ formatMoney(summary.exempt_amount) }}</td>
@@ -116,9 +118,9 @@ const loadReport = async () => {
 
 const exportCsv = () => {
     if (!rows.value.length) return;
-    const headers = ['Date', 'Bijak No', 'Buyer Name', 'Buyer PAN', 'Taxable Amount', 'VAT 13%', 'Exempt', 'Total'];
+    const headers = ['Date', 'Bijak No', 'Buyer Name', 'Buyer PAN', 'Tax Group', 'Taxable Amount', 'VAT 13%', 'Exempt', 'Total'];
     const csvRows = rows.value.map(r => [
-        r.date, r.bijak_no, r.buyer_name, r.buyer_pan,
+        r.date, r.bijak_no, r.buyer_name, r.buyer_pan, r.tax_group_name || '',
         r.taxable_amount, r.vat_amount, r.exempt_amount, r.total_amount
     ].map(v => `"${v ?? ''}"`).join(','));
     const csv = [headers.join(','), ...csvRows].join('\n');

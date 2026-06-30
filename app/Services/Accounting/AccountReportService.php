@@ -403,6 +403,7 @@ class AccountReportService
             ->orderBy('invoices.invoice_date')
             ->orderBy('invoices.invoice_no')
             ->select([
+                'invoices.id as invoice_id',
                 'invoices.invoice_no',
                 'invoices.bijak_no',
                 'invoices.invoice_date',
@@ -415,6 +416,8 @@ class AccountReportService
             ])
             ->get();
 
+        $taxGroupNames = $this->fetchTaxGroupNamesForInvoices($dbRows->pluck('invoice_id')->all());
+
         return $dbRows->map(fn ($row) => [
             'date' => $row->invoice_date,
             'date_bs' => $this->toBsDate($row->invoice_date),
@@ -422,12 +425,35 @@ class AccountReportService
             'buyer_name' => $row->buyer_name,
             'buyer_pan' => $row->buyer_pan,
             'buyer_pan_valid' => $this->isPanValid($row->buyer_pan),
+            'tax_group_name' => $taxGroupNames[$row->invoice_id] ?? null,
             'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
             'vat_amount' => round((float) ($row->vat_amount ?? 0), 2),
             'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
             'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
             'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->vat_amount ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
         ])->values()->all();
+    }
+
+    /**
+     * @param  int[]  $invoiceIds
+     * @return array<int, string>
+     */
+    private function fetchTaxGroupNamesForInvoices(array $invoiceIds): array
+    {
+        if (empty($invoiceIds)) {
+            return [];
+        }
+
+        return DB::table('invoice_items')
+            ->join('tax_groups', 'tax_groups.id', '=', 'invoice_items.tax_group_id')
+            ->whereIn('invoice_items.invoice_id', $invoiceIds)
+            ->whereNull('invoice_items.deleted_at')
+            ->whereNotNull('invoice_items.tax_group_id')
+            ->select('invoice_items.invoice_id', 'tax_groups.name')
+            ->get()
+            ->groupBy('invoice_id')
+            ->map(fn ($g) => $g->pluck('name')->unique()->sort()->values()->join(', '))
+            ->all();
     }
 
     public function vatPurchaseRegister(Request $request): array
@@ -481,6 +507,7 @@ class AccountReportService
             ->orderBy('bills.bill_date')
             ->orderBy('bills.bill_no')
             ->select([
+                'bills.id as bill_id',
                 'bills.bill_no',
                 'bills.supplier_invoice_no',
                 'bills.bill_date',
@@ -493,6 +520,8 @@ class AccountReportService
             ])
             ->get();
 
+        $taxGroupNames = $this->fetchTaxGroupNamesForBills($dbRows->pluck('bill_id')->all());
+
         return $dbRows->map(fn ($row) => [
             'date' => $row->bill_date,
             'date_bs' => $this->toBsDate($row->bill_date),
@@ -501,12 +530,35 @@ class AccountReportService
             'supplier_name' => $row->supplier_name,
             'supplier_pan' => $row->supplier_pan,
             'supplier_pan_valid' => $this->isPanValid($row->supplier_pan),
+            'tax_group_name' => $taxGroupNames[$row->bill_id] ?? null,
             'taxable_amount' => round((float) ($row->taxable_amount ?? 0), 2),
             'input_vat' => round((float) ($row->input_vat ?? 0), 2),
             'exempt_amount' => round((float) ($row->exempt_amount ?? 0), 2),
             'zero_rated_amount' => round((float) ($row->zero_rated_amount ?? 0), 2),
             'total_amount' => round((float) (($row->taxable_amount ?? 0) + ($row->input_vat ?? 0) + ($row->exempt_amount ?? 0) + ($row->zero_rated_amount ?? 0)), 2),
         ])->values()->all();
+    }
+
+    /**
+     * @param  int[]  $billIds
+     * @return array<int, string>
+     */
+    private function fetchTaxGroupNamesForBills(array $billIds): array
+    {
+        if (empty($billIds)) {
+            return [];
+        }
+
+        return DB::table('bill_items')
+            ->join('tax_groups', 'tax_groups.id', '=', 'bill_items.tax_group_id')
+            ->whereIn('bill_items.bill_id', $billIds)
+            ->whereNull('bill_items.deleted_at')
+            ->whereNotNull('bill_items.tax_group_id')
+            ->select('bill_items.bill_id', 'tax_groups.name')
+            ->get()
+            ->groupBy('bill_id')
+            ->map(fn ($g) => $g->pluck('name')->unique()->sort()->values()->join(', '))
+            ->all();
     }
 
     /**

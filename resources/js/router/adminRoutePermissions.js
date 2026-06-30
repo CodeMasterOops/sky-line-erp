@@ -7,6 +7,7 @@
 export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.dashboard': null,
     'admin.branch-select': null,
+    'admin.workspace-setup': null,
     'admin.profile': null,
     'admin.setting': 'list_setting',
     'admin.general-settings': 'list_setting',
