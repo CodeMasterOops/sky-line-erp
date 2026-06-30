@@ -36,6 +36,7 @@ export const usePosStore = defineStore('pos', {
         warehouses: [],
         categories: [],
         taxes: [],
+        taxGroups: [],
         paymentModes: [],
         heldOrders: [],
         todaySummary: { sale_count: 0, sale_total: 0, profit: 0, cogs: 0 },
@@ -108,7 +109,7 @@ export const usePosStore = defineStore('pos', {
         },
 
         hasVat(state) {
-            return state.cart.some((item) => item.taxId !== null);
+            return state.cart.some((item) => item.taxId !== null || (item.taxGroupId ?? null) !== null);
         },
 
         grandTotal() {
@@ -191,6 +192,7 @@ export const usePosStore = defineStore('pos', {
                 this.fetchWarehouses(),
                 this.fetchCustomers(),
                 this.fetchTaxes(),
+                this.fetchTaxGroups(),
                 this.fetchPaymentModes(),
                 this.fetchTodaySummary(),
                 this.fetchTillSession(),
@@ -240,7 +242,9 @@ export const usePosStore = defineStore('pos', {
             const lineNet = nets[index] ?? 0;
             const alloc = allocs[index] || 0;
             const taxable = Math.max(0, lineNet - alloc);
-            const taxRate = this.getTaxRate(item.taxId);
+            const taxRate = (item.taxGroupId ?? null) !== null
+                ? this.getGroupTotalRate(item.taxGroupId)
+                : this.getTaxRate(item.taxId);
 
             return parseFloat((taxable * (taxRate / 100)).toFixed(4));
         },
@@ -416,7 +420,8 @@ export const usePosStore = defineStore('pos', {
                 sku: variant.sku ?? '',
                 unitId: variant.unit_id ?? null,
                 rate: Number(variant.sales_price ?? variant.purchase_price ?? 0),
-                taxId: null,
+                taxId: variant.tax_id ?? null,
+                taxGroupId: variant.tax_group_id ?? null,
                 taxRate: 0,
                 taxAmount: 0,
                 line_discount_type: 'fixed',
@@ -481,6 +486,7 @@ export const usePosStore = defineStore('pos', {
             const tax = parsed ? this.taxes.find((t) => t.id === parsed) : null;
             this.updateCartItem(lineKey, {
                 taxId: parsed,
+                taxGroupId: null,
                 taxRate: tax ? Number(tax.rate) : 0,
             });
         },
@@ -492,9 +498,11 @@ export const usePosStore = defineStore('pos', {
             this.cart.forEach((item) => {
                 if (addVat && vatTax) {
                     item.taxId = vatTax.id;
+                    item.taxGroupId = null;
                     item.taxRate = Number(vatTax.rate);
                 } else {
                     item.taxId = null;
+                    item.taxGroupId = null;
                     item.taxRate = 0;
                     item.taxAmount = 0;
                 }
@@ -509,6 +517,22 @@ export const usePosStore = defineStore('pos', {
             } catch (err) {
                 showErrors(err);
             }
+        },
+
+        async fetchTaxGroups() {
+            try {
+                const res = await apiAdmin('tax-group?active_only=true&limit=200');
+                this.taxGroups = res.data.data ?? [];
+            } catch (err) {
+                // Non-fatal — groups simply won't apply until next load
+            }
+        },
+
+        getGroupTotalRate(taxGroupId) {
+            if (!taxGroupId) { return 0; }
+            const group = this.taxGroups.find((g) => g.id === taxGroupId);
+            if (!group) { return 0; }
+            return (group.taxGroupMembers || []).reduce((sum, m) => sum + Number(m.tax?.rate || 0), 0);
         },
 
         async fetchPaymentModes() {
@@ -528,6 +552,7 @@ export const usePosStore = defineStore('pos', {
                 quantity: item.quantity,
                 rate: item.rate,
                 tax_id: item.taxId,
+                tax_group_id: item.taxGroupId ?? null,
                 tax_amount: item.taxAmount,
                 discount_amount: lineDiscountMoneyFromItem(itemForCalc(item)),
                 line_discount_type: item.line_discount_type || 'fixed',

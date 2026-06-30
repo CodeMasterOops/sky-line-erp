@@ -128,6 +128,8 @@ class PosController extends Controller
                     'unit_id' => $product->unit_id,
                     'stock' => (float) $stock,
                     'is_default' => $variant->is_default,
+                    'tax_id' => $product->tax_id,
+                    'tax_group_id' => $product->tax_group_id,
                 ];
             });
         });
@@ -312,6 +314,7 @@ class PosController extends Controller
                     'quantity' => $item['quantity'],
                     'rate' => $item['rate'],
                     'tax_id' => $item['tax_id'] ?? null,
+                    'tax_group_id' => $item['tax_group_id'] ?? null,
                     'tax_amount' => $item['tax_amount'] ?? 0,
                     'discount_amount' => $item['discount_amount'] ?? 0,
                     'tax_line_type' => 'taxable',

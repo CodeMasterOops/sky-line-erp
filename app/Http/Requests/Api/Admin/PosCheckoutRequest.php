@@ -41,6 +41,7 @@ class PosCheckoutRequest extends FormRequest
             'items.*.rate' => ['required', 'numeric', 'min:0'],
             'items.*.unit_id' => ['nullable', 'integer', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.tax_id' => ['nullable', 'integer', TRule::exists('taxes', 'id')->withoutTrashed()],
+            'items.*.tax_group_id' => ['nullable', 'integer', TRule::exists('tax_groups', 'id')->withoutTrashed()],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
