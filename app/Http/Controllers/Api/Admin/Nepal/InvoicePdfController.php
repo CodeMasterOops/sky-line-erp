@@ -27,6 +27,7 @@ class InvoicePdfController extends Controller
             'invoiceItems.productVariant.variantOptions',
             'invoiceItems.unit',
             'invoiceItems.tax',
+            'invoiceItems.batch',
             'fiscalYear',
         ]);
 
@@ -75,6 +76,8 @@ class InvoicePdfController extends Controller
         $grandTotal = round($vatTaxableAmount + $vatAmount + $exemptAmount + $zeroRatedAmount, 2);
         $amountInWords = $this->nepaliNumber->amountToWordsEn($grandTotal);
 
+        $hasBatch = $invoice->invoiceItems->contains(fn ($item) => $item->batch !== null);
+
         $qrCode = $this->buildQrCode($invoice, $company, $invoiceDateBs, $grandTotal);
 
         $pdf = Pdf::loadView('pdf.nepal-invoice', [
@@ -93,6 +96,8 @@ class InvoicePdfController extends Controller
             'grandTotal' => $grandTotal,
             'amountInWords' => $amountInWords,
             'qrCode' => $qrCode,
+            'hasBatch' => $hasBatch,
+            'printedAt' => now()->format('Y-m-d H:i'),
         ])->setPaper('A4', 'portrait');
 
         $filename = sanitizeDownloadFilename('INV-'.$invoice->invoice_no.'.pdf');

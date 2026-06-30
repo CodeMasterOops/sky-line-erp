@@ -228,10 +228,91 @@ it('renders nepal invoice template with product code and invoice note', function
         'grandTotal' => 50.0,
         'amountInWords' => 'Fifty only',
         'qrCode' => '',
+        'hasBatch' => false,
+        'printedAt' => '2026-06-30 10:00',
     ])->render();
 
     expect($html)->toContain('CW-99');
     expect($html)->toContain('Payment due within 30 days.');
+    expect($html)->toContain('TAX INVOICE');
+});
+
+it('renders batch number and expiry date for batch-tracked items', function () {
+    $party = Party::create([
+        'company_id' => $this->company->id,
+        'type' => PartyTypeEnum::CUSTOMER,
+        'name' => 'Pharmacy Buyer',
+        'code' => 'RC-3',
+        'is_active' => true,
+    ]);
+
+    $product = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Paracetamol 500mg',
+        'code' => 'MED-1',
+        'hsn_code' => '3004',
+    ]);
+
+    $variant = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $product->id,
+        'sku' => 'MED-SKU',
+        'sales_price' => 10,
+        'is_default' => true,
+    ]);
+
+    $unit = Unit::create([
+        'company_id' => $this->company->id,
+        'name' => 'Strip',
+        'code' => 'STR',
+    ]);
+
+    $warehouse = \App\Models\Warehouse::create([
+        'company_id' => $this->company->id,
+        'name' => 'Main Store',
+        'code' => 'WH-1',
+    ]);
+
+    $batch = \App\Models\Batch::create([
+        'company_id' => $this->company->id,
+        'product_variant_id' => $variant->id,
+        'warehouse_id' => $warehouse->id,
+        'batch_no' => 'B-2025-09',
+        'expiry_date' => '2027-12-31',
+        'initial_qty' => 100,
+        'remaining_qty' => 100,
+        'unit_cost' => 5,
+        'status' => \App\Enums\BatchStatusEnum::Active,
+    ]);
+
+    $invoice = Invoice::create([
+        'company_id' => $this->company->id,
+        'fiscal_year_id' => $this->fiscalYear->id,
+        'party_id' => $party->id,
+        'invoice_no' => 'INV-BATCH-001',
+        'invoice_date' => now()->toDateString(),
+        'create_user_id' => $this->user->id,
+        'status' => StatusEnum::APPROVED,
+    ]);
+
+    InvoiceItem::create([
+        'invoice_id' => $invoice->id,
+        'product_variant_id' => $variant->id,
+        'unit_id' => $unit->id,
+        'warehouse_id' => $warehouse->id,
+        'batch_id' => $batch->id,
+        'quantity' => 5,
+        'rate' => 10,
+        'discount_amount' => 0,
+        'tax_amount' => 6.5,
+        'tax_line_type' => TaxLineTypeEnum::TAXABLE,
+    ]);
+
+    $response = $this->get("/api/admin/nepal/invoice/{$invoice->id}/pdf");
+
+    $response->assertSuccessful();
+    expect($response->headers->get('content-type'))->toContain('application/pdf');
+    expect(strlen($response->getContent()))->toBeGreaterThan(1000);
 });
 
 it('sanitizes download filenames', function () {
