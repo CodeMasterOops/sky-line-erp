@@ -49,6 +49,7 @@ class CreditNoteController extends Controller
             'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
+            'creditNoteItems.taxGroup',
             'creditNoteItems.warehouse',
             'creditNoteItems.batch',
         ]);
@@ -68,6 +69,7 @@ class CreditNoteController extends Controller
             'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
+            'creditNoteItems.taxGroup',
             'creditNoteItems.warehouse',
             'creditNoteItems.batch',
         ]);
@@ -98,6 +100,7 @@ class CreditNoteController extends Controller
             'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
+            'creditNoteItems.taxGroup',
             'creditNoteItems.warehouse',
             'creditNoteItems.batch',
         ]);
@@ -158,6 +161,7 @@ class CreditNoteController extends Controller
             'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
+            'creditNoteItems.taxGroup',
             'creditNoteItems.warehouse',
             'creditNoteItems.batch',
         ]);
@@ -201,6 +205,7 @@ class CreditNoteController extends Controller
             'discount', 'creditNoteItems.discount', 'creditNoteItems.productVariant.product',
             'creditNoteItems.unit',
             'creditNoteItems.tax',
+            'creditNoteItems.taxGroup',
             'creditNoteItems.warehouse',
             'creditNoteItems.batch',
         ]);

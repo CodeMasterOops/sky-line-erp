@@ -130,6 +130,7 @@ class DebitNoteController extends Controller
             'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
+            'debitNoteItems.taxGroup',
             'debitNoteItems.warehouse',
         ]);
 
@@ -148,6 +149,7 @@ class DebitNoteController extends Controller
             'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
+            'debitNoteItems.taxGroup',
             'debitNoteItems.warehouse',
         ]);
 
@@ -219,6 +221,7 @@ class DebitNoteController extends Controller
             'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
+            'debitNoteItems.taxGroup',
             'debitNoteItems.warehouse',
         ]);
 
@@ -286,6 +289,7 @@ class DebitNoteController extends Controller
             'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
+            'debitNoteItems.taxGroup',
             'debitNoteItems.warehouse',
         ]);
 
@@ -337,6 +341,7 @@ class DebitNoteController extends Controller
             'discount', 'debitNoteItems.discount', 'debitNoteItems.productVariant.product',
             'debitNoteItems.unit',
             'debitNoteItems.tax',
+            'debitNoteItems.taxGroup',
             'debitNoteItems.warehouse',
         ]);
 

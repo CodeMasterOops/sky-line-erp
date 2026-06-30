@@ -69,6 +69,11 @@ class CreditNoteItem extends Model
         return $this->belongsTo(Tax::class);
     }
 
+    public function taxGroup(): BelongsTo
+    {
+        return $this->belongsTo(TaxGroup::class);
+    }
+
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);

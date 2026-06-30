@@ -116,7 +116,16 @@
                         <p class="mb-0">Discount ({{ discountPercentLabel }})</p>
                         <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.discount_total) }}</p>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mb-2 pe-3">
+                    <template v-if="taxGroupSubtotals.length > 0">
+                        <div
+                            v-for="tg in taxGroupSubtotals"
+                            :key="tg.label"
+                            class="d-flex justify-content-between align-items-center mb-2 pe-3">
+                            <p class="mb-0">{{ tg.label }}</p>
+                            <p class="text-dark fw-medium mb-2">{{ formatMoney(tg.amount) }}</p>
+                        </div>
+                    </template>
+                    <div v-else-if="Number(inv.tax_total) > 0" class="d-flex justify-content-between align-items-center mb-2 pe-3">
                         <p class="mb-0">{{ taxSummaryLabel }}</p>
                         <p class="text-dark fw-medium mb-2">{{ formatMoney(inv.tax_total) }}</p>
                     </div>
@@ -276,6 +285,17 @@ const taxSummaryLabel = computed(() => {
         return `Tax (${((tax / base) * 100).toFixed(1)}%)`;
     }
     return 'Tax';
+});
+
+const taxGroupSubtotals = computed(() => {
+    const map = new Map();
+    for (const item of lineItems.value) {
+        const taxAmt = Number(item.tax_amount || 0);
+        if (taxAmt === 0) { continue; }
+        const label = item.tax_group?.name || item.tax?.name || 'Tax';
+        map.set(label, (map.get(label) ?? 0) + taxAmt);
+    }
+    return [...map.entries()].map(([label, amount]) => ({label, amount}));
 });
 
 const paymentBadgeLabel = computed(() => {

@@ -37,8 +37,12 @@ class DebitNoteItemResource extends JsonResource
                 ? (float) $this->discount->value
                 : 0.0,
             'tax_id' => $this->tax_id ?? '',
-            'tax_group_id' => $this->tax_group_id ?? '',
+            'tax_group_id' => $this->tax_group_id ?? null,
             'tax' => TaxResource::make($this->whenLoaded('tax')),
+            'tax_group' => $this->whenLoaded('taxGroup', fn () => [
+                'id' => $this->taxGroup->id,
+                'name' => $this->taxGroup->name ?? '',
+            ]),
             'tax_amount' => $this->tax_amount ?? 0,
             'discount_amount' => $this->discount_amount ?? 0,
         ];

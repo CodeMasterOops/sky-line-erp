@@ -45,6 +45,7 @@ class InvoiceController extends Controller
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
+            'invoiceItems.taxGroup',
             'invoiceItems.warehouse',
             'invoiceItems.batch',
         ]);
@@ -65,6 +66,7 @@ class InvoiceController extends Controller
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
+            'invoiceItems.taxGroup',
             'invoiceItems.warehouse',
             'invoiceItems.batch',
             'receiptAllocations.receipt',
@@ -97,6 +99,7 @@ class InvoiceController extends Controller
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
+            'invoiceItems.taxGroup',
             'invoiceItems.warehouse',
             'invoiceItems.batch',
         ]);
@@ -149,6 +152,7 @@ class InvoiceController extends Controller
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
+            'invoiceItems.taxGroup',
             'invoiceItems.warehouse',
             'invoiceItems.batch',
         ]);
@@ -210,6 +214,7 @@ class InvoiceController extends Controller
             'invoiceItems.productVariant.product',
             'invoiceItems.unit',
             'invoiceItems.tax',
+            'invoiceItems.taxGroup',
             'invoiceItems.warehouse',
             'invoiceItems.batch',
         ]);

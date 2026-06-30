@@ -38,6 +38,11 @@ class InvoiceItemResource extends JsonResource
                 : 0.0,
             'tax_id' => $this->tax_id ?? '',
             'tax' => TaxResource::make($this->whenLoaded('tax')),
+            'tax_group_id' => $this->tax_group_id ?? null,
+            'tax_group' => $this->whenLoaded('taxGroup', fn () => [
+                'id' => $this->taxGroup->id,
+                'name' => $this->taxGroup->name ?? '',
+            ]),
             'tax_amount' => $this->tax_amount ?? 0,
             'discount_amount' => $this->discount_amount ?? 0,
             'tax_line_type' => $this->tax_line_type?->value ?? 'taxable',

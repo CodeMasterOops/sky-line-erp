@@ -124,12 +124,31 @@ const originalDateLabel = computed(() =>
     props.originalDateKey === 'bill_date' ? 'Original Bill Date' : 'Original Invoice Date',
 );
 
-const summaryRows = computed(() => [
-    {label: 'Subtotal', value: props.detailData.subtotal},
-    {label: 'Discount', value: props.detailData.discount_total},
-    {label: 'Tax', value: props.detailData.tax_total},
-    {label: 'Grand Total', value: props.detailData.grand_total},
-].filter((row) => row.value != null && row.value !== ''));
+const taxGroupSubtotals = computed(() => {
+    const map = new Map();
+    for (const item of lineItems.value) {
+        const taxAmt = Number(item.tax_amount || 0);
+        if (taxAmt === 0) { continue; }
+        const label = item.tax_group?.name || item.tax?.name || 'Tax';
+        map.set(label, (map.get(label) ?? 0) + taxAmt);
+    }
+    return [...map.entries()].map(([label, amount]) => ({label, amount}));
+});
+
+const summaryRows = computed(() => {
+    const taxRows = taxGroupSubtotals.value.length > 0
+        ? taxGroupSubtotals.value.map((tg) => ({label: tg.label, value: tg.amount}))
+        : (Number(props.detailData.tax_total || 0) > 0
+            ? [{label: 'Tax', value: props.detailData.tax_total}]
+            : []);
+
+    return [
+        {label: 'Subtotal', value: props.detailData.subtotal},
+        {label: 'Discount', value: props.detailData.discount_total},
+        ...taxRows,
+        {label: 'Grand Total', value: props.detailData.grand_total},
+    ].filter((row) => row.value != null && row.value !== '');
+});
 
 function itemLabel(item) {
     return item.product_variant?.name || item.product_variant?.product?.name || '—';

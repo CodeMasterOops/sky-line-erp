@@ -105,6 +105,7 @@ class CreditNoteRequest extends FormRequest
             'items.*.line_discount_type' => ['nullable', Rule::in(['fixed', 'percent'])],
             'items.*.line_discount_value' => ['nullable', 'numeric', 'min:0'],
             'items.*.tax_id' => ['nullable', TRule::exists('taxes', 'id')->withoutTrashed()],
+            'items.*.tax_group_id' => ['nullable', 'integer', TRule::exists('tax_groups', 'id')->withoutTrashed()],
             'items.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
             'items.*.batch_id' => ['nullable', 'integer', TRule::exists('batches', 'id')],
