@@ -32,6 +32,7 @@ class User extends Authenticatable
         'date_mode',
         'dashboard_pinned_links',
         'report_pinned_links',
+        'sidebar_pinned_links',
         'status',
     ];
 
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'date_mode' => DateModeEnum::class,
             'dashboard_pinned_links' => 'array',
             'report_pinned_links' => 'array',
+            'sidebar_pinned_links' => 'array',
             'status' => 'boolean',
         ];
     }

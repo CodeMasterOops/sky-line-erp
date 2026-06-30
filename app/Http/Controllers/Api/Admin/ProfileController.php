@@ -13,6 +13,7 @@ use App\Http\Requests\Api\Admin\UpdateProfileRequest;
 use App\Http\Requests\Api\Admin\ChangePasswordRequest;
 use App\Http\Requests\Api\Admin\UpdateDateModeRequest;
 use App\Http\Requests\Api\Admin\UpdatePinnedLinksRequest;
+use App\Http\Requests\Api\Admin\UpdateSidebarPinnedLinksRequest;
 
 class ProfileController extends Controller
 {
@@ -97,6 +98,18 @@ class ProfileController extends Controller
         return response()->json([
             'data' => ProfileResource::make(auth('admin')->user()),
             'message' => 'Pinned reports updated successfully',
+        ]);
+    }
+
+    public function updateSidebarPinnedLinks(UpdateSidebarPinnedLinksRequest $request)
+    {
+        auth('admin')->user()->update([
+            'sidebar_pinned_links' => $request->validated('links'),
+        ]);
+
+        return response()->json([
+            'data' => ProfileResource::make(auth('admin')->user()),
+            'message' => 'Sidebar links updated successfully',
         ]);
     }
 

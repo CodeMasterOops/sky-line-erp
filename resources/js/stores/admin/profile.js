@@ -5,6 +5,7 @@ import {useAdminAuthStore} from "@/stores/admin/auth";
 import {useDatePreferenceStore} from "@/stores/admin/datePreference";
 import {usePinnedLinksStore} from "@/stores/admin/pinnedLinks";
 import {useReportPinnedLinksStore} from "@/stores/admin/reportPinnedLinks";
+import {useSidebarPinnedLinksStore} from "@/stores/admin/sidebarPinnedLinks";
 
 export const useProfileStore = defineStore('admin-profile', {
     state: () => {
@@ -71,6 +72,7 @@ export const useProfileStore = defineStore('admin-profile', {
             if (user) {
                 usePinnedLinksStore().applyLinks(user.dashboard_pinned_links ?? []);
                 useReportPinnedLinksStore().applyLinks(user.report_pinned_links ?? []);
+                useSidebarPinnedLinksStore().applyLinks(user.sidebar_pinned_links ?? []);
             }
         },
     }

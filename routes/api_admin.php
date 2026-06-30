@@ -51,6 +51,7 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
             Route::put('date-mode', 'updateDateMode')->name('dateMode');
             Route::put('pinned-links', 'updatePinnedLinks')->name('pinnedLinks');
             Route::put('report-pinned-links', 'updateReportPinnedLinks')->name('reportPinnedLinks');
+            Route::put('sidebar-pinned-links', 'updateSidebarPinnedLinks')->name('sidebarPinnedLinks');
             Route::put('change-password', 'changePassword')->name('changePassword');
         });
 
