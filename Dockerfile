@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         opcache \
         pcntl \
         intl \
+        calender
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -79,6 +80,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         opcache \
         pcntl \
         intl \
+        calender
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/nginx/sites-enabled/default
 
