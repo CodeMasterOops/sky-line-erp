@@ -43,56 +43,67 @@ class OpeningStockEntryService
     }
 
     /**
-     * Import path: create a single-line entry and approve immediately.
+     * Dedicated Opening Stock import path: append a line to the shared per-warehouse
+     * entry for this import batch and post it immediately. All lines from a single
+     * import into the same warehouse consolidate under one reference.
      *
-     * @param  array{warehouse_id: int, quantity: int}  $opening
+     * @return array{action: string, entry_id: int, item_id: int}
      */
-    public function applyImportOpeningStock(
+    public function applyImportLine(
         int $companyId,
         ?int $branchId,
-        ProductVariant $variant,
-        array $opening,
+        string $referenceNo,
+        int $productVariantId,
+        ?int $unitId,
+        int $warehouseId,
+        float $quantity,
         float $unitCost,
         int $userId,
-    ): void {
-        if ($variant->product?->isService()) {
-            return;
-        }
-
-        $quantity = (float) ($opening['quantity'] ?? 0);
+        ?string $batchNo = null,
+        ?string $expiryDate = null,
+        ?string $remarks = null,
+    ): array {
         if ($quantity <= 0) {
-            return;
+            return ['action' => 'skipped', 'entry_id' => 0, 'item_id' => 0];
         }
 
         $user = User::query()->findOrFail($userId);
         $company = Company::findOrFail($companyId);
 
-        DB::transaction(function () use ($company, $branchId, $variant, $opening, $unitCost, $quantity, $user) {
-            $entry = OpeningStockEntry::create([
-                'company_id' => $company->id,
-                'branch_id' => $branchId,
-                'reference_no' => 'IMPORT-'.$variant->id,
-                'date' => now()->toDateString(),
-                'warehouse_id' => $opening['warehouse_id'],
-                'remarks' => __('Product import opening stock'),
-                'create_user_id' => $user->id,
-                'status' => StatusEnum::DRAFT,
-            ]);
+        return DB::transaction(function () use ($company, $branchId, $referenceNo, $productVariantId, $unitId, $warehouseId, $quantity, $unitCost, $user, $batchNo, $expiryDate, $remarks) {
+            $entry = OpeningStockEntry::query()
+                ->where('company_id', $company->id)
+                ->where('warehouse_id', $warehouseId)
+                ->where('reference_no', $referenceNo)
+                ->first();
+
+            if (! $entry) {
+                $entry = OpeningStockEntry::create([
+                    'company_id' => $company->id,
+                    'branch_id' => $branchId,
+                    'reference_no' => $referenceNo,
+                    'date' => now()->toDateString(),
+                    'warehouse_id' => $warehouseId,
+                    'remarks' => $remarks ?? __('Opening stock import'),
+                    'create_user_id' => $user->id,
+                    'approve_user_id' => $user->id,
+                    'approved_at' => now(),
+                    'status' => StatusEnum::APPROVED,
+                ]);
+            }
 
             $item = $entry->openingStockEntryItems()->create([
-                'product_variant_id' => $variant->id,
-                'unit_id' => $variant->product?->unit_id,
+                'product_variant_id' => $productVariantId,
+                'unit_id' => $unitId,
                 'quantity' => $quantity,
                 'unit_cost' => max(0, $unitCost),
+                'batch_no' => $batchNo,
+                'expiry_date' => $expiryDate,
             ]);
 
             $this->applyItem($company, $entry, $item, $user);
 
-            $entry->update([
-                'approve_user_id' => $user->id,
-                'approved_at' => now(),
-                'status' => StatusEnum::APPROVED,
-            ]);
+            return ['action' => 'imported', 'entry_id' => $entry->id, 'item_id' => $item->id];
         });
     }
 

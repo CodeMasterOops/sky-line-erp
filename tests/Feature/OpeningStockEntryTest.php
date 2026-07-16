@@ -249,7 +249,7 @@ test('opening stock movement posts GL dr inventory cr opening equity', function 
         ->and((float) $crEquity)->toBe(125.0);
 });
 
-test('product import opening stock uses inventory pipeline not direct stock upsert', function () {
+test('product import no longer seeds opening stock (moved to dedicated opening stock import)', function () {
     $job = DataTransferJob::create([
         'uuid' => (string) Str::uuid(),
         'company_id' => $this->company->id,
@@ -272,32 +272,21 @@ test('product import opening stock uses inventory pipeline not direct stock upse
         'unit' => $this->unit->name,
         'sales_price' => '50',
         'purchase_price' => '20',
+        // Legacy opening-stock columns are retired: these are ignored.
         'warehouse' => $this->warehouse->name,
         'quantity' => '7',
     ], $lookups);
 
-    expect($result['errors'])->toBeEmpty();
+    expect($result['errors'])->toBeEmpty()
+        ->and($result['normalized'])->not->toHaveKey('opening_stock');
 
     $import = app(ProductImportService::class);
     $outcome = $import->importRow($job, $result['normalized'], $lookups);
 
     expect($outcome['action'])->toBe('imported');
 
-    $movement = StockMovement::withoutGlobalScopes()
-        ->where('company_id', $this->company->id)
-        ->where('product_variant_id', $outcome['variant_id'])
-        ->first();
-
-    expect($movement)->not->toBeNull()
-        ->and($movement->type)->toBe(ChangeTypeEnum::OPENING_STOCK)
-        ->and((int) $movement->quantity)->toBe(7);
-
-    $entry = OpeningStockEntry::withoutGlobalScopes()
-        ->where('company_id', $this->company->id)
-        ->first();
-
-    expect($entry)->not->toBeNull()
-        ->and($entry->status)->toBe(StatusEnum::APPROVED);
+    expect(StockMovement::withoutGlobalScopes()->where('company_id', $this->company->id)->exists())->toBeFalse();
+    expect(OpeningStockEntry::withoutGlobalScopes()->where('company_id', $this->company->id)->exists())->toBeFalse();
 });
 
 test('opening stock entry service approve is idempotent when already approved', function () {

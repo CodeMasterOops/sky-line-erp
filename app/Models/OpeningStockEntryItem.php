@@ -29,6 +29,7 @@ class OpeningStockEntryItem extends Model
         return [
             'quantity' => 'float',
             'unit_cost' => 'float',
+            'expiry_date' => 'date:Y-m-d',
         ];
     }
 

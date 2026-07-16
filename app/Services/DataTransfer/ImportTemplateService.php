@@ -15,6 +15,15 @@ class ImportTemplateService
         );
     }
 
+    public function downloadOpeningStockTemplate(string $format = 'csv'): StreamedResponse
+    {
+        return $this->downloadTemplate(
+            config('data_transfer.opening_stock_fields', []),
+            'opening-stock-import-template',
+            $format
+        );
+    }
+
     public function downloadWarehouseTemplate(string $format = 'csv'): StreamedResponse
     {
         return $this->downloadTemplate(

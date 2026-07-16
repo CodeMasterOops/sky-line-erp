@@ -15,6 +15,7 @@ class DataTransferFieldRegistry
             DataTransferEntityTypeEnum::Product => config('data_transfer.product_fields', []),
             DataTransferEntityTypeEnum::Warehouse => config('data_transfer.warehouse_fields', []),
             DataTransferEntityTypeEnum::Party => config('data_transfer.party_fields', []),
+            DataTransferEntityTypeEnum::OpeningStock => config('data_transfer.opening_stock_fields', []),
             default => throw new \InvalidArgumentException("Import fields not defined for {$type->value}."),
         };
     }

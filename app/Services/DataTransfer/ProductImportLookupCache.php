@@ -6,7 +6,6 @@ use App\Models\Tax;
 use App\Models\Unit;
 use App\Models\Brand;
 use App\Models\Attribute;
-use App\Models\Warehouse;
 use App\Models\ProductCategory;
 use App\Models\ImportValueAlias;
 use Illuminate\Support\Facades\Cache;
@@ -24,9 +23,6 @@ class ProductImportLookupCache
 
     /** @var array<string, int> */
     private array $taxesByKey = [];
-
-    /** @var array<string, int> */
-    private array $warehousesByKey = [];
 
     /** @var array<string, array<string, int>> */
     private array $attributeValuesByKey = [];
@@ -127,16 +123,6 @@ class ProductImportLookupCache
                     $this->taxesByKey[$rateKey] = $t->id;
                 }
                 $this->labelsByField['tax'][] = ['id' => $t->id, 'label' => $t->name];
-            });
-
-        Warehouse::query()
-            ->where('company_id', $this->companyId)
-            ->get(['id', 'name', 'code'])
-            ->each(function ($w) {
-                $this->warehousesByKey[strtolower($w->name)] = $w->id;
-                if ($w->code) {
-                    $this->warehousesByKey[strtolower($w->code)] = $w->id;
-                }
             });
 
         Attribute::query()
@@ -308,11 +294,6 @@ class ProductImportLookupCache
         $match = $this->match('tax', $value);
 
         return $match->isMatched() ? $match->id : null;
-    }
-
-    public function resolveWarehouse(?string $value): ?int
-    {
-        return $value ? ($this->warehousesByKey[strtolower(trim($value))] ?? null) : null;
     }
 
     public function resolveAttributeValue(?string $attrName, ?string $attrValue): ?int

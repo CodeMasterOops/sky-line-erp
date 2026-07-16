@@ -5,6 +5,7 @@ namespace App\Services\DataTransfer\Import;
 use App\Models\Party;
 use App\Models\Product;
 use App\Models\Warehouse;
+use App\Models\OpeningStockEntry;
 use App\Services\DataTransfer\PartyImportService;
 use App\Services\DataTransfer\PartyImportLookupCache;
 use App\Services\DataTransfer\WarehouseImportService;
@@ -14,6 +15,8 @@ use App\Services\DataTransfer\ProductImportLookupCache;
 use App\Services\DataTransfer\ProductImportRowValidator;
 use App\Services\DataTransfer\WarehouseImportLookupCache;
 use App\Services\DataTransfer\WarehouseImportRowValidator;
+use App\Services\DataTransfer\OpeningStockImportLookupCache;
+use App\Services\DataTransfer\OpeningStockImportRowValidator;
 
 class ImportHandlerFactory
 {
@@ -23,6 +26,7 @@ class ImportHandlerFactory
             DataTransferEntityTypeEnum::Product => app(ProductImportRowValidator::class),
             DataTransferEntityTypeEnum::Warehouse => app(WarehouseImportRowValidator::class),
             DataTransferEntityTypeEnum::Party => app(PartyImportRowValidator::class),
+            DataTransferEntityTypeEnum::OpeningStock => app(OpeningStockImportRowValidator::class),
             default => throw new \InvalidArgumentException("Import not supported for {$type->value}."),
         };
     }
@@ -33,6 +37,7 @@ class ImportHandlerFactory
             DataTransferEntityTypeEnum::Product => app(ProductImportServiceAdapter::class),
             DataTransferEntityTypeEnum::Warehouse => app(WarehouseImportService::class),
             DataTransferEntityTypeEnum::Party => app(PartyImportService::class),
+            DataTransferEntityTypeEnum::OpeningStock => app(OpeningStockImportService::class),
             default => throw new \InvalidArgumentException("Import not supported for {$type->value}."),
         };
     }
@@ -43,6 +48,7 @@ class ImportHandlerFactory
             DataTransferEntityTypeEnum::Product => ProductImportLookupCache::forCompany($companyId),
             DataTransferEntityTypeEnum::Warehouse => WarehouseImportLookupCache::forCompany($companyId),
             DataTransferEntityTypeEnum::Party => PartyImportLookupCache::forCompany($companyId),
+            DataTransferEntityTypeEnum::OpeningStock => OpeningStockImportLookupCache::forCompany($companyId),
             default => throw new \InvalidArgumentException("Import not supported for {$type->value}."),
         };
     }
@@ -56,6 +62,7 @@ class ImportHandlerFactory
             DataTransferEntityTypeEnum::Product => Product::class,
             DataTransferEntityTypeEnum::Warehouse => Warehouse::class,
             DataTransferEntityTypeEnum::Party => Party::class,
+            DataTransferEntityTypeEnum::OpeningStock => OpeningStockEntry::class,
             default => throw new \InvalidArgumentException("Import not supported for {$type->value}."),
         };
     }
@@ -66,6 +73,7 @@ class ImportHandlerFactory
             DataTransferEntityTypeEnum::Product,
             DataTransferEntityTypeEnum::Warehouse,
             DataTransferEntityTypeEnum::Party,
+            DataTransferEntityTypeEnum::OpeningStock,
         ], true);
     }
 }

@@ -2,6 +2,13 @@
     <PageHeader title="Opening Stock" subtitle="Record initial on-hand quantities at go-live" @refresh="fetchEntries">
         <template #actions>
             <button
+                v-can="'import_opening_stock'"
+                type="button"
+                class="btn btn-outline-primary d-flex align-items-center me-2"
+                @click="openImportWizard">
+                <i class="ti ti-file-import me-2"></i>Import
+            </button>
+            <button
                 v-can="'create_opening_stock_entry'"
                 type="button"
                 class="btn btn-primary d-flex align-items-center"
@@ -53,6 +60,7 @@
 
     <CreateOpeningStockEntry v-model:create-modal-opened="createModalOpened" />
     <EditOpeningStockEntry v-model:entry_id="editEntryId" />
+    <OpeningStockImportWizard ref="importWizardRef" @imported="fetchEntries" />
 </template>
 
 <script setup>
@@ -63,6 +71,7 @@ import VTableToolbar from '@/components/base/VTableToolbar.vue';
 import VTableActions from '@/components/base/VTableActions.vue';
 import CreateOpeningStockEntry from './Create.vue';
 import EditOpeningStockEntry from './Edit.vue';
+import OpeningStockImportWizard from '@/views/admin/data-transfer/OpeningStockImportWizard.vue';
 import { useOpeningStockEntryStore } from '@/stores/admin/inventory/opening-stock-entry.js';
 import { useUrlFilter } from '@/composables/useUrlFilter.js';
 import { useTablePagination } from '@/composables/useTablePagination.js';
@@ -74,6 +83,11 @@ const { entries } = storeToRefs(openingStockEntryStore);
 
 const createModalOpened = ref(false);
 const editEntryId = ref('');
+const importWizardRef = ref(null);
+
+function openImportWizard() {
+    importWizardRef.value?.show();
+}
 
 const { confirmAction, confirmDelete } = useConfirmAction();
 

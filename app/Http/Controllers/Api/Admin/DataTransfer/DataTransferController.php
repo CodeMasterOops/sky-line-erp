@@ -484,6 +484,14 @@ class DataTransferController extends Controller
         return $this->templateService->downloadProductTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
     }
 
+    #[Permissions('import_opening_stock', group: 'data_transfer', desc: 'Import Opening Stock')]
+    public function openingStockTemplate(Request $request)
+    {
+        $format = $request->get('format', 'csv');
+
+        return $this->templateService->downloadOpeningStockTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
+    }
+
     #[Permissions('import_warehouse', group: 'data_transfer', desc: 'Import Warehouses')]
     public function warehouseTemplate(Request $request)
     {
@@ -549,6 +557,7 @@ class DataTransferController extends Controller
             DataTransferEntityTypeEnum::Product => 'import_product',
             DataTransferEntityTypeEnum::Warehouse => 'import_warehouse',
             DataTransferEntityTypeEnum::Party => 'import_party',
+            DataTransferEntityTypeEnum::OpeningStock => 'import_opening_stock',
             default => null,
         };
 
