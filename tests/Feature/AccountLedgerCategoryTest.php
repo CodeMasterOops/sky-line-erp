@@ -122,3 +122,70 @@ it('returns bank accounts filterable by the Bank category without matching Bank 
     expect($bankAccounts->pluck('name')->all())->toContain('Bank Account 1');
     expect($bankAccounts->pluck('name')->all())->not->toContain('Bank Charges');
 });
+
+it('exposes a normalised cash_bank_type flag that ignores casing and whitespace', function () {
+    Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => $this->assetGroup->id,
+        'name' => 'POS Till',
+        'code' => 'POS',
+        'category' => '  cash ',
+    ]);
+
+    $response = $this->getJson('/api/admin/account');
+
+    $response->assertOk();
+
+    $byName = collect($response->json('data'))->keyBy('name');
+
+    expect($byName['Cash in Hand']['cash_bank_type'])->toBe('cash');
+    expect($byName['POS Till']['cash_bank_type'])->toBe('cash');
+    expect($byName['Bank Account 1']['cash_bank_type'])->toBe('bank');
+    expect($byName['Bank Charges']['cash_bank_type'])->toBeNull();
+});
+
+it('returns every account when no limit is supplied so dropdowns are never truncated', function () {
+    $response = $this->getJson('/api/admin/account');
+
+    $response->assertOk();
+
+    $names = collect($response->json('data'))->pluck('name');
+
+    expect($names)->toContain('Cash in Hand', 'Bank Account 1', 'Bank Charges');
+    expect($response->json('meta'))->toBeNull();
+});
+
+it('filters accounts by an exact category', function () {
+    $response = $this->getJson('/api/admin/account?category=Cash');
+
+    $response->assertOk();
+
+    $names = collect($response->json('data'))->pluck('name')->all();
+
+    expect($names)->toBe(['Cash in Hand']);
+});
+
+it('filters by account group including nested descendant group accounts', function () {
+    $currentAssets = AccountGroup::create([
+        'company_id' => $this->company->id,
+        'parent_id' => $this->assetGroup->id,
+        'name' => 'Current Assets',
+        'code' => 'CA',
+        'account_type' => AccountGroupTypeEnum::Asset,
+    ]);
+
+    $receivable = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => $currentAssets->id,
+        'name' => 'Accounts Receivable',
+        'code' => 'AR',
+    ]);
+
+    $response = $this->getJson('/api/admin/account?account_group_id='.$this->assetGroup->id);
+
+    $response->assertOk();
+
+    $names = collect($response->json('data'))->pluck('name');
+
+    expect($names)->toContain('Cash in Hand', 'Bank Account 1', 'Accounts Receivable');
+});

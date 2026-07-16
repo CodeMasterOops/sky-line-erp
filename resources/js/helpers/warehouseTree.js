@@ -116,7 +116,6 @@ export function buildWarehouseOptionsTree(warehouses, excludeIds = new Set()) {
             name: formatWarehouseDisplayName(w),
         };
         if (node.children.length) {
-            option.disabled = true;
             option.children = node.children.map(mapNode);
         }
         return option;

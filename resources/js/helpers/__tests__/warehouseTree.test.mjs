@@ -24,6 +24,13 @@ describe('warehouseTree', () => {
         assert.strictEqual(tree[0].children[1].name, 'Shelf B (SB)');
     });
 
+    it('keeps parents with children selectable as a parent', () => {
+        const tree = buildWarehouseOptionsTree(warehouses);
+
+        assert.strictEqual(tree[0].disabled, undefined);
+        assert.strictEqual(tree[0].children.length, 2);
+    });
+
     it('flattens warehouses with outline and depth', () => {
         const rows = flattenWarehousesWithOutline(warehouses);
 

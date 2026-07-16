@@ -1081,7 +1081,6 @@ class SalesReportService
         return Party::query()
             ->where('type', PartyTypeEnum::CUSTOMER)
             ->orderBy('name')
-            ->limit(500)
             ->get(['id', 'name'])
             ->map(fn (Party $p) => ['id' => (string) $p->id, 'name' => $p->name])
             ->all();

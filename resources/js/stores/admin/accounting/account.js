@@ -23,10 +23,17 @@ export const useAccountStore = defineStore('account', {
 
     actions: {
         getAccounts({ filter } = {}) {
-            const params = {
-                page: filter?.page ?? 1,
-                limit: filter?.limit ?? 1000,
-            };
+            // Dropdowns call without a filter and must never be truncated, so
+            // request the full set. The paginated CoA list passes a filter.
+            const params = filter
+                ? {
+                    page: filter.page ?? 1,
+                    limit: filter.limit ?? 25,
+                    ...(filter.search ? { search: filter.search } : {}),
+                    ...(filter.category ? { category: filter.category } : {}),
+                    ...(filter.account_group_id ? { account_group_id: filter.account_group_id } : {}),
+                }
+                : { all: 1 };
             this.accounts.loading = true;
             return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
                 .then((res) => {

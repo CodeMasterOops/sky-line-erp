@@ -8,6 +8,7 @@ use App\Models\AccountGroup;
 use Illuminate\Http\Request;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Builder;
 use App\Http\Resources\Admin\Accounting\AccountResource;
 use App\Http\Requests\Api\Admin\Accounting\AccountRequest;
 use App\Http\Resources\Admin\Accounting\AccountGroupTreeResource;
@@ -17,11 +18,63 @@ class AccountController extends Controller
     #[Permissions('list_account', group: 'account', desc: 'List Account')]
     public function index(Request $request)
     {
-        $accounts = Account::with('accountGroup')
-            ->orderBy('code')
-            ->paginate($request->integer('limit', 25));
+        $query = Account::with('accountGroup')->orderBy('code');
 
-        return AccountResource::collection($accounts);
+        if ($request->filled('search')) {
+            $search = $request->string('search');
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('category')) {
+            $query->where('category', $request->string('category'));
+        }
+
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        if ($request->filled('account_group_id')) {
+            $query->whereIn(
+                'account_group_id',
+                $this->descendantGroupIds($request->integer('account_group_id'))
+            );
+        }
+
+        if ($request->boolean('all') || ! $request->filled('limit')) {
+            return AccountResource::collection($query->get());
+        }
+
+        return AccountResource::collection($query->paginate($request->integer('limit')));
+    }
+
+    /**
+     * Resolve a group id together with every nested descendant group id, so a
+     * filter on a parent group also matches ledgers held under its children.
+     *
+     * @return array<int, int>
+     */
+    private function descendantGroupIds(int $groupId): array
+    {
+        $childrenByParent = AccountGroup::query()
+            ->get(['id', 'parent_id'])
+            ->groupBy('parent_id');
+
+        $ids = [$groupId];
+        $stack = [$groupId];
+
+        while ($stack !== []) {
+            $current = array_pop($stack);
+
+            foreach ($childrenByParent->get($current, collect()) as $child) {
+                $ids[] = $child->id;
+                $stack[] = $child->id;
+            }
+        }
+
+        return $ids;
     }
 
     #[Permissions('list_account', group: 'account', desc: 'Account COA Tree')]
