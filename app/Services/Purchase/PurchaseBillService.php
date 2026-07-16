@@ -67,6 +67,13 @@ readonly class PurchaseBillService
      */
     public function repost(Bill $bill): void
     {
+        // Opening-balance bills carry their own GL journal (DR Opening Balance
+        // Equity / CR AP) posted by OpeningPartyBalanceService and have no line
+        // items, so the standard purchase posting must never run for them.
+        if ($bill->is_opening) {
+            return;
+        }
+
         if ($this->isPosted($bill)) {
             return;
         }

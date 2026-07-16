@@ -39,6 +39,8 @@ class Bill extends Model
         'approved_at',
         'voided_at',
         'status',
+        'is_opening',
+        'opening_amount',
     ];
 
     protected $casts = [
@@ -48,6 +50,8 @@ class Bill extends Model
         'approved_at' => 'datetime',
         'voided_at' => 'datetime',
         'status' => StatusEnum::class,
+        'is_opening' => 'boolean',
+        'opening_amount' => 'float',
     ];
 
     public function scopeFilter($query, $param = [])

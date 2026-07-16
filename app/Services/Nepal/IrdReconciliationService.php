@@ -81,6 +81,7 @@ class IrdReconciliationService
 
         $base = Invoice::withoutGlobalScopes()
             ->where('company_id', $companyId)
+            ->where('is_opening', false)
             ->when($startDate, fn ($query) => $query->whereDate('invoice_date', '>=', $startDate))
             ->when($endDate, fn ($query) => $query->whereDate('invoice_date', '<=', $endDate));
 

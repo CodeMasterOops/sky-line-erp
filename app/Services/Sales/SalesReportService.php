@@ -402,7 +402,7 @@ class SalesReportService
             ->whereNull('receipt_allocations.deleted_at')
             ->groupBy('receipt_allocations.invoice_id');
 
-        $balanceExpr = 'COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) - COALESCE(pt.paid_total, 0)';
+        $balanceExpr = 'COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(invoices.opening_amount, 0) - COALESCE(pt.paid_total, 0)';
 
         $paginator = DB::table('invoices')
             ->join('parties', 'parties.id', '=', 'invoices.party_id')
@@ -427,7 +427,7 @@ class SalesReportService
                 invoices.due_date,
                 invoices.party_id,
                 parties.name as party_name,
-                COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) as net_total,
+                COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(invoices.opening_amount, 0) as net_total,
                 COALESCE(pt.paid_total, 0) as paid_total,
                 {$balanceExpr} as balance_due
             ")
@@ -823,8 +823,8 @@ class SalesReportService
             ->selectRaw('
                 invoices.invoice_no as reference,
                 invoices.invoice_date as date,
-                "Invoice" as type,
-                ROUND(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0), 2) as debit,
+                CASE WHEN invoices.is_opening = 1 THEN "Opening Balance" ELSE "Invoice" END as type,
+                ROUND(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(invoices.opening_amount, 0), 2) as debit,
                 0 as credit
             ')
             ->get();
@@ -927,7 +927,7 @@ class SalesReportService
             ->whereNull('invoices.deleted_at')
             ->where('invoices.party_id', $partyId)
             ->where('invoices.invoice_date', '<', $fromDate)
-            ->selectRaw('COALESCE(SUM(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0)), 0) as total')
+            ->selectRaw('COALESCE(SUM(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(invoices.opening_amount, 0)), 0) as total')
             ->value('total');
 
         $openingCr = DB::table('receipt_allocations')

@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\Route;
 // opening balance
 Route::get('opening-balance', [OpeningBalanceController::class, 'index'])->name('opening-balance.index');
 Route::post('opening-balance', [OpeningBalanceController::class, 'store'])->name('opening-balance.store');
+Route::get('opening-balance/parties', [OpeningBalanceController::class, 'parties'])->name('opening-balance.parties');
+Route::post('opening-balance/customers', [OpeningBalanceController::class, 'storeCustomers'])->name('opening-balance.customers');
+Route::post('opening-balance/suppliers', [OpeningBalanceController::class, 'storeSuppliers'])->name('opening-balance.suppliers');
 
 // account groups
 Route::apiResource('account-group', AccountGroupController::class);

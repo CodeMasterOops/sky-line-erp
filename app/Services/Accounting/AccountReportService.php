@@ -946,7 +946,7 @@ class AccountReportService
         $invoices = $invoices->filter(function (Invoice $invoice) use ($paidByInvoice, $creditNoteOffsetByInvoice) {
             $paid = (float) ($paidByInvoice->get($invoice->id, 0));
             $creditNoteOffset = (float) ($creditNoteOffsetByInvoice->get($invoice->id, 0));
-            $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount) + (float) $invoice->opening_amount;
 
             return round($total - $paid - $creditNoteOffset, 2) > 0;
         });
@@ -954,7 +954,7 @@ class AccountReportService
         $rows = $invoices->map(function (Invoice $invoice) use ($asOf, $paidByInvoice, $creditNoteOffsetByInvoice) {
             $paid = (float) ($paidByInvoice->get($invoice->id, 0));
             $creditNoteOffset = (float) ($creditNoteOffsetByInvoice->get($invoice->id, 0));
-            $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            $total = $invoice->invoiceItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount) + (float) $invoice->opening_amount;
             $outstanding = round($total - $paid - $creditNoteOffset, 2);
             $dueDate = $invoice->due_date ? Carbon::parse($invoice->due_date) : Carbon::parse($invoice->invoice_date)->addDays(30);
             $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);
@@ -1021,7 +1021,7 @@ class AccountReportService
         $bills = $bills->filter(function (Bill $bill) use ($paidByBill, $debitNoteOffsetByBill) {
             $paid = (float) ($paidByBill->get($bill->id, 0));
             $debitNoteOffset = (float) ($debitNoteOffsetByBill->get($bill->id, 0));
-            $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount) + (float) $bill->opening_amount;
 
             return round($total - $paid - $debitNoteOffset, 2) > 0;
         });
@@ -1029,7 +1029,7 @@ class AccountReportService
         $rows = $bills->map(function (Bill $bill) use ($asOf, $paidByBill, $debitNoteOffsetByBill) {
             $paid = (float) ($paidByBill->get($bill->id, 0));
             $debitNoteOffset = (float) ($debitNoteOffsetByBill->get($bill->id, 0));
-            $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount);
+            $total = $bill->billItems->sum(fn ($i) => ($i->quantity * $i->rate) + $i->tax_amount - $i->discount_amount) + (float) $bill->opening_amount;
             $outstanding = round($total - $paid - $debitNoteOffset, 2);
             $dueDate = $bill->due_date ? Carbon::parse($bill->due_date) : Carbon::parse($bill->bill_date)->addDays(30);
             $daysOverdue = max(0, $asOf->diffInDays($dueDate, false) * -1);

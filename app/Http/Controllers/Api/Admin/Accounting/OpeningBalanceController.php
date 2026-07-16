@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers\Api\Admin\Accounting;
 
+use App\Models\Bill;
+use App\Models\Party;
+use App\Models\Invoice;
 use App\Models\Journal;
 use App\Enums\StatusEnum;
+use App\Enums\PartyTypeEnum;
 use Illuminate\Http\Request;
 use App\Enums\JournalTypeEnum;
 use App\Annotation\Permissions;
@@ -13,11 +17,13 @@ use App\Rules\WithinActiveFiscalYear;
 use App\Services\DocumentNumberGenerator;
 use Illuminate\Validation\ValidationException;
 use App\Services\Accounting\JournalBalanceGuard;
+use App\Services\Accounting\OpeningPartyBalanceService;
 
 class OpeningBalanceController extends Controller
 {
     public function __construct(
         private readonly DocumentNumberGenerator $documentNumberGenerator,
+        private readonly OpeningPartyBalanceService $openingPartyBalanceService,
     ) {}
 
     #[Permissions('list_journal_voucher', group: 'journal_voucher', desc: 'List Opening Balance Entries')]
@@ -133,5 +139,88 @@ class OpeningBalanceController extends Controller
             'data' => $journal->load(['journalItems.account', 'fiscalYear']),
             'message' => 'Opening balance posted successfully.',
         ], 201);
+    }
+
+    #[Permissions('list_journal_voucher', group: 'journal_voucher', desc: 'List Opening Balance Parties')]
+    public function parties(): \Illuminate\Http\JsonResponse
+    {
+        $customerOpeningIds = Invoice::query()->where('is_opening', true)->pluck('party_id');
+        $supplierOpeningIds = Bill::query()->where('is_opening', true)->pluck('party_id');
+
+        return response()->json([
+            'data' => [
+                'customers' => $this->partyList(PartyTypeEnum::CUSTOMER, $customerOpeningIds->all()),
+                'suppliers' => $this->partyList(PartyTypeEnum::SUPPLIER, $supplierOpeningIds->all()),
+            ],
+        ]);
+    }
+
+    #[Permissions('create_journal_voucher', group: 'journal_voucher', desc: 'Post Customer Opening Balance')]
+    public function storeCustomers(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $this->validatePartyLines($request);
+
+        $documents = $this->openingPartyBalanceService->postCustomers(
+            $validated['lines'],
+            $validated['date'],
+            $validated['fiscal_year_id'] ?? null,
+        );
+
+        return response()->json([
+            'message' => count($documents).' customer opening balance(s) posted successfully.',
+        ], 201);
+    }
+
+    #[Permissions('create_journal_voucher', group: 'journal_voucher', desc: 'Post Supplier Opening Balance')]
+    public function storeSuppliers(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $this->validatePartyLines($request);
+
+        $documents = $this->openingPartyBalanceService->postSuppliers(
+            $validated['lines'],
+            $validated['date'],
+            $validated['fiscal_year_id'] ?? null,
+        );
+
+        return response()->json([
+            'message' => count($documents).' supplier opening balance(s) posted successfully.',
+        ], 201);
+    }
+
+    /**
+     * @return array{date: string, fiscal_year_id: int|null, lines: array<int, array{party_id: int, amount: float, remarks: string|null}>}
+     */
+    private function validatePartyLines(Request $request): array
+    {
+        return $request->validate([
+            'fiscal_year_id' => ['nullable', 'integer', 'exists:fiscal_years,id'],
+            'date' => ['required', 'date', new WithinActiveFiscalYear],
+            'lines' => ['required', 'array', 'min:1'],
+            'lines.*.party_id' => ['required', 'integer', 'exists:parties,id'],
+            'lines.*.amount' => ['required', 'numeric', 'min:0'],
+            'lines.*.remarks' => ['nullable', 'string', 'max:1000'],
+        ]);
+    }
+
+    /**
+     * @param  array<int, int>  $withOpeningIds
+     * @return array<int, array{id: string, name: string, code: string|null, has_opening: bool}>
+     */
+    private function partyList(PartyTypeEnum $type, array $withOpeningIds): array
+    {
+        $withOpening = array_flip($withOpeningIds);
+
+        return Party::query()
+            ->where('type', $type)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code'])
+            ->map(fn (Party $party) => [
+                'id' => (string) $party->id,
+                'name' => $party->name,
+                'code' => $party->code,
+                'has_opening' => isset($withOpening[$party->id]),
+            ])
+            ->all();
     }
 }

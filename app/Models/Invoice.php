@@ -52,6 +52,8 @@ class Invoice extends Model
         'ird_error',
         'total_amount',
         'paid_amount',
+        'is_opening',
+        'opening_amount',
     ];
 
     protected $casts = [
@@ -66,6 +68,8 @@ class Invoice extends Model
         'status' => StatusEnum::class,
         'total_amount' => 'float',
         'paid_amount' => 'float',
+        'is_opening' => 'boolean',
+        'opening_amount' => 'float',
     ];
 
     public function scopeFilter($query, $param = [])
