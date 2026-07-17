@@ -411,3 +411,118 @@ it('imports opening stock with a batch and creates the batch lot', function () {
         ->and($item->batch_id)->toBe($batch->id)
         ->and($item->expiry_date->toDateString())->toBe($expiry);
 });
+
+it('falls back to the pre-selected warehouse when the sheet omits the warehouse column', function () {
+    $result = (new OpeningStockImportRowValidator)->validate([
+        'sku' => 'SKU-1',
+        'quantity' => '5',
+    ], osImportLookups($this), ['default_warehouse_id' => $this->warehouseStore->id]);
+
+    expect($result['errors'])->toBeEmpty()
+        ->and($result['normalized']['warehouse_id'])->toBe($this->warehouseStore->id);
+});
+
+it('still requires a warehouse when neither the column nor a pre-selected warehouse is given', function () {
+    $result = (new OpeningStockImportRowValidator)->validate([
+        'sku' => 'SKU-1',
+        'quantity' => '5',
+    ], osImportLookups($this), ['default_warehouse_id' => null]);
+
+    expect(implode(' ', $result['errors']))->toContain('Warehouse is required');
+});
+
+it('ignores a pre-selected warehouse that does not belong to the company', function () {
+    $result = (new OpeningStockImportRowValidator)->validate([
+        'sku' => 'SKU-1',
+        'quantity' => '5',
+    ], osImportLookups($this), ['default_warehouse_id' => 999999]);
+
+    expect(implode(' ', $result['errors']))->toContain('Warehouse is required');
+});
+
+it('imports end to end using the pre-selected warehouse option and no warehouse column', function () {
+    $csv = "product_code,sku,quantity,rate\n";
+    $csv .= "WIDGET,SKU-1,7,15\n";
+
+    $file = UploadedFile::fake()->createWithContent('opening-stock.csv', $csv);
+
+    $this->postJson('/api/admin/data-transfers/imports', [
+        'file' => $file,
+        'entity_type' => 'opening_stock',
+        'warehouse_id' => $this->warehouseStore->id,
+    ])->assertCreated();
+
+    $job = DataTransferJob::firstOrFail();
+
+    expect($job->options['warehouse_id'])->toBe($this->warehouseStore->id);
+
+    (new ParseFileJob($job))->handle(app(\App\Services\DataTransfer\FileParserService::class));
+    (new ValidateFileJob($job))->handle(
+        app(\App\Services\DataTransfer\FileParserService::class),
+        app(ImportHandlerFactory::class),
+    );
+    (new ProcessImportChunkJob($job->fresh(), 0))->handle(
+        app(ImportHandlerFactory::class),
+        app(\App\Services\DataTransfer\ErrorReportGenerator::class),
+    );
+
+    TenantService::setCompanyId($this->company->id);
+    TenantService::setBranchId($this->branch->id);
+
+    $qty = (float) Stock::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variantOne->id)
+        ->where('warehouse_id', $this->warehouseStore->id)
+        ->value('quantity');
+
+    expect($qty)->toBe(7.0);
+});
+
+it('rejects an import warehouse_id that does not belong to the company', function () {
+    $other = Company::create([
+        'fiscal_year_id' => $this->company->fiscal_year_id,
+        'company_name' => 'Other Co',
+        'code' => 'OTHR',
+        'inventory_costing_method' => InventoryCostingMethodEnum::FIFO,
+    ]);
+    $foreignWarehouse = Warehouse::create([
+        'company_id' => $other->id,
+        'name' => 'Foreign',
+        'code' => 'FGN',
+    ]);
+
+    $file = UploadedFile::fake()->createWithContent('opening-stock.csv', "product_code,quantity\nWIDGET,1\n");
+
+    $this->postJson('/api/admin/data-transfers/imports', [
+        'file' => $file,
+        'entity_type' => 'opening_stock',
+        'warehouse_id' => $foreignWarehouse->id,
+    ])->assertStatus(422);
+});
+
+it('downloads a prefilled opening stock worksheet with product rows and no warehouse column', function () {
+    $service = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Consulting',
+        'code' => 'SVC',
+        'product_type' => 'service',
+        'unit_id' => $this->unit->id,
+    ]);
+    ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $service->id,
+        'sku' => 'SVC-1',
+        'is_default' => true,
+    ]);
+
+    $response = $this->get('/api/admin/data-transfers/templates/opening-stock-worksheet?format=csv');
+
+    $response->assertOk();
+    $body = $response->streamedContent();
+
+    expect($body)->toContain('product_name,product_code,sku,barcode,quantity,rate')
+        ->and($body)->not->toContain('warehouse')
+        ->and($body)->toContain('WIDGET')
+        ->and($body)->toContain('SKU-1')
+        ->and($body)->toContain('12.5')
+        ->and($body)->not->toContain('SVC-1');
+});

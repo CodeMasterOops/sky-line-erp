@@ -29,6 +29,10 @@ class ProductController extends Controller
 
         $query = ProductVariant::with(['product:id,name,unit_id,product_type,item_role,tax_id,tax_group_id', 'variantOptions']);
 
+        if ($request->boolean('physical_only')) {
+            $query->whereHas('product', fn ($q) => $q->where('product_type', ProductTypeEnum::PRODUCT->value));
+        }
+
         if ($search !== '') {
             $like = '%'.$search.'%';
             $query->where(function ($q) use ($like) {

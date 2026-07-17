@@ -21,6 +21,9 @@ class OpeningStockImportLookupCache
     /** @var array<string, int> */
     private array $warehousesByKey = [];
 
+    /** @var array<int, true> */
+    private array $warehouseIds = [];
+
     /**
      * Per-variant metadata needed at import time.
      *
@@ -85,6 +88,7 @@ class OpeningStockImportLookupCache
                 if ($warehouse->code) {
                     $this->warehousesByKey[strtolower($warehouse->code)] = $warehouse->id;
                 }
+                $this->warehouseIds[$warehouse->id] = true;
             });
 
         return $this;
@@ -121,5 +125,14 @@ class OpeningStockImportLookupCache
     public function resolveWarehouse(?string $value): ?int
     {
         return $value ? ($this->warehousesByKey[strtolower(trim($value))] ?? null) : null;
+    }
+
+    /**
+     * Confirm a warehouse id belongs to the company (used for the wizard's
+     * pre-selected warehouse when the sheet omits the warehouse column).
+     */
+    public function resolveWarehouseId(?int $id): ?int
+    {
+        return $id !== null && isset($this->warehouseIds[$id]) ? $id : null;
     }
 }

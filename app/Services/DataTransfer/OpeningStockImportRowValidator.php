@@ -41,11 +41,18 @@ class OpeningStockImportRowValidator implements ImportRowValidatorInterface
         }
 
         $warehouseRaw = $this->trimOrNull($row['warehouse'] ?? null);
-        $warehouseId = $lookups->resolveWarehouse($warehouseRaw);
-        if (! $warehouseId) {
-            $errors[] = $warehouseRaw === null
-                ? 'Warehouse is required.'
-                : "Warehouse '{$warehouseRaw}' was not found.";
+        if ($warehouseRaw !== null) {
+            $warehouseId = $lookups->resolveWarehouse($warehouseRaw);
+            if (! $warehouseId) {
+                $errors[] = "Warehouse '{$warehouseRaw}' was not found.";
+            }
+        } else {
+            $warehouseId = $lookups->resolveWarehouseId(
+                isset($context['default_warehouse_id']) ? (int) $context['default_warehouse_id'] : null
+            );
+            if (! $warehouseId) {
+                $errors[] = 'Warehouse is required.';
+            }
         }
 
         $quantity = $this->toFloatOrNull($row['quantity'] ?? null);

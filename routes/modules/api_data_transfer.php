@@ -7,6 +7,7 @@ Route::prefix('data-transfers')->as('data-transfers.')->controller(DataTransferC
     Route::get('/', 'index')->name('index');
     Route::get('templates/product', 'productTemplate')->name('templates.product');
     Route::get('templates/opening-stock', 'openingStockTemplate')->name('templates.opening-stock');
+    Route::get('templates/opening-stock-worksheet', 'openingStockWorksheet')->name('templates.opening-stock-worksheet');
     Route::get('templates/warehouse', 'warehouseTemplate')->name('templates.warehouse');
     Route::get('templates/party', 'partyTemplate')->name('templates.party');
     Route::post('imports', 'storeImport')->name('imports.store');
