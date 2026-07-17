@@ -48,6 +48,7 @@ return [
         'grni_account_id' => 'GRNI',
         'retained_earnings_account_id' => 'RE',
         'opening_stock_equity_account_id' => 'RE',
+        'opening_balance_equity_account_id' => 'OBE',
         'tds_payable_account_id' => 'TR',
         'tds_receivable_account_id' => 'TDSR',
         'customer_advance_account_id' => 'CUSTADV',

@@ -75,6 +75,8 @@
     </div>
 
     <CreateLeaveApplication v-model:create-modal-opened="createModalOpened" @created="fetchApplications" />
+
+    <PrintLeaveApplication v-model:print-data="printData" />
 </template>
 
 <script setup>
@@ -90,16 +92,18 @@ import { useConfirmAction } from '@/composables/useConfirmAction.js';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import CreateLeaveApplication from './CreateApplication.vue';
+import PrintLeaveApplication from './PrintApplication.vue';
 import { applicationColumns, createRowActions } from './applicationsTableConfig.js';
 
 const store = useLeaveStore();
 const { applications } = storeToRefs(store);
 const createModalOpened = ref(false);
+const printData = ref({});
 
 const fetchApplications = () => store.getApplications(filter);
 
 const { filter, onSearchInput, resetFilters, isFiltered } = useUrlFilter({
-    defaults: { search: '', status: 'pending', page: 1, limit: 10 },
+    defaults: { search: '', status: '', page: 1, limit: 10 },
     onFilter: fetchApplications,
 });
 
@@ -146,6 +150,7 @@ const { confirmDelete } = useConfirmAction();
 const rowActions = createRowActions({
     onApprove: approve,
     onReject:  reject,
+    onPrint:   (record) => { printData.value = record; },
     onDelete:  (id) => confirmDelete(
         () => store.deleteApplication(id),
         fetchApplications,

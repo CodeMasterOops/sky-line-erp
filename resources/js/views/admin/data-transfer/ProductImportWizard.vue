@@ -26,7 +26,6 @@ const productFields = [
     'brand', 'tax', 'has_variants', 'reorder_quantity', 'min_stock_level', 'sku',
     'barcode', 'sales_price', 'purchase_price', 'is_default',
     'attribute_1_name', 'attribute_1_value', 'attribute_2_name', 'attribute_2_value',
-    'warehouse', 'quantity',
 ];
 
 const show = () => wizardRef.value?.show();

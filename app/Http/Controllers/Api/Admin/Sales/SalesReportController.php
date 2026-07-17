@@ -519,7 +519,6 @@ class SalesReportController extends Controller
         return Party::query()
             ->where('type', PartyTypeEnum::CUSTOMER)
             ->orderBy('name')
-            ->limit(500)
             ->get(['id', 'name'])
             ->map(fn (Party $party) => [
                 'id' => (string) $party->id,

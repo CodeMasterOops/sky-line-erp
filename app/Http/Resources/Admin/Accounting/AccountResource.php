@@ -18,9 +18,24 @@ class AccountResource extends JsonResource
             'name' => $this->name ?? '',
             'code' => $this->code ?? '',
             'category' => $this->category ?? '',
+            'cash_bank_type' => $this->resolveCashBankType(),
             'description' => $this->description ?? '',
             'is_active' => $this->is_active ?? false,
             'normal_balance' => $groupType instanceof \App\Enums\AccountGroupTypeEnum ? $groupType->normalBalance() : null,
         ];
+    }
+
+    /**
+     * A stable cash / bank classification derived from the free-text category,
+     * normalised for case and whitespace so downstream ledger filters never
+     * depend on the exact stored string (e.g. 'Cash' vs ' cash ').
+     */
+    private function resolveCashBankType(): ?string
+    {
+        return match (strtolower(trim((string) $this->category))) {
+            'cash' => 'cash',
+            'bank' => 'bank',
+            default => null,
+        };
     }
 }

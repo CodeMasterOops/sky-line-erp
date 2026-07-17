@@ -115,13 +115,18 @@ class DataTransferController extends Controller
     #[Permissions('import_product', group: 'data_transfer', desc: 'Import Products')]
     public function storeImport(Request $request): JsonResponse
     {
+        $user = auth('admin')->user();
+
         $request->validate([
             'file' => ['required', 'file', 'max:'.((int) config('data_transfer.max_upload_bytes', 20971520) / 1024)],
             'entity_type' => ['required', Rule::enum(DataTransferEntityTypeEnum::class)],
             'default_party_type' => ['nullable', Rule::in(['customer', 'supplier', 'lead'])],
+            'warehouse_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('warehouses', 'id')->where('company_id', $user->company_id),
+            ],
         ]);
-
-        $user = auth('admin')->user();
 
         if ($branchGuard = $this->ensureBranchSelectedForNonAdmin()) {
             return $branchGuard;
@@ -146,6 +151,9 @@ class DataTransferController extends Controller
         $importOptions = [];
         if ($entityType === DataTransferEntityTypeEnum::Party && $request->filled('default_party_type')) {
             $importOptions['default_party_type'] = $request->input('default_party_type');
+        }
+        if ($entityType === DataTransferEntityTypeEnum::OpeningStock && $request->filled('warehouse_id')) {
+            $importOptions['warehouse_id'] = (int) $request->input('warehouse_id');
         }
 
         $job = $this->uploadService->storeImport(
@@ -484,6 +492,25 @@ class DataTransferController extends Controller
         return $this->templateService->downloadProductTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
     }
 
+    #[Permissions('import_opening_stock', group: 'data_transfer', desc: 'Import Opening Stock')]
+    public function openingStockTemplate(Request $request)
+    {
+        $format = $request->get('format', 'csv');
+
+        return $this->templateService->downloadOpeningStockTemplate($format === 'xlsx' ? 'xlsx' : 'csv');
+    }
+
+    #[Permissions('import_opening_stock', group: 'data_transfer', desc: 'Import Opening Stock')]
+    public function openingStockWorksheet(Request $request)
+    {
+        $format = $request->get('format', 'csv');
+
+        return $this->templateService->downloadOpeningStockWorksheet(
+            auth('admin')->user()->company_id,
+            $format === 'xlsx' ? 'xlsx' : 'csv',
+        );
+    }
+
     #[Permissions('import_warehouse', group: 'data_transfer', desc: 'Import Warehouses')]
     public function warehouseTemplate(Request $request)
     {
@@ -549,6 +576,7 @@ class DataTransferController extends Controller
             DataTransferEntityTypeEnum::Product => 'import_product',
             DataTransferEntityTypeEnum::Warehouse => 'import_warehouse',
             DataTransferEntityTypeEnum::Party => 'import_party',
+            DataTransferEntityTypeEnum::OpeningStock => 'import_opening_stock',
             default => null,
         };
 

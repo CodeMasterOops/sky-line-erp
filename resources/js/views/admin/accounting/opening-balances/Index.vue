@@ -65,9 +65,101 @@
         :show-modal="showForm"
         size="xl"
         title="Post Opening Balance"
-        @close-click="showForm = false">
+        @close-click="closeForm">
         <template #modal-body>
-            <form @submit.prevent="postOpeningBalance" class="row g-3">
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <button type="button" class="nav-link" :class="{ active: activeTab === 'gl' }" @click="activeTab = 'gl'">
+                        GL Accounts
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-link" :class="{ active: activeTab === 'customers' }" @click="activeTab = 'customers'">
+                        Customers
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button type="button" class="nav-link" :class="{ active: activeTab === 'suppliers' }" @click="activeTab = 'suppliers'">
+                        Suppliers
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Customers / Suppliers tab -->
+            <form v-if="activeTab !== 'gl'" @submit.prevent="postPartyOpening" class="row g-3">
+                <div class="col-md-6">
+                    <VDatepicker id="party_ob_date" label="As of Date" v-model="partyForm.date" required />
+                </div>
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">{{ activeTab === 'customers' ? 'Customer' : 'Supplier' }} Opening Balances</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="addPartyLine">
+                            <i class="ti ti-plus me-1"></i> Add Line
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px">SN</th>
+                                    <th style="min-width: 260px">{{ activeTab === 'customers' ? 'Customer' : 'Supplier' }}</th>
+                                    <th style="width: 180px" class="text-end">Opening Amount (NPR)</th>
+                                    <th style="min-width: 180px">Remarks</th>
+                                    <th style="width: 60px" class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(line, idx) in partyForm.lines" :key="idx">
+                                    <td>{{ idx + 1 }}</td>
+                                    <td>
+                                        <VMultiselect
+                                            v-model="line.party_id"
+                                            :options="currentPartyOptions"
+                                            placeholder="Party"
+                                        />
+                                    </td>
+                                    <td>
+                                        <VInput v-model="line.amount" input-type="number" input-class="form-control text-end" placeholder="0.00" />
+                                    </td>
+                                    <td>
+                                        <VInput v-model="line.remarks" placeholder="Optional" />
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-danger" @click="removePartyLine(idx)">
+                                            <i class="ti ti-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr v-if="!partyForm.lines.length">
+                                    <td colspan="5" class="text-center text-muted py-3">Click "Add Line" to add a party.</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="table-light fw-semibold">
+                                <tr>
+                                    <td colspan="2" class="text-end">Total</td>
+                                    <td class="text-end">{{ formatMoney(partyTotal) }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <p class="text-muted small mb-0">
+                        <i class="ti ti-info-circle me-1"></i>
+                        Each line posts an opening {{ activeTab === 'customers' ? 'invoice (DR Accounts Receivable' : 'bill (CR Accounts Payable' }}
+                        / contra Opening Balance Equity). Parties that already have an opening balance are disabled.
+                    </p>
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-cancel" @click="closeForm">Cancel</button>
+                    <button type="submit" class="btn btn-primary" :disabled="savingParty">
+                        <span v-if="savingParty" class="spinner-border spinner-border-sm me-1"></span>
+                        Post Opening Balance
+                    </button>
+                </div>
+            </form>
+
+            <!-- GL Accounts tab -->
+            <form v-else @submit.prevent="postOpeningBalance" class="row g-3">
                 <div class="col-md-6">
                     <VDatepicker id="form_date" label="As of Date" v-model="form.date" required />
                 </div>
@@ -151,10 +243,16 @@
                             </tfoot>
                         </table>
                     </div>
+                    <div v-if="glControlConflict" class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                        <i class="ti ti-alert-triangle me-1"></i>
+                        This entry posts to the Accounts Receivable / Payable control account. Customer and supplier
+                        opening balances should be entered in the <strong>Customers</strong> / <strong>Suppliers</strong>
+                        tabs so they remain settleable and appear in aging — otherwise the control account is double-counted.
+                    </div>
                 </div>
 
                 <div class="col-12 d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-cancel" @click="showForm = false">Cancel</button>
+                    <button type="button" class="btn btn-cancel" @click="closeForm">Cancel</button>
                     <button type="submit" class="btn btn-primary" :disabled="saving">
                         <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
                         Post Opening Balance
@@ -229,6 +327,91 @@ const showForm = ref(false);
 const saving = ref(false);
 const viewingEntry = ref(null);
 const accountOptions = ref([]);
+
+const activeTab = ref('gl');
+const savingParty = ref(false);
+const customerOptions = ref([]);
+const supplierOptions = ref([]);
+
+const defaultPartyForm = () => ({
+    date: new Date().toISOString().split('T')[0],
+    lines: [{ party_id: null, amount: 0, remarks: '' }],
+});
+const partyForm = ref(defaultPartyForm());
+
+const currentPartyOptions = computed(() =>
+    activeTab.value === 'suppliers' ? supplierOptions.value : customerOptions.value
+);
+const partyTotal = computed(() =>
+    partyForm.value.lines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0)
+);
+
+const addPartyLine = () => {
+    partyForm.value.lines.push({ party_id: null, amount: 0, remarks: '' });
+};
+const removePartyLine = (idx) => {
+    partyForm.value.lines.splice(idx, 1);
+};
+
+const mapPartyOptions = (list) =>
+    (list || []).map((p) => ({
+        id: p.id,
+        name: p.has_opening ? `${p.name} (already set)` : p.name,
+        disabled: !!p.has_opening,
+    }));
+
+const loadPartyOptions = async () => {
+    try {
+        const res = await apiAdmin('opening-balance/parties', 'get');
+        customerOptions.value = mapPartyOptions(res.data.data?.customers);
+        supplierOptions.value = mapPartyOptions(res.data.data?.suppliers);
+    } catch { /* ignore */ }
+};
+
+const controlAccountIds = ref([]);
+const loadControlAccounts = async () => {
+    try {
+        const res = await apiAdmin('account-setting', 'get');
+        const s = res.data.data || res.data || {};
+        controlAccountIds.value = [s.customer_account_id, s.supplier_account_id]
+            .filter(Boolean)
+            .map(Number);
+    } catch { /* ignore */ }
+};
+const glControlConflict = computed(() =>
+    form.value.items.some((l) => l.account_id && controlAccountIds.value.includes(Number(l.account_id)))
+);
+
+const postPartyOpening = async () => {
+    const lines = partyForm.value.lines
+        .filter((l) => l.party_id && parseFloat(l.amount) > 0)
+        .map((l) => ({ party_id: l.party_id, amount: parseFloat(l.amount), remarks: l.remarks || null }));
+
+    if (!lines.length) {
+        toast('error', 'Add at least one party with a positive amount.');
+        return;
+    }
+
+    savingParty.value = true;
+    try {
+        const endpoint = activeTab.value === 'suppliers' ? 'opening-balance/suppliers' : 'opening-balance/customers';
+        const res = await apiAdmin(endpoint, 'post', { date: partyForm.value.date, lines });
+        toast('success', res.data.message || 'Opening balance posted successfully.');
+        closeForm();
+        await Promise.all([fetchEntries(), loadPartyOptions()]);
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        savingParty.value = false;
+    }
+};
+
+const closeForm = () => {
+    showForm.value = false;
+    activeTab.value = 'gl';
+    form.value = defaultForm();
+    partyForm.value = defaultPartyForm();
+};
 
 const defaultForm = () => ({
     date: new Date().toISOString().split('T')[0],
@@ -336,4 +519,6 @@ const postOpeningBalance = async () => {
 };
 
 loadAccounts();
+loadPartyOptions();
+loadControlAccounts();
 </script>

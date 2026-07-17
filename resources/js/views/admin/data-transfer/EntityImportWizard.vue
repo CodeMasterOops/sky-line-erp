@@ -14,6 +14,7 @@
                             Upload CSV or XLSX. <a href="#" @click.prevent="downloadTemplate('csv')">CSV template</a>
                             · <a href="#" @click.prevent="downloadTemplate('xlsx')">XLSX template</a>
                         </p>
+                        <slot name="upload-extra" />
                         <div v-if="job && !fileChanged" class="alert alert-info py-2 small d-flex justify-content-between align-items-center">
                             <span>Using uploaded file: <strong>{{ uploadedFileName }}</strong></span>
                             <span class="text-muted">Choose a file below to replace it.</span>
@@ -278,7 +279,7 @@
                         </button>
                     </div>
 
-                    <div class="modal-footer border-0 px-0 pb-0">
+                    <div class="col-12 d-flex justify-content-end gap-2 mt-3">
                     <button type="button" class="btn btn-secondary" @click="close">Close</button>
                     <button v-if="step > 0 && step < 4 && step !== 3" type="button" class="btn btn-outline-primary" @click="step--">Back</button>
                     <button
@@ -293,7 +294,7 @@
                         v-else-if="step === 0"
                         type="button"
                         class="btn btn-primary"
-                        :disabled="!selectedFile || uploading"
+                        :disabled="!selectedFile || uploading || uploadDisabled"
                         @click="upload"
                     >
                         Upload
@@ -377,6 +378,10 @@ const props = defineProps({
     templateDownloadFn: {
         type: Function,
         required: true,
+    },
+    uploadDisabled: {
+        type: Boolean,
+        default: false,
     },
     modalId: {
         type: String,

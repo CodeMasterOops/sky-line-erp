@@ -99,4 +99,9 @@ class ProductVariant extends Model
     {
         return $this->hasMany(StockLayer::class);
     }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }

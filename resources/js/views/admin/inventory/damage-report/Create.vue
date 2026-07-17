@@ -31,7 +31,7 @@
                             <VMultiselect
                                 id="dr_warehouse_id"
                                 v-model="form.warehouse_id"
-                                :options="warehouses.data"
+                                :options="warehouseOptionsTree"
                                 label="Warehouse"
                                 required
                                 @validate="validateField('warehouse_id')"
@@ -179,7 +179,7 @@ import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const damageReportStore = useDamageReportStore();
 const warehouseStore = useWarehouseStore();
-const {warehouses} = storeToRefs(warehouseStore);
+const {stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');

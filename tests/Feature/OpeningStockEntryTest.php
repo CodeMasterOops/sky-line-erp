@@ -22,6 +22,7 @@ use App\Models\ProductVariant;
 use App\Models\DataTransferJob;
 use App\Models\ProductCategory;
 use App\Services\TenantService;
+use App\Enums\StockDirectionEnum;
 use App\Models\OpeningStockEntry;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -132,6 +133,36 @@ function openingStockPayload(object $test, array $overrides = []): array
         ],
     ], $overrides);
 }
+
+test('openable_only variant listing excludes variants that already have stock movements', function () {
+    $moved = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $this->product->id,
+        'sku' => 'SKU-OSE-MOVED',
+        'purchase_price' => 8,
+        'is_default' => false,
+    ]);
+
+    StockMovement::create([
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'product_variant_id' => $moved->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => ChangeTypeEnum::OPENING_STOCK,
+        'direction' => StockDirectionEnum::IN,
+        'quantity' => 4,
+        'user_id' => $this->user->id,
+    ]);
+
+    $response = $this->getJson('/api/admin/product/variant/all?physical_only=1&openable_only=1');
+
+    $response->assertSuccessful();
+
+    $ids = collect($response->json('data'))->pluck('id')->all();
+
+    expect($ids)->toContain($this->variant->id)
+        ->and($ids)->not->toContain($moved->id);
+});
 
 test('opening stock index includes product names from line items', function () {
     $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this))->assertCreated();
@@ -249,7 +280,7 @@ test('opening stock movement posts GL dr inventory cr opening equity', function 
         ->and((float) $crEquity)->toBe(125.0);
 });
 
-test('product import opening stock uses inventory pipeline not direct stock upsert', function () {
+test('product import no longer seeds opening stock (moved to dedicated opening stock import)', function () {
     $job = DataTransferJob::create([
         'uuid' => (string) Str::uuid(),
         'company_id' => $this->company->id,
@@ -272,32 +303,21 @@ test('product import opening stock uses inventory pipeline not direct stock upse
         'unit' => $this->unit->name,
         'sales_price' => '50',
         'purchase_price' => '20',
+        // Legacy opening-stock columns are retired: these are ignored.
         'warehouse' => $this->warehouse->name,
         'quantity' => '7',
     ], $lookups);
 
-    expect($result['errors'])->toBeEmpty();
+    expect($result['errors'])->toBeEmpty()
+        ->and($result['normalized'])->not->toHaveKey('opening_stock');
 
     $import = app(ProductImportService::class);
     $outcome = $import->importRow($job, $result['normalized'], $lookups);
 
     expect($outcome['action'])->toBe('imported');
 
-    $movement = StockMovement::withoutGlobalScopes()
-        ->where('company_id', $this->company->id)
-        ->where('product_variant_id', $outcome['variant_id'])
-        ->first();
-
-    expect($movement)->not->toBeNull()
-        ->and($movement->type)->toBe(ChangeTypeEnum::OPENING_STOCK)
-        ->and((int) $movement->quantity)->toBe(7);
-
-    $entry = OpeningStockEntry::withoutGlobalScopes()
-        ->where('company_id', $this->company->id)
-        ->first();
-
-    expect($entry)->not->toBeNull()
-        ->and($entry->status)->toBe(StatusEnum::APPROVED);
+    expect(StockMovement::withoutGlobalScopes()->where('company_id', $this->company->id)->exists())->toBeFalse();
+    expect(OpeningStockEntry::withoutGlobalScopes()->where('company_id', $this->company->id)->exists())->toBeFalse();
 });
 
 test('opening stock entry service approve is idempotent when already approved', function () {
@@ -321,4 +341,163 @@ test('opening stock entry service approve is idempotent when already approved', 
     app(OpeningStockEntryService::class)->approve($entry, $this->user);
 
     expect(StockMovement::withoutGlobalScopes()->count())->toBe(0);
+});
+
+test('editing an approved opening stock entry reverses and re-applies stock when untouched', function () {
+    $create = $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this, ['status' => 'approved']));
+    $create->assertCreated();
+    $entryId = $create->json('data.id');
+
+    $stockQty = fn () => (float) Stock::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->value('quantity');
+
+    expect($stockQty())->toBe(10.0);
+
+    $update = $this->putJson("/api/admin/opening-stock-entry/{$entryId}", openingStockPayload($this, [
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'unit_id' => null,
+            'quantity' => 25,
+            'unit_cost' => 12.5,
+        ]],
+    ]));
+    $update->assertOk();
+
+    expect($stockQty())->toBe(25.0);
+
+    $layerQty = (float) StockLayer::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->sum('qty_remaining');
+    expect($layerQty)->toBe(25.0);
+
+    $entry = OpeningStockEntry::withoutGlobalScopes()->find($entryId);
+    expect($entry->status)->toBe(StatusEnum::APPROVED)
+        ->and((float) $entry->openingStockEntryItems()->first()->quantity)->toBe(25.0);
+
+    expect(StockMovement::withoutGlobalScopes()
+        ->whereNull('deleted_at')
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->count())->toBe(1);
+});
+
+test('editing an approved opening stock entry voids the old GL journal and re-posts the new one', function () {
+    $inventory = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Inventory',
+        'code' => 'INV-OSE-EDIT',
+    ]);
+    $equity = Account::create([
+        'company_id' => $this->company->id,
+        'account_group_id' => null,
+        'name' => 'Opening Stock Equity',
+        'code' => 'OSE-EQ-EDIT',
+    ]);
+    AccountSetting::create([
+        'company_id' => $this->company->id,
+        'inventory_account_id' => $inventory->id,
+        'opening_stock_equity_account_id' => $equity->id,
+    ]);
+
+    $create = $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this, ['status' => 'approved']));
+    $create->assertCreated();
+    $entryId = $create->json('data.id');
+
+    $originalMovement = StockMovement::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variant->id)
+        ->firstOrFail();
+    $originalJournalId = $originalMovement->gl_journal_id;
+    expect($originalJournalId)->not->toBeNull();
+
+    $this->putJson("/api/admin/opening-stock-entry/{$entryId}", openingStockPayload($this, [
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'unit_id' => null,
+            'quantity' => 25,
+            'unit_cost' => 12.5,
+        ]],
+    ]))->assertOk();
+
+    // The original journal is voided (soft-deleted) and no longer visible in the books.
+    expect(Journal::withoutGlobalScopes()->whereNull('deleted_at')->whereKey($originalJournalId)->exists())->toBeFalse();
+
+    // A single live opening-stock journal remains, valuing the new quantity (25 * 12.5).
+    $liveJournals = Journal::withoutGlobalScopes()
+        ->whereNull('deleted_at')
+        ->whereHas('journalItems', fn ($q) => $q->where('account_id', $equity->id))
+        ->with('journalItems')
+        ->get();
+
+    expect($liveJournals)->toHaveCount(1);
+
+    $drInventory = (float) $liveJournals->first()->journalItems->where('account_id', $inventory->id)->sum('dr_amount');
+    $crEquity = (float) $liveJournals->first()->journalItems->where('account_id', $equity->id)->sum('cr_amount');
+
+    expect($drInventory)->toBe(312.5)
+        ->and($crEquity)->toBe(312.5);
+});
+
+test('editing an approved opening stock entry is rejected once its stock has moved', function () {
+    $create = $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this, ['status' => 'approved']));
+    $create->assertCreated();
+    $entryId = $create->json('data.id');
+
+    Stock::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->update(['quantity' => 8]);
+
+    StockLayer::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variant->id)
+        ->where('warehouse_id', $this->warehouse->id)
+        ->update(['qty_remaining' => 8]);
+
+    $update = $this->putJson("/api/admin/opening-stock-entry/{$entryId}", openingStockPayload($this, [
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'unit_id' => null,
+            'quantity' => 25,
+            'unit_cost' => 12.5,
+        ]],
+    ]));
+
+    $update->assertStatus(422);
+    expect($update->json('message'))->toContain('already been used');
+
+    $entry = OpeningStockEntry::withoutGlobalScopes()->find($entryId);
+    expect($entry->status)->toBe(StatusEnum::APPROVED)
+        ->and((float) $entry->openingStockEntryItems()->first()->quantity)->toBe(10.0)
+        ->and((float) Stock::withoutGlobalScopes()
+            ->where('product_variant_id', $this->variant->id)
+            ->where('warehouse_id', $this->warehouse->id)
+            ->value('quantity'))->toBe(8.0);
+});
+
+test('editing a draft opening stock entry updates items without posting stock', function () {
+    $create = $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this));
+    $create->assertCreated();
+    $entryId = $create->json('data.id');
+
+    $update = $this->putJson("/api/admin/opening-stock-entry/{$entryId}", openingStockPayload($this, [
+        'items' => [[
+            'product_variant_id' => $this->variant->id,
+            'unit_id' => null,
+            'quantity' => 40,
+            'unit_cost' => 9,
+        ]],
+    ]));
+    $update->assertOk();
+
+    $entry = OpeningStockEntry::withoutGlobalScopes()->find($entryId);
+    expect($entry->status)->toBe(StatusEnum::DRAFT)
+        ->and((float) $entry->openingStockEntryItems()->first()->quantity)->toBe(40.0);
+
+    expect(Stock::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variant->id)
+        ->where('quantity', '>', 0)
+        ->exists())->toBeFalse();
 });

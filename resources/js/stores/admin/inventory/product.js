@@ -37,12 +37,34 @@ export const useProductStore = defineStore('product', {
             }
         },
         /**
+         * Fetch the full variant catalog in one call (capped server-side).
+         * Used to pre-populate grids such as the opening stock stocktake.
+         */
+        getAllProductVariants({ physical_only = 1, openable_only = 0, limit = 1000 } = {}) {
+            const params = new URLSearchParams();
+            if (physical_only) {
+                params.set('physical_only', '1');
+            }
+            if (openable_only) {
+                params.set('openable_only', '1');
+            }
+            params.set('limit', String(limit));
+            return apiAdmin(`${apiUrl}/variant/all?${params.toString()}`)
+                .then((res) => res.data.data ?? [])
+                .catch((err) => {
+                    throw err;
+                });
+        },
+        /**
          * Paginated variant search (name, product code, SKU). Does not cache the full catalog.
          */
-        searchProductVariants({ q = '', barcode = '', page = 1, limit = 20, physical_only = 0, batch_tracked_only = 0, category_id = null, with_stock = 0, item_roles = null, saleable_only = 0, purchasable_only = 0 } = {}) {
+        searchProductVariants({ q = '', barcode = '', page = 1, limit = 20, physical_only = 0, batch_tracked_only = 0, category_id = null, with_stock = 0, item_roles = null, saleable_only = 0, purchasable_only = 0, openable_only = 0 } = {}) {
             const params = new URLSearchParams();
             if (barcode) {
                 params.set('barcode', barcode);
+            }
+            if (openable_only) {
+                params.set('openable_only', '1');
             }
             if (item_roles) {
                 params.set('item_roles', item_roles);

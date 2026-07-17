@@ -47,6 +47,13 @@ class InvoiceGlPostingService
 
     public function postFromInvoice(Invoice $invoice): void
     {
+        // Opening-balance invoices carry their own GL journal (DR AR / CR Opening
+        // Balance Equity) posted by OpeningPartyBalanceService and have no line
+        // items, so the standard sales posting must never run for them.
+        if ($invoice->is_opening) {
+            return;
+        }
+
         if ($this->alreadyPosted($invoice)) {
             return;
         }

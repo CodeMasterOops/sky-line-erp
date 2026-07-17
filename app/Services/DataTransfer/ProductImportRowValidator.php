@@ -105,21 +105,6 @@ class ProductImportRowValidator implements ImportRowValidatorInterface
             }
         }
 
-        $warehouseId = null;
-        $quantity = null;
-        if (! empty($row['warehouse']) || ! empty($row['quantity'])) {
-            $warehouseId = $lookups->resolveWarehouse($row['warehouse'] ?? null);
-            if (! $warehouseId) {
-                $errors[] = 'Warehouse not found for opening stock.';
-            }
-            $quantity = isset($row['quantity']) && $row['quantity'] !== ''
-                ? (int) $row['quantity']
-                : null;
-            if ($quantity === null || $quantity < 0) {
-                $errors[] = 'Opening stock quantity must be zero or greater.';
-            }
-        }
-
         $validator = Validator::make(
             ['sales_price' => $row['sales_price'] ?? null, 'purchase_price' => $row['purchase_price'] ?? 0],
             [
@@ -157,10 +142,6 @@ class ProductImportRowValidator implements ImportRowValidatorInterface
                 'is_default' => filter_var($row['is_default'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'attribute_values' => $attributeValueIds,
             ],
-            'opening_stock' => $warehouseId ? [
-                'warehouse_id' => $warehouseId,
-                'quantity' => $quantity,
-            ] : null,
         ];
 
         return [

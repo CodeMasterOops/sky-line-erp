@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 use App\Tenancy\TRule;
 use App\Models\ProductVariant;
 use Illuminate\Validation\Validator;
+use App\Rules\WarehouseIsStockLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BatchStoreRequest extends FormRequest
@@ -21,7 +22,7 @@ class BatchStoreRequest extends FormRequest
     {
         return [
             'product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
-            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'batch_no' => ['required', 'string', 'max:100'],
             'lot_no' => ['nullable', 'string', 'max:100'],
             'mfg_date' => ['nullable', 'date'],

@@ -276,3 +276,25 @@ it('product variant all endpoint supports search filtering', function () {
     expect($skus)->toContain('UNIQUE-SKU-XYZ');
     expect(count($skus))->toBe(1);
 });
+
+it('product variant all endpoint excludes services when physical_only is set', function () {
+    $service = Product::create([
+        'company_id' => $this->company->id,
+        'name' => 'Consulting',
+        'code' => 'SVC-P2',
+        'product_type' => ProductTypeEnum::SERVICE,
+    ]);
+    ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $service->id,
+        'sku' => 'SERVICE-SKU-XYZ',
+        'is_default' => true,
+    ]);
+
+    $response = $this->getJson('/api/admin/product/variant/all?physical_only=1')
+        ->assertOk();
+
+    $skus = collect($response->json('data'))->pluck('sku')->all();
+    expect($skus)->not->toContain('SERVICE-SKU-XYZ');
+    expect(collect($response->json('data'))->pluck('is_service')->every(fn ($s) => $s === false))->toBeTrue();
+});

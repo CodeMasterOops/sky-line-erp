@@ -387,6 +387,12 @@ return [
                         'description' => null,
                         'category' => null,
                     ],
+                    [
+                        'name' => 'Opening Balance Equity',
+                        'code' => 'OBE',
+                        'description' => 'Contra account for migrated opening balances at go-live',
+                        'category' => null,
+                    ],
                 ],
             ],
         ],

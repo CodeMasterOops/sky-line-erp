@@ -141,12 +141,39 @@ const filter = reactive({
     account_id: '',
 });
 
+const descendantGroupIds = (rootId) => {
+    const groups = accountGroups.value.data || [];
+    const childrenByParent = new Map();
+    groups.forEach((g) => {
+        const key = String(g.parent_id ?? '');
+        if (!childrenByParent.has(key)) {
+            childrenByParent.set(key, []);
+        }
+        childrenByParent.get(key).push(g);
+    });
+
+    const ids = new Set([String(rootId)]);
+    const stack = [String(rootId)];
+    while (stack.length) {
+        const current = stack.pop();
+        (childrenByParent.get(current) || []).forEach((child) => {
+            const childId = String(child.id);
+            if (!ids.has(childId)) {
+                ids.add(childId);
+                stack.push(childId);
+            }
+        });
+    }
+    return ids;
+};
+
 const filteredAccounts = computed(() => {
     if (!filter.account_group_id) {
         return accounts.value.data;
     }
+    const groupIds = descendantGroupIds(filter.account_group_id);
     return accounts.value.data.filter(
-        (a) => String(a.account_group_id) === String(filter.account_group_id)
+        (a) => groupIds.has(String(a.account_group_id))
     );
 });
 

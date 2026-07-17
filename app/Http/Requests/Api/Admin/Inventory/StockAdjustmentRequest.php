@@ -11,6 +11,7 @@ use App\Enums\StockDirectionEnum;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
 use App\Services\Inventory\BatchGuard;
+use App\Rules\WarehouseIsStockLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StockAdjustmentRequest extends FormRequest
@@ -25,11 +26,11 @@ class StockAdjustmentRequest extends FormRequest
         $rules = [
             'reference_no' => ['nullable', 'string', 'max:255'],
             'date' => ['required', 'date', new WithinActiveFiscalYear],
-            'warehouse_id' => ['nullable', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'warehouse_id' => ['nullable', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.warehouse_id' => ['required_without:warehouse_id', 'nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'items.*.warehouse_id' => ['required_without:warehouse_id', 'nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'items.*.product_variant_id' => ['required', TRule::exists('product_variants', 'id')->withoutTrashed()],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.direction' => ['required', Rule::in([StockDirectionEnum::IN->value, StockDirectionEnum::OUT->value])],

@@ -59,8 +59,18 @@ return [
         'attribute_1_value',
         'attribute_2_name',
         'attribute_2_value',
+    ],
+
+    'opening_stock_fields' => [
+        'product_code',
+        'sku',
+        'barcode',
         'warehouse',
         'quantity',
+        'rate',
+        'batch_no',
+        'expiry_date',
+        'remarks',
     ],
 
     'warehouse_fields' => [

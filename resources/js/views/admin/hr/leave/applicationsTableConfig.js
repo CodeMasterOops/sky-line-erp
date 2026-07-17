@@ -9,8 +9,15 @@ export const applicationColumns = [
     { title: 'Action',     key: 'action',     align: 'center' },
 ];
 
-export function createRowActions({ onApprove, onReject, onDelete }) {
+export function createRowActions({ onApprove, onReject, onDelete, onPrint }) {
     return [
+        {
+            key:     'print',
+            icon:    'ti-printer',
+            title:   'Print',
+            class:   'text-primary',
+            handler: (record) => onPrint(record),
+        },
         {
             key:       'approve',
             icon:      'ti-check',

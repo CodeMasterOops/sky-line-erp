@@ -7,6 +7,7 @@ use App\Tenancy\TRule;
 use App\Enums\StatusEnum;
 use Illuminate\Validation\Rule;
 use App\Rules\WithinActiveFiscalYear;
+use App\Rules\WarehouseIsStockLocation;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -34,7 +35,7 @@ class DebitNoteRequest extends FormRequest
                 TRule::exists('product_variants', 'id')->withoutTrashed(),
                 ...ProductLineRules::physicalProductVariantId(__('Services cannot be returned on debit notes.')),
             ],
-            'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'items.*.warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'items.*.unit_id' => ['nullable', TRule::exists('units', 'id')->withoutTrashed()],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],

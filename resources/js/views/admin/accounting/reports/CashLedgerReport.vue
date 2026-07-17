@@ -130,7 +130,7 @@ const filter = reactive({
 let pickerInstance = null;
 
 const cashAccounts = computed(() =>
-    (accounts.value?.data || []).filter((a) => a.category === 'Cash')
+    (accounts.value?.data || []).filter((a) => a.cash_bank_type === 'cash')
 );
 
 const ledgerRows = computed(() => generalLedger.value.data?.rows || []);

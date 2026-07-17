@@ -373,7 +373,7 @@ class PurchaseReportService
         $companyId = TenantService::companyId();
         $today = Carbon::today()->toDateString();
 
-        $balanceExpr = 'COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) - COALESCE(pt.paid_total, 0)';
+        $balanceExpr = 'COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(bills.opening_amount, 0) - COALESCE(pt.paid_total, 0)';
 
         $paginator = DB::table('bills')
             ->join('parties', 'parties.id', '=', 'bills.party_id')
@@ -398,7 +398,7 @@ class PurchaseReportService
                 bills.due_date,
                 bills.party_id,
                 parties.name as party_name,
-                COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) as net_total,
+                COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(bills.opening_amount, 0) as net_total,
                 COALESCE(pt.paid_total, 0) as paid_total,
                 {$balanceExpr} as balance_due
             ")
@@ -534,9 +534,9 @@ class PurchaseReportService
             ->selectRaw('
                 bills.bill_no as reference,
                 bills.bill_date as date,
-                "Bill" as type,
+                CASE WHEN bills.is_opening = 1 THEN "Opening Balance" ELSE "Bill" END as type,
                 0 as debit,
-                ROUND(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0), 2) as credit
+                ROUND(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(bills.opening_amount, 0), 2) as credit
             ')
             ->get();
 
@@ -871,7 +871,7 @@ class PurchaseReportService
             ->whereNull('bills.deleted_at')
             ->where('bills.party_id', $partyId)
             ->where('bills.bill_date', '<', $fromDate)
-            ->selectRaw('COALESCE(SUM(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0)), 0) as total')
+            ->selectRaw('COALESCE(SUM(COALESCE(it.subtotal, 0) - COALESCE(it.line_discount, 0) - COALESCE(discounts.amount, 0) + COALESCE(it.tax_amount, 0) + COALESCE(bills.opening_amount, 0)), 0) as total')
             ->value('total');
 
         $openingDrPayments = DB::table('payment_allocations as pa')
@@ -1040,7 +1040,6 @@ class PurchaseReportService
         return Party::query()
             ->where('type', PartyTypeEnum::SUPPLIER)
             ->orderBy('name')
-            ->limit(500)
             ->get(['id', 'name'])
             ->map(fn (Party $p) => ['id' => (string) $p->id, 'name' => $p->name])
             ->all();

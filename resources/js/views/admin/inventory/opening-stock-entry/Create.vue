@@ -41,85 +41,47 @@
                         </div>
 
                         <div class="col-12">
-                            <ProductVariantSearchInput
-                                label="Product"
-                                required
-                                physical-only
-                                @select="onVariantSelected"
-                            />
+                            <div class="d-flex align-items-end gap-2">
+                                <div class="flex-grow-1">
+                                    <ProductVariantSearchInput
+                                        label="Product"
+                                        required
+                                        physical-only
+                                        openable-only
+                                        @select="onVariantSelected"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-secondary text-nowrap"
+                                    :disabled="loadingAll"
+                                    @click="loadAllProducts">
+                                    <span v-if="loadingAll" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    <i v-else class="ti ti-list-check me-1"></i>
+                                    Load all products
+                                </button>
+                            </div>
+                            <p class="text-muted small mt-1 mb-0">
+                                Loads every product so you can just type the quantities you have. Rows left blank are ignored.
+                            </p>
                         </div>
 
                         <div class="col-12">
-                            <div class="table-responsive no-pagination">
-                                <table class="table datanew table-bordered mb-0 opening-stock-lines-table">
-                                    <thead>
-                                    <tr>
-                                        <th class="ose-col-sn">SN</th>
-                                        <th class="ose-col-product">Product</th>
-                                        <th class="ose-col-qty">
-                                            Qty
-                                            <VRequiredMark />
-                                        </th>
-                                        <th class="ose-col-cost">
-                                            Unit cost
-                                            <VRequiredMark />
-                                        </th>
-                                        <th class="ose-col-batch">Batch</th>
-                                        <th class="text-center ose-col-action">Action</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr v-if="!form.items.length">
-                                        <td colspan="6" class="text-center text-muted py-4">
-                                            Search and select a product to add lines.
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-for="(item, index) in form.items"
-                                        :key="`${index}-${item.product_variant_id}`">
-                                        <td>{{ index + 1 }}</td>
-                                        <td class="text-start text-truncate ose-col-product" :title="item.product_label">
-                                            {{ item.product_label }}
-                                        </td>
-                                        <td class="ose-col-qty ose-cell-tight">
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].quantity"
-                                                @validate="validateField(`items[${index}].quantity`)"
-                                                :error="errors[`items[${index}].quantity`]"
-                                            />
-                                        </td>
-                                        <td class="ose-col-cost ose-cell-tight">
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].unit_cost"
-                                                @validate="validateField(`items[${index}].unit_cost`)"
-                                                :error="errors[`items[${index}].unit_cost`]"
-                                            />
-                                        </td>
-                                        <td class="ose-col-batch">
-                                            <BatchLineInput
-                                                v-if="item.is_batch_tracked"
-                                                :line="form.items[index]"
-                                                :product-variant-id="item.product_variant_id"
-                                                :warehouse-id="form.warehouse_id"
-                                                :show-mfg="false"
-                                            />
-                                        </td>
-                                        <td class="text-center ose-col-action">
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                @click="removeItem(index)">
-                                                <i class="ti ti-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <OpeningStockLinesTable
+                                :items="form.items"
+                                :errors="errors"
+                                cost-required
+                                @validate="validateField"
+                                @remove="removeItem">
+                                <template #batch="{ item }">
+                                    <BatchLineInput
+                                        :line="item"
+                                        :product-variant-id="item.product_variant_id"
+                                        :warehouse-id="form.warehouse_id"
+                                        :show-mfg="false"
+                                    />
+                                </template>
+                            </OpeningStockLinesTable>
                         </div>
 
                         <div class="col-md-12">
@@ -167,17 +129,19 @@ import {useYup} from '@/helpers/yup';
 import {storeToRefs} from 'pinia';
 import {useWarehouseStore} from '@/stores/admin/inventory/warehouse.js';
 import {useOpeningStockEntryStore} from '@/stores/admin/inventory/opening-stock-entry.js';
+import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import BatchLineInput from '@/components/inventory/BatchLineInput.vue';
-import VRequiredMark from '@/components/base/VRequiredMark.vue';
+import OpeningStockLinesTable from '@/components/inventory/OpeningStockLinesTable.vue';
 
 const openingStockEntryStore = useOpeningStockEntryStore();
 const warehouseStore = useWarehouseStore();
+const productStore = useProductStore();
 const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
-const {optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 watch(createModalOpened, (opened) => {
     if (opened) {
@@ -196,6 +160,7 @@ const getInitialState = () => ({
 
 const form = reactive({...getInitialState()});
 const isSubmitting = ref(false);
+const loadingAll = ref(false);
 
 function variantLabel(variant) {
     let label = variant.name || '';
@@ -221,29 +186,59 @@ function unitIdFromVariant(variant) {
     return String(variant.unit_id);
 }
 
+const makeLineFromVariant = (variant, quantity) => ({
+    product_variant_id: String(variant.id),
+    product_label: variantLabel(variant),
+    unit_id: unitIdFromVariant(variant),
+    quantity,
+    unit_cost: defaultUnitCostFromVariant(variant),
+    is_batch_tracked: !!variant.is_batch_tracked,
+    batch_id: null,
+    create_batch: false,
+    batch_no: '',
+    expiry_date: '',
+});
+
 const onVariantSelected = (variant) => {
-    const defaultCost = defaultUnitCostFromVariant(variant);
-    form.items.push({
-        product_variant_id: String(variant.id),
-        product_label: variantLabel(variant),
-        unit_id: unitIdFromVariant(variant),
-        quantity: '1',
-        unit_cost: defaultCost,
-        is_batch_tracked: !!variant.is_batch_tracked,
-        batch_id: null,
-        create_batch: false,
-        batch_no: '',
-        expiry_date: '',
-    });
+    form.items.push(makeLineFromVariant(variant, '1'));
+};
+
+const loadAllProducts = async () => {
+    loadingAll.value = true;
+    try {
+        const variants = await productStore.getAllProductVariants({physical_only: 1, openable_only: 1});
+        const existing = new Set(form.items.map((item) => String(item.product_variant_id)));
+        let added = 0;
+        variants.forEach((variant) => {
+            if (variant.is_service || existing.has(String(variant.id))) {
+                return;
+            }
+            existing.add(String(variant.id));
+            form.items.push(makeLineFromVariant(variant, ''));
+            added++;
+        });
+
+        if (added > 0) {
+            toast(200, `Loaded ${added} product${added === 1 ? '' : 's'}.`);
+        } else if (form.items.length > 0) {
+            toast(200, 'All openable products are already in the list.');
+        } else {
+            toast(422, 'No openable products found. Products that already have stock movements are excluded.');
+        }
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        loadingAll.value = false;
+    }
 };
 
 const removeItem = (index) => {
     form.items.splice(index, 1);
 };
 
-const lineQtyInt = (q) => {
-    const n = parseInt(String(q ?? '0'), 10);
-    return Number.isFinite(n) && n > 0 ? n : 1;
+const lineQtyFloat = (q) => {
+    const n = parseFloat(String(q ?? ''));
+    return Number.isFinite(n) ? n : 0;
 };
 
 const buildPayload = () => ({
@@ -252,15 +247,17 @@ const buildPayload = () => ({
     warehouse_id: form.warehouse_id,
     remarks: form.remarks,
     status: form.status,
-    items: form.items.map((item) => ({
-        product_variant_id: item.product_variant_id,
-        unit_id: item.unit_id === '' || item.unit_id == null ? null : item.unit_id,
-        quantity: lineQtyInt(item.quantity),
-        unit_cost: item.unit_cost === '' || item.unit_cost == null ? 0 : item.unit_cost,
-        batch_id: item.create_batch ? null : (item.batch_id || null),
-        batch_no: item.create_batch ? (item.batch_no || null) : null,
-        expiry_date: item.create_batch ? (item.expiry_date || null) : null,
-    })),
+    items: form.items
+        .filter((item) => lineQtyFloat(item.quantity) > 0)
+        .map((item) => ({
+            product_variant_id: item.product_variant_id,
+            unit_id: item.unit_id === '' || item.unit_id == null ? null : item.unit_id,
+            quantity: lineQtyFloat(item.quantity),
+            unit_cost: item.unit_cost === '' || item.unit_cost == null ? 0 : item.unit_cost,
+            batch_id: item.create_batch ? null : (item.batch_id || null),
+            batch_no: item.create_batch ? (item.batch_no || null) : null,
+            expiry_date: item.create_batch ? (item.expiry_date || null) : null,
+        })),
 });
 
 const validations = object({
@@ -270,9 +267,9 @@ const validations = object({
     items: array().of(
         object({
             product_variant_id: string().required('Product is required.'),
-            quantity: string().required('Quantity is required.'),
+            quantity: string().nullable(),
             unit_id: string().nullable(),
-            unit_cost: string().required('Unit cost is required.'),
+            unit_cost: string().nullable(),
         })
     ).min(1, 'At least one item is required.'),
 });
@@ -282,17 +279,25 @@ const {errors, validateField, validateForm} = useYup(form, validations);
 const storeEntryWithStatus = async (status) => {
     form.status = status;
     const validated = await validateForm(validations, form);
-    if (validated) {
-        isSubmitting.value = true;
-        try {
-            const res = await openingStockEntryStore.storeEntry(buildPayload());
-            toast(res.status, res.data.message);
-            closeCreateModal();
-        } catch (e) {
-            showErrors(e);
-        } finally {
-            isSubmitting.value = false;
-        }
+    if (!validated) {
+        return;
+    }
+
+    const payload = buildPayload();
+    if (!payload.items.length) {
+        toast(422, 'Enter a quantity for at least one product.');
+        return;
+    }
+
+    isSubmitting.value = true;
+    try {
+        const res = await openingStockEntryStore.storeEntry(payload);
+        toast(res.status, res.data.message);
+        closeCreateModal();
+    } catch (e) {
+        showErrors(e);
+    } finally {
+        isSubmitting.value = false;
     }
 };
 
@@ -302,33 +307,3 @@ const closeCreateModal = () => {
     createModalOpened.value = false;
 };
 </script>
-
-<style scoped>
-.opening-stock-lines-table {
-    table-layout: fixed;
-    width: 100%;
-}
-
-.opening-stock-lines-table th.ose-col-sn,
-.opening-stock-lines-table td:first-child {
-    width: 2.75rem;
-}
-
-.opening-stock-lines-table th.ose-col-product {
-    width: 45%;
-}
-
-.opening-stock-lines-table th.ose-col-qty,
-.opening-stock-lines-table td.ose-col-qty {
-    width: 5rem;
-}
-
-.opening-stock-lines-table th.ose-col-cost,
-.opening-stock-lines-table td.ose-col-cost {
-    width: 6.25rem;
-}
-
-.opening-stock-lines-table th.ose-col-action {
-    width: 3rem;
-}
-</style>

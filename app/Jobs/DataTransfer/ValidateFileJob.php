@@ -174,6 +174,10 @@ class ValidateFileJob implements ShouldQueue
             $context['default_party_type'] = $job->options['default_party_type'] ?? null;
         }
 
+        if ($job->entity_type === DataTransferEntityTypeEnum::OpeningStock) {
+            $context['default_warehouse_id'] = $job->options['warehouse_id'] ?? null;
+        }
+
         return $context;
     }
 

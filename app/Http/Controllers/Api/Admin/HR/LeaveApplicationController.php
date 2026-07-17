@@ -18,7 +18,7 @@ class LeaveApplicationController extends Controller
     #[Permissions('list_leave_application', group: 'leave_application', desc: 'List Leave Applications')]
     public function index(Request $request)
     {
-        $applications = LeaveApplication::with(['employee', 'leaveType'])
+        $applications = LeaveApplication::with(['employee.department', 'employee.designation', 'leaveType', 'approvedBy'])
             ->filter($request->all())
             ->latest()
             ->paginate($request->limit ?? 25);
@@ -42,7 +42,7 @@ class LeaveApplicationController extends Controller
     #[Permissions('show_leave_application', group: 'leave_application', desc: 'Show Leave Application')]
     public function show(LeaveApplication $leaveApplication)
     {
-        return LeaveApplicationResource::make($leaveApplication->load(['employee', 'leaveType']));
+        return LeaveApplicationResource::make($leaveApplication->load(['employee.department', 'employee.designation', 'leaveType', 'approvedBy']));
     }
 
     #[Permissions('edit_leave_application', group: 'leave_application', desc: 'Edit Leave Application')]

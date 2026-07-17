@@ -34,6 +34,7 @@ class AccountSetting extends Model
         'cogs_account_id',
         'retained_earnings_account_id',
         'opening_stock_equity_account_id',
+        'opening_balance_equity_account_id',
         'tds_payable_account_id',
         'tds_receivable_account_id',
         'customer_advance_account_id',

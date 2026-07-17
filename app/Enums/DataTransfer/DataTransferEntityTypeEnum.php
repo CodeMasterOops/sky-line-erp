@@ -8,6 +8,7 @@ enum DataTransferEntityTypeEnum: string
     case Warehouse = 'warehouse';
     case Party = 'party';
     case Stock = 'stock';
+    case OpeningStock = 'opening_stock';
     case Invoice = 'invoice';
     case Bill = 'bill';
     case SalesOrder = 'sales_order';

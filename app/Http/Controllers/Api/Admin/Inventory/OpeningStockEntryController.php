@@ -114,38 +114,53 @@ class OpeningStockEntryController extends Controller
     #[Permissions('edit_opening_stock_entry', group: 'opening_stock_entry', desc: 'Edit Opening Stock Entry')]
     public function update(OpeningStockEntryRequest $request, OpeningStockEntry $openingStockEntry)
     {
-        if ($openingStockEntry->status === StatusEnum::APPROVED) {
+        $formData = $request->validated();
+        $user = auth('admin')->user();
+        $wasApproved = $openingStockEntry->status === StatusEnum::APPROVED;
+
+        try {
+            $openingStockEntry = DB::transaction(function () use ($openingStockEntry, $formData, $user, $wasApproved) {
+                if ($wasApproved) {
+                    $this->openingStockEntryService->reverseApprovedOpeningStock($openingStockEntry, $user);
+                    $openingStockEntry->refresh();
+                }
+
+                $openingStockEntry->update([
+                    'reference_no' => $formData['reference_no'] ?? null,
+                    'date' => $formData['date'],
+                    'warehouse_id' => $formData['warehouse_id'],
+                    'remarks' => $formData['remarks'] ?? null,
+                ]);
+
+                $openingStockEntry->openingStockEntryItems()->delete();
+
+                $openingStockEntry->openingStockEntryItems()->createMany(
+                    collect($formData['items'])->map(fn (array $item) => [
+                        'product_variant_id' => $item['product_variant_id'],
+                        'unit_id' => $item['unit_id'] ?? null,
+                        'quantity' => $item['quantity'],
+                        'unit_cost' => $item['unit_cost'],
+                        'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
+                        'batch_no' => $item['batch_no'] ?? null,
+                        'expiry_date' => $item['expiry_date'] ?? null,
+                    ])->all()
+                );
+
+                if ($wasApproved) {
+                    $this->openingStockEntryService->approve(
+                        $openingStockEntry->fresh(['openingStockEntryItems.productVariant.product']),
+                        $user,
+                    );
+                }
+
+                return $openingStockEntry;
+            });
+        } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'Approved opening stock entries cannot be edited.',
+                'message' => collect($e->errors())->flatten()->first() ?? $e->getMessage(),
+                'errors' => $e->errors(),
             ], 422);
         }
-
-        $formData = $request->validated();
-
-        $openingStockEntry = DB::transaction(function () use ($openingStockEntry, $formData) {
-            $openingStockEntry->update([
-                'reference_no' => $formData['reference_no'] ?? null,
-                'date' => $formData['date'],
-                'warehouse_id' => $formData['warehouse_id'],
-                'remarks' => $formData['remarks'] ?? null,
-            ]);
-
-            $openingStockEntry->openingStockEntryItems()->delete();
-
-            $openingStockEntry->openingStockEntryItems()->createMany(
-                collect($formData['items'])->map(fn (array $item) => [
-                    'product_variant_id' => $item['product_variant_id'],
-                    'unit_id' => $item['unit_id'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'unit_cost' => $item['unit_cost'],
-                    'batch_id' => ! empty($item['batch_id']) ? (int) $item['batch_id'] : null,
-                    'batch_no' => $item['batch_no'] ?? null,
-                    'expiry_date' => $item['expiry_date'] ?? null,
-                ])->all()
-            );
-
-            return $openingStockEntry;
-        });
 
         $openingStockEntry->load(['warehouse', 'openingStockEntryItems.productVariant.product', 'openingStockEntryItems.unit']);
 

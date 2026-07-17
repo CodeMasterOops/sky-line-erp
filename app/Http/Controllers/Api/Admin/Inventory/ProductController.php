@@ -29,6 +29,14 @@ class ProductController extends Controller
 
         $query = ProductVariant::with(['product:id,name,unit_id,product_type,item_role,tax_id,tax_group_id', 'variantOptions']);
 
+        if ($request->boolean('physical_only')) {
+            $query->whereHas('product', fn ($q) => $q->where('product_type', ProductTypeEnum::PRODUCT->value));
+        }
+
+        if ($request->boolean('openable_only')) {
+            $query->whereDoesntHave('stockMovements');
+        }
+
         if ($search !== '') {
             $like = '%'.$search.'%';
             $query->where(function ($q) use ($like) {
@@ -65,6 +73,10 @@ class ProductController extends Controller
 
         if ($request->boolean('batch_tracked_only')) {
             $query->where('is_batch_tracked', true);
+        }
+
+        if ($request->boolean('openable_only')) {
+            $query->whereDoesntHave('stockMovements');
         }
 
         if ($request->boolean('saleable_only')) {

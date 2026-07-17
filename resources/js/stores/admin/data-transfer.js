@@ -160,6 +160,20 @@ export const useDataTransferStore = defineStore('dataTransfer', {
             );
         },
 
+        downloadOpeningStockTemplate(format = 'csv') {
+            return downloadAdminFile(
+                `${apiUrl}/templates/opening-stock?format=${format}`,
+                `opening-stock-import-template.${format}`,
+            );
+        },
+
+        downloadOpeningStockWorksheet(format = 'csv') {
+            return downloadAdminFile(
+                `${apiUrl}/templates/opening-stock-worksheet?format=${format}`,
+                `opening-stock-worksheet.${format}`,
+            );
+        },
+
         downloadWarehouseTemplate(format = 'csv') {
             return downloadAdminFile(
                 `${apiUrl}/templates/warehouse?format=${format}`,
