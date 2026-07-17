@@ -56,6 +56,7 @@
                                         label="Product"
                                         required
                                         physical-only
+                                        openable-only
                                         @select="onVariantSelected"
                                     />
                                 </div>
@@ -225,15 +226,25 @@ const onVariantSelected = (variant) => {
 const loadAllProducts = async () => {
     loadingAll.value = true;
     try {
-        const variants = await productStore.getAllProductVariants({physical_only: 1});
+        const variants = await productStore.getAllProductVariants({physical_only: 1, openable_only: 1});
         const existing = new Set(form.items.map((item) => String(item.product_variant_id)));
+        let added = 0;
         variants.forEach((variant) => {
             if (variant.is_service || existing.has(String(variant.id))) {
                 return;
             }
             existing.add(String(variant.id));
             form.items.push(makeLineFromVariant(variant, ''));
+            added++;
         });
+
+        if (added > 0) {
+            toast(200, `Loaded ${added} product${added === 1 ? '' : 's'}.`);
+        } else if (form.items.length > 0) {
+            toast(200, 'All openable products are already in the list.');
+        } else {
+            toast(422, 'No openable products found. Products that already have stock movements are excluded.');
+        }
     } catch (e) {
         showErrors(e);
     } finally {

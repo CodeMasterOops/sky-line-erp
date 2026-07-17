@@ -22,6 +22,7 @@ use App\Models\ProductVariant;
 use App\Models\DataTransferJob;
 use App\Models\ProductCategory;
 use App\Services\TenantService;
+use App\Enums\StockDirectionEnum;
 use App\Models\OpeningStockEntry;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -132,6 +133,36 @@ function openingStockPayload(object $test, array $overrides = []): array
         ],
     ], $overrides);
 }
+
+test('openable_only variant listing excludes variants that already have stock movements', function () {
+    $moved = ProductVariant::create([
+        'company_id' => $this->company->id,
+        'product_id' => $this->product->id,
+        'sku' => 'SKU-OSE-MOVED',
+        'purchase_price' => 8,
+        'is_default' => false,
+    ]);
+
+    StockMovement::create([
+        'company_id' => $this->company->id,
+        'branch_id' => $this->branch->id,
+        'product_variant_id' => $moved->id,
+        'warehouse_id' => $this->warehouse->id,
+        'type' => ChangeTypeEnum::OPENING_STOCK,
+        'direction' => StockDirectionEnum::IN,
+        'quantity' => 4,
+        'user_id' => $this->user->id,
+    ]);
+
+    $response = $this->getJson('/api/admin/product/variant/all?physical_only=1&openable_only=1');
+
+    $response->assertSuccessful();
+
+    $ids = collect($response->json('data'))->pluck('id')->all();
+
+    expect($ids)->toContain($this->variant->id)
+        ->and($ids)->not->toContain($moved->id);
+});
 
 test('opening stock index includes product names from line items', function () {
     $this->postJson('/api/admin/opening-stock-entry', openingStockPayload($this))->assertCreated();
