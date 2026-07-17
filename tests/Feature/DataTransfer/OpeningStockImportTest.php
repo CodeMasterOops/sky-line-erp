@@ -526,3 +526,58 @@ it('downloads a prefilled opening stock worksheet with product rows and no wareh
         ->and($body)->toContain('12.5')
         ->and($body)->not->toContain('SVC-1');
 });
+
+it('auto-maps the product_code column for opening stock imports', function () {
+    $mapping = app(\App\Services\DataTransfer\FileParserService::class)->suggestMapping(
+        ['product_name', 'product_code', 'sku', 'barcode', 'quantity', 'rate'],
+        config('data_transfer.opening_stock_fields'),
+    );
+
+    expect($mapping)->toBe([
+        'product_code' => 'product_code',
+        'sku' => 'sku',
+        'barcode' => 'barcode',
+        'quantity' => 'quantity',
+        'rate' => 'rate',
+    ]);
+});
+
+it('imports opening stock resolved by product_code alone when sku and barcode are absent', function () {
+    $csv = "product_code,warehouse,quantity,rate\n";
+    $csv .= "WIDGET,Main,7,20\n";
+
+    $file = UploadedFile::fake()->createWithContent('opening-stock.csv', $csv);
+
+    $this->postJson('/api/admin/data-transfers/imports', [
+        'file' => $file,
+        'entity_type' => 'opening_stock',
+    ])->assertCreated();
+
+    $job = DataTransferJob::firstOrFail();
+
+    (new ParseFileJob($job))->handle(app(\App\Services\DataTransfer\FileParserService::class));
+    (new ValidateFileJob($job))->handle(
+        app(\App\Services\DataTransfer\FileParserService::class),
+        app(ImportHandlerFactory::class),
+    );
+    $job->refresh();
+
+    expect($job->status)->toBe(DataTransferStatusEnum::Validated)
+        ->and($job->stats['valid'])->toBe(1)
+        ->and($job->stats['invalid'] ?? 0)->toBe(0);
+
+    (new ProcessImportChunkJob($job, 0))->handle(
+        app(ImportHandlerFactory::class),
+        app(\App\Services\DataTransfer\ErrorReportGenerator::class),
+    );
+
+    TenantService::setCompanyId($this->company->id);
+    TenantService::setBranchId($this->branch->id);
+
+    $qty = (float) Stock::withoutGlobalScopes()
+        ->where('product_variant_id', $this->variantOne->id)
+        ->where('warehouse_id', $this->warehouseMain->id)
+        ->value('quantity');
+
+    expect($qty)->toBe(7.0);
+});
