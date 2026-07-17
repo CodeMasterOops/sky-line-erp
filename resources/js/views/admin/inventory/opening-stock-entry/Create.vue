@@ -66,76 +66,21 @@
                         </div>
 
                         <div class="col-12">
-                            <div class="table-responsive no-pagination">
-                                <table class="table datanew table-bordered mb-0 opening-stock-lines-table">
-                                    <thead>
-                                    <tr>
-                                        <th class="ose-col-sn">SN</th>
-                                        <th class="ose-col-product">Product</th>
-                                        <th class="ose-col-qty">
-                                            Qty
-                                            <VRequiredMark />
-                                        </th>
-                                        <th class="ose-col-cost">
-                                            Unit cost
-                                            <VRequiredMark />
-                                        </th>
-                                        <th class="ose-col-batch">Batch</th>
-                                        <th class="text-center ose-col-action">Action</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-                                    <tr v-if="!form.items.length">
-                                        <td colspan="6" class="text-center text-muted py-4">
-                                            Search and select a product to add lines.
-                                        </td>
-                                    </tr>
-                                    <tr
-                                        v-for="(item, index) in form.items"
-                                        :key="`${index}-${item.product_variant_id}`">
-                                        <td>{{ index + 1 }}</td>
-                                        <td class="text-start text-truncate ose-col-product" :title="item.product_label">
-                                            {{ item.product_label }}
-                                        </td>
-                                        <td class="ose-col-qty ose-cell-tight">
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].quantity"
-                                                @validate="validateField(`items[${index}].quantity`)"
-                                                :error="errors[`items[${index}].quantity`]"
-                                            />
-                                        </td>
-                                        <td class="ose-col-cost ose-cell-tight">
-                                            <VInput
-                                                input-type="number"
-                                                input-class="form-control form-control-sm"
-                                                v-model="form.items[index].unit_cost"
-                                                @validate="validateField(`items[${index}].unit_cost`)"
-                                                :error="errors[`items[${index}].unit_cost`]"
-                                            />
-                                        </td>
-                                        <td class="ose-col-batch">
-                                            <BatchLineInput
-                                                v-if="item.is_batch_tracked"
-                                                :line="form.items[index]"
-                                                :product-variant-id="item.product_variant_id"
-                                                :warehouse-id="form.warehouse_id"
-                                                :show-mfg="false"
-                                            />
-                                        </td>
-                                        <td class="text-center ose-col-action">
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                @click="removeItem(index)">
-                                                <i class="ti ti-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            <OpeningStockLinesTable
+                                :items="form.items"
+                                :errors="errors"
+                                cost-required
+                                @validate="validateField"
+                                @remove="removeItem">
+                                <template #batch="{ item }">
+                                    <BatchLineInput
+                                        :line="item"
+                                        :product-variant-id="item.product_variant_id"
+                                        :warehouse-id="form.warehouse_id"
+                                        :show-mfg="false"
+                                    />
+                                </template>
+                            </OpeningStockLinesTable>
                         </div>
 
                         <div class="col-md-12">
@@ -187,7 +132,7 @@ import {useProductStore} from '@/stores/admin/inventory/product.js';
 import {useDateHelper} from '@/composables/dateHelper.js';
 import ProductVariantSearchInput from '@/components/inventory/ProductVariantSearchInput.vue';
 import BatchLineInput from '@/components/inventory/BatchLineInput.vue';
-import VRequiredMark from '@/components/base/VRequiredMark.vue';
+import OpeningStockLinesTable from '@/components/inventory/OpeningStockLinesTable.vue';
 
 const openingStockEntryStore = useOpeningStockEntryStore();
 const warehouseStore = useWarehouseStore();
@@ -351,33 +296,3 @@ const closeCreateModal = () => {
     createModalOpened.value = false;
 };
 </script>
-
-<style scoped>
-.opening-stock-lines-table {
-    table-layout: fixed;
-    width: 100%;
-}
-
-.opening-stock-lines-table th.ose-col-sn,
-.opening-stock-lines-table td:first-child {
-    width: 2.75rem;
-}
-
-.opening-stock-lines-table th.ose-col-product {
-    width: 45%;
-}
-
-.opening-stock-lines-table th.ose-col-qty,
-.opening-stock-lines-table td.ose-col-qty {
-    width: 5rem;
-}
-
-.opening-stock-lines-table th.ose-col-cost,
-.opening-stock-lines-table td.ose-col-cost {
-    width: 6.25rem;
-}
-
-.opening-stock-lines-table th.ose-col-action {
-    width: 3rem;
-}
-</style>
