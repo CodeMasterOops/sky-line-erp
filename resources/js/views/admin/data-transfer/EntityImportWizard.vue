@@ -279,7 +279,7 @@
                         </button>
                     </div>
 
-                    <div class="modal-footer border-0 px-0 pb-0">
+                    <div class="col-12 d-flex justify-content-end gap-2 mt-3">
                     <button type="button" class="btn btn-secondary" @click="close">Close</button>
                     <button v-if="step > 0 && step < 4 && step !== 3" type="button" class="btn btn-outline-primary" @click="step--">Back</button>
                     <button
