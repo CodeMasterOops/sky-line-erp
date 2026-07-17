@@ -572,7 +572,7 @@ const showLandedCosts = ref(false);
 const {bill} = storeToRefs(billStore);
 const {parties} = storeToRefs(partyStore);
 const {taxes, taxGroups} = storeToRefs(taxStore);
-const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {warehouses, stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {accounts} = storeToRefs(accountStore);
 
 const lineTaxOptions = useLineItemTaxOptions(taxes, taxGroups);

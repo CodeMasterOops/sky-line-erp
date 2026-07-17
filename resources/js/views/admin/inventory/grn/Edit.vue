@@ -323,7 +323,7 @@ const accountStore = useAccountStore();
 const warehouseStore = useWarehouseStore();
 const {parties} = storeToRefs(partyStore);
 const {accounts} = storeToRefs(accountStore);
-const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {warehouses, stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const loading = ref(false);
 const saving = ref(false);

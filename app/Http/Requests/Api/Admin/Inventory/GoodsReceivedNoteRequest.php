@@ -7,6 +7,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use App\Enums\LandedCostTreatmentEnum;
 use App\Services\Inventory\BatchGuard;
+use App\Rules\WarehouseIsStockLocation;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\LandedCostAllocationMethodEnum;
 
@@ -22,7 +23,7 @@ class GoodsReceivedNoteRequest extends FormRequest
         return [
             'purchase_order_id' => ['nullable', TRule::exists('purchase_orders', 'id')->withoutTrashed()],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
-            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'received_date' => ['required', 'date'],
             'supplier_invoice_no' => ['nullable', 'string', 'max:100'],
             'remarks' => ['nullable', 'string'],

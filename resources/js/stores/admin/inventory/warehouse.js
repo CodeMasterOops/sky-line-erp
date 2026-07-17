@@ -24,6 +24,11 @@ export const useWarehouseStore = defineStore('warehouse', {
         },
         optionsTreeExcluding: (state) => (excludeIds = new Set()) =>
             buildWarehouseOptionsTree(state.warehouses.data, excludeIds),
+        stockLocationOptionsTree(state) {
+            return buildWarehouseOptionsTree(state.warehouses.data, new Set(), { disableParents: true });
+        },
+        stockLocationOptionsTreeExcluding: (state) => (excludeIds = new Set()) =>
+            buildWarehouseOptionsTree(state.warehouses.data, excludeIds, { disableParents: true }),
     },
 
     actions: {

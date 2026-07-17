@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin;
 
 use App\Tenancy\TRule;
 use Illuminate\Validation\Rule;
+use App\Rules\WarehouseIsStockLocation;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -17,7 +18,7 @@ class PosCheckoutRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'warehouse_id' => ['nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'warehouse_id' => ['nullable', 'integer', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'payment_method' => ['required', 'string', 'max:255'],
             // Split payment: optional array of {method, payment_mode_id, amount} entries.
             'payments' => ['nullable', 'array', 'min:1'],
@@ -36,6 +37,7 @@ class PosCheckoutRequest extends FormRequest
                 'required',
                 'integer',
                 TRule::exists('warehouses', 'id')->withoutTrashed(),
+                new WarehouseIsStockLocation,
             ],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.rate' => ['required', 'numeric', 'min:0'],

@@ -6,6 +6,7 @@ use App\Tenancy\TRule;
 use App\Enums\ProductTypeEnum;
 use App\Services\TenantService;
 use Illuminate\Support\Facades\DB;
+use App\Rules\WarehouseIsStockLocation;
 
 class ProductLineRules
 {
@@ -110,7 +111,11 @@ class ProductLineRules
                 $existsValidator = validator(['warehouse_id' => $value], ['warehouse_id' => [$existsRule]]);
                 if ($existsValidator->fails()) {
                     $fail($existsValidator->errors()->first('warehouse_id'));
+
+                    return;
                 }
+
+                (new WarehouseIsStockLocation)->validate($attribute, $value, $fail);
             },
         ];
     }

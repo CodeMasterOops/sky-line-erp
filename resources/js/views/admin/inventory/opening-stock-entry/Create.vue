@@ -177,7 +177,7 @@ const warehouseStore = useWarehouseStore();
 const {currentAdDate} = useDateHelper();
 
 const createModalOpened = defineModel('createModalOpened');
-const {optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 watch(createModalOpened, (opened) => {
     if (opened) {

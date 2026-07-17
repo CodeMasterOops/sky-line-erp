@@ -34,7 +34,7 @@
                             <VMultiselect
                                 id="dr_edit_warehouse_id"
                                 v-model="form.warehouse_id"
-                                :options="warehouses.data"
+                                :options="warehouseOptionsTree"
                                 label="Warehouse"
                                 :required="isDraft"
                                 :disabled="!isDraft"
@@ -175,7 +175,7 @@ import VDatepicker from '@/components/base/VDatepicker.vue';
 
 const damageReportStore = useDamageReportStore();
 const warehouseStore = useWarehouseStore();
-const {warehouses} = storeToRefs(warehouseStore);
+const {stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {report} = storeToRefs(damageReportStore);
 
 const report_id = defineModel('report_id');

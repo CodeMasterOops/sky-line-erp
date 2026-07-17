@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Admin\Inventory;
 
+use App\Rules\WarehouseIsStockLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ProductionOrderRequest extends FormRequest
@@ -15,7 +16,7 @@ class ProductionOrderRequest extends FormRequest
     {
         return [
             'bom_id' => ['required', 'integer', 'exists:boms,id'],
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id', new WarehouseIsStockLocation],
             'planned_qty' => ['required', 'numeric', 'min:0.0001'],
             'planned_start' => ['nullable', 'date'],
             'planned_end' => ['nullable', 'date', 'after_or_equal:planned_start'],

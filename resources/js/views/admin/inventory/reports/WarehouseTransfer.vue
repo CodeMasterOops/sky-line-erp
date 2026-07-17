@@ -45,7 +45,7 @@
                         <VMultiselect
                             id="from_warehouse_id"
                             v-model="filters.from_warehouse_id"
-                            :options="warehouseStore.optionsTree"
+                            :options="warehouseStore.stockLocationOptionsTree"
                             :loading="warehouseStore.warehouses.loading"
                             placeholder="All"
                         />
@@ -55,7 +55,7 @@
                         <VMultiselect
                             id="to_warehouse_id"
                             v-model="filters.to_warehouse_id"
-                            :options="warehouseStore.optionsTree"
+                            :options="warehouseStore.stockLocationOptionsTree"
                             :loading="warehouseStore.warehouses.loading"
                             placeholder="All"
                         />

@@ -17,7 +17,7 @@
                         <VMultiselect
                             id="damage_warehouse_id"
                             v-model="filters.warehouse_id"
-                            :options="warehouseStore.optionsTree"
+                            :options="warehouseStore.stockLocationOptionsTree"
                             :loading="warehouseStore.warehouses.loading"
                             placeholder="All Warehouses"
                         />

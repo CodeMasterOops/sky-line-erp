@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        <div v-if="hasFilters || isFiltered" class="d-flex align-items-center gap-2 flex-nowrap overflow-auto">
+        <div v-if="hasFilters || isFiltered" class="d-flex align-items-center gap-2 flex-wrap">
             <slot name="filters" />
 
             <button

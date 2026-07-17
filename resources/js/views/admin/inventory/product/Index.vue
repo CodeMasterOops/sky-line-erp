@@ -73,7 +73,7 @@
                     <VMultiselect
                         id="warehouse_ids"
                         v-model="selectedWarehouseId"
-                        :options="warehouseStore.optionsTree"
+                        :options="warehouseStore.stockLocationOptionsTree"
                         :loading="warehouseStore.warehouses.loading"
                         placeholder="Warehouse"
                     />

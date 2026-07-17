@@ -199,7 +199,7 @@ const warehouseStore = useWarehouseStore();
 const edit_transfer_id = defineModel('transfer_id');
 
 const {transfer} = storeToRefs(stockTransferStore);
-const {optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const getInitialState = () => ({
     reference_no: '',

@@ -117,6 +117,36 @@ it('rejects approval that exceeds the leave-type annual allowance', function () 
     $this->postJson("/api/admin/hr/leave-application/{$second->id}/approve")->assertUnprocessable();
 });
 
+it('exposes the fields needed to print a leave application', function () {
+    $department = App\Models\Department::create(['company_id' => $this->company->id, 'name' => 'Engineering']);
+    $designation = App\Models\Designation::create(['company_id' => $this->company->id, 'name' => 'Developer']);
+
+    $this->employee->update([
+        'department_id' => $department->id,
+        'designation_id' => $designation->id,
+    ]);
+
+    $type = LeaveType::create(['company_id' => $this->company->id, 'name' => 'Annual', 'days_allowed' => 15]);
+
+    $app = LeaveApplication::create([
+        'company_id' => $this->company->id, 'employee_id' => $this->employee->id, 'leave_type_id' => $type->id,
+        'from_date' => '2024-08-05', 'to_date' => '2024-08-07', 'days' => 3, 'status' => LeaveStatusEnum::PENDING,
+    ]);
+
+    $this->postJson("/api/admin/hr/leave-application/{$app->id}/approve")->assertOk();
+
+    $row = $this->getJson('/api/admin/hr/leave-application?status=approved')
+        ->assertOk()
+        ->json('data.0');
+
+    expect($row['employee']['full_name'])->toBe('P Four')
+        ->and($row['employee']['department']['name'])->toBe('Engineering')
+        ->and($row['employee']['designation']['name'])->toBe('Developer')
+        ->and($row['leave_type']['name'])->toBe('Annual')
+        ->and($row['bs_from_date'])->not->toBeNull()
+        ->and($row['approved_by_name'])->toBe('HR');
+});
+
 it('allows approval within the allowance', function () {
     $type = LeaveType::create(['company_id' => $this->company->id, 'name' => 'Casual', 'days_allowed' => 10]);
 

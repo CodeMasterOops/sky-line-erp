@@ -26,7 +26,7 @@
                     <VMultiselect
                         id="po_warehouse_id"
                         v-model="form.warehouse_id"
-                        :options="warehouseStore.optionsTree"
+                        :options="warehouseStore.stockLocationOptionsTree"
                         :loading="warehouseStore.warehouses.loading"
                         label="Warehouse"
                         placeholder="Select warehouse"

@@ -343,7 +343,7 @@ const warehouseStore = useWarehouseStore();
 const purchaseOrderStore = usePurchaseOrderStore();
 const {parties} = storeToRefs(partyStore);
 const {accounts} = storeToRefs(accountStore);
-const {warehouses, optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {warehouses, stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 const {order} = storeToRefs(purchaseOrderStore);
 const {currentAdDate} = useDateHelper();
 

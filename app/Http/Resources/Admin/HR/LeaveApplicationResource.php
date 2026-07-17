@@ -26,6 +26,7 @@ class LeaveApplicationResource extends JsonResource
             'status_label' => $this->status?->label() ?? '',
             'rejection_reason' => $this->rejection_reason ?? '',
             'approved_at' => $this->approved_at?->format('Y-m-d H:i'),
+            'approved_by_name' => $this->whenLoaded('approvedBy', fn () => $this->approvedBy?->name ?? ''),
             'employee' => $this->whenLoaded('employee', fn () => EmployeeResource::make($this->employee)),
             'leave_type' => $this->whenLoaded('leaveType', fn () => LeaveTypeResource::make($this->leaveType)),
         ];

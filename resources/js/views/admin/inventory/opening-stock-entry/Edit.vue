@@ -201,7 +201,7 @@ const warehouseStore = useWarehouseStore();
 
 const edit_entry_id = defineModel('entry_id');
 const {entry} = storeToRefs(openingStockEntryStore);
-const {optionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
+const {stockLocationOptionsTree: warehouseOptionsTree} = storeToRefs(warehouseStore);
 
 const getInitialState = () => ({
     reference_no: '',

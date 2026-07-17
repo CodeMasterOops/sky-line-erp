@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\Admin\Inventory;
 
 use Illuminate\Validation\Rule;
+use App\Rules\WarehouseIsStockLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class InventoryStockReconciliationAlignRequest extends FormRequest
@@ -17,7 +18,7 @@ class InventoryStockReconciliationAlignRequest extends FormRequest
         return [
             'strategy' => ['required', 'string', Rule::in(['valued_to_stock', 'stock_to_valued'])],
             'product_variant_id' => ['required', 'integer'],
-            'warehouse_id' => ['required', 'integer'],
+            'warehouse_id' => ['required', 'integer', new WarehouseIsStockLocation],
             'unit_cost' => ['nullable', 'numeric', 'min:0'],
         ];
     }

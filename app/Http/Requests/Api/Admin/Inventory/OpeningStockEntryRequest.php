@@ -8,6 +8,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 use App\Rules\WithinActiveFiscalYear;
 use App\Services\Inventory\BatchGuard;
+use App\Rules\WarehouseIsStockLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class OpeningStockEntryRequest extends FormRequest
@@ -22,7 +23,7 @@ class OpeningStockEntryRequest extends FormRequest
         return [
             'reference_no' => ['nullable', 'string', 'max:255'],
             'date' => ['required', 'date', new WithinActiveFiscalYear],
-            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'remarks' => ['nullable', 'string'],
             'status' => ['nullable', Rule::in([StatusEnum::DRAFT->value, StatusEnum::APPROVED->value])],
             'items' => ['required', 'array', 'min:1'],

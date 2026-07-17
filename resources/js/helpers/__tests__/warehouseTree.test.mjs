@@ -14,21 +14,27 @@ const warehouses = [
 ];
 
 describe('warehouseTree', () => {
-    it('builds nested options with children', () => {
+    it('builds flat options with dash-indented labels', () => {
         const tree = buildWarehouseOptionsTree(warehouses);
 
-        assert.strictEqual(tree.length, 1);
+        assert.strictEqual(tree.length, 3);
         assert.strictEqual(tree[0].name, 'Main (M)');
-        assert.strictEqual(tree[0].children.length, 2);
-        assert.strictEqual(tree[0].children[0].name, 'Shelf A');
-        assert.strictEqual(tree[0].children[1].name, 'Shelf B (SB)');
+        assert.strictEqual(tree[1].name, '– Shelf A');
+        assert.strictEqual(tree[2].name, '– Shelf B (SB)');
     });
 
     it('keeps parents with children selectable as a parent', () => {
         const tree = buildWarehouseOptionsTree(warehouses);
 
         assert.strictEqual(tree[0].disabled, undefined);
-        assert.strictEqual(tree[0].children.length, 2);
+    });
+
+    it('disables group warehouses when disableParents is set', () => {
+        const tree = buildWarehouseOptionsTree(warehouses, new Set(), {disableParents: true});
+
+        assert.strictEqual(tree[0].disabled, true);
+        assert.strictEqual(tree[1].disabled, undefined);
+        assert.strictEqual(tree[2].disabled, undefined);
     });
 
     it('flattens warehouses with outline and depth', () => {
@@ -51,6 +57,6 @@ describe('warehouseTree', () => {
 
     it('formats option labels with indentation', () => {
         assert.strictEqual(formatWarehouseOptionLabel(warehouses[0], 0), 'Main (M)');
-        assert.strictEqual(formatWarehouseOptionLabel(warehouses[1], 1), '— Shelf A');
+        assert.strictEqual(formatWarehouseOptionLabel(warehouses[1], 1), '– Shelf A');
     });
 });

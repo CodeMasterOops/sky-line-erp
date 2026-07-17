@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\Admin\Inventory;
 use App\Tenancy\TRule;
 use Illuminate\Validation\Validator;
 use App\Services\Inventory\BatchGuard;
+use App\Rules\WarehouseIsStockLocation;
 use App\Http\Validation\ProductLineRules;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -20,7 +21,7 @@ class DeliveryChallanRequest extends FormRequest
         return [
             'sales_order_id' => ['nullable', TRule::exists('sales_orders', 'id')->withoutTrashed()],
             'party_id' => ['required', TRule::exists('parties', 'id')->withoutTrashed()],
-            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed()],
+            'warehouse_id' => ['required', TRule::exists('warehouses', 'id')->withoutTrashed(), new WarehouseIsStockLocation],
             'challan_date' => ['required', 'date'],
             'delivery_address' => ['nullable', 'string'],
             'receiver_name' => ['nullable', 'string', 'max:255'],

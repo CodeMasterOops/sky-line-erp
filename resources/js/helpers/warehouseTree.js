@@ -102,26 +102,41 @@ export function flattenWarehousesWithOutline(warehouses) {
 }
 
 /**
- * Nested options for VMultiselect (supports `children` for indentation).
+ * Flat, depth-first options for VMultiselect with dash-indented labels so the
+ * hierarchy reads through indentation (a compact en-dash per level).
+ *
+ * Pass `disableParents: true` for stock-location pickers: group warehouses (those
+ * with sub-warehouses) render as non-selectable rows, mirroring the backend
+ * WarehouseIsStockLocation rule. Leave it false for the warehouse parent picker,
+ * where any warehouse may legitimately be chosen as a parent.
  *
  * @param {Array<{ id: number|string, parent_id?: number|string|null, name: string, code?: string }>} warehouses
  * @param {Set<number|string>} [excludeIds]
- * @returns {Array<{ id: number|string, name: string, children?: Array }>}
+ * @param {{ disableParents?: boolean }} [options]
+ * @returns {Array<{ id: number|string, name: string, disabled?: boolean }>}
  */
-export function buildWarehouseOptionsTree(warehouses, excludeIds = new Set()) {
-    const mapNode = (node) => {
-        const w = node.warehouse;
-        const option = {
-            id: w.id,
-            name: formatWarehouseDisplayName(w),
-        };
-        if (node.children.length) {
-            option.children = node.children.map(mapNode);
+export function buildWarehouseOptionsTree(warehouses, excludeIds = new Set(), { disableParents = false } = {}) {
+    const options = [];
+
+    const walk = (nodes, depth) => {
+        for (const node of nodes) {
+            const option = {
+                id: node.warehouse.id,
+                name: formatWarehouseOptionLabel(node.warehouse, depth),
+            };
+            if (node.children.length && disableParents) {
+                option.disabled = true;
+            }
+            options.push(option);
+            if (node.children.length) {
+                walk(node.children, depth + 1);
+            }
         }
-        return option;
     };
 
-    return buildWarehouseTree(warehouses, excludeIds).map(mapNode);
+    walk(buildWarehouseTree(warehouses, excludeIds), 0);
+
+    return options;
 }
 
 /**
@@ -130,7 +145,7 @@ export function buildWarehouseOptionsTree(warehouses, excludeIds = new Set()) {
  * @returns {string}
  */
 export function formatWarehouseOptionLabel(warehouse, depth = 0) {
-    return `${'— '.repeat(depth)}${formatWarehouseDisplayName(warehouse)}`;
+    return `${'– '.repeat(depth)}${formatWarehouseDisplayName(warehouse)}`;
 }
 
 /**
