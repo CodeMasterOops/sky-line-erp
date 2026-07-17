@@ -141,6 +141,12 @@ class FileParserService
             $normalized = strtolower(preg_replace('/[^a-z0-9]+/', '_', trim($header)) ?? '');
             $normalized = trim($normalized, '_');
 
+            if (in_array($normalized, $canonicalFields, true)) {
+                $mapping[$header] = $normalized;
+
+                continue;
+            }
+
             $target = $aliases[$normalized] ?? $normalized;
 
             if (in_array($target, $canonicalFields, true)) {
