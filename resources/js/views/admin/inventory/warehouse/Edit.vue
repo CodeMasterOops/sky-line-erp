@@ -78,6 +78,8 @@ const warehouseStore = useWarehouseStore();
 
 const edit_warehouse_id = defineModel('warehouse_id');
 
+const emit = defineEmits(['saved']);
+
 const {warehouse, warehouses} = storeToRefs(warehouseStore);
 
 const parentOptionsTree = computed(() => {
@@ -129,6 +131,7 @@ const updateWarehouse = async (id) => {
         try {
             let res = await warehouseStore.updateWarehouse(id, form);
             toast(res.status, res.data.message);
+            emit('saved');
             closeEditModal();
         } catch (e) {
             showErrors(e);

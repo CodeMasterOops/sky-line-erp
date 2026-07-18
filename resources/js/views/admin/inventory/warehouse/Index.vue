@@ -39,7 +39,7 @@
                         class="table datanew table-hover table-center mb-0"
                         :columns="columns"
                         :data-source="warehouseRows"
-                        :loading="warehouses.loading"
+                        :loading="warehouseList.loading"
                         :pagination="false"
                     >
                         <template #bodyCell="{ column, record, index }">
@@ -66,20 +66,23 @@
                             </template>
                         </template>
                     </a-table>
+                    <VPagination v-model:page="filter.page" v-model:limit="filter.limit" :meta="warehouseList.meta" />
                 </div>
             </div>
         </div>
     </section>
-    <CreateWarehouse v-model:create-modal-opened="createModalOpened"/>
-    <EditWarehouse v-model:warehouse_id="edit_warehouse_id"/>
+    <CreateWarehouse v-model:create-modal-opened="createModalOpened" @saved="fetch"/>
+    <EditWarehouse v-model:warehouse_id="edit_warehouse_id" @saved="fetch"/>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import Swal from 'sweetalert2';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import { storeToRefs } from 'pinia';
+import VPagination from '@/components/base/VPagination.vue';
+import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import CreateWarehouse from './Create.vue';
 import EditWarehouse from './Edit.vue';
 import { useWarehouseStore } from '@/stores/admin/inventory/warehouse.js';
@@ -92,17 +95,18 @@ const dataTransferStore = useDataTransferStore();
 const edit_warehouse_id = ref('');
 const createModalOpened = ref(false);
 const importWizardRef = ref(null);
-const { warehouses } = storeToRefs(warehouseStore);
+const { warehouseList } = storeToRefs(warehouseStore);
 
 const warehouseFields = ['name', 'code', 'parent', 'phone', 'address'];
 
 const openImportWizard = () => importWizardRef.value?.show();
 
-const fetch = () => warehouseStore.getWarehouses();
+const { filter, fetch } = usePaginatedList({
+    fetchFn: ({ filter }) => warehouseStore.getWarehouseList({ filter }),
+    defaults: { page: 1, limit: 25 },
+});
 
-onMounted(fetch);
-
-const warehouseRows = computed(() => flattenWarehousesWithOutline(warehouses.value.data));
+const warehouseRows = computed(() => flattenWarehousesWithOutline(warehouseList.value.data));
 
 const columns = [
     { title: 'No.', key: 'sn', width: 72 },

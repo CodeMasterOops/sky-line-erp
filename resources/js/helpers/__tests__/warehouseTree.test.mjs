@@ -47,6 +47,18 @@ describe('warehouseTree', () => {
         assert.strictEqual(rows[1].depth, 1);
     });
 
+    it('orders siblings by code, not name', () => {
+        const unsorted = [
+            {id: 1, parent_id: null, name: 'Zephyr', code: 'A-01'},
+            {id: 2, parent_id: null, name: 'Alpha', code: 'B-02'},
+        ];
+
+        const rows = flattenWarehousesWithOutline(unsorted);
+
+        assert.strictEqual(rows[0].code, 'A-01');
+        assert.strictEqual(rows[1].code, 'B-02');
+    });
+
     it('collects descendant ids', () => {
         const descendants = collectDescendantIds(warehouses, 1);
 

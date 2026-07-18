@@ -97,6 +97,8 @@ const {warehouses} = storeToRefs(warehouseStore);
 
 const createModalOpened = defineModel('createModalOpened');
 
+const emit = defineEmits(['saved']);
+
 watch(createModalOpened, async (open) => {
     if (open) {
         warehouseStore.getWarehouses();
@@ -135,6 +137,7 @@ const storeWarehouse = async () => {
         try {
             let res = await warehouseStore.storeWarehouse(form);
             toast(res.status, res.data.message);
+            emit('saved');
             closeCreateModal();
         } catch (e) {
             showErrors(e);
