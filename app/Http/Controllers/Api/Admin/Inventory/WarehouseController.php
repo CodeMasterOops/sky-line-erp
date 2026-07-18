@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Collection;
 use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Resources\Admin\Inventory\WarehouseResource;
 use App\Http\Requests\Api\Admin\Inventory\WarehouseRequest;
@@ -18,13 +19,44 @@ class WarehouseController extends Controller
     #[Permissions('list_warehouse', group: 'warehouse', desc: 'List Warehouse')]
     public function index(Request $request)
     {
-        $warehouses = Warehouse::query()
-            ->with('parent:id,name,code')
-            ->orderByRaw('parent_id is null desc')
-            ->orderBy('name')
+        $roots = Warehouse::query()
+            ->whereNull('parent_id')
+            ->orderBy('code')
             ->paginate($request->integer('limit', 25));
 
-        return WarehouseResource::collection($warehouses);
+        $collection = $roots->getCollection()
+            ->concat($this->descendantsOf($roots->getCollection()->modelKeys()));
+
+        $collection->load('parent:id,name,code');
+        $roots->setCollection($collection);
+
+        return WarehouseResource::collection($roots);
+    }
+
+    /**
+     * All descendant warehouses of the given parent ids, walked level by level.
+     *
+     * @param  array<int, int|string>  $parentIds
+     */
+    private function descendantsOf(array $parentIds): Collection
+    {
+        $descendants = new Collection;
+
+        while (! empty($parentIds)) {
+            $children = Warehouse::query()
+                ->whereIn('parent_id', $parentIds)
+                ->orderBy('code')
+                ->get();
+
+            if ($children->isEmpty()) {
+                break;
+            }
+
+            $descendants = $descendants->concat($children);
+            $parentIds = $children->modelKeys();
+        }
+
+        return $descendants;
     }
 
     #[Permissions('create_warehouse', group: 'warehouse', desc: 'Create Warehouse')]

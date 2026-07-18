@@ -12,6 +12,11 @@ export const useWarehouseStore = defineStore('warehouse', {
             meta: {},
             loading: false
         },
+        warehouseList: {
+            data: [],
+            meta: {},
+            loading: false
+        },
         warehouse: {
             data: {},
             loading: false
@@ -44,6 +49,20 @@ export const useWarehouseStore = defineStore('warehouse', {
                     this.warehouses.meta = res.data.meta ?? {};
                 }).catch(showErrors).finally(() => {
                     this.warehouses.loading = false;
+                });
+        },
+        getWarehouseList({ filter } = {}) {
+            const params = {
+                page: filter?.page ?? 1,
+                limit: filter?.limit ?? 25,
+            };
+            this.warehouseList.loading = true;
+            return apiAdmin(`${apiUrl}?${new URLSearchParams(params)}`)
+                .then((res) => {
+                    this.warehouseList.data = res.data.data;
+                    this.warehouseList.meta = res.data.meta ?? {};
+                }).catch(showErrors).finally(() => {
+                    this.warehouseList.loading = false;
                 });
         },
         storeWarehouse(form) {

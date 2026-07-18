@@ -61,7 +61,7 @@ export function buildWarehouseTree(warehouses, excludeIds = new Set()) {
     const build = (parentKey) => {
         const list = (byParent.get(parentKey) || [])
             .slice()
-            .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+            .sort((a, b) => String(a.code ?? '').localeCompare(String(b.code ?? '')));
 
         return list.map((w) => ({
             warehouse: w,
