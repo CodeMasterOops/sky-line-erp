@@ -68,6 +68,20 @@
                         placeholder="Basic accounting&#10;Up to 5 users"
                     ></textarea>
                 </div>
+                <div class="col-12">
+                    <label class="form-label">Included Modules</label>
+                    <div class="form-check form-switch mb-2">
+                        <input id="plan_create_modules_all" v-model="allModules" class="form-check-input" type="checkbox">
+                        <label class="form-check-label" for="plan_create_modules_all">
+                            Include every module (uncapped)
+                        </label>
+                    </div>
+                    <ModulePicker
+                        v-if="!allModules"
+                        v-model="selectedModules"
+                        hint="Companies on this plan can only run the modules ticked here. A downgrade hides the rest — it never deletes their data."
+                    />
+                </div>
                 <div class="col-md-4">
                     <div class="form-check form-switch">
                         <input id="is_active" v-model="form.is_active" class="form-check-input" type="checkbox">
@@ -90,14 +104,19 @@
 </template>
 
 <script setup>
-import {computed, reactive, ref} from "vue";
+import {computed, onMounted, reactive, ref} from "vue";
 import {toast} from "@/helpers/toast";
 import showErrors from "@/helpers/showErrors";
 import {number, object, string} from "yup";
 import {useYup} from "@/helpers/yup";
+import ModulePicker from '@/views/super-admin/company-categories/ModulePicker.vue';
+import {useModuleStore} from '@/stores/super-admin/module.js';
 import {usePlanStore} from '@/stores/super-admin/plan.js';
 
 const planStore = usePlanStore();
+const moduleStore = useModuleStore();
+
+onMounted(() => moduleStore.getCatalogue());
 const createModalOpened = defineModel('createModalOpened');
 
 const initialState = {
@@ -115,6 +134,9 @@ const initialState = {
 
 const form = reactive({...initialState});
 const featuresText = ref('');
+// null modules = the plan includes everything; a list caps it.
+const allModules = ref(true);
+const selectedModules = ref([]);
 const isSubmitting = ref(false);
 
 const validations = object({
@@ -131,6 +153,7 @@ const payload = computed(() => ({
         .split('\n')
         .map((line) => line.trim())
         .filter(Boolean),
+    modules: allModules.value ? null : selectedModules.value,
 }));
 
 const storePlan = async () => {
@@ -154,6 +177,8 @@ const storePlan = async () => {
 const closeCreateModal = () => {
     Object.assign(form, {...initialState});
     featuresText.value = '';
+    allModules.value = true;
+    selectedModules.value = [];
     errors.value = {};
     createModalOpened.value = false;
 };

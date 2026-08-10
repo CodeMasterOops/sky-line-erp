@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use Illuminate\Http\Request;
+use App\Models\CompanyCategory;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
+use App\Services\Modules\CompanyModuleService;
 
 class OnboardingController extends Controller
 {
@@ -20,14 +22,45 @@ class OnboardingController extends Controller
             'ward_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists(\App\Models\Ward::class, 'id')],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'website' => ['nullable', 'string', 'max:255'],
+            'company_category_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('company_categories', 'id')],
         ]);
 
         $company = auth('admin')->user()->company;
+        $categoryId = $validated['company_category_id'] ?? null;
+        $categoryChanged = array_key_exists('company_category_id', $validated)
+            && (int) $categoryId !== (int) $company->company_category_id;
+
+        unset($validated['company_category_id']);
         $company->update($validated);
+
+        // Picking an industry during onboarding switches on that industry's
+        // modules. Enable-only: a company that has already started using
+        // something keeps it even if the new category does not list it.
+        if ($categoryChanged) {
+            app(CompanyModuleService::class)->changeCategory(
+                $company,
+                $categoryId,
+                actor: auth('admin')->user(),
+            );
+        }
 
         return response()->json([
             'message' => 'Company details updated.',
         ]);
+    }
+
+    /**
+     * The industry catalogue, for the onboarding picker.
+     */
+    public function categories(): JsonResponse
+    {
+        $categories = CompanyCategory::query()
+            ->active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'description', 'icon', 'is_default']);
+
+        return response()->json(['data' => $categories]);
     }
 
     public function complete(): JsonResponse

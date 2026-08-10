@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Enums\BillingCycleEnum;
 use Illuminate\Support\Facades\DB;
 use App\Enums\SubscriptionStatusEnum;
+use App\Jobs\ReconcileCompanyModulesJob;
 use Illuminate\Validation\ValidationException;
 
 class SubscriptionService
@@ -45,7 +46,7 @@ class SubscriptionService
             ]);
         }
 
-        return DB::transaction(function () use ($company, $plan, $billingCycle, $assignedBy, $notes, $trialEndsAt, $endsAt) {
+        $subscription = DB::transaction(function () use ($company, $plan, $billingCycle, $assignedBy, $notes, $trialEndsAt, $endsAt) {
             $this->cancelActiveSubscriptions($company, $assignedBy);
 
             $status = $trialEndsAt && $trialEndsAt > now()
@@ -68,6 +69,13 @@ class SubscriptionService
                 'notes' => $notes,
             ]);
         });
+
+        // Dispatched after the transaction commits so the job sees the new
+        // plan. A downgrade hides the modules the new plan does not cover; it
+        // never deletes anything, and an upgrade restores them untouched.
+        ReconcileCompanyModulesJob::dispatch($company);
+
+        return $subscription;
     }
 
     public function changePlan(

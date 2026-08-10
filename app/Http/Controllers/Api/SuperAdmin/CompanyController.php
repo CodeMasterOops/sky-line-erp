@@ -23,7 +23,7 @@ class CompanyController extends Controller
     public function index(Request $request)
     {
         $companies = Company::query()
-            ->with(['admin', 'ward.palika.district.province', 'currentSubscription.plan'])
+            ->with(['admin', 'category', 'ward.palika.district.province', 'currentSubscription.plan'])
             ->filter($request->query())
             ->paginate($request->query('limit', 25));
 
@@ -53,7 +53,7 @@ class CompanyController extends Controller
             return $company;
         });
 
-        $company->load(['admin', 'ward.palika.district.province', 'currentSubscription.plan']);
+        $company->load(['admin', 'category', 'ward.palika.district.province', 'currentSubscription.plan']);
 
         return response()->json([
             'data' => CompanyResource::make($company),
@@ -63,7 +63,7 @@ class CompanyController extends Controller
 
     public function show(Company $company)
     {
-        $company->load(['admin', 'ward.palika.district.province', 'currentSubscription.plan']);
+        $company->load(['admin', 'category', 'ward.palika.district.province', 'currentSubscription.plan']);
 
         return CompanyResource::make($company);
     }
@@ -71,7 +71,7 @@ class CompanyController extends Controller
     public function update(CompanyRequest $request, Company $company)
     {
         $company->update($request->validated());
-        $company->load(['admin', 'ward.palika.district.province', 'currentSubscription.plan']);
+        $company->load(['admin', 'category', 'ward.palika.district.province', 'currentSubscription.plan']);
 
         return response()->json([
             'data' => CompanyResource::make($company),

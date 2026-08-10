@@ -147,6 +147,39 @@ class CompanyModuleService
     }
 
     /**
+     * Move a company to a different industry.
+     *
+     * The company's *current* state is frozen into explicit rows first. Without
+     * that, everything the old category merely implied would vanish the moment
+     * the category changed — precisely the surprise loss of navigation that
+     * "a category change never disables anything" is meant to prevent. After
+     * the switch, the new category's defaults are enabled; dropping anything
+     * still requires `$disableOthers`.
+     *
+     * @return list<string> the module keys that changed
+     */
+    public function changeCategory(
+        Company $company,
+        ?int $categoryId,
+        bool $applyDefaults = true,
+        bool $disableOthers = false,
+        ?Model $actor = null,
+    ): array {
+        $this->materializeFor($company, $actor);
+
+        $company->update(['company_category_id' => $categoryId]);
+        $company->unsetRelation('category')->refresh();
+
+        $this->cache->forget((int) $company->id);
+
+        if (! $applyDefaults) {
+            return [];
+        }
+
+        return $this->syncFromCategory($company, $disableOthers, $actor);
+    }
+
+    /**
      * Switch a module on, pulling in its requirements. Idempotent.
      *
      * @return list<string> every module key enabled by this call
@@ -233,20 +266,32 @@ class CompanyModuleService
 
     /**
      * Bring the company in line with its plan after an upgrade or downgrade.
-     * A downgrade only hides modules — it never deletes their data — and a
-     * deliberate Super Admin override (source=manual) is left alone.
      *
-     * @return list<string> the module keys switched off
+     * A downgrade only hides modules — it never deletes their data — and a
+     * deliberate Super Admin override (source=manual) is left alone. An upgrade
+     * reverses it: a module the *plan* switched off (source=plan) is switched
+     * back on when a later plan covers it again, so upgrading restores the
+     * company exactly as it was rather than leaving a permanent scar.
+     *
+     * @return list<string> the module keys whose state changed
      */
     public function reconcileWithPlan(Company $company, ?Model $actor = null): array
     {
         $plan = $this->planFor($company);
 
-        if (! $plan || $plan->modules === null) {
+        if (! $plan) {
             return [];
         }
 
         $explicit = $this->explicitRows((int) $company->id);
+        $changed = $this->restorePlanRevokedModules($company, $plan, $explicit, $actor);
+
+        if ($plan->modules === null) {
+            $this->cache->forget((int) $company->id);
+
+            return $changed;
+        }
+
         $revoked = [];
 
         // Resolution already applies the cap on the fly, so reconciling is about
@@ -280,7 +325,36 @@ class CompanyModuleService
 
         $this->cache->forget((int) $company->id);
 
-        return $revoked;
+        return array_values(array_unique(array_merge($changed, $revoked)));
+    }
+
+    /**
+     * Undo an earlier downgrade: rows the *plan* switched off go back on once a
+     * plan covers them again. Only `source = plan` rows are reversed, so a
+     * manual or category decision to switch something off is never overridden
+     * by a billing change.
+     *
+     * @param  array<string, CompanyModule>  $explicit
+     * @return list<string>
+     */
+    private function restorePlanRevokedModules(Company $company, Plan $plan, array $explicit, ?Model $actor): array
+    {
+        $restored = [];
+
+        foreach ($explicit as $moduleKey => $row) {
+            if ($row->is_enabled || $row->source !== ModuleSourceEnum::Plan) {
+                continue;
+            }
+
+            if (! $plan->entitlesModule($moduleKey) || ! $this->registry->has($moduleKey)) {
+                continue;
+            }
+
+            $this->writeState($company, $moduleKey, true, ModuleSourceEnum::Plan, $actor, ModuleEventActionEnum::PlanReconciled, "Covered again by plan [{$plan->slug}].");
+            $restored[] = $moduleKey;
+        }
+
+        return $restored;
     }
 
     /**

@@ -24,6 +24,9 @@ class CompanyRequest extends FormRequest
             'website' => ['nullable'],
             'address' => ['required', 'string', 'max:500'],
             'ward_id' => ['required', 'integer', Rule::exists(Ward::class, 'id')],
+            // The industry the company is in. Drives which modules it starts
+            // with; null falls back to the catalogue's default category.
+            'company_category_id' => ['nullable', 'integer', Rule::exists('company_categories', 'id')],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'user_name' => ['required', 'string', 'max:255'],
             'user_phone' => ['nullable'],

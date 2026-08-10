@@ -81,6 +81,22 @@ const routes = [
                 component: () => import('@/views/super-admin/company/ProvisionLog.vue')
             },
             {
+                path: 'company/:id/modules',
+                name: 'super-admin.company-modules',
+                meta: {
+                    pageTitle: 'Company Modules'
+                },
+                component: () => import('@/views/super-admin/company/Modules.vue')
+            },
+            {
+                path: 'company-categories',
+                name: 'super-admin.company-categories',
+                meta: {
+                    pageTitle: 'Company Categories'
+                },
+                component: () => import('@/views/super-admin/company-categories/Index.vue')
+            },
+            {
                 path: 'subscription',
                 name: 'super-admin.subscription',
                 meta: {

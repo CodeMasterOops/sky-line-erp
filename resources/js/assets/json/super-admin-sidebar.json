@@ -35,6 +35,14 @@
                 "hasSubRoute": false
             },
             {
+                "menuValue": "Company Categories",
+                "route": {
+                    "name": "super-admin.company-categories"
+                },
+                "icon": "ti ti-category",
+                "hasSubRoute": false
+            },
+            {
                 "menuValue": "Subscriptions",
                 "icon": "ti ti-wallet",
                 "active_link": "/super-admin/subscription",
