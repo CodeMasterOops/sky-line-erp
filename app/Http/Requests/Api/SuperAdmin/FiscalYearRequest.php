@@ -23,14 +23,14 @@ class FiscalYearRequest extends FormRequest
     {
         return match ($this->method()) {
             'POST' => [
-                'year_name' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')->withoutTrashed()],
-                'year_code' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')->withoutTrashed()],
+                'year_name' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')],
+                'year_code' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')],
                 'start_date' => ['required', 'date'],
                 'end_date' => ['required', 'date', 'after:start_date'],
             ],
             'PUT' => [
-                'year_name' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')->withoutTrashed()->ignore($this->fiscal_year)],
-                'year_code' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')->withoutTrashed()->ignore($this->fiscal_year)],
+                'year_name' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')->ignore($this->fiscal_year)],
+                'year_code' => ['required', 'string', 'max:255', Rule::unique('fiscal_years')->ignore($this->fiscal_year)],
                 'start_date' => ['required', 'date'],
                 'end_date' => ['required', 'date', 'after:start_date'],
             ]

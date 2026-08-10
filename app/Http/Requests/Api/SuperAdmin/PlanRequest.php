@@ -23,7 +23,7 @@ class PlanRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('plans', 'slug')->ignore($planId)->withoutTrashed(),
+                Rule::unique('plans', 'slug')->ignore($planId),
             ],
             'description' => ['nullable', 'string'],
             'price_monthly' => ['required', 'numeric', 'min:0'],

@@ -30,8 +30,8 @@ class UpdateSettingRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:500'],
             'ward_id' => ['nullable', 'integer', Rule::exists(Ward::class, 'id')],
             'postal_code' => ['nullable', 'string', 'max:20'],
-            'code' => ['nullable', Rule::unique('companies')->withoutTrashed()->ignore($company)],
-            'email' => ['required', 'email', Rule::unique('companies', 'email')->withoutTrashed()->ignore($company)],
+            'code' => ['nullable', Rule::unique('companies')->ignore($company)],
+            'email' => ['required', 'email', Rule::unique('companies', 'email')->ignore($company)],
             'fiscal_year_id' => ['required', Rule::exists('fiscal_years', 'id')->withoutTrashed()],
             'inventory_costing_method' => ['required', Rule::enum(InventoryCostingMethodEnum::class)],
         ];

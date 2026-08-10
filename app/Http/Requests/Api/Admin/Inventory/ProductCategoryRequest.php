@@ -47,7 +47,7 @@ class ProductCategoryRequest extends FormRequest
 
     private function scopedNameUniqueRule(?ProductCategory $ignore = null): string
     {
-        $rule = TRule::unique('product_categories')->withoutTrashed();
+        $rule = TRule::unique('product_categories');
 
         $parentId = $this->input('parent_id');
         if ($parentId === null || $parentId === '') {

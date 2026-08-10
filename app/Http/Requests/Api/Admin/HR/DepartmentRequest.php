@@ -21,12 +21,12 @@ class DepartmentRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('departments')->withoutTrashed()],
-                'code' => ['nullable', 'string', 'max:50', TRule::unique('departments')->withoutTrashed()],
+                'name' => ['required', 'string', 'max:255', TRule::unique('departments')],
+                'code' => ['nullable', 'string', 'max:50', TRule::unique('departments')],
             ]),
             'PUT' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('departments')->withoutTrashed()->ignore($this->department)],
-                'code' => ['nullable', 'string', 'max:50', TRule::unique('departments')->withoutTrashed()->ignore($this->department)],
+                'name' => ['required', 'string', 'max:255', TRule::unique('departments')->ignore($this->department)],
+                'code' => ['nullable', 'string', 'max:50', TRule::unique('departments')->ignore($this->department)],
             ]),
             default => $validations,
         };

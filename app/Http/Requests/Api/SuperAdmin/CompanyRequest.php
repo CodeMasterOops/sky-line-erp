@@ -31,14 +31,14 @@ class CompanyRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'code' => ['nullable', Rule::unique('companies')->withoutTrashed()],
-                'email' => ['required', 'email', Rule::unique('companies', 'email')->withoutTrashed()],
+                'code' => ['nullable', Rule::unique('companies')],
+                'email' => ['required', 'email', Rule::unique('companies', 'email')],
                 'user_email' => ['required', 'email', Rule::unique('users', 'email')],
                 'password' => ['nullable', 'min:7', 'confirmed'],
             ]),
             'PUT' => array_merge($validations, [
-                'code' => ['nullable', Rule::unique('companies')->withoutTrashed()->ignore($this->company)],
-                'email' => ['required', 'email', Rule::unique('companies', 'email')->withoutTrashed()->ignore($this->company)],
+                'code' => ['nullable', Rule::unique('companies')->ignore($this->company)],
+                'email' => ['required', 'email', Rule::unique('companies', 'email')->ignore($this->company)],
                 'user_email' => ['required', 'email', Rule::unique('users', 'email')->ignore($this->company->admin)],
             ])
         };

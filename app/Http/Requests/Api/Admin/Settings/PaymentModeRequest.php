@@ -21,10 +21,10 @@ class PaymentModeRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('payment_modes')->withoutTrashed()],
+                'name' => ['required', 'string', 'max:255', TRule::unique('payment_modes')],
             ]),
             'PUT' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('payment_modes')->withoutTrashed()->ignore($this->payment_mode)],
+                'name' => ['required', 'string', 'max:255', TRule::unique('payment_modes')->ignore($this->payment_mode)],
             ]),
             default => $validations,
         };

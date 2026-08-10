@@ -29,16 +29,16 @@ class PartyRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'code' => ['nullable', 'string', 'max:255', TRule::unique('parties')->withoutTrashed()],
-                'phone' => ['nullable', 'string', 'max:255', TRule::unique('parties')->withoutTrashed()],
-                'email' => ['nullable', 'email', TRule::unique('parties')->withoutTrashed()],
-                'pan' => ['nullable', 'string', new NepaliPan, TRule::unique('parties')->withoutTrashed()],
+                'code' => ['nullable', 'string', 'max:255', TRule::unique('parties')],
+                'phone' => ['nullable', 'string', 'max:255', TRule::unique('parties')],
+                'email' => ['nullable', 'email', TRule::unique('parties')],
+                'pan' => ['nullable', 'string', new NepaliPan, TRule::unique('parties')],
             ]),
             'PUT' => array_merge($validations, [
-                'code' => ['required', 'string', 'max:255', TRule::unique('parties')->withoutTrashed()->ignore($this->party)],
-                'phone' => ['nullable', 'string', 'max:255', TRule::unique('parties')->withoutTrashed()->ignore($this->party)],
-                'email' => ['nullable', 'email', TRule::unique('parties')->withoutTrashed()->ignore($this->party)],
-                'pan' => ['nullable', 'string', new NepaliPan, TRule::unique('parties')->withoutTrashed()->ignore($this->party)],
+                'code' => ['required', 'string', 'max:255', TRule::unique('parties')->ignore($this->party)],
+                'phone' => ['nullable', 'string', 'max:255', TRule::unique('parties')->ignore($this->party)],
+                'email' => ['nullable', 'email', TRule::unique('parties')->ignore($this->party)],
+                'pan' => ['nullable', 'string', new NepaliPan, TRule::unique('parties')->ignore($this->party)],
             ])
         };
     }

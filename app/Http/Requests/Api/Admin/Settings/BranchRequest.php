@@ -26,10 +26,10 @@ class BranchRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($shared, [
-                'code' => ['nullable', 'string', 'max:20', TRule::unique('branches')->withoutTrashed()],
+                'code' => ['nullable', 'string', 'max:20', TRule::unique('branches')],
             ]),
             'PUT' => array_merge($shared, [
-                'code' => ['required', 'string', 'max:20', TRule::unique('branches')->withoutTrashed()->ignore($this->branch)],
+                'code' => ['required', 'string', 'max:20', TRule::unique('branches')->ignore($this->branch)],
             ]),
             default => $shared,
         };

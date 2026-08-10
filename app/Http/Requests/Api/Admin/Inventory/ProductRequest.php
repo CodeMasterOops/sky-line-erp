@@ -211,12 +211,12 @@ class ProductRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()],
-                'code' => ['nullable', 'string', 'max:255', TRule::unique('products')->withoutTrashed()],
+                'name' => ['required', 'string', 'max:255', TRule::unique('products')],
+                'code' => ['nullable', 'string', 'max:255', TRule::unique('products')],
             ]),
             'PUT' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()->ignore($this->product)],
-                'code' => ['required', 'string', 'max:255', TRule::unique('products')->withoutTrashed()->ignore($this->product)],
+                'name' => ['required', 'string', 'max:255', TRule::unique('products')->ignore($this->product)],
+                'code' => ['required', 'string', 'max:255', TRule::unique('products')->ignore($this->product)],
                 'variants.*.id' => [
                     'nullable',
                     'integer',

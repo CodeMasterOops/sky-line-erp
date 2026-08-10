@@ -1,7 +1,10 @@
 <?php
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Application;
+use Illuminate\Database\QueryException;
+use App\Exceptions\ApiDatabaseExceptionRenderer;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -46,5 +49,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'Record not found',
                 ], 404);
             }
+        });
+
+        $exceptions->render(function (QueryException $e, Request $request) {
+            return app(ApiDatabaseExceptionRenderer::class)->renderQueryException($e, $request);
+        });
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            return app(ApiDatabaseExceptionRenderer::class)->renderSqlLikeThrowable($e, $request);
         });
     })->create();

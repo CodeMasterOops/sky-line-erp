@@ -1,5 +1,13 @@
 import { toast } from "./toast.js";
 
+function isSqlLikeMessage(message) {
+    if (typeof message !== 'string') {
+        return false;
+    }
+
+    return /SQLSTATE|SQL:|Integrity constraint/i.test(message);
+}
+
 export default function showErrors(e) {
     try {
         if (e.response) {
@@ -11,10 +19,10 @@ export default function showErrors(e) {
                     const msg = data.errors[key];
                     toast(status, Array.isArray(msg) ? msg[0] : msg);
                 });
-            } else if (data.message) {
+            } else if (data.message && !isSqlLikeMessage(data.message)) {
                 toast(status, data.message);
             } else {
-                toast(status, 'Request failed.');
+                toast(status, 'Something went wrong. Please try again.');
             }
         }
     } catch (err) {
