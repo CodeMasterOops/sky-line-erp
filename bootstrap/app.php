@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'checkRole' => \App\Http\Middleware\CheckRoleMiddleware::class,
+            'module' => \App\Http\Middleware\EnsureModuleEnabled::class,
         ]);
 
         $middleware->throttleApi('api');

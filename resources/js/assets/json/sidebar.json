@@ -10,6 +10,7 @@
             },
             {
                 "menuValue": "POS",
+                "module": "pos",
                 "route": { "name": "admin.pos" },
                 "icon": "ti ti-device-laptop",
                 "permission": "list_product",
@@ -28,6 +29,7 @@
         "menu": [
             {
                 "menuValue": "CRM",
+                "module": "crm",
                 "icon": "ti ti-users-group",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -55,6 +57,7 @@
             },
             {
                 "menuValue": "Sales",
+                "module": "sales",
                 "icon": "ti ti-shopping-cart",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -101,6 +104,7 @@
             },
             {
                 "menuValue": "Purchases",
+                "module": "purchase",
                 "icon": "ti ti-package-import",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -146,6 +150,7 @@
             },
             {
                 "menuValue": "Inventory",
+                "module": "inventory",
                 "icon": "ti ti-box",
                 "hasSubRouteTwo": true,
                 "showSubRoute": false,
@@ -239,6 +244,7 @@
                     },
                     {
                         "menuValue": "Manufacturing",
+                        "module": "manufacturing",
                         "customSubmenuTwo": true,
                         "hasSubRoute": true,
                         "showSubRoute": false,
@@ -281,6 +287,7 @@
             },
             {
                 "menuValue": "Accounting",
+                "module": "accounting",
                 "icon": "ti ti-calculator",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -323,24 +330,28 @@
                     },
                     {
                         "menuValue": "Fixed Assets",
+                        "module": "fixed-assets",
                         "route": { "name": "admin.fixed-asset-list" },
                         "permission": "list_fixed_asset",
                         "hasSubRoute": false
                     },
                     {
                         "menuValue": "Bank Reconciliation",
+                        "module": "banking",
                         "route": { "name": "admin.bank-reconciliation" },
                         "permission": "list_bank_account",
                         "hasSubRoute": false
                     },
                     {
                         "menuValue": "PDC Cheques",
+                        "module": "banking",
                         "route": { "name": "admin.cheque-list" },
                         "permission": "list_cheque",
                         "hasSubRoute": false
                     },
                     {
                         "menuValue": "Budget Management",
+                        "module": "budgeting",
                         "route": { "name": "admin.budget-list" },
                         "permission": "list_budget",
                         "hasSubRoute": false
@@ -367,6 +378,7 @@
             },
             {
                 "menuValue": "HR & Payroll",
+                "module": "hr",
                 "icon": "ti ti-users",
                 "hasSubRouteTwo": true,
                 "showSubRoute": false,
@@ -435,6 +447,7 @@
                     },
                     {
                         "menuValue": "Payroll",
+                        "module": "payroll",
                         "customSubmenuTwo": true,
                         "hasSubRoute": true,
                         "showSubRoute": false,

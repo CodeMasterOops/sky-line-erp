@@ -78,6 +78,7 @@ use App\Models\SerialNumber;
 use App\Models\Subscription;
 use App\Models\TdsDeduction;
 use App\Models\WorkSchedule;
+use App\Models\CompanyModule;
 use App\Models\ContactPerson;
 use App\Models\DebitNoteItem;
 use App\Models\PurchaseOrder;
@@ -93,6 +94,7 @@ use App\Models\ProductVariant;
 use App\Models\SalesOrderItem;
 use App\Models\TaxGroupMember;
 use App\Models\UnitConversion;
+use App\Models\CompanyCategory;
 use App\Models\CustomerAdvance;
 use App\Models\DataTransferJob;
 use App\Models\DataTransferRow;
@@ -121,6 +123,7 @@ use App\Models\ReceiptAllocation;
 use App\Models\StockTransferItem;
 use App\Models\AdvanceApplication;
 use App\Models\BankReconciliation;
+use App\Models\CompanyModuleEvent;
 use App\Models\FixedAssetCategory;
 use App\Models\StockMovementLayer;
 use App\Models\BankStatementImport;
@@ -131,6 +134,7 @@ use App\Models\StockAdjustmentItem;
 use App\Models\DataTransferSchedule;
 use App\Models\LandedCostAllocation;
 use App\Models\RecurringJournalItem;
+use App\Models\CompanyCategoryModule;
 use App\Models\OpeningStockEntryItem;
 use App\Models\ReconciliationAuditLog;
 use App\Models\TdsCertificateSequence;
@@ -289,6 +293,8 @@ return [
     */
     'company_global' => [
         Account::class,
+        CompanyModule::class,
+        CompanyModuleEvent::class,
         AccountGroup::class,
         AccountSetting::class,
         AccountingPeriod::class,
@@ -341,6 +347,8 @@ return [
     */
     'system_global' => [
         Company::class,
+        CompanyCategory::class,
+        CompanyCategoryModule::class,
         Currency::class,
         District::class,
         Lead::class,

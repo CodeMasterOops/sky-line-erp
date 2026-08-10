@@ -7,6 +7,9 @@
 export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.dashboard': null,
     'admin.branch-select': null,
+    // Explains that a module is switched off; reachable by anyone the guard
+    // redirects here, so it needs no permission of its own.
+    'admin.module-unavailable': null,
     'admin.workspace-setup': null,
     'admin.profile': null,
     'admin.setting': 'list_setting',

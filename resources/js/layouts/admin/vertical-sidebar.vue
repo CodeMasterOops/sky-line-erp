@@ -196,6 +196,7 @@
 <script>
 import rawSidebar from "@/assets/json/sidebar.json";
 import { hasPermission } from "@/helpers/checkPermission";
+import { isModuleEnabled } from "@/helpers/checkModule";
 import { filterSidebarSections, flattenMenuLeaves } from "@/helpers/sidebarMenu";
 import { useSidebarPinnedLinksStore } from "@/stores/admin/sidebarPinnedLinks";
 import { MAX_SIDEBAR_PINNED_LINKS } from "@/constants/sidebarPins";
@@ -227,7 +228,11 @@ export default {
   },
   computed: {
     permissionFiltered() {
-      return filterSidebarSections(rawSidebar, (p) => hasPermission(p));
+      return filterSidebarSections(
+        rawSidebar,
+        (p) => hasPermission(p),
+        (m) => isModuleEnabled(m),
+      );
     },
     displaySections() {
       return this.permissionFiltered;

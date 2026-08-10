@@ -36,7 +36,8 @@ export default [
     {
         path: "data-transfer",
         name: "admin.data-transfer-list",
-        meta: { pageTitle: "Data Transfer" },
+        meta: {
+            module: "data-transfer", pageTitle: "Data Transfer" },
         component: () => import("@/views/admin/data-transfer/Index.vue"),
     },
     {

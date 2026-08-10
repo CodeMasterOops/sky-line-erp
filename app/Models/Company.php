@@ -19,6 +19,7 @@ class Company extends Model
 
     protected $fillable = [
         'fiscal_year_id',
+        'company_category_id',
         'company_name',
         'code',
         'legal_name',
@@ -123,6 +124,21 @@ class Company extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(CompanyCategory::class, 'company_category_id');
+    }
+
+    public function modules(): HasMany
+    {
+        return $this->hasMany(CompanyModule::class);
+    }
+
+    public function moduleEvents(): HasMany
+    {
+        return $this->hasMany(CompanyModuleEvent::class);
     }
 
     public function currentSubscription(): HasOne

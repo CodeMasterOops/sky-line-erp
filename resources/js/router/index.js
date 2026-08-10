@@ -6,6 +6,7 @@ import { useAdminAuthStore } from '@/stores/admin/auth';
 import { useBranchStore } from '@/stores/admin/settings/branch.js';
 import { useSuperAdminAuthStore } from '@/stores/super-admin/auth.js';
 import { satisfiesAdminRoutePermission } from '@/helpers/checkPermission';
+import { isModuleEnabled } from '@/helpers/checkModule';
 import { getAdminRoutePermission } from '@/router/adminRoutePermissions';
 import { cleanupModalArtifacts } from '@/helpers/cleanupModalArtifacts';
 
@@ -85,6 +86,18 @@ router.beforeEach(async (to, from, next) => {
                 next({ name: 'admin.dashboard' });
                 return;
             }
+        }
+
+        // Module gate — mirrors the `module` middleware. Navigating straight to
+        // a disabled module's URL lands on an explanatory page rather than a
+        // silent bounce to the dashboard; menu entries for it are already gone.
+        if (
+            adminAuth.authUser.access_token &&
+            !to.meta.isGuest &&
+            !isModuleEnabled(to.meta.module)
+        ) {
+            next({ name: 'admin.module-unavailable', query: { module: to.meta.module } });
+            return;
         }
 
         if (

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\QzTrayController;
 use App\Http\Controllers\Api\Admin\AuthController;
 use App\Http\Controllers\Api\Admin\OnboardingController;
 use App\Http\Controllers\Api\Admin\EnumController;
+use App\Http\Controllers\Api\Admin\ModuleController;
 use App\Http\Controllers\Api\Admin\PartyController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\AccountSecurityController;
@@ -68,6 +69,9 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         // dashboard
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
+        // modules enabled for this company (read-only; the Super Admin owns the switch)
+        Route::get('module', ModuleController::class)->name('module.index');
+
         // support info (read-only, set by super admin)
         Route::get('support', [SupportController::class, 'index'])->name('support.index');
 
@@ -96,33 +100,52 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         // settings module
         require __DIR__.'/modules/api_settings.php';
 
+        // Module-gated route files. `module:{key}` (EnsureModuleEnabled) returns
+        // 403 with code=module_disabled when the company does not run the
+        // module — see config/modules.php and
+        // docs/saas-modular-platform-and-gym-module-plan.md §3.7.
+
         // data transfer (import / export)
-        require __DIR__.'/modules/api_data_transfer.php';
+        Route::middleware('module:data-transfer')->group(function () {
+            require __DIR__.'/modules/api_data_transfer.php';
+        });
 
         // inventory module
-        require __DIR__.'/modules/api_inventory.php';
+        Route::middleware('module:inventory')->group(function () {
+            require __DIR__.'/modules/api_inventory.php';
+        });
 
         // accounting module
-        require __DIR__.'/modules/api_accounting.php';
+        Route::middleware('module:accounting')->group(function () {
+            require __DIR__.'/modules/api_accounting.php';
+        });
 
         // sales module
-        require __DIR__.'/modules/api_sales.php';
+        Route::middleware('module:sales')->group(function () {
+            require __DIR__.'/modules/api_sales.php';
+        });
 
         // purchase module
-        require __DIR__.'/modules/api_purchase.php';
+        Route::middleware('module:purchase')->group(function () {
+            require __DIR__.'/modules/api_purchase.php';
+        });
 
         // hr module
-        require __DIR__.'/modules/api_hr.php';
+        Route::middleware('module:hr')->group(function () {
+            require __DIR__.'/modules/api_hr.php';
+        });
 
         // crm module
-        require __DIR__.'/modules/api_crm.php';
+        Route::middleware('module:crm')->group(function () {
+            require __DIR__.'/modules/api_crm.php';
+        });
 
         // parties
         Route::get('party/next-code', [PartyController::class, 'nextCode'])->name('party.next-code');
         Route::apiResource('party', PartyController::class);
 
         // Nepal compliance — Phase 1
-        Route::prefix('nepal')->as('nepal.')->group(function () {
+        Route::prefix('nepal')->as('nepal.')->middleware('module:nepal-compliance')->group(function () {
             // Invoice PDF download
             Route::get('invoice/{invoice}/pdf', InvoicePdfController::class)->name('invoice.pdf');
 
@@ -168,7 +191,7 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
     });
 
     // POS
-    Route::prefix('pos')->as('pos.')->middleware('checkRole')->controller(PosController::class)->group(function () {
+    Route::prefix('pos')->as('pos.')->middleware(['module:pos', 'checkRole'])->controller(PosController::class)->group(function () {
         Route::get('categories', 'categories')->name('categories');
         Route::get('products', 'products')->name('products');
         Route::get('variants/{productVariant}/warehouses', 'variantWarehouses')->name('variants.warehouses');

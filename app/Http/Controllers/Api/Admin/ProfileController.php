@@ -9,6 +9,7 @@ use App\Services\BranchAccessService;
 use Illuminate\Support\Facades\Storage;
 use App\Services\SecurityActivityLogger;
 use App\Http\Resources\Admin\ProfileResource;
+use App\Services\Modules\CompanyModuleService;
 use App\Http\Requests\Api\Admin\UpdateProfileRequest;
 use App\Http\Requests\Api\Admin\ChangePasswordRequest;
 use App\Http\Requests\Api\Admin\UpdateDateModeRequest;
@@ -49,6 +50,13 @@ class ProfileController extends Controller
         return response()->json([
             'permissions' => base64_encode(json_encode($permissions)),
             'user_type' => $user->user_type,
+            // Ships with the permissions the SPA already fetches at boot and
+            // after every branch switch, so module-aware navigation costs no
+            // extra round trip. Richer per-module detail lives on
+            // GET /api/admin/module.
+            'modules' => $user->company_id
+                ? app(CompanyModuleService::class)->enabledKeys((int) $user->company_id)
+                : [],
         ]);
     }
 

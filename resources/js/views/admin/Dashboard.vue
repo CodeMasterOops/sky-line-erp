@@ -498,6 +498,7 @@ import VModal from '@/components/base/VModal.vue';
 import rawSidebar from '@/assets/json/sidebar.json';
 import {filterSidebarSections, flattenMenuLeaves} from '@/helpers/sidebarMenu';
 import {hasPermission} from '@/helpers/checkPermission';
+import {isModuleEnabled} from '@/helpers/checkModule';
 import {toast} from '@/helpers/toast.js';
 import showErrors from '@/helpers/showErrors';
 
@@ -558,7 +559,9 @@ const businessMetrics = computed(() => {
 
 /* ---- Quick links (pinned dashboard shortcuts) ---- */
 const availableLeaves = computed(() =>
-    flattenMenuLeaves(filterSidebarSections(rawSidebar, (p) => hasPermission(p)))
+    flattenMenuLeaves(
+        filterSidebarSections(rawSidebar, (p) => hasPermission(p), (m) => isModuleEnabled(m)),
+    )
         .filter((leaf) => leaf.routeName !== 'admin.dashboard'),
 );
 

@@ -222,7 +222,9 @@ export default [
     {
         path: "production-variance-report",
         name: "admin.production-variance-report",
-        meta: {pageTitle: "Production Variance Report"},
+        meta: {
+            module: "manufacturing",
+            pageTitle: "Production Variance Report"},
         component: () => import("@/views/admin/inventory/reports/ProductionVarianceReport.vue"),
     },
     {
@@ -276,13 +278,17 @@ export default [
     {
         path: "inventory/bom",
         name: "admin.bom-list",
-        meta: {pageTitle: "Bill of Materials"},
+        meta: {
+            module: "manufacturing",
+            pageTitle: "Bill of Materials"},
         component: () => import("@/views/admin/inventory/bom/Index.vue"),
     },
     {
         path: "inventory/production-orders",
         name: "admin.production-order-list",
-        meta: {pageTitle: "Production Orders"},
+        meta: {
+            module: "manufacturing",
+            pageTitle: "Production Orders"},
         component: () => import("@/views/admin/inventory/production/Index.vue"),
     },
 ];

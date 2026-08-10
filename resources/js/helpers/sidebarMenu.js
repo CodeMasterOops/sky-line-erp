@@ -1,27 +1,35 @@
 /**
  * Admin sidebar JSON shape (see resources/js/assets/json/sidebar.json):
  * - Section: { title, menu: MenuItem[] }
- * - Leaf: { menuValue, icon?, route: { name }, permission?: string }
+ * - Leaf: { menuValue, icon?, route: { name }, permission?: string, module?: string }
  *   If permission is omitted, the item is visible to all authenticated admin users.
- * - Submenu: { menuValue, icon?, hasSubRoute: true, subMenus: SubMenuLeaf[] }
- * - SubMenuLeaf: { menuValue, route: { name }, permission?: string }
+ *   If module is omitted, the item belongs to core and is never module-gated.
+ * - Submenu: { menuValue, icon?, module?: string, hasSubRoute: true, subMenus: SubMenuLeaf[] }
+ * - SubMenuLeaf: { menuValue, route: { name }, permission?: string, module?: string }
+ *
+ * A submenu's `module` cascades to its leaves, so a whole section can be gated
+ * with one key; a leaf may still name a different module (a sub-module such as
+ * payroll inside HR), mirroring the inline `module:` route groups on the server.
  */
 
 /**
- * @param {string} permission
+ * @param {unknown[]} items
  * @param {(p: string) => boolean} check - typically (p) => hasPermission(p)
+ * @param {(m: string) => boolean} [moduleCheck] - typically (m) => isModuleEnabled(m)
  */
-export function filterMenuItems(items, check) {
+export function filterMenuItems(items, check, moduleCheck = () => true) {
     if (!Array.isArray(items)) return [];
     return items
-        .map((item) => filterMenuItem(item, check))
+        .map((item) => filterMenuItem(item, check, moduleCheck))
         .filter(Boolean);
 }
 
-function filterMenuItem(item, check) {
+function filterMenuItem(item, check, moduleCheck) {
+    if (item.module && !moduleCheck(item.module)) return null;
+
     if (item.hasSubRoute && Array.isArray(item.subMenus)) {
         const subMenus = item.subMenus
-            .map((sub) => filterSubMenuLeaf(sub, check))
+            .map((sub) => filterSubMenuLeaf(sub, check, moduleCheck, item.module))
             .filter(Boolean);
         if (subMenus.length === 0) return null;
         return { ...item, subMenus };
@@ -29,14 +37,15 @@ function filterMenuItem(item, check) {
     if (item.hasSubRouteTwo && Array.isArray(item.subMenus)) {
         const subMenus = item.subMenus
             .map((sub) => {
+                if (sub.module && !moduleCheck(sub.module)) return null;
                 if (sub.customSubmenuTwo && Array.isArray(sub.subMenusTwo)) {
                     const inner = sub.subMenusTwo
-                        .map((s) => filterSubMenuLeaf(s, check))
+                        .map((s) => filterSubMenuLeaf(s, check, moduleCheck, sub.module ?? item.module))
                         .filter(Boolean);
                     if (inner.length === 0) return null;
                     return { ...sub, subMenusTwo: inner };
                 }
-                return filterSubMenuLeaf(sub, check) ? { ...sub } : null;
+                return filterSubMenuLeaf(sub, check, moduleCheck, item.module) ? { ...sub } : null;
             })
             .filter(Boolean);
         if (subMenus.length === 0) return null;
@@ -46,7 +55,9 @@ function filterMenuItem(item, check) {
     return { ...item };
 }
 
-function filterSubMenuLeaf(sub, check) {
+function filterSubMenuLeaf(sub, check, moduleCheck = () => true, inheritedModule = undefined) {
+    const moduleKey = sub.module ?? inheritedModule;
+    if (moduleKey && !moduleCheck(moduleKey)) return null;
     if (sub.permission && !check(sub.permission)) return null;
     return { ...sub };
 }
@@ -54,11 +65,11 @@ function filterSubMenuLeaf(sub, check) {
 /**
  * @param {Array<{ title?: string, tittle?: string, menu: unknown[] }>} sections
  */
-export function filterSidebarSections(sections, check) {
+export function filterSidebarSections(sections, check, moduleCheck = () => true) {
     if (!Array.isArray(sections)) return [];
     return sections
         .map((section) => {
-            const menu = filterMenuItems(section.menu, check);
+            const menu = filterMenuItems(section.menu, check, moduleCheck);
             if (menu.length === 0) return null;
             return { ...section, menu };
         })

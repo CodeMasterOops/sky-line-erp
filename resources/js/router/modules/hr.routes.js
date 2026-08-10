@@ -68,37 +68,49 @@ export default [
     {
         path: "hr/salary-components",
         name: "admin.hr-salary-components",
-        meta: {pageTitle: "Salary Components"},
+        meta: {
+            module: "payroll",
+            pageTitle: "Salary Components"},
         component: () => import("@/views/admin/hr/salary/Components.vue"),
     },
     {
         path: "hr/salary-structure",
         name: "admin.hr-salary-structure",
-        meta: {pageTitle: "Salary Structure"},
+        meta: {
+            module: "payroll",
+            pageTitle: "Salary Structure"},
         component: () => import("@/views/admin/hr/salary/Structure.vue"),
     },
     {
         path: "hr/payroll",
         name: "admin.hr-payroll",
-        meta: {pageTitle: "Payroll Runs"},
+        meta: {
+            module: "payroll",
+            pageTitle: "Payroll Runs"},
         component: () => import("@/views/admin/hr/payroll/Run.vue"),
     },
     {
         path: "hr/payroll/:id",
         name: "admin.hr-payroll-detail",
-        meta: {pageTitle: "Payroll Detail"},
+        meta: {
+            module: "payroll",
+            pageTitle: "Payroll Detail"},
         component: () => import("@/views/admin/hr/payroll/Detail.vue"),
     },
     {
         path: "hr/payslip/:id",
         name: "admin.hr-payslip",
-        meta: {pageTitle: "Payslip"},
+        meta: {
+            module: "payroll",
+            pageTitle: "Payslip"},
         component: () => import("@/views/admin/hr/payroll/Payslip.vue"),
     },
     {
         path: "hr/reports/payroll-summary",
         name: "admin.hr-report-payroll",
-        meta: {pageTitle: "Payroll Summary Report"},
+        meta: {
+            module: "payroll",
+            pageTitle: "Payroll Summary Report"},
         component: () => import("@/views/admin/hr/reports/PayrollSummary.vue"),
     },
     {

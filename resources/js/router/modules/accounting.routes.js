@@ -176,13 +176,17 @@ export default [
     {
         path: "cheque-issue-report",
         name: "admin.cheque-issue-report",
-        meta: {pageTitle: "Cheque Issue Report"},
+        meta: {
+            module: "banking",
+            pageTitle: "Cheque Issue Report"},
         component: () => import("@/views/admin/accounting/reports/ChequeIssueReport.vue"),
     },
     {
         path: "cheque-receive-report",
         name: "admin.cheque-receive-report",
-        meta: {pageTitle: "Cheque Receive Report"},
+        meta: {
+            module: "banking",
+            pageTitle: "Cheque Receive Report"},
         component: () => import("@/views/admin/accounting/reports/ChequeReceiveReport.vue"),
     },
     {
@@ -200,7 +204,9 @@ export default [
     {
         path: "bank-reconciliation",
         name: "admin.bank-reconciliation",
-        meta: {pageTitle: "Bank Reconciliation"},
+        meta: {
+            module: "banking",
+            pageTitle: "Bank Reconciliation"},
         component: () => import("@/views/admin/accounting/bank-reconciliation/Index.vue"),
     },
     {
@@ -212,19 +218,25 @@ export default [
     {
         path: "fixed-assets",
         name: "admin.fixed-asset-list",
-        meta: {pageTitle: "Fixed Assets"},
+        meta: {
+            module: "fixed-assets",
+            pageTitle: "Fixed Assets"},
         component: () => import("@/views/admin/accounting/fixed-assets/Index.vue"),
     },
     {
         path: "banking/cheques",
         name: "admin.cheque-list",
-        meta: {pageTitle: "PDC Cheque Management"},
+        meta: {
+            module: "banking",
+            pageTitle: "PDC Cheque Management"},
         component: () => import("@/views/admin/banking/cheques/Index.vue"),
     },
     {
         path: "accounting/budget",
         name: "admin.budget-list",
-        meta: {pageTitle: "Budget Management"},
+        meta: {
+            module: "budgeting",
+            pageTitle: "Budget Management"},
         component: () => import("@/views/admin/accounting/budget/Index.vue"),
     },
     {

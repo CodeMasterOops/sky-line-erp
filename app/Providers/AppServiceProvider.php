@@ -16,6 +16,7 @@ use App\Models\BranchUser;
 use App\Policies\BillPolicy;
 use App\Policies\UserPolicy;
 use Illuminate\Http\Request;
+use App\Models\CompanyModule;
 use App\Models\StockMovement;
 use App\Policies\PartyPolicy;
 use App\Policies\StockPolicy;
@@ -31,10 +32,13 @@ use Illuminate\Support\Facades\Gate;
 use Laravel\Telescope\IncomingEntry;
 use App\Observers\BranchUserObserver;
 use App\Services\BranchAccessService;
+use App\Services\Modules\ModuleCache;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use App\Observers\CompanyModuleObserver;
 use App\Observers\StockMovementObserver;
+use App\Services\Modules\ModuleRegistry;
 use Illuminate\Cache\RateLimiting\Limit;
 use App\Observers\BelongsToCompanyObserver;
 use Illuminate\Support\Facades\RateLimiter;
@@ -48,6 +52,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Module registry / cache are read on nearly every request (route
+        // gating, menus, permission catalogue), so they are resolved once per
+        // request and memoise their parsed definitions.
+        $this->app->singleton(ModuleRegistry::class);
+        $this->app->singleton(ModuleCache::class);
+
         if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
             $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
             $this->app->register(TelescopeServiceProvider::class);
@@ -108,6 +118,12 @@ class AppServiceProvider extends ServiceProvider
         foreach ($models as $model) {
             Event::listen("eloquent.retrieved: {$model}", [BelongsToCompanyObserver::class, 'retrieved']);
         }
+
+        // Invalidate the per-company module cache whenever a module row changes
+        // outside CompanyModuleService. Event-string for the same model-boot
+        // race reason described above (CompanyModule uses MultiTenant).
+        Event::listen('eloquent.saved: '.CompanyModule::class, [CompanyModuleObserver::class, 'saved']);
+        Event::listen('eloquent.deleted: '.CompanyModule::class, [CompanyModuleObserver::class, 'deleted']);
 
         // Auto-provision a CRM lead profile + timeline entry for any party of
         // type=lead. Event-string (not Party::observe()) for the same model-boot

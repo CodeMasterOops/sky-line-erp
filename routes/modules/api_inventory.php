@@ -93,10 +93,12 @@ Route::get('batch/fefo', [BatchController::class, 'fefoList'])->name('batch.fefo
 Route::post('batch/{batch}/write-off', [BatchController::class, 'writeOff'])->name('batch.write-off');
 Route::apiResource('batch', BatchController::class)->except(['destroy']);
 
-// Bill of Materials
-Route::get('bom/where-used/{variant}', [BomController::class, 'whereUsed'])->name('bom.where-used');
-Route::get('bom/{bom}/explode', [BomController::class, 'explode'])->name('bom.explode');
-Route::apiResource('bom', BomController::class);
+// Bill of Materials — `manufacturing` sub-module, gated inline inside `inventory`
+Route::middleware('module:manufacturing')->group(function () {
+    Route::get('bom/where-used/{variant}', [BomController::class, 'whereUsed'])->name('bom.where-used');
+    Route::get('bom/{bom}/explode', [BomController::class, 'explode'])->name('bom.explode');
+    Route::apiResource('bom', BomController::class);
+});
 
 // inventory reports
 Route::prefix('inventory-report')->as('inventory-report.')->controller(InventoryReportController::class)->group(function () {
@@ -115,19 +117,21 @@ Route::prefix('inventory-report')->as('inventory-report.')->controller(Inventory
     Route::get('batch-traceability', 'batchTraceability')->name('batch-traceability');
 });
 
-// Production Orders
-Route::post('production-order/plan-subassemblies/{bom}', [ProductionOrderController::class, 'planSubassemblies'])->name('production-order.plan-subassemblies');
-Route::post('production-order/{productionOrder}/start', [ProductionOrderController::class, 'start'])->name('production-order.start');
-Route::post('production-order/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->name('production-order.complete');
-Route::post('production-order/{productionOrder}/cancel', [ProductionOrderController::class, 'cancel'])->name('production-order.cancel');
-Route::post('production-order/{productionOrder}/reconcile-subcontract', [ProductionOrderController::class, 'reconcileSubcontract'])->name('production-order.reconcile-subcontract');
-Route::post('production-order/{productionOrder}/operations/{operation}/start', [ProductionOrderController::class, 'startOperation'])->name('production-order.operation.start');
-Route::post('production-order/{productionOrder}/operations/{operation}/complete', [ProductionOrderController::class, 'completeOperation'])->name('production-order.operation.complete');
-Route::post('production-order/{productionOrder}/operations/{operation}/skip', [ProductionOrderController::class, 'skipOperation'])->name('production-order.operation.skip');
-Route::apiResource('production-order', ProductionOrderController::class)->except(['update', 'destroy']);
+// Production Orders — `manufacturing` sub-module
+Route::middleware('module:manufacturing')->group(function () {
+    Route::post('production-order/plan-subassemblies/{bom}', [ProductionOrderController::class, 'planSubassemblies'])->name('production-order.plan-subassemblies');
+    Route::post('production-order/{productionOrder}/start', [ProductionOrderController::class, 'start'])->name('production-order.start');
+    Route::post('production-order/{productionOrder}/complete', [ProductionOrderController::class, 'complete'])->name('production-order.complete');
+    Route::post('production-order/{productionOrder}/cancel', [ProductionOrderController::class, 'cancel'])->name('production-order.cancel');
+    Route::post('production-order/{productionOrder}/reconcile-subcontract', [ProductionOrderController::class, 'reconcileSubcontract'])->name('production-order.reconcile-subcontract');
+    Route::post('production-order/{productionOrder}/operations/{operation}/start', [ProductionOrderController::class, 'startOperation'])->name('production-order.operation.start');
+    Route::post('production-order/{productionOrder}/operations/{operation}/complete', [ProductionOrderController::class, 'completeOperation'])->name('production-order.operation.complete');
+    Route::post('production-order/{productionOrder}/operations/{operation}/skip', [ProductionOrderController::class, 'skipOperation'])->name('production-order.operation.skip');
+    Route::apiResource('production-order', ProductionOrderController::class)->except(['update', 'destroy']);
 
-// BOM Operations (nested under BOM)
-Route::apiResource('bom.operations', BomOperationController::class)->parameters(['operations' => 'bomOperation'])->except(['show']);
+    // BOM Operations (nested under BOM)
+    Route::apiResource('bom.operations', BomOperationController::class)->parameters(['operations' => 'bomOperation'])->except(['show']);
+});
 
 // Unit Conversions
 Route::apiResource('unit-conversion', UnitConversionController::class)->parameters(['unit-conversion' => 'unitConversion']);
