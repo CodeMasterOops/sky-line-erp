@@ -141,6 +141,11 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
             require __DIR__.'/modules/api_crm.php';
         });
 
+        // gym module (industry vertical)
+        Route::middleware('module:gym')->group(function () {
+            require __DIR__.'/modules/api_gym.php';
+        });
+
         // parties
         Route::get('party/next-code', [PartyController::class, 'nextCode'])->name('party.next-code');
         Route::apiResource('party', PartyController::class);

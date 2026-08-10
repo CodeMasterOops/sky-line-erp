@@ -49,9 +49,8 @@
 |   'settings_schema'        map      Default per-company module settings.
 |   'sort_order'             int      Display order inside its group.
 |
-| NOTE: the `gym` module is intentionally absent — it lands in Phase 5 together
-| with its routes, activator and provisioning step, so the registry test never
-| references classes that do not exist yet.
+| The `industry` group holds the vertical modules. `gym` is the first; adding
+| the next one follows the checklist in §10.4 of the plan.
 |
 */
 
@@ -383,6 +382,49 @@ return [
         'scheduled_commands' => ['data-transfer:prune'],
         'data_transfer_entities' => ['party', 'product', 'warehouse', 'opening_stock'],
         'sort_order' => 120,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Industry verticals
+    |--------------------------------------------------------------------------
+    */
+
+    'gym' => [
+        'name' => 'Gym Management',
+        'group' => 'industry',
+        'description' => 'Members, membership plans, renewals and check-ins.',
+        'icon' => 'ti ti-barbell',
+        'always_on' => false,
+        'self_service' => false,
+        // Members are Parties and membership plans bill through service
+        // Products, so the gym vertical rests on the ERP rather than beside it.
+        'requires' => ['accounting', 'inventory', 'sales'],
+        'permissions' => [
+            'assign_membership', 'cancel_membership', 'create_member', 'create_membership_plan',
+            'delete_member', 'delete_membership_plan', 'edit_member', 'edit_membership_plan',
+            'freeze_membership', 'gym_report', 'list_member', 'list_membership', 'list_membership_plan',
+            'member_check_in', 'renew_membership', 'show_member',
+        ],
+        'route_files' => ['api_gym.php'],
+        'frontend_key' => 'gym',
+        'provisioning_steps' => [\App\Provisioning\Steps\Gym\GymDefaultsStep::class],
+        'activator' => \App\Modules\Gym\GymModuleActivator::class,
+        'scheduled_commands' => ['gym:process-membership-expiry', 'gym:dispatch-membership-reminders'],
+        'models' => [
+            \App\Models\Member::class,
+            \App\Models\MembershipPlan::class,
+            \App\Models\Membership::class,
+            \App\Models\MemberCheckIn::class,
+            \App\Models\MembershipFreeze::class,
+        ],
+        'settings_schema' => [
+            'auto_invoice_on_assignment' => true,
+            'allow_multiple_active_memberships' => false,
+            'lapsed_renewal_continues_term' => false,
+            'notify_member_directly' => false,
+        ],
+        'sort_order' => 200,
     ],
 
     'nepal-compliance' => [

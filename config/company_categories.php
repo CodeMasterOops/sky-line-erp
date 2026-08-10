@@ -76,10 +76,10 @@ return [
     [
         'name' => 'Gym / Fitness',
         'slug' => 'gym',
-        'description' => 'Membership-driven fitness centres. Gains the Gym module in Phase 5.',
+        'description' => 'Membership-driven fitness centres.',
         'icon' => 'ti ti-barbell',
         'sort_order' => 60,
-        'modules' => ['accounting', 'inventory', 'sales', 'purchase', 'crm'],
+        'modules' => ['accounting', 'inventory', 'sales', 'purchase', 'crm', 'gym'],
     ],
 
     [

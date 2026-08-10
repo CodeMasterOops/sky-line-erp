@@ -27,6 +27,11 @@ Schedule::command('sanctum:prune-expired --hours=720')->daily();
 // Remove orphaned product variants left behind after product edits
 Schedule::command('products:prune-orphan-variants --apply')->weekly();
 
+// Gym memberships — expire elapsed terms, then remind staff about the ones
+// coming up. Both commands skip companies without the gym module.
+Schedule::command('gym:process-membership-expiry')->dailyAt('00:30')->withoutOverlapping();
+Schedule::command('gym:dispatch-membership-reminders')->dailyAt('08:00')->withoutOverlapping();
+
 // CRM follow-up & task reminders
 Schedule::command('crm:dispatch-reminders')->everyFiveMinutes()->withoutOverlapping();
 

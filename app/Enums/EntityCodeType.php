@@ -5,6 +5,7 @@ namespace App\Enums;
 use App\Models\Unit;
 use App\Models\Brand;
 use App\Models\Branch;
+use App\Models\Member;
 use App\Models\Product;
 use App\Models\Employee;
 use App\Models\Warehouse;
@@ -21,6 +22,7 @@ enum EntityCodeType: string
     case Employee = 'employee';
     case Branch = 'branch';
     case FixedAsset = 'fixed_asset';
+    case Member = 'member';
 
     /**
      * @return class-string<\Illuminate\Database\Eloquent\Model>
@@ -36,6 +38,7 @@ enum EntityCodeType: string
             self::Employee => Employee::class,
             self::Branch => Branch::class,
             self::FixedAsset => FixedAsset::class,
+            self::Member => Member::class,
         };
     }
 
@@ -50,6 +53,7 @@ enum EntityCodeType: string
             self::Employee => 'EMP-',
             self::Branch => 'BRN-',
             self::FixedAsset => 'FA-',
+            self::Member => 'MEM-',
         };
     }
 
@@ -58,13 +62,16 @@ enum EntityCodeType: string
         return match ($this) {
             self::Employee => 'employee_code',
             self::FixedAsset => 'asset_code',
+            self::Member => 'member_code',
             default => 'code',
         };
     }
 
     public function padding(): int
     {
-        return 4;
+        // Gyms run to thousands of members; five digits keeps member IDs
+        // sortable well past that.
+        return $this === self::Member ? 5 : 4;
     }
 
     /**

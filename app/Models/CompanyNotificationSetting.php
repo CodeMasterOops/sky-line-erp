@@ -21,6 +21,9 @@ class CompanyNotificationSetting extends Model
         'leave_approval_alert',
         'stock_expiry_alert',
         'stock_expiry_days',
+        'membership_expiry_reminder',
+        'membership_expiry_reminder_days',
+        'membership_expired_alert',
         'email_notifications',
         'in_app_notifications',
     ];
@@ -37,6 +40,9 @@ class CompanyNotificationSetting extends Model
             'leave_approval_alert' => 'boolean',
             'stock_expiry_alert' => 'boolean',
             'stock_expiry_days' => 'integer',
+            'membership_expiry_reminder' => 'boolean',
+            'membership_expiry_reminder_days' => 'array',
+            'membership_expired_alert' => 'boolean',
             'email_notifications' => 'boolean',
             'in_app_notifications' => 'boolean',
         ];

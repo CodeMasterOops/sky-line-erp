@@ -79,17 +79,35 @@ class ModuleActivationRunner
         return [class_basename($activator).'::onDisable'];
     }
 
+    /**
+     * The branch a module's setup runs against.
+     *
+     * An existing branch always wins — head office first, then the oldest.
+     * Only a company with no branches at all gets one created, which is why
+     * this cannot be a plain firstOrCreate on the configured code: that would
+     * add a second "Head Office" to every company whose branch happens to be
+     * named something else.
+     */
     private function headOfficeFor(Company $company): Branch
     {
-        $config = config('company_bootstrap.default_branch');
-
-        return Branch::query()
+        $existing = Branch::query()
+            ->withoutGlobalScopes()
             ->where('company_id', $company->id)
             ->orderByDesc('is_head_office')
             ->orderBy('id')
-            ->firstOrCreate(
-                ['company_id' => $company->id, 'code' => $config['code']],
-                ['name' => $config['name'], 'is_head_office' => true],
-            );
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $config = config('company_bootstrap.default_branch');
+
+        return Branch::create([
+            'company_id' => $company->id,
+            'code' => $config['code'],
+            'name' => $config['name'],
+            'is_head_office' => true,
+        ]);
     }
 }

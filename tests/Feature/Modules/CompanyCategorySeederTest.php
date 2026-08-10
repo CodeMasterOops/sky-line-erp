@@ -83,12 +83,17 @@ it('does not overwrite super admin edits when re-seeded', function () {
         ->and($retail->fresh()->is_active)->toBeFalse();
 });
 
-it('gives a gym company the modules the gym vertical will build on', function () {
-    // The `gym` module itself arrives in Phase 5; the category already ships the
-    // ERP foundations it reuses (invoicing, products, parties).
+it('gives a gym company the gym module and the ERP it builds on', function () {
     $company = makeCompany('Fit Gym', 'FIT');
     $company->update(['company_category_id' => CompanyCategory::query()->where('slug', 'gym')->value('id')]);
 
     expect(app(CompanyModuleService::class)->enabledKeys($company->id))
-        ->toEqualCanonicalizing(['core', 'accounting', 'inventory', 'sales', 'purchase', 'crm']);
+        ->toEqualCanonicalizing(['core', 'accounting', 'inventory', 'sales', 'purchase', 'crm', 'gym']);
+});
+
+it('does not give the gym module to a category that did not ask for it', function () {
+    $company = makeCompany('Corner Shop', 'SHOP');
+    $company->update(['company_category_id' => CompanyCategory::query()->where('slug', 'retail')->value('id')]);
+
+    expect(app(CompanyModuleService::class)->isEnabled('gym', $company->id))->toBeFalse();
 });

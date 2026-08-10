@@ -56,6 +56,34 @@
                 ]
             },
             {
+                "menuValue": "Gym",
+                "module": "gym",
+                "icon": "ti ti-barbell",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Members",
+                        "route": { "name": "admin.gym-member-list" },
+                        "active_routes": ["admin.gym-member-list", "admin.gym-member-create", "admin.gym-member-edit", "admin.gym-member-profile"],
+                        "permission": "list_member",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Memberships",
+                        "route": { "name": "admin.gym-membership-list" },
+                        "permission": "list_membership",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Membership Plans",
+                        "route": { "name": "admin.gym-membership-plan-list" },
+                        "permission": "list_membership_plan",
+                        "hasSubRoute": false
+                    }
+                ]
+            },
+            {
                 "menuValue": "Sales",
                 "module": "sales",
                 "icon": "ti ti-shopping-cart",

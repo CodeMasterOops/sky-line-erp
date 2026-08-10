@@ -34,7 +34,14 @@ class EntityCodeGenerator
     ): string {
         $this->lockCompany($companyId);
 
+        // Entity codes are unique per COMPANY, so the count that produces the
+        // next one must span the whole company. Leaving the branch scope on
+        // would restart numbering in every branch and collide on the company
+        // -wide unique index the moment a second branch exists. Global scopes
+        // are stripped and company_id re-applied explicitly — the documented
+        // safe pattern (docs/branch-isolation-withoutglobalscope-register.md).
         $query = $modelClass::query()
+            ->withoutGlobalScopes()
             ->where('company_id', $companyId);
 
         foreach ($scopes as $scopeColumn => $scopeValue) {

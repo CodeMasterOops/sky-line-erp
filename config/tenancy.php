@@ -19,6 +19,7 @@ use App\Models\Stock;
 use App\Models\Branch;
 use App\Models\Budget;
 use App\Models\Cheque;
+use App\Models\Member;
 use App\Models\Palika;
 use App\Models\Account;
 use App\Models\BomItem;
@@ -55,6 +56,7 @@ use App\Models\Department;
 use App\Models\FiscalYear;
 use App\Models\FixedAsset;
 use App\Models\LandedCost;
+use App\Models\Membership;
 use App\Models\PayrollRun;
 use App\Models\PosSession;
 use App\Models\ProductTax;
@@ -81,6 +83,7 @@ use App\Models\WorkSchedule;
 use App\Models\CompanyModule;
 use App\Models\ContactPerson;
 use App\Models\DebitNoteItem;
+use App\Models\MemberCheckIn;
 use App\Models\PurchaseOrder;
 use App\Models\QuotationItem;
 use App\Models\StockMovement;
@@ -90,6 +93,7 @@ use App\Models\AccountSetting;
 use App\Models\AttributeValue;
 use App\Models\CreditNoteItem;
 use App\Models\CrmLeadProfile;
+use App\Models\MembershipPlan;
 use App\Models\ProductVariant;
 use App\Models\SalesOrderItem;
 use App\Models\TaxGroupMember;
@@ -110,6 +114,7 @@ use App\Models\BankMatchingRule;
 use App\Models\DamageReportItem;
 use App\Models\ImportValueAlias;
 use App\Models\LeaveApplication;
+use App\Models\MembershipFreeze;
 use App\Models\RecurringJournal;
 use App\Models\SecurityActivity;
 use App\Models\StockReservation;
@@ -242,6 +247,13 @@ return [
         SerialNumber::class,
         Batch::class,
         BankStatementImport::class,
+
+        // Phase 5 — Gym module. Branch-owned to match Party and Product: a
+        // chain gets a per-branch member register and per-branch pricing.
+        Member::class,
+        MembershipPlan::class,
+        Membership::class,
+        MemberCheckIn::class,
     ],
 
     /*
@@ -283,6 +295,9 @@ return [
         StockMovementLayer::class => StockMovement::class,
         StockTransferItem::class => StockTransfer::class,
         BankStatementLine::class => BankStatementImport::class,
+
+        // Phase 7 — Gym
+        MembershipFreeze::class => Membership::class,
     ],
 
     /*

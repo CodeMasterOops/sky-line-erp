@@ -1,6 +1,7 @@
 import AdminLayout from "@/layouts/admin/AppLayout.vue";
 import accountingRoutes from "@/router/modules/accounting.routes.js";
 import crmRoutes from "@/router/modules/crm.routes.js";
+import gymRoutes from "@/router/modules/gym.routes.js";
 import hrRoutes from "@/router/modules/hr.routes.js";
 import inventoryRoutes from "@/router/modules/inventory.routes.js";
 import purchaseRoutes from "@/router/modules/purchase.routes.js";
@@ -146,6 +147,9 @@ const routes = [
 
             //crm module (unified contacts: customers, suppliers, leads)
             ...withModule(crmRoutes, "crm"),
+
+            //gym module (industry vertical)
+            ...withModule(gymRoutes, "gym"),
 
             //purchase module
             ...withModule(purchaseRoutes, "purchase"),

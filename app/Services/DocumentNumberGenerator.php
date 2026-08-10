@@ -60,7 +60,12 @@ class DocumentNumberGenerator
     ): string {
         $this->lockCompany($companyId);
 
+        // Company-wide numbering needs a company-wide count: leaving the branch
+        // scope on would restart the sequence in every branch and collide on the
+        // company-unique index. Same fix as EntityCodeGenerator — scopes off,
+        // company_id re-applied explicitly.
         $count = $modelClass::query()
+            ->withoutGlobalScopes()
             ->where('company_id', $companyId)
             ->withTrashed()
             ->count();
