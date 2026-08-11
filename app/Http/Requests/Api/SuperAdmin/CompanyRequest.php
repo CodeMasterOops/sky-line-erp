@@ -13,6 +13,14 @@ class CompanyRequest extends FormRequest
         return true;
     }
 
+    public function messages(): array
+    {
+        return [
+            'company_category_id.required' => 'Choose the industry this company is in — it decides which modules they start with.',
+            'company_category_id.exists' => 'The selected industry category does not exist.',
+        ];
+    }
+
     public function rules(): array
     {
         $validations = [
@@ -24,9 +32,10 @@ class CompanyRequest extends FormRequest
             'website' => ['nullable'],
             'address' => ['required', 'string', 'max:500'],
             'ward_id' => ['required', 'integer', Rule::exists(Ward::class, 'id')],
-            // The industry the company is in. Drives which modules it starts
-            // with; null falls back to the catalogue's default category.
-            'company_category_id' => ['nullable', 'integer', Rule::exists('company_categories', 'id')],
+            // The industry the company is in. Required, because it decides
+            // which modules the company starts with — leaving it to a fallback
+            // means somebody has to go and fix the module set afterwards.
+            'company_category_id' => ['required', 'integer', Rule::exists('company_categories', 'id')],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'user_name' => ['required', 'string', 'max:255'],
             'user_phone' => ['nullable'],

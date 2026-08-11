@@ -40,6 +40,22 @@ export default [
         component: () => import("@/views/admin/gym/memberships/Index.vue"),
     },
     {
+        path: "gym/check-ins",
+        name: "admin.gym-check-in",
+        meta: {
+            pageTitle: "Check-ins",
+        },
+        component: () => import("@/views/admin/gym/check-ins/Index.vue"),
+    },
+    {
+        path: "gym/reports",
+        name: "admin.gym-reports",
+        meta: {
+            pageTitle: "Gym Reports",
+        },
+        component: () => import("@/views/admin/gym/reports/Index.vue"),
+    },
+    {
         path: "gym/membership-plans",
         name: "admin.gym-membership-plan-list",
         meta: {

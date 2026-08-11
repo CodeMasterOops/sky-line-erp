@@ -71,7 +71,7 @@ class GymReportService
             ->count();
 
         return [
-            'terms_started' => $total,
+            'terms_sold' => $total,
             'renewals' => $renewals,
             'new_memberships' => $total - $renewals,
             'renewal_share' => $total > 0 ? round($renewals / $total * 100, 1) : 0.0,
@@ -184,8 +184,13 @@ class GymReportService
     /**
      * Constrain a query to the reporting window. Defaults to the current month,
      * which is what the screens open on.
+     *
+     * The default column is `created_at` — when the term was *sold* — because
+     * that is what "how did we do this month" means. Windowing on `start_date`
+     * would push a renewal sold today into next month's figures, since an early
+     * renewal starts the day after the current term ends.
      */
-    private function windowed($query, ?string $from, ?string $to, string $column = 'start_date')
+    private function windowed($query, ?string $from, ?string $to, string $column = 'created_at')
     {
         $from ??= now()->startOfMonth()->toDateString();
         $to ??= now()->endOfMonth()->toDateString();

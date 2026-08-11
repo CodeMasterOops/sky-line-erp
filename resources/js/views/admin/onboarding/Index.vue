@@ -83,6 +83,26 @@
                                                     placeholder="e.g. Sky Technologies Pvt. Ltd."
                                                 />
                                             </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">
+                                                    Industry <span class="text-danger">*</span>
+                                                </label>
+                                                <select v-model="companyForm.company_category_id" class="form-select">
+                                                    <option value="">Select your industry</option>
+                                                    <option
+                                                        v-for="category in categories"
+                                                        :key="category.id"
+                                                        :value="String(category.id)"
+                                                    >{{ category.name }}</option>
+                                                </select>
+                                                <div v-if="fieldErrors.company_category_id" class="text-danger fs-11 mt-1">
+                                                    {{ fieldErrors.company_category_id[0] }}
+                                                </div>
+                                                <div v-else class="fs-11 text-muted mt-1">
+                                                    {{ selectedCategoryHint }}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6"></div>
                                             <div class="col-md-4">
                                                 <VInput
                                                     id="phone"
@@ -306,7 +326,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
+import { computed, ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAdminAuthStore } from '@/stores/admin/auth';
 import { useAdminLocationStore } from '@/stores/admin/location.js';
@@ -326,6 +346,14 @@ const isLoading = ref(false);
 const isLoadingData = ref(true);
 const stepError = ref('');
 const fieldErrors = ref({});
+/** Industries the platform offers; each one decides the starting module set. */
+const categories = ref([]);
+
+const selectedCategoryHint = computed(() => {
+    const chosen = categories.value.find((c) => String(c.id) === companyForm.company_category_id);
+
+    return chosen?.description || 'This sets up the modules your workspace starts with.';
+});
 const branchErrors = ref({});
 
 const districtOptions = ref([]);
@@ -334,6 +362,7 @@ const wardOptions = ref([]);
 const suppressCascade = ref(false);
 
 const companyForm = reactive({
+    company_category_id: '',
     company_name: '',
     legal_name: '',
     phone: '',
@@ -370,12 +399,16 @@ onBeforeUnmount(() => {
 const loadInitialData = async () => {
     isLoadingData.value = true;
     try {
-        const [settingRes] = await Promise.all([
+        const [settingRes, categoryRes] = await Promise.all([
             apiAdmin('setting', 'get'),
+            apiAdmin('onboarding/category', 'get'),
             locationStore.loadProvinces(),
         ]);
 
+        categories.value = categoryRes.data?.data ?? [];
+
         const d = settingRes.data?.data ?? {};
+        companyForm.company_category_id = d.company_category_id ? String(d.company_category_id) : '';
         companyForm.company_name = d.company_name ?? '';
         companyForm.legal_name = d.legal_name ?? '';
         companyForm.phone = d.phone ?? '';
@@ -492,7 +525,15 @@ const submitCompanyStep = async () => {
     isLoading.value = true;
 
     try {
+        if (!companyForm.company_category_id) {
+            fieldErrors.value = {company_category_id: ['Choose your industry so we can set up the right modules.']};
+            stepError.value = 'Please fix the errors below.';
+            isLoading.value = false;
+            return;
+        }
+
         await apiAdmin('onboarding/company', 'put', {
+            company_category_id: companyForm.company_category_id,
             legal_name: companyForm.legal_name || undefined,
             phone: companyForm.phone,
             pan: companyForm.pan,

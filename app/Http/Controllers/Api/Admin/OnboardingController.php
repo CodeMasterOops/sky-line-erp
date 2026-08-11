@@ -22,7 +22,12 @@ class OnboardingController extends Controller
             'ward_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists(\App\Models\Ward::class, 'id')],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'website' => ['nullable', 'string', 'max:255'],
-            'company_category_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('company_categories', 'id')],
+            // Required here too: onboarding is where a self-registered company
+            // chooses what kind of business it is, and that decides its modules.
+            'company_category_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('company_categories', 'id')],
+        ], [
+            'company_category_id.required' => 'Choose your industry so we can set up the right modules.',
+            'company_category_id.exists' => 'The selected industry does not exist.',
         ]);
 
         $company = auth('admin')->user()->company;

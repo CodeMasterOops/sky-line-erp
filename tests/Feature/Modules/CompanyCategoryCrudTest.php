@@ -60,11 +60,11 @@ it('rejects a module that does not exist', function () {
 });
 
 it('rejects a duplicate slug', function () {
-    CompanyCategory::factory()->create(['slug' => 'retail']);
+    $existing = CompanyCategory::factory()->create();
 
     $this->postJson('/api/super-admin/company-category', [
-        'name' => 'Retail',
-        'slug' => 'retail',
+        'name' => 'Copycat',
+        'slug' => $existing->slug,
     ])->assertStatus(422)->assertJsonValidationErrors('slug');
 });
 

@@ -16,7 +16,12 @@ function companyLocation(): Ward
 
 function validCompanyPayload(Ward $ward, array $overrides = []): array
 {
+    // Choosing an industry is mandatory: it decides the company's module set.
+    $categoryId = App\Models\CompanyCategory::query()->value('id')
+        ?? App\Models\CompanyCategory::factory()->default()->create()->id;
+
     return array_merge([
+        'company_category_id' => $categoryId,
         'company_name' => 'New Company',
         'legal_name' => 'New Company Pvt. Ltd.',
         'code' => 'NC-01',
@@ -46,6 +51,49 @@ it('requires address fields when creating a company', function () {
 
     $response->assertUnprocessable()
         ->assertJsonValidationErrors(['address', 'ward_id']);
+});
+
+it('requires an industry category when creating a company', function () {
+    actingAsSuperAdmin();
+    createDefaultPlan();
+    $ward = companyLocation();
+
+    $payload = validCompanyPayload($ward);
+    unset($payload['company_category_id']);
+
+    $this->postJson('/api/super-admin/company', $payload)
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('company_category_id');
+});
+
+it('rejects an industry category that does not exist', function () {
+    actingAsSuperAdmin();
+    createDefaultPlan();
+    $ward = companyLocation();
+
+    $this->postJson('/api/super-admin/company', validCompanyPayload($ward, [
+        'company_category_id' => 99999,
+    ]))->assertUnprocessable()->assertJsonValidationErrors('company_category_id');
+});
+
+it('starts the company on its category\'s modules', function () {
+    actingAsSuperAdmin();
+    createDefaultPlan();
+    $ward = companyLocation();
+
+    $gym = App\Models\CompanyCategory::factory()
+        ->withModules(['accounting', 'inventory', 'sales', 'gym'])
+        ->create(['slug' => 'gym-test']);
+
+    $response = $this->postJson('/api/super-admin/company', validCompanyPayload($ward, [
+        'company_category_id' => $gym->id,
+    ]))->assertCreated();
+
+    $companyId = $response->json('data.id');
+
+    expect($response->json('data.category_name'))->toBe($gym->name)
+        ->and(app(App\Services\Modules\CompanyModuleService::class)->enabledKeys($companyId))
+        ->toContain('gym');
 });
 
 it('creates a company with required address fields', function () {

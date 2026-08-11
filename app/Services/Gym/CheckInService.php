@@ -22,9 +22,13 @@ class CheckInService
      */
     public function checkIn(Member $member, array $data = []): MemberCheckIn
     {
+        // Only today's open visit blocks a new one. Somebody who forgot to
+        // check out last Tuesday should not be locked out for good; that stale
+        // row simply stays open as a record of what happened.
         $open = MemberCheckIn::query()
             ->where('member_id', $member->id)
             ->open()
+            ->onDate(now()->toDateString())
             ->first();
 
         if ($open) {

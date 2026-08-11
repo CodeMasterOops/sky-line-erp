@@ -57,6 +57,7 @@ use App\Models\FiscalYear;
 use App\Models\FixedAsset;
 use App\Models\LandedCost;
 use App\Models\Membership;
+use App\Models\PartyGroup;
 use App\Models\PayrollRun;
 use App\Models\PosSession;
 use App\Models\ProductTax;
@@ -112,6 +113,7 @@ use App\Models\StockAdjustment;
 use App\Models\AccountingPeriod;
 use App\Models\BankMatchingRule;
 use App\Models\DamageReportItem;
+use App\Models\DocumentSequence;
 use App\Models\ImportValueAlias;
 use App\Models\LeaveApplication;
 use App\Models\MembershipFreeze;
@@ -132,6 +134,7 @@ use App\Models\CompanyModuleEvent;
 use App\Models\FixedAssetCategory;
 use App\Models\StockMovementLayer;
 use App\Models\BankStatementImport;
+use App\Models\CompanyProvisionLog;
 use App\Models\DataTransferMapping;
 use App\Models\DeliveryChallanItem;
 use App\Models\SalaryStructureItem;
@@ -144,6 +147,7 @@ use App\Models\OpeningStockEntryItem;
 use App\Models\ReconciliationAuditLog;
 use App\Models\TdsCertificateSequence;
 use App\Models\ProductionOrderOperation;
+use App\Models\CompanyNotificationSetting;
 use App\Models\InventoryValuationSnapshot;
 use App\Models\ProductionOrderConsumption;
 
@@ -310,6 +314,9 @@ return [
         Account::class,
         CompanyModule::class,
         CompanyModuleEvent::class,
+        CompanyNotificationSetting::class,
+        DocumentSequence::class,
+        PartyGroup::class,
         AccountGroup::class,
         AccountSetting::class,
         AccountingPeriod::class,
@@ -383,6 +390,7 @@ return [
     */
     'unscoped_special' => [
         User::class => 'Belongs to a home company but accesses many branches via the branch_users pivot; must NOT be branch-scoped or admins/multi-branch users lose access. Filter through User::branches() instead.',
+        CompanyProvisionLog::class => 'Carries company_id but is written by the provisioning pipeline before any tenant context exists, and read by the Super Admin across every company. Both readers already filter by company_id explicitly (SuperAdmin\\CompanyProvisionLogController, Admin\\ProvisionStatusController), so a global scope would add nothing and would hide the log from the pipeline that writes it.',
     ],
 
     /*

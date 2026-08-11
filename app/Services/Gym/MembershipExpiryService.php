@@ -11,6 +11,7 @@ use App\Enums\MembershipStatusEnum;
 use App\Models\CompanyNotificationSetting;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\MembershipExpiredNotification;
+use App\Notifications\MemberMembershipExpiringNotification;
 use App\Notifications\MembershipExpiryReminderNotification;
 
 /**
@@ -25,7 +26,10 @@ class MembershipExpiryService
 {
     public const DEFAULT_REMINDER_DAYS = [7, 3, 1];
 
-    public function __construct(private readonly MemberStatusSynchroniser $memberStatus) {}
+    public function __construct(
+        private readonly MemberStatusSynchroniser $memberStatus,
+        private readonly \App\Services\Modules\CompanyModuleService $modules,
+    ) {}
 
     /**
      * Mark every term whose last day (plus the plan's grace period) has passed.
@@ -118,6 +122,8 @@ class MembershipExpiryService
                                 );
                             }
 
+                            $this->notifyMemberDirectly($company, $membership, $offset);
+
                             // Recorded whether or not anyone was listening, so a
                             // company with no staff configured does not build up
                             // a backlog to send later.
@@ -132,6 +138,28 @@ class MembershipExpiryService
         });
 
         return $sent;
+    }
+
+    /**
+     * Email the member themselves, when the company has opted in and we have an
+     * address to send to.
+     */
+    private function notifyMemberDirectly(Company $company, Membership $membership, int $offset): void
+    {
+        $optedIn = (bool) ($this->modules->settingsFor((int) $company->id, 'gym')['notify_member_directly'] ?? false);
+
+        if (! $optedIn) {
+            return;
+        }
+
+        $email = $membership->member?->party?->email;
+
+        if (! $email) {
+            return;
+        }
+
+        Notification::route('mail', $email)
+            ->notify(new MemberMembershipExpiringNotification($membership, $offset));
     }
 
     private function notifyExpired(Company $company): void

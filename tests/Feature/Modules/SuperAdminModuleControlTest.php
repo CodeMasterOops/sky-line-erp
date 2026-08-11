@@ -128,7 +128,7 @@ it('keeps the tenant\'s data when a module is switched off', function () {
 });
 
 it('moves a company to a different category and applies its defaults', function () {
-    $gym = CompanyCategory::factory()->withModules(['accounting', 'inventory', 'sales', 'crm'])->create(['slug' => 'gym']);
+    $gym = CompanyCategory::factory()->withModules(['accounting', 'inventory', 'sales', 'crm'])->create();
 
     $response = $this->putJson("/api/super-admin/company/{$this->company->id}/category", [
         'company_category_id' => $gym->id,

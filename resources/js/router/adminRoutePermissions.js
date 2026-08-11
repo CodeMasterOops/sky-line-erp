@@ -52,6 +52,8 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.gym-member-edit': 'edit_member',
     'admin.gym-member-profile': { any: ['list_member', 'show_member'] },
     'admin.gym-membership-list': 'list_membership',
+    'admin.gym-check-in': 'member_check_in',
+    'admin.gym-reports': 'gym_report',
     'admin.gym-membership-plan-list': 'list_membership_plan',
     'admin.crm-contacts': 'list_party',
     'admin.crm-follow-ups': 'list_crm_follow_up',

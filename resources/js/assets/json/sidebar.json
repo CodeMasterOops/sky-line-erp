@@ -80,6 +80,18 @@
                         "route": { "name": "admin.gym-membership-plan-list" },
                         "permission": "list_membership_plan",
                         "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Check-ins",
+                        "route": { "name": "admin.gym-check-in" },
+                        "permission": "member_check_in",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Gym Reports",
+                        "route": { "name": "admin.gym-reports" },
+                        "permission": "gym_report",
+                        "hasSubRoute": false
                     }
                 ]
             },

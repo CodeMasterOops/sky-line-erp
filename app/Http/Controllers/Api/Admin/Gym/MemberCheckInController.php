@@ -44,6 +44,7 @@ class MemberCheckInController extends Controller
         }
 
         $current = $member->currentMembership;
+        $openCheckIn = MemberCheckIn::query()->where('member_id', $member->id)->open()->first();
 
         return response()->json([
             'data' => [
@@ -55,9 +56,9 @@ class MemberCheckInController extends Controller
                     'days_remaining' => $current->daysRemaining(),
                     'status' => $current->status?->value,
                 ] : null,
-                'open_check_in' => MemberCheckInResource::make(
-                    MemberCheckIn::query()->where('member_id', $member->id)->open()->first()
-                ),
+                // `make(null)` would blow up inside the resource, so resolve it
+                // to a plain null when the member is not currently inside.
+                'open_check_in' => $openCheckIn ? MemberCheckInResource::make($openCheckIn) : null,
             ],
         ]);
     }

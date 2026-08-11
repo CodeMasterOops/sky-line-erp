@@ -94,10 +94,17 @@ it('stops falling back as soon as the company has one explicit row', function ()
     expect($this->service->enabledKeys($this->company->id))->toEqualCanonicalizing(['core', 'crm']);
 });
 
-it('falls back to the default category when the company picked none', function () {
+it('does not apply the default category to a company that never picked one', function () {
+    // The catalogue's default exists so provisioning can assign it and the
+    // picker can preselect it. Letting resolution assume it would mean that
+    // seeding the catalogue silently re-scoped every unconfigured company —
+    // which is exactly what happened when the categories migration shipped.
     CompanyCategory::factory()->default()->withModules(['hr'])->create();
 
-    expect($this->service->enabledKeys($this->company->id))->toEqualCanonicalizing(['core', 'hr']);
+    $registry = app(ModuleRegistry::class);
+    $expected = array_values(array_diff($registry->keys(), array_keys($registry->grouped()['industry'] ?? [])));
+
+    expect($this->service->enabledKeys($this->company->id))->toEqualCanonicalizing($expected);
 });
 
 it('refuses to resolve an unknown module key', function () {

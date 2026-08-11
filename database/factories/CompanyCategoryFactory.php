@@ -28,13 +28,14 @@ class CompanyCategoryFactory extends Factory
         ];
     }
 
+    /**
+     * Marks the category as the catalogue default. The slug is left to the
+     * factory's unique generator — the seeded catalogue already owns 'general',
+     * and what matters here is the flag, not the name.
+     */
     public function default(): static
     {
-        return $this->state(fn (): array => [
-            'name' => 'General Business',
-            'slug' => 'general',
-            'is_default' => true,
-        ]);
+        return $this->state(fn (): array => ['is_default' => true]);
     }
 
     /**

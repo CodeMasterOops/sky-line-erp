@@ -87,6 +87,9 @@ it('updates company details during onboarding', function () {
         'pan' => '123456789',
         'ward_id' => $this->ward->id,
         'address' => 'New Road, Kathmandu',
+        // Choosing an industry is part of onboarding — it decides the modules
+        // the workspace starts with.
+        'company_category_id' => App\Models\CompanyCategory::query()->value('id'),
     ])->assertOk()
         ->assertJsonFragment(['message' => 'Company details updated.']);
 
@@ -102,7 +105,7 @@ it('requires phone pan ward and address to update company during onboarding', fu
     $this->putJson('/api/admin/onboarding/company', [
         'legal_name' => 'Missing required fields',
     ])->assertUnprocessable()
-        ->assertJsonValidationErrors(['phone', 'pan', 'ward_id', 'address']);
+        ->assertJsonValidationErrors(['phone', 'pan', 'ward_id', 'address', 'company_category_id']);
 });
 
 it('requires authentication to update onboarding company details', function () {

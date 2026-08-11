@@ -81,7 +81,12 @@ class CompanyModuleService
     {
         $company = $this->findCompany($companyId);
         $explicit = $this->explicitRows($companyId);
-        $category = $company ? $this->effectiveCategory($company) : null;
+        // The company's OWN category — never the catalogue's default one. A
+        // company nobody has configured must not be silently reinterpreted the
+        // moment a default category exists in the catalogue; the default is for
+        // provisioning to assign (CompanyModulesStep) and for the picker to
+        // preselect, not for resolution to assume.
+        $category = $company ? $this->ownCategory($company) : null;
         $categoryDefaults = $category ? $this->closure($category->defaultModuleKeys()) : [];
         $plan = $company ? $this->planFor($company) : null;
 
@@ -460,7 +465,7 @@ class CompanyModuleService
     private function ensureConfigured(Company $company, ?Model $actor): void
     {
         $isUnconfigured = $this->explicitRows((int) $company->id) === []
-            && $this->effectiveCategory($company) === null;
+            && $this->ownCategory($company) === null;
 
         if ($isUnconfigured) {
             $this->materializeFor($company, $actor);
@@ -722,27 +727,21 @@ class CompanyModuleService
      */
     private function categoryDefaults(Company $company): array
     {
-        $category = $this->effectiveCategory($company);
+        $category = $this->ownCategory($company);
 
         return $category ? $this->closure($category->defaultModuleKeys()) : [];
     }
 
     /**
-     * The company's own category, or the catalogue's default one. `is_default`
-     * exists precisely so a company that never picked an industry still lands
-     * on a sensible module set instead of an empty one.
+     * The category this company actually chose, or null.
      */
-    private function effectiveCategory(Company $company): ?CompanyCategory
+    private function ownCategory(Company $company): ?CompanyCategory
     {
         $category = $company->relationLoaded('category')
             ? $company->category
             : $company->category()->with('modules')->first();
 
-        if ($category instanceof CompanyCategory) {
-            return $category;
-        }
-
-        return CompanyCategory::query()->default()->active()->with('modules')->first();
+        return $category instanceof CompanyCategory ? $category : null;
     }
 
     private function planFor(Company $company): ?Plan
