@@ -75,6 +75,8 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         Route::get('module', [ModuleController::class, 'index'])->name('module.index');
         // the shipped registry itself — labels and icons, no company state
         Route::get('module/catalogue', [ModuleController::class, 'catalogue'])->name('module.catalogue');
+        // this company's own module history (read-only)
+        Route::get('module/event', [ModuleController::class, 'events'])->name('module.event');
 
         // report catalogue, already filtered by permission AND enabled module
         Route::get('report-catalogue', ReportCatalogueController::class)->name('report-catalogue');
@@ -85,6 +87,8 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         // billing (read-only subscription info)
         Route::get('billing/subscription', [BillingController::class, 'subscription'])->name('billing.subscription');
         Route::get('billing/plans', [BillingController::class, 'plans'])->name('billing.plans');
+        // quota headroom — how much of each plan limit is used
+        Route::get('billing/usage', [BillingController::class, 'usage'])->name('billing.usage');
 
         // address reference (read-only, for company settings & forms)
         Route::prefix('location-reference')->as('location-reference.')->controller(AddressReferenceController::class)->group(function () {

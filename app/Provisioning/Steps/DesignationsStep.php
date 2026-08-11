@@ -5,13 +5,19 @@ namespace App\Provisioning\Steps;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Designation;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
-class DesignationsStep implements ProvisioningStep
+class DesignationsStep implements ModuleAwareStep, ProvisioningStep
 {
     public function name(): string
     {
         return 'Designations';
+    }
+
+    public function module(): string
+    {
+        return 'hr';
     }
 
     public function isIdempotent(): bool

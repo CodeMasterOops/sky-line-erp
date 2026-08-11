@@ -22,6 +22,13 @@ pest()->extend(Tests\TestCase::class)
         // starts with a clean tenant context and sets its own as needed.
         \App\Services\TenantService::setCompanyId(null);
         \App\Services\TenantService::setBranchId(null);
+
+        // The module resolution is cached with `forever`, and the array cache
+        // store lives for the whole process. Without this a company id reused
+        // across tests would answer from a previous test's module set — the
+        // same class of bug as the tenant-context leak above.
+        app(\App\Services\Modules\ModuleCache::class)->flush();
+        app(\App\Services\Modules\ModuleRegistry::class)->flush();
     })
     ->in('Feature');
 

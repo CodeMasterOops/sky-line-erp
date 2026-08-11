@@ -40,6 +40,10 @@ class PlanRequest extends FormRequest
             'is_recommended' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'branch_limit' => ['nullable', 'integer', 'min:1'],
+            // Quota keys are declared in config/limits.php; a null value is
+            // unlimited, which is what every existing plan stays at.
+            'limits' => ['nullable', 'array'],
+            'limits.*' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

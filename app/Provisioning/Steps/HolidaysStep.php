@@ -7,13 +7,19 @@ use App\Models\Company;
 use App\Models\Holiday;
 use Spatie\Holidays\Holidays;
 use Spatie\Holidays\Countries\Nepal;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
-class HolidaysStep implements ProvisioningStep
+class HolidaysStep implements ModuleAwareStep, ProvisioningStep
 {
     public function name(): string
     {
         return 'Holidays';
+    }
+
+    public function module(): string
+    {
+        return 'hr';
     }
 
     public function isIdempotent(): bool

@@ -9,6 +9,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use App\Jobs\Middleware\SkipsDisabledModule;
 use App\Notifications\DataTransferCompletedNotification;
 
 class NotifyDataTransferCompleteJob implements ShouldQueue
@@ -22,6 +23,14 @@ class NotifyDataTransferCompleteJob implements ShouldQueue
         public DataTransferJob $dataTransferJob,
     ) {
         $this->onQueue(config('data_transfer.queue', 'data-transfer'));
+    }
+
+    /**
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new SkipsDisabledModule('data-transfer', (int) $this->dataTransferJob->company_id)];
     }
 
     public function handle(): void

@@ -72,3 +72,17 @@ it('stops running as soon as the module is switched off', function () {
     expect($before->ran)->toBeTrue()
         ->and($after->ran)->toBeFalse();
 });
+
+it('wires the middleware into every job that does module-owned work', function (string $jobClass, string $moduleKey) {
+    // The middleware only helps if the job actually declares it — this is the
+    // wiring, asserted cheaply so a new module-owned job cannot forget it.
+    $reflection = new ReflectionClass($jobClass);
+
+    expect($reflection->hasMethod('middleware'))->toBeTrue("[{$jobClass}] declares no middleware().")
+        ->and(file_get_contents($reflection->getFileName()))
+        ->toContain("new SkipsDisabledModule('{$moduleKey}'");
+})->with([
+    'IRD sync' => [App\Jobs\SyncInvoiceToIrdJob::class, 'nepal-compliance'],
+    'low stock alert' => [App\Jobs\CheckLowStockJob::class, 'inventory'],
+    'data transfer notification' => [App\Jobs\DataTransfer\NotifyDataTransferCompleteJob::class, 'data-transfer'],
+]);

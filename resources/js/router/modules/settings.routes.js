@@ -1,5 +1,11 @@
 export default [
     {
+        path: "modules",
+        name: "admin.module-list",
+        component: () => import("@/views/admin/settings/modules/Index.vue"),
+        meta: {pageTitle: "Modules"},
+    },
+    {
         path: "setting",
         name: "admin.setting",
         component: () =>

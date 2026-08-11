@@ -744,9 +744,17 @@ class CompanyModuleService
         return $category instanceof CompanyCategory ? $category : null;
     }
 
+    /**
+     * The plan whose entitlements cap this company.
+     *
+     * A lapsed subscription keeps its plan's cap rather than removing it: if a
+     * lapse uncapped the company, missing a payment would *widen* what it can
+     * run, and a module that was hidden under the plan would quietly come back.
+     * Restoring access is a billing decision, never a side effect of one.
+     */
     private function planFor(Company $company): ?Plan
     {
-        return $company->plan()->first();
+        return $company->effectivePlan();
     }
 
     private function findCompany(int $companyId): ?Company

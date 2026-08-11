@@ -68,6 +68,8 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::get('company/{company}/module', [CompanyModuleController::class, 'index'])->name('company.module.index');
     Route::put('company/{company}/module', [CompanyModuleController::class, 'update'])->name('company.module.update');
     Route::get('company/{company}/module/event', [CompanyModuleController::class, 'events'])->name('company.module.event');
+    // read-only "what would disabling this mean?" preflight
+    Route::get('company/{company}/module/{moduleKey}/impact', [CompanyModuleController::class, 'impact'])->name('company.module.impact');
     Route::put('company/{company}/category', [CompanyModuleController::class, 'applyCategory'])->name('company.category.apply');
     Route::post('company/{company}/module/reset', [CompanyModuleController::class, 'resetToCategory'])->name('company.module.reset');
 

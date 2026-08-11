@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use Illuminate\Http\Request;
 use App\Services\TenantService;
+use App\Models\CompanyModuleEvent;
 use App\Http\Controllers\Controller;
 use App\Services\Modules\ModuleRegistry;
 use App\Services\Modules\CompanyModuleService;
@@ -57,6 +59,42 @@ class ModuleController extends Controller
             'data' => $data,
             'enabled' => $this->modules->enabledKeys((int) $companyId),
         ]);
+    }
+
+    /**
+     * The company's own module history — who switched what, and when.
+     *
+     * Read-only and deliberately thinner than the Super Admin trail: a tenant
+     * sees that a module changed and why, not which staff member of the
+     * platform did it.
+     */
+    public function events(Request $request)
+    {
+        $companyId = TenantService::companyId() ?? auth('admin')->user()?->company_id;
+
+        if (! $companyId) {
+            return response()->json(['message' => 'Company context is not available.'], 400);
+        }
+
+        $events = CompanyModuleEvent::query()
+            ->withoutGlobalScope('company_scope')
+            ->where('company_id', $companyId)
+            ->latest('id')
+            ->paginate(min(max((int) $request->query('limit', 25), 1), 100));
+
+        $events->getCollection()->transform(fn (CompanyModuleEvent $event): array => [
+            'id' => $event->id,
+            'module_key' => $event->module_key,
+            'module_name' => $this->registry->has($event->module_key)
+                ? $this->registry->get($event->module_key)['name']
+                : $event->module_key,
+            'action' => $event->action->value,
+            'action_label' => $event->action->label(),
+            'reason' => $event->reason,
+            'created_at' => $event->created_at?->toIso8601String(),
+        ]);
+
+        return $events;
     }
 
     /**

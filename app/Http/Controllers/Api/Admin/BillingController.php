@@ -6,6 +6,7 @@ use App\Models\Plan;
 use App\Models\Company;
 use App\Services\TenantService;
 use App\Http\Controllers\Controller;
+use App\Services\Billing\QuotaService;
 use App\Http\Resources\Admin\PlanResource;
 use App\Http\Resources\Admin\BillingSubscriptionResource;
 
@@ -34,6 +35,29 @@ class BillingController extends Controller
 
         return response()->json([
             'data' => BillingSubscriptionResource::make($subscription),
+        ]);
+    }
+
+    /**
+     * Headroom against the plan's quotas.
+     *
+     * Exists so a company sees "4 of 5 users" before it hits the wall rather
+     * than only meeting the limit as a 422 at the worst moment. Quotas of
+     * modules the company does not run are left out entirely — "0 of 0 gym
+     * members" is noise for a hardware shop.
+     */
+    public function usage()
+    {
+        $company = $this->resolveCompany();
+
+        if (! $company) {
+            return response()->json([
+                'message' => 'Company context is not available.',
+            ], 400);
+        }
+
+        return response()->json([
+            'data' => app(QuotaService::class)->all($company),
         ]);
     }
 

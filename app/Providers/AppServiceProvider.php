@@ -141,6 +141,12 @@ class AppServiceProvider extends ServiceProvider
             Cache::forget(allTablesCacheKey());
             Cache::forget(\App\Http\Controllers\Api\Admin\UserManagement\PermissionController::PERMISSION_MAP_CACHE_KEY);
             Cache::forget(\App\Services\PermissionRegistry::ENFORCED_PERMISSIONS_CACHE_KEY);
+
+            // A deploy can add a module, move a permission between modules, or
+            // backfill company_modules rows. The cache is written with
+            // `forever`, so without this every company would keep answering
+            // from its pre-deploy resolution indefinitely.
+            app(\App\Services\Modules\ModuleCache::class)->flush();
         });
     }
 

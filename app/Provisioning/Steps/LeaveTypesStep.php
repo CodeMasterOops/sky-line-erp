@@ -5,13 +5,19 @@ namespace App\Provisioning\Steps;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\LeaveType;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
-class LeaveTypesStep implements ProvisioningStep
+class LeaveTypesStep implements ModuleAwareStep, ProvisioningStep
 {
     public function name(): string
     {
         return 'LeaveTypes';
+    }
+
+    public function module(): string
+    {
+        return 'hr';
     }
 
     public function isIdempotent(): bool

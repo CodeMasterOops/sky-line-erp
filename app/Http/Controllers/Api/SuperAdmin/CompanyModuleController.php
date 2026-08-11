@@ -9,6 +9,7 @@ use App\Models\CompanyModuleEvent;
 use App\Http\Controllers\Controller;
 use App\Services\Modules\ModuleRegistry;
 use App\Services\Modules\CompanyModuleService;
+use App\Services\Modules\ModuleImpactAnalyzer;
 use Illuminate\Validation\ValidationException;
 use App\Http\Requests\Api\SuperAdmin\ApplyCompanyCategoryRequest;
 use App\Http\Requests\Api\SuperAdmin\UpdateCompanyModulesRequest;
@@ -27,6 +28,27 @@ class CompanyModuleController extends Controller
         private readonly ModuleRegistry $registry,
         private readonly CompanyModuleService $modules,
     ) {}
+
+    /**
+     * What disabling this module would mean, before anyone clicks.
+     *
+     * Read-only and non-blocking: it changes nothing, and it never refuses a
+     * toggle. Disabling remains lossless, so this is context — how much data
+     * sits behind the module, what cascades with it, what work is mid-flight —
+     * rather than a warning about destruction.
+     */
+    public function impact(Company $company, string $moduleKey)
+    {
+        if (! $this->registry->has($moduleKey)) {
+            throw ValidationException::withMessages([
+                'module_key' => ["Unknown module [{$moduleKey}]."],
+            ]);
+        }
+
+        return response()->json([
+            'data' => app(ModuleImpactAnalyzer::class)->analyze($company, $moduleKey),
+        ]);
+    }
 
     /**
      * The full matrix for one company, grouped as the registry orders it.

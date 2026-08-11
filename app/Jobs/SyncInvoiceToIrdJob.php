@@ -11,6 +11,7 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use App\Jobs\Middleware\SkipsDisabledModule;
 
 class SyncInvoiceToIrdJob implements ShouldQueue
 {
@@ -23,6 +24,19 @@ class SyncInvoiceToIrdJob implements ShouldQueue
     public function __construct(
         private Invoice $invoice,
     ) {}
+
+    /**
+     * Syncing pushes an invoice to a government system, so it is the one piece
+     * of module work that must never outlive the module. The legacy
+     * `ird_ebs_enabled` company flag is not enough on its own: a tenant whose
+     * Nepal Compliance module is off would otherwise keep filing.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new SkipsDisabledModule('nepal-compliance', (int) $this->invoice->company_id)];
+    }
 
     public function handle(IrdApiService $irdApi): void
     {

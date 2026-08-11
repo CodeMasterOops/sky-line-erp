@@ -87,7 +87,7 @@ class MembershipExpiryService
     {
         $settings = $this->notificationSettings($company);
 
-        if ($settings && ! $settings->membership_expiry_reminder) {
+        if ($settings && ! $settings->isActive('membership_expiry_reminder')) {
             return 0;
         }
 
@@ -166,7 +166,7 @@ class MembershipExpiryService
     {
         $settings = $this->notificationSettings($company);
 
-        if ($settings && ! $settings->membership_expired_alert) {
+        if ($settings && ! $settings->isActive('membership_expired_alert')) {
             return;
         }
 

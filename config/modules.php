@@ -118,6 +118,7 @@ return [
         ],
         'route_files' => ['api_accounting.php'],
         'frontend_key' => 'accounting',
+        'data_transfer_entities' => ['account', 'journal'],
         'sort_order' => 10,
     ],
 
@@ -154,6 +155,7 @@ return [
         ],
         'route_files' => ['api_inventory.php'],
         'frontend_key' => 'inventory',
+        'data_transfer_entities' => ['product', 'warehouse', 'stock', 'opening_stock'],
         'scheduled_commands' => [
             'batch:expire',
             'inventory:gl-reconcile',
@@ -186,6 +188,7 @@ return [
         ],
         'route_files' => ['api_sales.php'],
         'frontend_key' => 'sales',
+        'data_transfer_entities' => ['invoice', 'sales_order'],
         'sort_order' => 30,
     ],
 
@@ -211,6 +214,7 @@ return [
         ],
         'route_files' => ['api_purchase.php'],
         'frontend_key' => 'purchase',
+        'data_transfer_entities' => ['bill', 'purchase_order'],
         'sort_order' => 40,
     ],
 
@@ -379,8 +383,17 @@ return [
         ],
         'route_files' => ['api_data_transfer.php'],
         'frontend_key' => 'data-transfer',
-        'scheduled_commands' => ['data-transfer:prune'],
-        'data_transfer_entities' => ['party', 'product', 'warehouse', 'opening_stock'],
+        // `data-transfer:prune` is deliberately NOT listed. It enforces the file
+        // retention window, and retention must not depend on a feature flag: a
+        // company that switches the module off would otherwise keep its expired
+        // uploads on disk forever. It deletes nothing but files already past
+        // their expiry, so it is infrastructure hygiene rather than module work.
+        'scheduled_commands' => [],
+        // Only the core entity. Product / warehouse / opening stock belong to
+        // Inventory, invoices to Sales, and so on — see
+        // DataTransferEntityTypeEnum::module(). Having the wizard does not
+        // entitle a company to move a module's data it does not run.
+        'data_transfer_entities' => ['party'],
         'sort_order' => 120,
     ],
 

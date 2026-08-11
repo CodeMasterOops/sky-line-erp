@@ -27,6 +27,10 @@
                 "routes": "/admin/settings/notifications"
             },
             {
+                "title": "Modules",
+                "routes": "/admin/settings/modules"
+            },
+            {
                 "title": "Data transfer",
                 "routes": "/admin/settings/data-transfer",
                 "permission": "list_data_transfer",

@@ -84,6 +84,30 @@ class DataTransferController extends Controller
         return DataTransferJobResource::collection($jobs)->response();
     }
 
+    /**
+     * The entity types this company may import or export.
+     *
+     * The wizard offers these instead of every case of the enum, so a company
+     * without Inventory is never shown a "Products" import it would be refused
+     * on submit.
+     */
+    #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
+    public function entities(): JsonResponse
+    {
+        $companyId = (int) auth('admin')->user()->company_id;
+
+        $data = array_map(
+            fn (DataTransferEntityTypeEnum $type): array => [
+                'value' => $type->value,
+                'module' => $type->module(),
+                'importable' => $this->importHandlerFactory->supportsImport($type),
+            ],
+            DataTransferEntityTypeEnum::enabledFor($companyId),
+        );
+
+        return response()->json(['data' => $data]);
+    }
+
     #[Permissions('list_data_transfer', group: 'data_transfer', desc: 'List Data Transfer Jobs')]
     public function show(string $uuid): JsonResponse
     {
@@ -147,6 +171,7 @@ class DataTransferController extends Controller
         }
 
         $this->authorizeImportEntity($entityType);
+        $this->authorizeEntityModule($entityType);
 
         $importOptions = [];
         if ($entityType === DataTransferEntityTypeEnum::Party && $request->filled('default_party_type')) {
@@ -438,6 +463,8 @@ class DataTransferController extends Controller
             return $branchGuard;
         }
 
+        $this->authorizeEntityModule(DataTransferEntityTypeEnum::from($validated['entity_type']));
+
         $job = $this->uploadService->createExportJob(
             auth('admin')->user(),
             DataTransferEntityTypeEnum::from($validated['entity_type']),
@@ -583,5 +610,29 @@ class DataTransferController extends Controller
         if ($permission === null || ! hasPermission($permission)) {
             abort(403, 'You are not allowed to import this entity type.');
         }
+    }
+
+    /**
+     * Refuse an entity whose owning module the company does not run.
+     *
+     * Having the wizard is not entitlement to every entity in it: a company
+     * with Data Import / Export on but Inventory off could otherwise import
+     * products and opening stock, creating rows for a module it cannot see.
+     * The answer mirrors the `module` middleware so the SPA handles it the same
+     * way it handles a blocked route.
+     */
+    private function authorizeEntityModule(DataTransferEntityTypeEnum $type): void
+    {
+        $moduleKey = $type->module();
+
+        if ($moduleKey === null || moduleEnabled($moduleKey)) {
+            return;
+        }
+
+        abort(response()->json([
+            'message' => 'That data belongs to a module your company does not run.',
+            'code' => 'module_disabled',
+            'module' => $moduleKey,
+        ], 403));
     }
 }

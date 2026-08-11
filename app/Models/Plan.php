@@ -27,6 +27,7 @@ class Plan extends Model
         'is_recommended',
         'sort_order',
         'branch_limit',
+        'limits',
     ];
 
     protected function casts(): array
@@ -41,6 +42,7 @@ class Plan extends Model
             'is_recommended' => 'boolean',
             'sort_order' => 'integer',
             'branch_limit' => 'integer',
+            'limits' => 'array',
         ];
     }
 
@@ -84,6 +86,17 @@ class Plan extends Model
     public function entitlesModule(string $moduleKey): bool
     {
         return $this->modules === null || in_array($moduleKey, $this->modules, true);
+    }
+
+    /**
+     * The quota this plan sets for the given key, or null for unlimited.
+     * Read through QuotaService rather than directly — see config/limits.php.
+     */
+    public function limitFor(string $key): ?int
+    {
+        $value = ($this->limits ?? [])[$key] ?? null;
+
+        return $value === null ? null : (int) $value;
     }
 
     public function priceForCycle(BillingCycleEnum $cycle): string

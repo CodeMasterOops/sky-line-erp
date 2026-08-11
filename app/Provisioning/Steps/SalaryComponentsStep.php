@@ -6,13 +6,19 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\SalaryComponent;
 use App\Enums\SalaryComponentTypeEnum;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
-class SalaryComponentsStep implements ProvisioningStep
+class SalaryComponentsStep implements ModuleAwareStep, ProvisioningStep
 {
     public function name(): string
     {
         return 'SalaryComponents';
+    }
+
+    public function module(): string
+    {
+        return 'payroll';
     }
 
     public function isIdempotent(): bool

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\CompanyCategory;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Modules\ModuleCache;
 use App\Services\Modules\CompanyModuleService;
 use App\Http\Resources\SuperAdmin\CompanyCategoryResource;
 use App\Http\Requests\Api\SuperAdmin\CompanyCategoryRequest;
@@ -15,6 +16,10 @@ use App\Http\Requests\Api\SuperAdmin\CompanyCategoryRequest;
  * companies in that industry; editing it never rewrites companies that already
  * exist, which is why applying defaults to a live company is a separate,
  * deliberate action (CompanyModuleController::applyCategory).
+ *
+ * Editing the list does, however, change what companies *without* explicit
+ * rows resolve to, so every edit drops those companies' cached resolution —
+ * see propagate().
  */
 class CompanyCategoryController extends Controller
 {
@@ -133,5 +138,30 @@ class CompanyCategoryController extends Controller
                 ['is_default_enabled' => true, 'sort_order' => $index],
             );
         }
+
+        $this->propagate($category);
+    }
+
+    /**
+     * Push a category edit out to the companies that follow it.
+     *
+     * A company with no explicit `company_modules` rows resolves through its
+     * category, and that resolution is cached with `forever`. Editing the
+     * category therefore changed *nothing* for exactly the companies the edit
+     * was meant for, until some unrelated row write happened to drop their
+     * entry. Dropping the cache is enough — resolution recomputes on the next
+     * request, and companies with explicit rows are unaffected by design.
+     */
+    private function propagate(CompanyCategory $category): void
+    {
+        $cache = app(ModuleCache::class);
+
+        $category->companies()
+            ->select('id')
+            ->chunkById(200, function ($companies) use ($cache): void {
+                foreach ($companies as $company) {
+                    $cache->forget((int) $company->id);
+                }
+            });
     }
 }

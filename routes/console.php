@@ -2,6 +2,7 @@
 
 use App\Jobs\DataTransfer\RunScheduledExportJob;
 use App\Models\DataTransferSchedule;
+use App\Services\Modules\CompanyModuleService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -35,8 +36,19 @@ Schedule::command('gym:dispatch-membership-reminders')->dailyAt('08:00')->withou
 // CRM follow-up & task reminders
 Schedule::command('crm:dispatch-reminders')->everyFiveMinutes()->withoutOverlapping();
 
+// Scheduled exports — only for companies that still run Data Import / Export.
+// A schedule belonging to a company that switched the module off stays exactly
+// where it is, inert, and resumes if the module comes back.
 Schedule::call(function () {
+    $companyIds = app(CompanyModuleService::class)->companyIdsWith('data-transfer');
+
+    if ($companyIds === []) {
+        return;
+    }
+
     DataTransferSchedule::query()
+        ->withoutGlobalScopes()
+        ->whereIn('company_id', $companyIds)
         ->where('is_active', true)
         ->where(function ($q) {
             $q->whereNull('next_run_at')->orWhere('next_run_at', '<=', now());

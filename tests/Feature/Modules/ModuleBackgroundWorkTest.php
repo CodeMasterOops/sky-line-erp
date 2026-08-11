@@ -175,3 +175,68 @@ function expiredBatchFor(App\Models\Company $company): Batch
         'status' => BatchStatusEnum::Active,
     ]);
 }
+
+it('only snapshots inventory valuation for companies running inventory', function () {
+    // `--replace` deletes and re-inserts rows, so an ungated run is a disabled
+    // module writing to the database every month.
+    $this->service->disable($this->withoutCrm->fresh(), 'inventory', cascade: true);
+
+    TenantService::setCompanyId(null);
+    TenantService::setBranchId(null);
+
+    $this->artisan('inventory:valuation-snapshot', ['--replace' => true])->assertSuccessful();
+
+    expect(App\Models\InventoryValuationSnapshot::withoutGlobalScopes()->where('company_id', $this->withoutCrm->id)->exists())
+        ->toBeFalse();
+});
+
+it('does nothing at all when no company runs inventory', function () {
+    $this->service->disable($this->withCrm->fresh(), 'inventory', cascade: true);
+    $this->service->disable($this->withoutCrm->fresh(), 'inventory', cascade: true);
+
+    TenantService::setCompanyId(null);
+
+    $this->artisan('inventory:gl-reconcile')
+        ->expectsOutputToContain('No company has the [inventory] module enabled')
+        ->assertSuccessful();
+
+    $this->artisan('products:prune-orphan-variants')
+        ->expectsOutputToContain('No company has the [inventory] module enabled')
+        ->assertSuccessful();
+
+    $this->artisan('inventory:valuation-snapshot')
+        ->expectsOutputToContain('No company has the [inventory] module enabled')
+        ->assertSuccessful();
+});
+
+it('never prunes the variants of a company that switched inventory off', function () {
+    $branch = Branch::query()->where('company_id', $this->withoutCrm->id)->first() ?? branchFor($this->withoutCrm);
+
+    TenantService::setCompanyId($this->withoutCrm->id);
+    TenantService::setBranchId($branch->id);
+
+    $product = Product::create([
+        'company_id' => $this->withoutCrm->id,
+        'branch_id' => $branch->id,
+        'name' => 'Multi variant',
+        'code' => 'MV-1',
+        'type' => App\Enums\ProductTypeEnum::PRODUCT,
+    ]);
+
+    $variants = collect(['A', 'B'])->map(fn (string $suffix) => ProductVariant::create([
+        'company_id' => $this->withoutCrm->id,
+        'branch_id' => $branch->id,
+        'product_id' => $product->id,
+        'sku' => 'MV-1-'.$suffix,
+        'is_default' => $suffix === 'A',
+    ]));
+
+    $this->service->disable($this->withoutCrm->fresh(), 'inventory', cascade: true);
+
+    TenantService::setCompanyId(null);
+    TenantService::setBranchId(null);
+
+    $this->artisan('products:prune-orphan-variants', ['--apply' => true])->assertSuccessful();
+
+    expect(ProductVariant::withoutGlobalScopes()->whereIn('id', $variants->pluck('id'))->count())->toBe(2);
+});

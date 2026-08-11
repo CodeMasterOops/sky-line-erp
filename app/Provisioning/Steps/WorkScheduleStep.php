@@ -5,13 +5,19 @@ namespace App\Provisioning\Steps;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\WorkSchedule;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
-class WorkScheduleStep implements ProvisioningStep
+class WorkScheduleStep implements ModuleAwareStep, ProvisioningStep
 {
     public function name(): string
     {
         return 'WorkSchedule';
+    }
+
+    public function module(): string
+    {
+        return 'hr';
     }
 
     public function isIdempotent(): bool

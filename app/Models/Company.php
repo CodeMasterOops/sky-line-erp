@@ -148,6 +148,17 @@ class Company extends Model
             ->latestOfMany();
     }
 
+    /**
+     * The plan that caps this company's modules.
+     *
+     * Two deliberate choices:
+     *
+     * 1. **Newest first.** Overlapping active subscriptions are possible, and
+     *    an unordered `first()` made the module cap depend on row order.
+     * 2. **A lapse does not uncap.** When no subscription is active the last
+     *    plan still applies (see `effectivePlan()`), because losing the cap on
+     *    non-payment would silently *widen* what a company can run.
+     */
     public function plan(): HasOneThrough
     {
         return $this->hasOneThrough(
@@ -157,6 +168,28 @@ class Company extends Model
             'id',
             'id',
             'plan_id'
-        )->whereIn('subscriptions.status', \App\Enums\SubscriptionStatusEnum::activeStatuses());
+        )
+            ->whereIn('subscriptions.status', \App\Enums\SubscriptionStatusEnum::activeStatuses())
+            ->orderByDesc('subscriptions.starts_at')
+            ->orderByDesc('subscriptions.id');
+    }
+
+    /**
+     * The plan to resolve modules against: the active one, or — when every
+     * subscription has lapsed — the most recent plan the company was on.
+     */
+    public function effectivePlan(): ?Plan
+    {
+        $active = $this->plan()->first();
+
+        if ($active) {
+            return $active;
+        }
+
+        return Subscription::query()
+            ->where('company_id', $this->id)
+            ->orderByDesc('starts_at')
+            ->orderByDesc('id')
+            ->first()?->plan;
     }
 }

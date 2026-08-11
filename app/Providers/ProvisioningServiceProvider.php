@@ -66,7 +66,7 @@ class ProvisioningServiceProvider extends ServiceProvider
             new WorkScheduleStep,
             new HolidaysStep,
             new SalaryComponentsStep,
-            new DocumentSequencesStep,
+            $this->app->make(DocumentSequencesStep::class),
             new PartyGroupsStep,
             new CompanyPreferencesStep,
             new NotificationSettingsStep,

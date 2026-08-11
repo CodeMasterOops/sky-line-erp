@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Modules\Contracts\ModuleActivator;
 use App\Provisioning\Contracts\ProvisioningStep;
+use App\Provisioning\Contracts\RepeatsOnModuleChange;
 
 /**
  * Runs a module's own setup when it is switched on after provisioning: its
@@ -39,6 +40,11 @@ class ModuleActivationRunner
             $ran[] = $step->name();
         }
 
+        foreach ($this->crossModuleSteps() as $step) {
+            $step->run($company, $headOffice);
+            $ran[] = $step->name();
+        }
+
         $activator = $definition['activator'];
 
         if ($activator !== null) {
@@ -51,6 +57,24 @@ class ModuleActivationRunner
         }
 
         return $ran;
+    }
+
+    /**
+     * Steps that serve several modules at once and so belong to none of them.
+     *
+     * Without this a module switched on later got its own default data but not
+     * its share of the shared setup — a company enabling Purchase would have no
+     * bill or purchase-order numbering, because the step that creates them is
+     * not owned by Purchase and was never replayed.
+     *
+     * @return list<ProvisioningStep&RepeatsOnModuleChange>
+     */
+    private function crossModuleSteps(): array
+    {
+        return array_values(array_filter(
+            (array) app('provisioning.steps'),
+            fn (object $step): bool => $step instanceof RepeatsOnModuleChange && $step instanceof ProvisioningStep,
+        ));
     }
 
     /**

@@ -276,6 +276,30 @@ class ModuleRegistry
     }
 
     /**
+     * A short digest of the shipped manifest.
+     *
+     * It rides in the module cache key, so shipping a new module, renaming one,
+     * or moving a permission between modules invalidates every company's cached
+     * resolution by itself. Without it a deploy left every tenant on a
+     * pre-deploy answer until some unrelated row happened to change — the cache
+     * is written with `forever`, so "until something changes" meant "never".
+     */
+    public function fingerprint(): string
+    {
+        $shape = [];
+
+        foreach ($this->all() as $key => $module) {
+            $shape[$key] = [
+                $module['always_on'],
+                $module['requires'],
+                $module['permissions'],
+            ];
+        }
+
+        return substr(md5(json_encode($shape)), 0, 8);
+    }
+
+    /**
      * Drop the memoised definitions. Only needed when config is mutated at
      * runtime, i.e. in tests.
      */

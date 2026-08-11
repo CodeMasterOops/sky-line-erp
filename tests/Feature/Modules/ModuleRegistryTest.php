@@ -1,6 +1,7 @@
 <?php
 
 use App\Services\PermissionRegistry;
+use Illuminate\Support\Facades\Artisan;
 use App\Services\Modules\ModuleRegistry;
 
 /*
@@ -158,6 +159,55 @@ it('keeps route file declarations pointing at real files', function () {
     foreach ($this->registry->all() as $key => $module) {
         foreach ($module['route_files'] as $file) {
             expect(base_path('routes/modules/'.$file))->toBeFile("Module [{$key}] route file");
+        }
+    }
+});
+
+it('enforces every scheduled command a module declares', function () {
+    // A declaration that the code does not honour caps nothing — it just reads
+    // as though it does. This is exactly how `inventory:gl-reconcile`,
+    // `inventory:valuation-snapshot` and `products:prune-orphan-variants` ran
+    // nightly for companies that had switched Inventory off.
+    $commands = Artisan::all();
+    $unenforced = [];
+
+    foreach ($this->registry->all() as $key => $module) {
+        // An always-on module runs for every company, so there is nothing to
+        // filter — core's housekeeping commands are correctly unconditional.
+        if ($module['always_on']) {
+            continue;
+        }
+
+        foreach ($module['scheduled_commands'] as $signature) {
+            $command = $commands[$signature] ?? null;
+
+            // Framework commands (sanctum:prune-expired) are not ours to gate.
+            if (! $command || ! str_starts_with($command::class, 'App\\')) {
+                continue;
+            }
+
+            $source = (string) file_get_contents((new ReflectionClass($command))->getFileName());
+
+            $consultsModules = str_contains($source, 'SkipsDisabledCompanies')
+                || str_contains($source, 'CompanyModuleService')
+                || str_contains($source, 'moduleEnabled(');
+
+            if (! $consultsModules) {
+                $unenforced[] = "[{$key}] declares [{$signature}] (".class_basename($command).') but the command never consults the module state.';
+            }
+        }
+    }
+
+    expect($unenforced)->toBe([]);
+});
+
+it('points every scheduled command declaration at a registered command', function () {
+    $commands = Artisan::all();
+
+    foreach ($this->registry->all() as $key => $module) {
+        foreach ($module['scheduled_commands'] as $signature) {
+            expect(array_key_exists($signature, $commands))
+                ->toBeTrue("Module [{$key}] declares unknown command [{$signature}].");
         }
     }
 });

@@ -16,6 +16,8 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.general-settings': 'list_setting',
     'admin.security-settings': 'list_setting',
     'admin.notifications': 'list_setting',
+    // Read-only view of which modules the company runs, and why one is off.
+    'admin.module-list': 'list_setting',
     'admin.tax-list': 'list_tax',
     'admin.tax-group-list': 'list_tax',
     'admin.payment-mode-list': 'list_payment_mode',

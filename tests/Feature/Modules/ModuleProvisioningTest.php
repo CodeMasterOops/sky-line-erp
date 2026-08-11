@@ -239,5 +239,66 @@ it('reports which steps an activation ran', function () {
 
     $company = makeCompany('Acme', 'ACME');
 
-    expect(app(ModuleActivationRunner::class)->activate($company, 'crm'))->toBe(['SpyModule']);
+    // The module's own step, plus the cross-module steps that must top up a
+    // newly enabled module's share of the shared setup (RepeatsOnModuleChange).
+    expect(app(ModuleActivationRunner::class)->activate($company, 'crm'))
+        ->toBe(['SpyModule', 'DocumentSequences']);
+});
+
+it('seeds only the default data of the modules a company runs', function () {
+    // Phase 5: 12 steps became ModuleAwareStep. A service business used to be
+    // provisioned with departments, leave types, salary components and
+    // manufacturing defaults it would never open.
+    $company = makeCompany('Service Co', 'SVC');
+    $company->update([
+        'company_category_id' => CompanyCategory::factory()->withModules(['accounting', 'sales'])->create()->id,
+    ]);
+
+    app(CompanyProvisioningPipeline::class)->run($company->fresh());
+
+    expect(App\Models\Department::withoutGlobalScopes()->where('company_id', $company->id)->exists())->toBeFalse()
+        ->and(App\Models\LeaveType::withoutGlobalScopes()->where('company_id', $company->id)->exists())->toBeFalse()
+        ->and(App\Models\Account::withoutGlobalScopes()->where('company_id', $company->id)->exists())->toBeTrue();
+});
+
+it('creates a document sequence only for the modules that issue the document', function () {
+    $company = makeCompany('Sales Only', 'SALESONLY');
+    $company->update([
+        'company_category_id' => CompanyCategory::factory()->withModules(['accounting', 'inventory', 'sales'])->create()->id,
+    ]);
+
+    app(CompanyProvisioningPipeline::class)->run($company->fresh());
+
+    $types = App\Models\DocumentSequence::withoutGlobalScopes()
+        ->where('company_id', $company->id)
+        ->pluck('document_type')
+        ->all();
+
+    expect($types)
+        ->toContain('invoice', 'grn', 'journal_voucher')
+        ->not->toContain('bill', 'purchase_order', 'production_order');
+});
+
+it('fills in a module\'s missing sequences when it is switched on later', function () {
+    $company = makeCompany('Grows Into Purchase', 'GROWS');
+    $company->update([
+        'company_category_id' => CompanyCategory::factory()->withModules(['accounting', 'inventory', 'sales'])->create()->id,
+    ]);
+
+    app(CompanyProvisioningPipeline::class)->run($company->fresh());
+
+    $before = App\Models\DocumentSequence::withoutGlobalScopes()->where('company_id', $company->id)->count();
+
+    app(CompanyModuleService::class)->enable($company->fresh(), 'purchase');
+    app(App\Services\Modules\ModuleActivationRunner::class)->activate($company->fresh(), 'purchase');
+
+    $types = App\Models\DocumentSequence::withoutGlobalScopes()
+        ->where('company_id', $company->id)
+        ->pluck('document_type')
+        ->all();
+
+    expect($types)->toContain('bill', 'purchase_order')
+        // Idempotent: the sales sequences are not duplicated by the replay.
+        ->and(count($types))->toBeGreaterThan($before)
+        ->and(count($types))->toBe(count(array_unique($types)));
 });

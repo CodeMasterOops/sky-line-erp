@@ -170,7 +170,12 @@ it('caps nothing when the plan lists no modules', function () {
         ->toContain('hr');
 });
 
-it('ignores a cancelled subscription when applying the plan cap', function () {
+it('keeps the last plan cap when the subscription lapses', function () {
+    // BEHAVIOUR CHANGE (2026-08-11, capping plan §5 Phase 4.4). This used to
+    // assert the opposite — a cancelled subscription removed the cap entirely —
+    // which meant cancelling *widened* what a company could run: a tenant on a
+    // plan that excluded HR gained HR by not paying. Entitlements are never
+    // granted by a billing failure; restoring access is a billing decision.
     attachCategory($this->company, ['hr']);
 
     $plan = Plan::factory()->create(['modules' => ['core']]);
@@ -179,7 +184,30 @@ it('ignores a cancelled subscription when applying the plan cap', function () {
         'plan_id' => $plan->id,
     ]);
 
-    expect($this->service->isEnabled('hr', $this->company->id))->toBeTrue();
+    expect($this->service->isEnabled('hr', $this->company->id))->toBeFalse();
+});
+
+it('caps by the most recent subscription when several overlap', function () {
+    // An unordered `first()` made the cap depend on row order.
+    attachCategory($this->company, ['hr', 'crm']);
+
+    $old = Plan::factory()->create(['modules' => ['core', 'hr', 'crm']]);
+    $new = Plan::factory()->create(['modules' => ['core', 'hr']]);
+
+    Subscription::factory()->create([
+        'company_id' => $this->company->id,
+        'plan_id' => $old->id,
+        'starts_at' => now()->subYear(),
+    ]);
+
+    Subscription::factory()->create([
+        'company_id' => $this->company->id,
+        'plan_id' => $new->id,
+        'starts_at' => now()->subDay(),
+    ]);
+
+    expect($this->service->isEnabled('hr', $this->company->id))->toBeTrue()
+        ->and($this->service->isEnabled('crm', $this->company->id))->toBeFalse();
 });
 
 it('disables a module whose requirement is off', function () {

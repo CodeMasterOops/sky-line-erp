@@ -21,6 +21,11 @@ use Illuminate\Support\Facades\Cache;
  */
 class ModuleCache
 {
+    /**
+     * The key carries the registry fingerprint, so a deploy that changes
+     * config/modules.php invalidates every company's entry on its own — see
+     * ModuleRegistry::fingerprint().
+     */
     public const KEY_PREFIX = 'company_modules:';
 
     /**
@@ -31,7 +36,7 @@ class ModuleCache
 
     public static function keyFor(int $companyId): string
     {
-        return self::KEY_PREFIX.$companyId;
+        return self::KEY_PREFIX.app(ModuleRegistry::class)->fingerprint().':'.$companyId;
     }
 
     /**

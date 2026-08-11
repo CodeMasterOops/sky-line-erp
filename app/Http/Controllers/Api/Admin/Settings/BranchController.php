@@ -11,12 +11,14 @@ use App\Enums\EntityCodeType;
 use App\Annotation\Permissions;
 use App\Http\Controllers\Controller;
 use App\Services\BranchAccessService;
+use App\Http\Controllers\Concerns\EnforcesQuota;
 use App\Http\Resources\Admin\Settings\BranchResource;
 use App\Http\Controllers\Concerns\GeneratesEntityCode;
 use App\Http\Requests\Api\Admin\Settings\BranchRequest;
 
 class BranchController extends Controller
 {
+    use EnforcesQuota;
     use GeneratesEntityCode;
 
     /**
@@ -57,16 +59,10 @@ class BranchController extends Controller
     #[Permissions('create_branch', group: 'branch', desc: 'Create Branch')]
     public function store(BranchRequest $request)
     {
-        $company = auth('admin')->user()->company;
-        $plan = $company->currentSubscription?->plan;
-
-        if ($plan && $plan->branch_limit !== null) {
-            $branchCount = Branch::query()->count();
-            if ($branchCount >= $plan->branch_limit) {
-                return response()->json([
-                    'message' => "Your current plan \"{$plan->name}\" allows a maximum of {$plan->branch_limit} branch(es). Please upgrade to add more branches.",
-                ], 422);
-            }
+        // Quota check via the registry (config/limits.php) rather than an
+        // inline plan read, so every limit in the product answers the same way.
+        if ($blocked = $this->refuseWhenOverQuota('branches')) {
+            return $blocked;
         }
 
         $data = $request->validated();

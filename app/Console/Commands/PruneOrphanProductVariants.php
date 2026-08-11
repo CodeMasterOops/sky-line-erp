@@ -7,9 +7,12 @@ use App\Models\ProductVariant;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Console\Concerns\SkipsDisabledCompanies;
 
 class PruneOrphanProductVariants extends Command
 {
+    use SkipsDisabledCompanies;
+
     /**
      * The name and signature of the console command.
      *
@@ -64,7 +67,16 @@ class PruneOrphanProductVariants extends Command
             fn (string $table): bool => Schema::hasTable($table) && Schema::hasColumn($table, 'product_variant_id'),
         ));
 
+        // Soft-deleting variants is a write, so it only ever touches companies
+        // that still run Inventory.
+        $moduleCompanyIds = $this->companiesWithModule('inventory');
+
+        if (! $this->reportModuleScope('inventory', $moduleCompanyIds)) {
+            return self::SUCCESS;
+        }
+
         $products = Product::query()
+            ->whereIn('company_id', $moduleCompanyIds)
             ->when($companyId !== null, fn ($q) => $q->where('company_id', (int) $companyId))
             ->has('variants', '>', 1)
             ->get();
