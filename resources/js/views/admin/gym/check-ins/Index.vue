@@ -83,9 +83,11 @@
 
             <div class="col-lg-8">
                 <div class="card">
-                    <div class="card-header d-flex align-items-center justify-content-between">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-2">
                         <h6 class="mb-0 text-uppercase fs-12">Visits</h6>
-                        <input v-model="filter.date" type="date" class="form-control form-control-sm w-auto" @change="fetch" />
+                        <div style="min-width: 10rem">
+                            <VDatepicker id="checkin_date" v-model="filter.date" label="Date" @update:model-value="fetch" />
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -143,6 +145,7 @@ import { storeToRefs } from 'pinia';
 import { toast } from '@/helpers/toast';
 import showErrors from '@/helpers/showErrors';
 import VPagination from '@/components/base/VPagination.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 import { usePaginatedList } from '@/composables/usePaginatedList.js';
 import { useCheckInStore } from '@/stores/admin/gym/checkIn';
 

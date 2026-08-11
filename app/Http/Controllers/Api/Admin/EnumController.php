@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\GenderEnum;
 use App\Enums\PartyTypeEnum;
+use App\Enums\BloodGroupEnum;
 use App\Enums\TaskStatusEnum;
 use App\Enums\JournalTypeEnum;
 use App\Enums\TdsCategoryEnum;
@@ -14,6 +16,16 @@ use App\Http\Controllers\Controller;
 
 class EnumController extends Controller
 {
+    public function genders()
+    {
+        return response()->json(['data' => GenderEnum::options()]);
+    }
+
+    public function bloodGroups()
+    {
+        return response()->json(['data' => BloodGroupEnum::options()]);
+    }
+
     public function partyTypes()
     {
         $types = collect(PartyTypeEnum::cases())->map(fn (PartyTypeEnum $t) => [

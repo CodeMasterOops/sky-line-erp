@@ -232,6 +232,8 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
 
     // enum (authenticated reference lists — no permission required, auth only)
     Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {
+        Route::get('genders', 'genders')->name('genders');
+        Route::get('blood-groups', 'bloodGroups')->name('blood-groups');
         Route::get('journal-type', 'journalTypes')->name('journal-type');
         Route::get('tds-categories', 'tdsCategories')->name('tds-categories');
         Route::get('party-types', 'partyTypes')->name('party-types');

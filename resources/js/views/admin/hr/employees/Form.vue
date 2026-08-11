@@ -54,7 +54,7 @@
                             v-model="form.gender"
                             label="Gender"
                             placeholder="Select"
-                            :options="genderOptions"
+                            :options="genders"
                         />
                     </div>
                     <div class="col-md-3">
@@ -164,12 +164,7 @@ import { useDesignationStore } from '@/stores/admin/hr/designation.js';
 import { useNextCode } from '@/helpers/useNextCode.js';
 import { apiAdmin } from '@/helpers/api.js';
 import VDatepicker from '@/components/base/VDatepicker.vue';
-
-const genderOptions = [
-    { id: 'male', name: 'Male' },
-    { id: 'female', name: 'Female' },
-    { id: 'other', name: 'Other' },
-];
+import { useEnumStore } from '@/stores/admin/enum.js';
 
 const maritalStatusOptions = [
     { id: 'single', name: 'Single' },
@@ -209,8 +204,10 @@ const router = useRouter();
 const empStore = useEmployeeStore();
 const deptStore = useDepartmentStore();
 const desigStore = useDesignationStore();
+const enumStore = useEnumStore();
 const { departments } = storeToRefs(deptStore);
 const { designations } = storeToRefs(desigStore);
+const { genders } = storeToRefs(enumStore);
 
 const isEdit = computed(() => !!route.params.id);
 const loading = ref(false);
@@ -236,6 +233,7 @@ const { loading: codeLoading, fetchNextCode } = useNextCode(form, 'employee_code
 onMounted(async () => {
     deptStore.getDepartments({ limit: 100 });
     desigStore.getDesignations({ limit: 100 });
+    enumStore.getGenders();
     if (isEdit.value) {
         loading.value = true;
         try {

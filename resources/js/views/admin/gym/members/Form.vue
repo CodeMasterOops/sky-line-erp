@@ -32,11 +32,16 @@
             <VInput id="member_email" v-model="form.email" label="Email" :error="errors.email" />
         </div>
         <div class="col-md-4">
-            <VInput id="member_joined_on" v-model="form.joined_on" input-type="date" label="Joined On" />
+            <VDatepicker id="member_joined_on" v-model="form.joined_on" label="Joined On" />
         </div>
 
         <div class="col-md-4">
-            <VInput id="member_dob" v-model="form.date_of_birth" input-type="date" label="Date of Birth" :error="errors.date_of_birth" />
+            <VDatepicker
+                id="member_dob"
+                v-model="form.date_of_birth"
+                label="Date of Birth"
+                :error="errors.date_of_birth"
+            />
         </div>
         <div class="col-md-4">
             <label class="form-label">Gender</label>
@@ -46,7 +51,11 @@
             </select>
         </div>
         <div class="col-md-4">
-            <VInput id="member_blood_group" v-model="form.blood_group" label="Blood Group" placeholder="O+" />
+            <label class="form-label">Blood Group</label>
+            <select v-model="form.blood_group" class="form-select">
+                <option :value="null">Not specified</option>
+                <option v-for="option in bloodGroups" :key="option.id" :value="option.id">{{ option.name }}</option>
+            </select>
         </div>
 
         <div class="col-md-6">
@@ -84,12 +93,15 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch } from 'vue';
+import { computed, onMounted, reactive, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { object, string } from 'yup';
 import { useYup } from '@/helpers/yup';
 import VInput from '@/components/base/VInput.vue';
 import VTextarea from '@/components/base/VTextarea.vue';
 import VButton from '@/components/base/VButton.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
+import { useEnumStore } from '@/stores/admin/enum.js';
 
 const props = defineProps({
     member: { type: Object, default: null },
@@ -99,11 +111,8 @@ const props = defineProps({
 
 const emit = defineEmits(['submit']);
 
-const genders = [
-    { id: 'male', name: 'Male' },
-    { id: 'female', name: 'Female' },
-    { id: 'other', name: 'Other' },
-];
+const enumStore = useEnumStore();
+const { genders, bloodGroups } = storeToRefs(enumStore);
 
 const initialState = {
     member_code: '',
@@ -114,7 +123,7 @@ const initialState = {
     joined_on: new Date().toISOString().slice(0, 10),
     date_of_birth: null,
     gender: null,
-    blood_group: '',
+    blood_group: null,
     occupation: '',
     emergency_contact_name: '',
     emergency_contact_phone: '',
@@ -132,6 +141,11 @@ const validations = object({
 });
 
 const { errors, validateField, validateForm } = useYup(form, validations);
+
+onMounted(() => {
+    enumStore.getGenders();
+    enumStore.getBloodGroups();
+});
 
 watch(
     () => props.member,

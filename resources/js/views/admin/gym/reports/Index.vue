@@ -1,9 +1,13 @@
 <template>
     <PageHeader title="Gym Reports" subtitle="Membership, renewals, revenue and floor traffic" @refresh="load">
         <template #actions>
-            <div class="d-flex gap-2">
-                <input v-model="range.from" type="date" class="form-control form-control-sm" @change="load" />
-                <input v-model="range.to" type="date" class="form-control form-control-sm" @change="load" />
+            <div class="d-flex gap-2 align-items-end">
+                <div style="min-width: 10rem">
+                    <VDatepicker id="report_from" v-model="range.from" label="From" @update:model-value="load" />
+                </div>
+                <div style="min-width: 10rem">
+                    <VDatepicker id="report_to" v-model="range.to" label="To" @update:model-value="load" />
+                </div>
             </div>
         </template>
     </PageHeader>
@@ -187,6 +191,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 import { useGymReportStore } from '@/stores/admin/gym/report';
 
 const reportStore = useGymReportStore();

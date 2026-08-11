@@ -114,10 +114,19 @@ it('stores the profile fields a gym actually needs', function () {
     ]);
 
     expect($member->date_of_birth->toDateString())->toBe('1995-04-12')
-        ->and($member->blood_group)->toBe('O+')
+        ->and($member->blood_group->value)->toBe('O+')
         ->and($member->emergency_contact_phone)->toBe('9800000002')
         ->and($member->height_cm)->toBe(165.5)
         ->and($member->medical_notes)->toBe('Mild asthma.');
+});
+
+it('rejects invalid gender and blood group values', function () {
+    $this->postJson('/api/admin/gym/member', [
+        'name' => 'Bad Enums',
+        'gender' => 'unknown',
+        'blood_group' => 'Z+',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors(['gender', 'blood_group']);
 });
 
 it('updates the party and the profile from one payload', function () {

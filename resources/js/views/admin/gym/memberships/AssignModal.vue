@@ -30,10 +30,9 @@
                 </div>
 
                 <div class="col-md-5">
-                    <VInput
+                    <VDatepicker
                         id="membership_start_date"
                         v-model="form.start_date"
-                        input-type="date"
                         label="Start Date"
                     />
                     <div class="fs-11 text-muted mt-1">
@@ -93,6 +92,7 @@ import VModal from '@/components/base/VModal.vue';
 import VInput from '@/components/base/VInput.vue';
 import VTextarea from '@/components/base/VTextarea.vue';
 import VButton from '@/components/base/VButton.vue';
+import VDatepicker from '@/components/base/VDatepicker.vue';
 import { useMembershipStore } from '@/stores/admin/gym/membership';
 import { useMembershipPlanStore } from '@/stores/admin/gym/membershipPlan';
 

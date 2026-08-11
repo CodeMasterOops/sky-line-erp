@@ -8,6 +8,7 @@ use App\Enums\GenderEnum;
 use App\Traits\Auditable;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
+use App\Enums\BloodGroupEnum;
 use App\Traits\HasActivities;
 use App\Enums\MemberStatusEnum;
 use Illuminate\Http\UploadedFile;
@@ -69,6 +70,7 @@ class Member extends Model
             'date_of_birth' => 'date:Y-m-d',
             'joined_on' => 'date:Y-m-d',
             'gender' => GenderEnum::class,
+            'blood_group' => BloodGroupEnum::class,
             'status' => MemberStatusEnum::class,
             'height_cm' => 'float',
             'weight_kg' => 'float',

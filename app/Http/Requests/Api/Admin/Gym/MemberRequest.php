@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Admin\Gym;
 
 use App\Tenancy\TRule;
 use App\Enums\GenderEnum;
+use App\Enums\BloodGroupEnum;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -36,7 +37,7 @@ class MemberRequest extends FormRequest
             'photo' => ['nullable', 'image', 'max:4096'],
             'date_of_birth' => ['nullable', 'date', 'before:today'],
             'gender' => ['nullable', Rule::enum(GenderEnum::class)],
-            'blood_group' => ['nullable', 'string', 'max:10'],
+            'blood_group' => ['nullable', Rule::enum(BloodGroupEnum::class)],
             'occupation' => ['nullable', 'string', 'max:255'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:30'],
