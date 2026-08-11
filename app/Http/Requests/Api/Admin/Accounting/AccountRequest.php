@@ -25,10 +25,10 @@ class AccountRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($baseRules, [
-                'code' => ['required', 'string', 'max:255', TRule::unique('accounts')->withoutTrashed()],
+                'code' => ['required', 'string', 'max:255', TRule::unique('accounts')],
             ]),
             'PUT' => array_merge($baseRules, [
-                'code' => ['required', 'string', 'max:255', TRule::unique('accounts')->withoutTrashed()->ignore($this->account)],
+                'code' => ['required', 'string', 'max:255', TRule::unique('accounts')->ignore($this->account)],
             ]),
         };
     }

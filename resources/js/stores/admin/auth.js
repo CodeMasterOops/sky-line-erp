@@ -11,6 +11,11 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                 access_token: Cookies.get("access_token"),
                 user_type: '',
                 permissions: [],
+                // Module keys this company runs. Delivered alongside permissions
+                // (same request, same lifecycle) and re-fetched on branch switch.
+                // Empty until loaded — isModuleEnabled() treats that as
+                // "not yet known" so nothing is hidden mid-boot.
+                modules: [],
                 permissionsLoaded: false,
                 needsOnboarding: localStorage.getItem('needs_onboarding') === 'true',
                 provisioningPending: localStorage.getItem('provisioning_pending') === 'true',
@@ -89,6 +94,9 @@ export const useAdminAuthStore = defineStore('admin-auth', {
                 path: '/',
             });
         },
+        setModules(modules) {
+            this.authUser.modules = Array.isArray(modules) ? modules : [];
+        },
         setPermissions(user_type, permissions = '') {
             this.authUser.user_type = user_type ?? '';
             if (user_type !== 'admin') {
@@ -120,12 +128,14 @@ export const useAdminAuthStore = defineStore('admin-auth', {
             return apiAdmin('profile/permissions')
                 .then((res) => {
                     this.setPermissions(res.data.user_type, res.data.permissions);
+                    this.setModules(res.data.modules);
                 }).catch(() => {});
         },
         removeAuthToken() {
             this.authUser.access_token = '';
             this.authUser.user_type = '';
             this.authUser.permissions = [];
+            this.authUser.modules = [];
             this.authUser.permissionsLoaded = false;
             this.authUser.needsOnboarding = false;
             this.authUser.provisioningPending = false;

@@ -39,6 +39,14 @@ class RunScheduledExportJob implements ShouldQueue
             return;
         }
 
+        // A schedule outlives a module change. `routes/console.php` already
+        // skips companies without the module, but a schedule can be dispatched
+        // from elsewhere, so the job is the one that must not produce and
+        // deliver an export for a module the company no longer runs.
+        if (! moduleEnabled('data-transfer', (int) $user->company_id)) {
+            return;
+        }
+
         TenantService::setCompanyId($user->company_id);
 
         try {

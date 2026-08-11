@@ -7,12 +7,17 @@
 export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.dashboard': null,
     'admin.branch-select': null,
+    // Explains that a module is switched off; reachable by anyone the guard
+    // redirects here, so it needs no permission of its own.
+    'admin.module-unavailable': null,
     'admin.workspace-setup': null,
     'admin.profile': null,
     'admin.setting': 'list_setting',
     'admin.general-settings': 'list_setting',
     'admin.security-settings': 'list_setting',
     'admin.notifications': 'list_setting',
+    // Read-only view of which modules the company runs, and why one is off.
+    'admin.module-list': 'list_setting',
     'admin.tax-list': 'list_tax',
     'admin.tax-group-list': 'list_tax',
     'admin.payment-mode-list': 'list_payment_mode',
@@ -44,6 +49,14 @@ export const ADMIN_ROUTE_PERMISSIONS = {
     'admin.product-edit': 'edit_product',
     'admin.product-list': 'list_product',
     'admin.data-transfer-list': 'list_data_transfer',
+    'admin.gym-member-list': 'list_member',
+    'admin.gym-member-create': 'create_member',
+    'admin.gym-member-edit': 'edit_member',
+    'admin.gym-member-profile': { any: ['list_member', 'show_member'] },
+    'admin.gym-membership-list': 'list_membership',
+    'admin.gym-check-in': 'member_check_in',
+    'admin.gym-reports': 'gym_report',
+    'admin.gym-membership-plan-list': 'list_membership_plan',
     'admin.crm-contacts': 'list_party',
     'admin.crm-follow-ups': 'list_crm_follow_up',
     'admin.crm-tasks': 'list_crm_task',

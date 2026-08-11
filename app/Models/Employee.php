@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\GenderEnum;
 use App\Traits\MultiTenant;
 use App\Traits\BranchTenant;
 use App\Enums\TdsCategoryEnum;
@@ -46,6 +47,7 @@ class Employee extends Model
     protected $casts = [
         'dob' => 'date:Y-m-d',
         'join_date' => 'date:Y-m-d',
+        'gender' => GenderEnum::class,
         'employment_type' => EmploymentTypeEnum::class,
         'status' => EmployeeStatusEnum::class,
         'tds_category' => TdsCategoryEnum::class,

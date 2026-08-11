@@ -4,6 +4,8 @@ import showErrors from "@/helpers/showErrors";
 
 export const useEnumStore = defineStore('enum', {
     state: () => ({
+        genders: [],
+        bloodGroups: [],
         journalTypes: [],
         tdsCategories: [],
         partyTypes: [],
@@ -15,6 +17,28 @@ export const useEnumStore = defineStore('enum', {
     }),
 
     actions: {
+        getGenders() {
+            if (!this.genders.length) {
+                return apiAdmin(`enum/genders`)
+                    .then((res) => {
+                        this.genders = res.data.data;
+                    }).catch((err) => {
+                        showErrors(err);
+                    });
+            }
+        },
+
+        getBloodGroups() {
+            if (!this.bloodGroups.length) {
+                return apiAdmin(`enum/blood-groups`)
+                    .then((res) => {
+                        this.bloodGroups = res.data.data;
+                    }).catch((err) => {
+                        showErrors(err);
+                    });
+            }
+        },
+
         getPartyTypes() {
             if (!this.partyTypes.length) {
                 return apiAdmin(`enum/party-types`)

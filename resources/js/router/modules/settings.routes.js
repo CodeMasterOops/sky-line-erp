@@ -1,5 +1,11 @@
 export default [
     {
+        path: "modules",
+        name: "admin.module-list",
+        component: () => import("@/views/admin/settings/modules/Index.vue"),
+        meta: {pageTitle: "Modules"},
+    },
+    {
         path: "setting",
         name: "admin.setting",
         component: () =>
@@ -36,7 +42,8 @@ export default [
     {
         path: "data-transfer",
         name: "admin.data-transfer-list",
-        meta: { pageTitle: "Data Transfer" },
+        meta: {
+            module: "data-transfer", pageTitle: "Data Transfer" },
         component: () => import("@/views/admin/data-transfer/Index.vue"),
     },
     {
@@ -66,7 +73,9 @@ export default [
     {
         path: "ird-settings",
         name: "admin.ird-settings",
-        meta: {pageTitle: "IRD EBS Settings"},
+        meta: {
+            module: "nepal-compliance",
+            pageTitle: "IRD EBS Settings"},
         component: () => import("@/views/admin/settings/ird/IrdSettings.vue"),
     },
     {

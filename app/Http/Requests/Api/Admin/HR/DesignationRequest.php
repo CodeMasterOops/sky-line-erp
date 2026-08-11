@@ -21,10 +21,10 @@ class DesignationRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('designations')->withoutTrashed()],
+                'name' => ['required', 'string', 'max:255', TRule::unique('designations')],
             ]),
             'PUT' => array_merge($validations, [
-                'name' => ['required', 'string', 'max:255', TRule::unique('designations')->withoutTrashed()->ignore($this->designation)],
+                'name' => ['required', 'string', 'max:255', TRule::unique('designations')->ignore($this->designation)],
             ]),
             default => $validations,
         };

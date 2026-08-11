@@ -16,12 +16,12 @@ class BrandRequest extends FormRequest
     {
         return match ($this->method()) {
             'POST' => [
-                'name' => ['required', 'string', 'max:255', TRule::unique('brands')->withoutTrashed()],
-                'code' => ['nullable', 'string', 'max:255', TRule::unique('brands')->withoutTrashed()],
+                'name' => ['required', 'string', 'max:255', TRule::unique('brands')],
+                'code' => ['nullable', 'string', 'max:255', TRule::unique('brands')],
             ],
             'PUT' => [
-                'name' => ['required', 'string', 'max:255', TRule::unique('brands')->withoutTrashed()->ignore($this->brand)],
-                'code' => ['required', 'string', 'max:255', TRule::unique('brands')->withoutTrashed()->ignore($this->brand)],
+                'name' => ['required', 'string', 'max:255', TRule::unique('brands')->ignore($this->brand)],
+                'code' => ['required', 'string', 'max:255', TRule::unique('brands')->ignore($this->brand)],
             ],
         };
     }

@@ -6,9 +6,12 @@ use App\Models\Company;
 use App\Models\StockLayer;
 use Illuminate\Console\Command;
 use App\Models\InventoryValuationSnapshot;
+use App\Console\Concerns\SkipsDisabledCompanies;
 
 class InventoryValuationSnapshotCommand extends Command
 {
+    use SkipsDisabledCompanies;
+
     protected $signature = 'inventory:valuation-snapshot
                             {date? : Snapshot date (Y-m-d). Defaults to today.}
                             {--company= : Limit to a specific company ID}
@@ -27,7 +30,15 @@ class InventoryValuationSnapshotCommand extends Command
             return self::FAILURE;
         }
 
-        $companyQuery = Company::query();
+        // `--replace` deletes and re-inserts snapshot rows, so an ungated run
+        // would be a disabled module writing to the database every month.
+        $moduleCompanyIds = $this->companiesWithModule('inventory');
+
+        if (! $this->reportModuleScope('inventory', $moduleCompanyIds)) {
+            return self::SUCCESS;
+        }
+
+        $companyQuery = Company::query()->whereIn('id', $moduleCompanyIds);
         if ($companyId) {
             $companyQuery->where('id', $companyId);
         }

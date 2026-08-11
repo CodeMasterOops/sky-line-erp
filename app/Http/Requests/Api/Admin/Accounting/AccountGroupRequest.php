@@ -23,10 +23,10 @@ class AccountGroupRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($baseRules, [
-                'code' => ['required', 'string', 'max:255', TRule::unique('account_groups')->withoutTrashed()],
+                'code' => ['required', 'string', 'max:255', TRule::unique('account_groups')],
             ]),
             'PUT' => array_merge($baseRules, [
-                'code' => ['required', 'string', 'max:255', TRule::unique('account_groups')->withoutTrashed()->ignore($this->account_group)],
+                'code' => ['required', 'string', 'max:255', TRule::unique('account_groups')->ignore($this->account_group)],
             ]),
         };
     }

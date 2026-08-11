@@ -28,6 +28,7 @@ import { useDesignationStore } from '@/stores/admin/hr/designation.js';
 
 const store = useDesignationStore();
 const createModalOpened = defineModel('createModalOpened');
+const emit = defineEmits(['created']);
 const initial = { name: '', description: '' };
 const form = reactive({ ...initial });
 const isSubmitting = ref(false);
@@ -37,9 +38,16 @@ const { errors, validateField, validateForm } = useYup(form, validations);
 const submit = async () => {
     if (await validateForm(validations, form)) {
         isSubmitting.value = true;
-        try { const res = await store.storeDesignation(form); toast(res.status, res.data.message); closeModal(); }
-        catch (e) { showErrors(e); }
-        finally { isSubmitting.value = false; }
+        try {
+            const res = await store.storeDesignation(form);
+            toast(res.status, res.data.message);
+            emit('created', res.data.data);
+            closeModal();
+        } catch (e) {
+            showErrors(e);
+        } finally {
+            isSubmitting.value = false;
+        }
     }
 };
 const closeModal = () => { Object.assign(form, { ...initial }); errors.value = {}; createModalOpened.value = false; };

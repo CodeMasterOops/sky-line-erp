@@ -48,6 +48,7 @@ import { useDepartmentStore } from '@/stores/admin/hr/department.js';
 
 const store = useDepartmentStore();
 const createModalOpened = defineModel('createModalOpened');
+const emit = defineEmits(['created']);
 
 const initial = { name: '', code: '', description: '' };
 const form = reactive({ ...initial });
@@ -68,6 +69,7 @@ const submit = async () => {
         try {
             const res = await store.storeDepartment(form);
             toast(res.status, res.data.message);
+            emit('created', res.data.data);
             closeModal();
         } catch (e) { showErrors(e); }
         finally { isSubmitting.value = false; }

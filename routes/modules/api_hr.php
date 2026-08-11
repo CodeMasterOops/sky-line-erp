@@ -36,16 +36,18 @@ Route::prefix('hr')->as('hr.')->group(function () {
     Route::post('leave-application/{leaveApplication}/reject', [LeaveApplicationController::class, 'reject'])->name('leave-application.reject');
     Route::apiResource('leave-application', LeaveApplicationController::class);
 
-    // Phase 3: Payroll
-    Route::apiResource('salary-component', SalaryComponentController::class);
-    Route::apiResource('salary-structure', SalaryStructureController::class);
-    Route::get('payroll/current-period', [PayrollController::class, 'currentPeriod'])->name('payroll.current-period');
-    Route::post('payroll/{payrollRun}/process', [PayrollController::class, 'process'])->name('payroll.process');
-    Route::post('payroll/{payrollRun}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
-    Route::post('payroll/{payrollRun}/confirm', [PayrollController::class, 'confirm'])->name('payroll.confirm');
-    Route::apiResource('payroll', PayrollController::class)->except('update')->parameters(['payroll' => 'payrollRun']);
-    Route::get('payslip', [PayslipController::class, 'index'])->name('payslip.index');
-    Route::get('payslip/{payslip}', [PayslipController::class, 'show'])->name('payslip.show');
+    // Phase 3: Payroll — `payroll` sub-module, gated inline inside `hr`
+    Route::middleware('module:payroll')->group(function () {
+        Route::apiResource('salary-component', SalaryComponentController::class);
+        Route::apiResource('salary-structure', SalaryStructureController::class);
+        Route::get('payroll/current-period', [PayrollController::class, 'currentPeriod'])->name('payroll.current-period');
+        Route::post('payroll/{payrollRun}/process', [PayrollController::class, 'process'])->name('payroll.process');
+        Route::post('payroll/{payrollRun}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
+        Route::post('payroll/{payrollRun}/confirm', [PayrollController::class, 'confirm'])->name('payroll.confirm');
+        Route::apiResource('payroll', PayrollController::class)->except('update')->parameters(['payroll' => 'payrollRun']);
+        Route::get('payslip', [PayslipController::class, 'index'])->name('payslip.index');
+        Route::get('payslip/{payslip}', [PayslipController::class, 'show'])->name('payslip.show');
+    });
 
     // Phase 4: Reports
     Route::prefix('report')->as('report.')->group(function () {

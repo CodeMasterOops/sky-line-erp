@@ -28,8 +28,23 @@ beforeEach(function () {
         'company_name' => 'Phase Two Test Co',
         'code' => 'P2TC',
         'email' => 'phase2@test.com',
+        'company_category_id' => categoryWithEveryModule()->id,
     ]);
 });
+
+/*
+ * These steps became module-aware in the capping plan's Phase 5, so the company
+ * under test declares an industry that runs everything — otherwise the default
+ * "General Business" category would (correctly) skip HR, payroll and
+ * manufacturing, and these assertions would be testing the skip rather than the
+ * step. The skip itself is covered by ModuleProvisioningTest.
+ */
+function categoryWithEveryModule(): App\Models\CompanyCategory
+{
+    return App\Models\CompanyCategory::factory()
+        ->withModules(app(App\Services\Modules\ModuleRegistry::class)->togglableKeys())
+        ->create();
+}
 
 // ---------------------------------------------------------------------------
 // RolesAndPermissionsStep

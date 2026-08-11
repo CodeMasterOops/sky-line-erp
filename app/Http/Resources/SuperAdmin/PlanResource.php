@@ -17,11 +17,15 @@ class PlanResource extends JsonResource
             'price_monthly' => $this->price_monthly,
             'price_yearly' => $this->price_yearly,
             'features' => $this->features ?? [],
+            // null = uncapped; a list caps which modules companies on this plan
+            // may run.
+            'modules' => $this->modules,
             'is_active' => $this->is_active,
             'is_default' => $this->is_default,
             'is_recommended' => $this->is_recommended,
             'sort_order' => $this->sort_order,
             'branch_limit' => $this->branch_limit,
+            'limits' => $this->limits ?? [],
             'subscriptions_count' => $this->whenCounted('subscriptions'),
             'active_subscriptions_count' => $this->when(
                 isset($this->active_subscriptions_count),

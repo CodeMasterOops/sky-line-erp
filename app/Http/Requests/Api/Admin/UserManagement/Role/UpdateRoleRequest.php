@@ -18,7 +18,7 @@ class UpdateRoleRequest extends FormRequest
         $grantable = app(PermissionRegistry::class)->grantableFor($this->user('admin'));
 
         return [
-            'name' => ['required', Rule::unique('roles')->withoutTrashed()->ignore($this->role)],
+            'name' => ['required', Rule::unique('roles')->ignore($this->role)],
             'permissions' => ['required', 'array'],
             'permissions.*' => ['required', 'string', Rule::in($grantable)],
         ];

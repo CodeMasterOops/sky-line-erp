@@ -9,12 +9,15 @@ use App\Annotation\Permissions;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Gate;
+use App\Http\Controllers\Concerns\EnforcesQuota;
 use App\Http\Resources\Admin\UserManagement\UserResource;
 use App\Http\Requests\Api\Admin\UserManagement\User\StoreUserRequest;
 use App\Http\Requests\Api\Admin\UserManagement\User\UpdateUserRequest;
 
 class UserController extends Controller
 {
+    use EnforcesQuota;
+
     #[Permissions('list_user', group: 'user', desc: 'List User')]
     public function index(Request $request)
     {
@@ -31,6 +34,10 @@ class UserController extends Controller
     #[Permissions('create_user', group: 'user', desc: 'Create User')]
     public function store(StoreUserRequest $request)
     {
+        if ($blocked = $this->refuseWhenOverQuota('users')) {
+            return $blocked;
+        }
+
         $formData = $request->validated();
         $formData['company_id'] = auth('admin')->user()->company_id;
 

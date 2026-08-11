@@ -56,6 +56,28 @@
                         />
                     </div>
                     <div class="col-md-4">
+                        <label class="form-label">
+                            Industry <span class="text-danger">*</span>
+                        </label>
+                        <select
+                            id="company_category_id"
+                            v-model="form.company_category_id"
+                            class="form-select"
+                            @change="validateField('company_category_id')"
+                        >
+                            <option value="">Select an industry</option>
+                            <option v-for="category in categories.data" :key="category.id" :value="category.id">
+                                {{ category.name }}
+                            </option>
+                        </select>
+                        <div v-if="errors.company_category_id" class="text-danger fs-11 mt-1">
+                            {{ errors.company_category_id }}
+                        </div>
+                        <div v-else class="fs-11 text-muted mt-1">
+                            Decides which modules this company starts with.
+                        </div>
+                    </div>
+                    <div class="col-md-4">
                         <VInput
                             id="pan"
                             v-model="form.pan"
@@ -267,17 +289,21 @@ import {object, string} from 'yup';
 import {useYup} from '@/helpers/yup';
 import {useCompanyStore} from '@/stores/super-admin/company';
 import {useLocationStore} from '@/stores/super-admin/location';
+import {useModuleStore} from '@/stores/super-admin/module';
 import {storeToRefs} from 'pinia';
 
 const companyStore = useCompanyStore();
 const locationStore = useLocationStore();
 const {provinces: provincesState} = storeToRefs(locationStore);
+const moduleStore = useModuleStore();
+const {categories} = storeToRefs(moduleStore);
 const provinces = computed(() => provincesState.value.data ?? []);
 const districtOptions = ref([]);
 const palikaOptions = ref([]);
 const wardOptions = ref([]);
 
 const initialState = {
+    company_category_id: '',
     company_name: '',
     legal_name: '',
     code: '',
@@ -304,6 +330,7 @@ const isSubmitting = ref(false);
 
 const validations = object({
     company_name: string().required('Company name is required.'),
+    company_category_id: string().required('Choose the industry this company is in.'),
     legal_name: string().required('Legal name is required.'),
     code: string().required('Code is required.'),
     pan: string().nullable(),
@@ -404,6 +431,9 @@ watch(
 
 onMounted(() => {
     locationStore.loadProvinces();
+    // Every active industry, so the picker reflects whatever categories the
+    // Super Admin has configured rather than a hard-coded list.
+    moduleStore.getCategories({filter: {limit: 100, is_active: 1}});
 });
 
 const storeCompany = async () => {

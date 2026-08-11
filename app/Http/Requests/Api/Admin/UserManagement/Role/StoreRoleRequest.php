@@ -19,7 +19,7 @@ class StoreRoleRequest extends FormRequest
         $grantable = app(PermissionRegistry::class)->grantableFor($this->user('admin'));
 
         return [
-            'name' => ['required', TRule::unique('roles')->withoutTrashed()],
+            'name' => ['required', TRule::unique('roles')],
             'permissions' => ['required', 'array'],
             'permissions.*' => ['required', 'string', Rule::in($grantable)],
         ];

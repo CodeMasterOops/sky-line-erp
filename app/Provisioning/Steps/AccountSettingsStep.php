@@ -7,13 +7,19 @@ use App\Models\Account;
 use App\Models\Company;
 use App\Models\AccountSetting;
 use Illuminate\Support\Facades\Log;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
-class AccountSettingsStep implements ProvisioningStep
+class AccountSettingsStep implements ModuleAwareStep, ProvisioningStep
 {
     public function name(): string
     {
         return 'AccountSettings';
+    }
+
+    public function module(): string
+    {
+        return 'accounting';
     }
 
     public function isIdempotent(): bool

@@ -28,6 +28,7 @@ use App\Services\TenantService;
 use App\Jobs\SyncInvoiceToIrdJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Cache;
 use App\Services\Sales\ReceiptService;
@@ -443,7 +444,14 @@ class PosController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 500);
+            Log::error('POS checkout failed', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to complete the sale. Please try again.',
+            ], 500);
         }
 
         Cache::forget("pos_today_summary_{$company->id}_{$today}");
@@ -973,7 +981,14 @@ class PosController extends Controller
                 return $creditNote;
             });
         } catch (\Throwable $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            Log::error('POS return failed', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to process the return. Please try again.',
+            ], 422);
         }
 
         $creditNote->load([

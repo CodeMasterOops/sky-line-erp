@@ -2,7 +2,7 @@
     <div class="reports-hub">
         <PageHeader
             title="Reports"
-            subtitle="Open a report by category. Links respect your role permissions."
+            subtitle="Open a report by category. Links respect your role permissions and the modules your company runs."
             :hide-action-buttons="true"
         />
 
@@ -31,6 +31,11 @@
             </p>
         </div>
 
+        <div v-if="loading" class="reports-hub__loading">
+            <span class="spinner-border text-primary"></span>
+        </div>
+
+        <template v-else>
         <div v-if="pinnedReports.length && !searchQuery" class="reports-hub__pinned">
             <div class="reports-hub__pinned-head">
                 <span class="reports-hub__pinned-title">
@@ -143,221 +148,57 @@
 
         <div v-else class="reports-hub__empty">
             <i class="ti ti-search-off"></i>
-            <p>No reports match "<strong>{{ searchQuery }}</strong>"</p>
+            <p v-if="searchQuery">No reports match "<strong>{{ searchQuery }}</strong>"</p>
+            <p v-else>
+                No reports are available. They appear here as your company's
+                modules are enabled and your role is given access.
+            </p>
         </div>
+        </template>
     </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import PageHeader from '@/components/shared/PageHeader.vue';
-import { hasPermission } from '@/helpers/checkPermission';
+import { apiAdmin } from '@/helpers/api';
 import { useReportPinnedLinksStore } from '@/stores/admin/reportPinnedLinks';
 import { toast } from '@/helpers/toast.js';
 import showErrors from '@/helpers/showErrors';
 
-const REPORT_CATEGORIES = [
-    // 0 — Revenue (most checked daily)
-    {
-        title: 'Sales',
-        slug: 'sales',
-        description: 'Sales performance by period, item, category, customer, profit, tax, and discount.',
-        icon: 'ti ti-shopping-cart',
-        accentClass: 'is-teal',
-        items: [
-            { label: 'Sales Report', name: 'admin.sales-report', permission: 'list_sales_order' },
-            { label: 'Sales By Item', name: 'admin.sales-by-item', permission: 'list_sales_order' },
-            { label: 'Sales Summary', name: 'admin.sales-summary-report', permission: 'sales_summary_report' },
-            { label: 'Daily Sales', name: 'admin.daily-sales-report', permission: 'daily_sales_report' },
-            { label: 'Monthly Sales', name: 'admin.monthly-sales-report', permission: 'monthly_sales_report' },
-            { label: 'Yearly Sales', name: 'admin.yearly-sales-report', permission: 'yearly_sales_report' },
-            { label: 'Customer Wise Sales', name: 'admin.customer-wise-sales-report', permission: 'customer_wise_sales_report' },
-            { label: 'Category Wise Sales', name: 'admin.category-wise-sales-report', permission: 'category_wise_sales_report' },
-            { label: 'Product Wise Sales', name: 'admin.product-wise-sales-report', permission: 'product_wise_sales_report' },
-            { label: 'Sales Return', name: 'admin.sales-return-report', permission: 'sales_return_report' },
-            { label: 'Outstanding Sales', name: 'admin.outstanding-sales-report', permission: 'outstanding_sales_report' },
-            { label: 'Sales Tax', name: 'admin.sales-tax-report', permission: 'sales_tax_report' },
-            { label: 'Sales Profit', name: 'admin.sales-profit-report', permission: 'sales_profit_report' },
-            { label: 'Discount Report', name: 'admin.discount-report', permission: 'discount_report' },
-            { label: 'Sales Ledger', name: 'admin.sales-ledger-report', permission: 'sales_ledger_report' },
-        ],
-    },
-    // 2 — Cost control
-    {
-        title: 'Purchase',
-        slug: 'purchase',
-        description: 'Purchase reports by period, item, supplier, category, GRN, tax, and pending orders.',
-        icon: 'ti ti-truck-delivery',
-        accentClass: 'is-amber',
-        items: [
-            { label: 'Purchase Report', name: 'admin.purchase-report', permission: 'list_bill' },
-            { label: 'Purchase By Item', name: 'admin.purchase-by-item', permission: 'list_bill' },
-            { label: 'Purchase Summary', name: 'admin.purchase-summary-report', permission: 'purchase_summary_report' },
-            { label: 'Daily Purchase', name: 'admin.daily-purchase-report', permission: 'daily_purchase_report' },
-            { label: 'Monthly Purchase', name: 'admin.monthly-purchase-report', permission: 'monthly_purchase_report' },
-            { label: 'Yearly Purchase', name: 'admin.yearly-purchase-report', permission: 'yearly_purchase_report' },
-            { label: 'Supplier Wise Purchase', name: 'admin.supplier-wise-purchase-report', permission: 'supplier_wise_purchase_report' },
-            { label: 'Category Wise Purchase', name: 'admin.category-wise-purchase-report', permission: 'category_wise_purchase_report' },
-            { label: 'Purchase Return', name: 'admin.purchase-return-report', permission: 'purchase_return_report' },
-            { label: 'Outstanding Purchase', name: 'admin.outstanding-purchase-report', permission: 'outstanding_purchase_report' },
-            { label: 'Purchase Tax', name: 'admin.purchase-tax-report', permission: 'purchase_tax_report' },
-            { label: 'Purchase Ledger', name: 'admin.purchase-ledger-report', permission: 'purchase_ledger_report' },
-            { label: 'GRN Report', name: 'admin.grn-report', permission: 'grn_report' },
-            { label: 'Pending Purchase', name: 'admin.pending-purchase-report', permission: 'pending_purchase_report' },
-            { label: 'Purchase Discount', name: 'admin.purchase-discount-report', permission: 'purchase_discount_report' },
-        ],
-    },
-    // 3 — Core financials
-    {
-        title: 'Accounting',
-        slug: 'accounting',
-        description: 'Core financial statements — trial balance, P&L, balance sheet, ledgers, and vouchers.',
-        icon: 'ti ti-calculator',
-        accentClass: 'is-blue',
-        items: [
-            { label: 'Trial Balance', name: 'admin.trial-balance', permission: 'list_account' },
-            { label: 'Profit & Loss', name: 'admin.profit-and-loss', permission: 'list_account' },
-            { label: 'Balance Sheet', name: 'admin.balance-sheet', permission: 'list_account' },
-            { label: 'Cash Flow', name: 'admin.cash-flow', permission: 'list_account' },
-            { label: 'Expense Statement', name: 'admin.expense-statement-report', permission: 'expense_statement_report' },
-            { label: 'General Ledger', name: 'admin.general-ledger', permission: 'list_account' },
-            { label: 'Cash Ledger', name: 'admin.cash-ledger-report', permission: 'list_account' },
-            { label: 'Bank Ledger', name: 'admin.bank-ledger-report', permission: 'list_account' },
-            { label: 'Customer Ledger', name: 'admin.sales-ledger-report', permission: 'sales_ledger_report' },
-            { label: 'Supplier Ledger', name: 'admin.purchase-ledger-report', permission: 'purchase_ledger_report' },
-            { label: 'Journal Report', name: 'admin.journal-report', permission: 'list_account' },
-            { label: 'Payment Voucher Report', name: 'admin.payment-voucher-report', permission: 'list_account' },
-            { label: 'Receipt Voucher Report', name: 'admin.receipt-voucher-report', permission: 'list_account' },
-            { label: 'All Voucher Register', name: 'admin.all-voucher-register', permission: 'list_account' },
-        ],
-    },
-    // 4 — Receivables
-    {
-        title: 'Customer',
-        slug: 'customer',
-        description: 'Customer balances, ledgers, outstanding amounts, ageing, and transaction history.',
-        icon: 'ti ti-users',
-        accentClass: 'is-green',
-        items: [
-            { label: 'Customer Ledger', name: 'admin.sales-ledger-report', permission: 'sales_ledger_report' },
-            { label: 'Customer Outstanding / Ageing', name: 'admin.ar-aging', permission: 'list_account' },
-            { label: 'Customer Transaction', name: 'admin.customer-transaction-report', permission: 'sales_ledger_report' },
-            { label: 'Customer Statement', name: 'admin.customer-statement', permission: 'sales_ledger_report' },
-            { label: 'Top Customers', name: 'admin.customer-wise-sales-report', permission: 'customer_wise_sales_report' },
-        ],
-    },
-    // 5 — Payables
-    {
-        title: 'Supplier',
-        slug: 'supplier',
-        description: 'Supplier balances, ledgers, outstanding amounts, ageing, and transaction history.',
-        icon: 'ti ti-building-store',
-        accentClass: 'is-orange',
-        items: [
-            { label: 'Supplier Ledger', name: 'admin.purchase-ledger-report', permission: 'purchase_ledger_report' },
-            { label: 'Supplier Outstanding / Ageing', name: 'admin.ap-aging', permission: 'list_account' },
-            { label: 'Supplier Transaction', name: 'admin.supplier-transaction-report', permission: 'purchase_ledger_report' },
-            { label: 'Supplier Statement', name: 'admin.supplier-statement', permission: 'purchase_ledger_report' },
-            { label: 'Top Suppliers', name: 'admin.supplier-wise-purchase-report', permission: 'supplier_wise_purchase_report' },
-        ],
-    },
-    // 6 — Liquidity
-    {
-        title: 'Cash & Bank',
-        slug: 'cash-bank',
-        description: 'Track cash and bank movements, reconcile statements, and monitor cheques.',
-        icon: 'ti ti-cash',
-        accentClass: 'is-teal',
-        items: [
-            { label: 'Cash Book', name: 'admin.cash-ledger-report', permission: 'list_account' },
-            { label: 'Bank Book', name: 'admin.bank-ledger-report', permission: 'list_account' },
-            { label: 'Bank Reconciliation', name: 'admin.bank-reconciliation', permission: 'list_account' },
-            { label: 'Daily Collection', name: 'admin.daily-collection-report', permission: 'list_account' },
-            { label: 'Daily Payment', name: 'admin.daily-payment-report', permission: 'list_account' },
-            { label: 'Cheque Issue', name: 'admin.cheque-issue-report', permission: 'list_account' },
-            { label: 'Cheque Receive', name: 'admin.cheque-receive-report', permission: 'list_account' },
-        ],
-    },
-    // 7 — Stock
-    {
-        title: 'Inventory',
-        slug: 'inventory',
-        description: 'Stock levels, movement, valuation, aging, warehouse locations, expiry, and batch tracking.',
-        icon: 'ti ti-packages',
-        accentClass: 'is-cyan',
-        items: [
-            { label: 'Inventory Valuation', name: 'admin.inventory-valuation', permission: 'list_product' },
-            { label: 'Stock Aging', name: 'admin.stock-aging', permission: 'list_product' },
-            { label: 'Reorder Alerts', name: 'admin.reorder-alerts', permission: 'list_product' },
-            { label: 'Stock Movement Report', name: 'admin.stock-movement-report', permission: 'list_product' },
-            { label: 'Stock Ledger Report', name: 'admin.stock-ledger-report', permission: 'list_product' },
-            { label: 'Warehouse Wise Stock', name: 'admin.warehouse-stock-report', permission: 'list_product' },
-            { label: 'Warehouse Transfer Report', name: 'admin.warehouse-transfer-report', permission: 'list_product' },
-            { label: 'Expiry Stock Report', name: 'admin.expiry-stock-report', permission: 'list_product' },
-            { label: 'Dead Stock Report', name: 'admin.dead-stock-report', permission: 'list_product' },
-            { label: 'Stock Opening Report', name: 'admin.stock-opening-report', permission: 'list_product' },
-            { label: 'Inventory Summary Report', name: 'admin.inventory-summary-report', permission: 'inventory_summary_report' },
-            { label: 'Damage Stock Report', name: 'admin.damage-stock-report', permission: 'list_damage_report' },
-            { label: 'Production Variance Report', name: 'admin.production-variance-report', permission: 'list_production_order' },
-            { label: 'Batch Stock Report', name: 'admin.batch-stock-report', permission: 'list_batch' },
-            { label: 'Batch Traceability Report', name: 'admin.batch-traceability-report', permission: 'list_batch' },
-        ],
-    },
-    // 8 — Compliance
-    {
-        title: 'Tax & Statutory',
-        slug: 'tax-statutory',
-        description: 'VAT returns, sales and purchase registers, TDS reports, and tax challans.',
-        icon: 'ti ti-file-certificate',
-        accentClass: 'is-mint',
-        items: [
-            { label: 'VAT Return (D3)', name: 'admin.vat-return', permission: 'list_account' },
-            { label: 'Bikri Khata (Sales Register)', name: 'admin.vat-sales-register', permission: 'list_account' },
-            { label: 'Kharid Khata (Purchase Register)', name: 'admin.vat-purchase-register', permission: 'list_account' },
-            { label: 'TDS Report', name: 'admin.tds-report', permission: 'list_account' },
-            { label: 'TDS Challan & Certificate', name: 'admin.tds-challan', permission: 'list_account' },
-        ],
-    },
-    // 9 — People
-    {
-        title: 'HR & Payroll',
-        slug: 'hr-payroll',
-        description: 'Payroll summaries, attendance records, leave balances, and salary TDS.',
-        icon: 'ti ti-users-group',
-        accentClass: 'is-violet',
-        items: [
-            { label: 'Payroll Summary', name: 'admin.hr-report-payroll', permission: 'list_payroll' },
-            { label: 'Attendance Report', name: 'admin.hr-report-attendance', permission: 'list_attendance' },
-            { label: 'Leave Balance', name: 'admin.hr-report-leave', permission: 'list_leave_application' },
-            { label: 'TDS Salary Report', name: 'admin.hr-report-tds-salary', permission: 'list_payroll' },
-        ],
-    },
-    // 10 — System (least used)
-    {
-        title: 'System',
-        slug: 'system',
-        description: 'Integration health and sync status with government and external systems.',
-        icon: 'ti ti-cloud-data-connection',
-        accentClass: 'is-slate',
-        items: [
-            { label: 'IRD EBS Sync Status', name: 'admin.ird-sync', permission: 'list_account' },
-        ],
-    },
-];
+/**
+ * The catalogue is served by GET admin/report-catalogue, already filtered by
+ * BOTH the user's permissions and the company's enabled modules. It used to be
+ * a hardcoded array here filtered on permissions alone, which offered every
+ * report of every module — including ones the router guard immediately bounced.
+ *
+ * @see config/reports.php — the catalogue itself
+ * @see app/Http/Controllers/Api/Admin/ReportCatalogueController.php
+ */
+const categories = ref([]);
+const loading = ref(true);
 
-function canSeeItem(item) {
-    if (!item.permission) return true;
-    return hasPermission(item.permission);
+async function loadCatalogue() {
+    loading.value = true;
+
+    try {
+        const res = await apiAdmin('report-catalogue', 'get');
+        categories.value = (res.data?.data ?? []).map((cat) => ({
+            ...cat,
+            accentClass: cat.accent_class,
+        }));
+    } catch (err) {
+        showErrors(err);
+    } finally {
+        loading.value = false;
+    }
 }
+
+onMounted(loadCatalogue);
 
 const searchQuery = ref('');
 
-const visibleCategories = computed(() =>
-    REPORT_CATEGORIES.map((cat) => ({
-        ...cat,
-        items: cat.items.filter(canSeeItem),
-    })).filter((cat) => cat.items.length > 0),
-);
+const visibleCategories = computed(() => categories.value);
 
 const filteredCategories = computed(() => {
     const q = searchQuery.value.trim().toLowerCase();
@@ -379,9 +220,11 @@ const reportPins = useReportPinnedLinksStore();
 
 /**
  * Map every visible report's route name to its display metadata. Built from the
- * permission-filtered categories so reports the user can no longer access drop
- * out of the pinned list automatically. First occurrence of a duplicated route
- * name wins (some reports are surfaced under multiple categories).
+ * server-filtered categories, so a report the user can no longer reach — a
+ * revoked permission, a module switched off — drops out of the pinned strip
+ * automatically while the stored pin itself survives untouched, ready for the
+ * day the module comes back. First occurrence of a duplicated route name wins
+ * (some reports are surfaced under multiple categories).
  */
 const reportIndex = computed(() => {
     const index = {};
@@ -888,6 +731,13 @@ function highlight(label) {
 }
 
 /* ── Empty state ────────────────────────────────────────── */
+.reports-hub__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+}
+
 .reports-hub__empty {
     display: flex;
     flex-direction: column;

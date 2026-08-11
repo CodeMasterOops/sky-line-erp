@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\SuperAdmin\AuthController;
 use App\Http\Controllers\Api\SuperAdmin\LeadController;
 use App\Http\Controllers\Api\SuperAdmin\PlanController;
+use App\Http\Controllers\Api\SuperAdmin\ModuleController;
+use App\Http\Controllers\Api\SuperAdmin\CompanyModuleController;
+use App\Http\Controllers\Api\SuperAdmin\CompanyCategoryController;
 use App\Http\Controllers\Api\SuperAdmin\WardController;
 use App\Http\Controllers\Api\SuperAdmin\PalikaController;
 use App\Http\Controllers\Api\SuperAdmin\CompanyController;
@@ -53,6 +56,22 @@ Route::middleware('auth:super_admin')->group(function () {
     Route::apiResource('district', DistrictController::class);
     Route::apiResource('palika', PalikaController::class);
     Route::apiResource('ward', WardController::class);
+
+    // module catalogue (config-defined; the same for every company)
+    Route::get('module', ModuleController::class)->name('module.index');
+
+    // company categories (industry defaults)
+    Route::apiResource('company-category', CompanyCategoryController::class)
+        ->parameters(['company-category' => 'companyCategory']);
+
+    // per-company module control + audit trail
+    Route::get('company/{company}/module', [CompanyModuleController::class, 'index'])->name('company.module.index');
+    Route::put('company/{company}/module', [CompanyModuleController::class, 'update'])->name('company.module.update');
+    Route::get('company/{company}/module/event', [CompanyModuleController::class, 'events'])->name('company.module.event');
+    // read-only "what would disabling this mean?" preflight
+    Route::get('company/{company}/module/{moduleKey}/impact', [CompanyModuleController::class, 'impact'])->name('company.module.impact');
+    Route::put('company/{company}/category', [CompanyModuleController::class, 'applyCategory'])->name('company.category.apply');
+    Route::post('company/{company}/module/reset', [CompanyModuleController::class, 'resetToCategory'])->name('company.module.reset');
 
     // company
     Route::post('company/{company}/login', [CompanyController::class, 'companyLogin'])->name('company.login');

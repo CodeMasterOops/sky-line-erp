@@ -61,6 +61,35 @@ class PermissionRegistry
     }
 
     /**
+     * The enforced permissions that belong to a module the company actually
+     * runs. Used to filter what the role editor *offers*.
+     *
+     * Deliberately not used for validation: a role keeps the permissions it was
+     * saved with while a module is off, so switching the module back on restores
+     * the role's behaviour exactly. Route access is gated by the `module`
+     * middleware, which makes a stored permission harmlessly inert meanwhile.
+     *
+     * @return list<string>
+     */
+    public function forCompany(int $companyId): array
+    {
+        $registry = app(\App\Services\Modules\ModuleRegistry::class);
+        $enabled = app(\App\Services\Modules\CompanyModuleService::class)->enabledKeys($companyId);
+
+        return array_values(array_filter(
+            $this->all(),
+            function (string $permission) use ($registry, $enabled): bool {
+                $owner = $registry->moduleForPermission($permission);
+
+                // A permission no module claims yet is left visible rather than
+                // silently vanishing from the role editor; ModuleRegistryTest
+                // fails the build if that ever happens.
+                return $owner === null || in_array($owner, $enabled, true);
+            },
+        ));
+    }
+
+    /**
      * The permissions the given actor is allowed to assign. Admins may grant
      * anything in the catalogue; every other user may only grant permissions
      * they themselves currently hold ("grant ≤ own"), preventing privilege

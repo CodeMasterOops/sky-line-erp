@@ -5,13 +5,19 @@ namespace App\Provisioning\Steps;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Services\Accounting\CoaInsertService;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
-class ChartOfAccountsStep implements ProvisioningStep
+class ChartOfAccountsStep implements ModuleAwareStep, ProvisioningStep
 {
     public function name(): string
     {
         return 'ChartOfAccounts';
+    }
+
+    public function module(): string
+    {
+        return 'accounting';
     }
 
     public function isIdempotent(): bool

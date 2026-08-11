@@ -31,6 +31,9 @@
                 </template>
 
                 <template #body>
+                    <p v-if="detailData.supplier_invoice_no" class="mb-2">
+                        <strong>Supplier Invoice No:</strong> {{ detailData.supplier_invoice_no }}
+                    </p>
                     <p v-if="detailData.remarks" class="mb-3"><strong>Remarks:</strong> {{ detailData.remarks }}</p>
                     <h5 class="order-text mb-3">Line items</h5>
                     <div class="table-responsive no-pagination">

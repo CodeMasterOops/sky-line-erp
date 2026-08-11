@@ -55,9 +55,9 @@ class TaxRequest extends FormRequest
         ];
 
         if ($this->method() === 'POST') {
-            $baseRules['name'][] = TRule::unique('taxes')->withoutTrashed();
+            $baseRules['name'][] = TRule::unique('taxes');
         } else {
-            $baseRules['name'][] = TRule::unique('taxes')->withoutTrashed()->ignore($this->tax);
+            $baseRules['name'][] = TRule::unique('taxes')->ignore($this->tax);
         }
 
         return $baseRules;

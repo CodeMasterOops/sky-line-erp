@@ -13,6 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use App\Notifications\LowStockNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use App\Jobs\Middleware\SkipsDisabledModule;
 
 class CheckLowStockJob implements ShouldQueue
 {
@@ -25,6 +26,17 @@ class CheckLowStockJob implements ShouldQueue
         public Stock $stock,
     ) {
         $this->onQueue('default');
+    }
+
+    /**
+     * A stock write can queue this job moments before Inventory is switched
+     * off; the alert must not land afterwards.
+     *
+     * @return list<object>
+     */
+    public function middleware(): array
+    {
+        return [new SkipsDisabledModule('inventory', (int) $this->stock->company_id)];
     }
 
     public function handle(): void

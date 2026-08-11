@@ -5,7 +5,7 @@ import {useSuperAdminAuthStore} from '@/stores/super-admin/auth.js';
 import {useBranchStore} from '@/stores/admin/settings/branch.js';
 import {formattedRequest} from '@/helpers/apiRequest.js';
 import {sanitizeDownloadFilename} from '@/helpers/helper.js';
-import {ADMIN_BRANCH_SELECT_PATH} from '@/helpers/adminPaths.js';
+import {ADMIN_BRANCH_SELECT_PATH, ADMIN_MODULE_UNAVAILABLE_PATH} from '@/helpers/adminPaths.js';
 
 function piniaStore(useStore) {
     const pinia = getActivePinia();
@@ -56,6 +56,21 @@ adminClient.interceptors.response.use((response) => response, async (error) => {
     ) {
         piniaStore(useBranchStore)?.clearSelectedBranch();
         window.location.href = ADMIN_BRANCH_SELECT_PATH;
+    } else if (
+        error.response?.status === 403 &&
+        error.response?.data?.code === 'module_disabled'
+    ) {
+        // A module was switched off mid-session. Re-sync so the menus and
+        // routes stop offering it, then send the user somewhere that explains
+        // what happened instead of leaving a half-loaded screen behind a
+        // generic error toast.
+        const moduleKey = error.response.data.module;
+
+        piniaStore(useAdminAuthStore)?.refreshPermissions();
+
+        if (!window.location.pathname.startsWith(ADMIN_MODULE_UNAVAILABLE_PATH)) {
+            window.location.href = `${ADMIN_MODULE_UNAVAILABLE_PATH}?module=${encodeURIComponent(moduleKey ?? '')}`;
+        }
     } else if (
         error.response?.status === 403 &&
         !error.config?.url?.includes('profile/permissions')

@@ -32,15 +32,15 @@ class WarehouseRequest extends FormRequest
         return match ($this->method()) {
             'POST' => [
                 'parent_id' => $parentRules,
-                'name' => ['required', 'string', 'max:255', TRule::unique('warehouses')->withoutTrashed()],
-                'code' => ['nullable', 'string', 'max:255', TRule::unique('warehouses')->withoutTrashed()],
+                'name' => ['required', 'string', 'max:255', TRule::unique('warehouses')],
+                'code' => ['nullable', 'string', 'max:255', TRule::unique('warehouses')],
                 'phone' => ['nullable', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:255'],
             ],
             'PUT' => [
                 'parent_id' => $parentRules,
-                'name' => ['required', 'string', 'max:255', TRule::unique('warehouses')->withoutTrashed()->ignore($this->warehouse)],
-                'code' => ['required', 'string', 'max:255', TRule::unique('warehouses')->withoutTrashed()->ignore($this->warehouse)],
+                'name' => ['required', 'string', 'max:255', TRule::unique('warehouses')->ignore($this->warehouse)],
+                'code' => ['required', 'string', 'max:255', TRule::unique('warehouses')->ignore($this->warehouse)],
                 'phone' => ['nullable', 'string', 'max:255'],
                 'address' => ['nullable', 'string', 'max:255'],
             ],

@@ -63,8 +63,10 @@ Route::prefix('accounting-period')->as('accounting-period.')->controller(Account
     Route::post('{accountingPeriod}/lock', 'lock')->name('lock');
 });
 
-// bank reconciliation
-Route::prefix('bank-reconciliation')->as('bank-reconciliation.')->controller(BankReconciliationController::class)->group(function () {
+// bank reconciliation — `banking` sub-module (statement import, matching,
+// reconciliation, cheques). Bank *account* CRUD stays in accounting because
+// payments depend on it. Gated inline so URLs and route names stay put.
+Route::prefix('bank-reconciliation')->as('bank-reconciliation.')->middleware('module:banking')->controller(BankReconciliationController::class)->group(function () {
     Route::get('bank-accounts', 'bankAccounts')->name('bank-accounts');
     Route::post('bank-accounts', 'storeBankAccount')->name('bank-accounts.store');
     Route::get('bank-accounts/{bankAccount}/statement-lines', 'statementLines')->name('statement-lines');
@@ -86,7 +88,7 @@ Route::prefix('bank-reconciliation')->as('bank-reconciliation.')->controller(Ban
 });
 
 // fixed assets
-Route::prefix('fixed-asset')->as('fixed-asset.')->controller(FixedAssetController::class)->group(function () {
+Route::prefix('fixed-asset')->as('fixed-asset.')->middleware('module:fixed-assets')->controller(FixedAssetController::class)->group(function () {
     Route::get('categories', 'categories')->name('categories');
     Route::post('categories', 'storeCategory')->name('categories.store');
     Route::get('schedule', 'schedule')->name('schedule');
@@ -135,22 +137,28 @@ Route::prefix('account-report')->as('account-report.')->controller(AccountReport
     Route::post('debit-note/{debitNote}/repost', 'repostDebitNote')->name('debit-note.repost');
 });
 
-// PDC Cheques
-Route::prefix('cheque')->as('cheque.')->controller(ChequeController::class)->group(function () {
-    Route::get('summary', 'summary')->name('summary');
-    Route::post('{cheque}/present', 'present')->name('present');
-    Route::post('{cheque}/clear', 'clear')->name('clear');
-    Route::post('{cheque}/bounce', 'bounce')->name('bounce');
-    Route::post('{cheque}/cancel', 'cancel')->name('cancel');
+// PDC Cheques — `banking` sub-module
+Route::middleware('module:banking')->group(function () {
+    Route::prefix('cheque')->as('cheque.')->controller(ChequeController::class)->group(function () {
+        Route::get('summary', 'summary')->name('summary');
+        Route::post('{cheque}/present', 'present')->name('present');
+        Route::post('{cheque}/clear', 'clear')->name('clear');
+        Route::post('{cheque}/bounce', 'bounce')->name('bounce');
+        Route::post('{cheque}/cancel', 'cancel')->name('cancel');
+    });
+    Route::apiResource('cheque', ChequeController::class)->except(['update', 'destroy']);
 });
-Route::apiResource('cheque', ChequeController::class)->except(['update', 'destroy']);
 
-// Budget management
-Route::get('budget/{budget}/vs-actual', [BudgetController::class, 'vsActual'])->name('budget.vs-actual');
-Route::apiResource('budget', BudgetController::class);
+// Budget management — `budgeting` sub-module
+Route::middleware('module:budgeting')->group(function () {
+    Route::get('budget/{budget}/vs-actual', [BudgetController::class, 'vsActual'])->name('budget.vs-actual');
+    Route::apiResource('budget', BudgetController::class);
+});
 
 // Cash flow forecasting
 Route::get('cash-flow-forecast', CashFlowForecastController::class)->name('cash-flow-forecast');
 
 // Bank CSV import (extends existing bank reconciliation)
-Route::post('bank-reconciliation/bank-accounts/{bankAccount}/import-csv', [BankReconciliationController::class, 'importCsv'])->name('bank-reconciliation.import-csv');
+Route::post('bank-reconciliation/bank-accounts/{bankAccount}/import-csv', [BankReconciliationController::class, 'importCsv'])
+    ->middleware('module:banking')
+    ->name('bank-reconciliation.import-csv');

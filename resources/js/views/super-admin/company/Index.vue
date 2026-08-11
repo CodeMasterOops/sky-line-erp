@@ -122,6 +122,12 @@
                                         <i class="fa fa-edit"></i>
                                     </router-link>
                                     <router-link
+                                        :to="{name:'super-admin.company-modules',params:{id:record.id}}"
+                                        class="btn btn-xs btn-outline-secondary me-2"
+                                        title="Modules">
+                                        <i class="ti ti-adjustments"></i>
+                                    </router-link>
+                                    <router-link
                                         :to="{name:'super-admin.company-provision-log',params:{id:record.id}}"
                                         class="btn btn-xs btn-outline-info"
                                         title="Provision Log">

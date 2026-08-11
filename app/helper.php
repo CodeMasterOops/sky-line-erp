@@ -113,6 +113,24 @@ if (! function_exists('warehouseBranchId')) {
     }
 }
 
+if (! function_exists('moduleEnabled')) {
+    /**
+     * Whether the given module is switched on for a company — the current
+     * tenant unless one is named. Use it to hide a module's own surfaces
+     * (menu entries, dashboard widgets, report sources, notifications);
+     * route access is already gated by the `module` middleware.
+     */
+    function moduleEnabled(string $moduleKey, ?int $companyId = null): bool
+    {
+        if ($companyId !== null) {
+            return app(\App\Services\Modules\CompanyModuleService::class)
+                ->isEnabled($moduleKey, $companyId);
+        }
+
+        return app(\App\Services\Modules\ModuleGate::class)->enabled($moduleKey);
+    }
+}
+
 if (! function_exists('hasPermission')) {
     function hasPermission($permissions): bool
     {

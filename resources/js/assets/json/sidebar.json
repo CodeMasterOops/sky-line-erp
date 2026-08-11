@@ -10,6 +10,7 @@
             },
             {
                 "menuValue": "POS",
+                "module": "pos",
                 "route": { "name": "admin.pos" },
                 "icon": "ti ti-device-laptop",
                 "permission": "list_product",
@@ -28,6 +29,7 @@
         "menu": [
             {
                 "menuValue": "CRM",
+                "module": "crm",
                 "icon": "ti ti-users-group",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -54,7 +56,48 @@
                 ]
             },
             {
+                "menuValue": "Gym",
+                "module": "gym",
+                "icon": "ti ti-barbell",
+                "hasSubRoute": true,
+                "showSubRoute": false,
+                "subMenus": [
+                    {
+                        "menuValue": "Members",
+                        "route": { "name": "admin.gym-member-list" },
+                        "active_routes": ["admin.gym-member-list", "admin.gym-member-create", "admin.gym-member-edit", "admin.gym-member-profile"],
+                        "permission": "list_member",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Memberships",
+                        "route": { "name": "admin.gym-membership-list" },
+                        "permission": "list_membership",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Membership Plans",
+                        "route": { "name": "admin.gym-membership-plan-list" },
+                        "permission": "list_membership_plan",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Check-ins",
+                        "route": { "name": "admin.gym-check-in" },
+                        "permission": "member_check_in",
+                        "hasSubRoute": false
+                    },
+                    {
+                        "menuValue": "Gym Reports",
+                        "route": { "name": "admin.gym-reports" },
+                        "permission": "gym_report",
+                        "hasSubRoute": false
+                    }
+                ]
+            },
+            {
                 "menuValue": "Sales",
+                "module": "sales",
                 "icon": "ti ti-shopping-cart",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -101,6 +144,7 @@
             },
             {
                 "menuValue": "Purchases",
+                "module": "purchase",
                 "icon": "ti ti-package-import",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -146,6 +190,7 @@
             },
             {
                 "menuValue": "Inventory",
+                "module": "inventory",
                 "icon": "ti ti-box",
                 "hasSubRouteTwo": true,
                 "showSubRoute": false,
@@ -239,6 +284,7 @@
                     },
                     {
                         "menuValue": "Manufacturing",
+                        "module": "manufacturing",
                         "customSubmenuTwo": true,
                         "hasSubRoute": true,
                         "showSubRoute": false,
@@ -281,6 +327,7 @@
             },
             {
                 "menuValue": "Accounting",
+                "module": "accounting",
                 "icon": "ti ti-calculator",
                 "hasSubRoute": true,
                 "showSubRoute": false,
@@ -323,24 +370,28 @@
                     },
                     {
                         "menuValue": "Fixed Assets",
+                        "module": "fixed-assets",
                         "route": { "name": "admin.fixed-asset-list" },
                         "permission": "list_fixed_asset",
                         "hasSubRoute": false
                     },
                     {
                         "menuValue": "Bank Reconciliation",
+                        "module": "banking",
                         "route": { "name": "admin.bank-reconciliation" },
                         "permission": "list_bank_account",
                         "hasSubRoute": false
                     },
                     {
                         "menuValue": "PDC Cheques",
+                        "module": "banking",
                         "route": { "name": "admin.cheque-list" },
                         "permission": "list_cheque",
                         "hasSubRoute": false
                     },
                     {
                         "menuValue": "Budget Management",
+                        "module": "budgeting",
                         "route": { "name": "admin.budget-list" },
                         "permission": "list_budget",
                         "hasSubRoute": false
@@ -367,6 +418,7 @@
             },
             {
                 "menuValue": "HR & Payroll",
+                "module": "hr",
                 "icon": "ti ti-users",
                 "hasSubRouteTwo": true,
                 "showSubRoute": false,
@@ -435,6 +487,7 @@
                     },
                     {
                         "menuValue": "Payroll",
+                        "module": "payroll",
                         "customSubmenuTwo": true,
                         "hasSubRoute": true,
                         "showSubRoute": false,

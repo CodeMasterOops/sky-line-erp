@@ -58,6 +58,16 @@ class CompanyProvisionLog extends Model
         $this->appendStepResult($name, 'failed', 0, $e->getMessage());
     }
 
+    /**
+     * A step the pipeline deliberately did not run — today, a module-owned step
+     * for a company that does not run that module. Recorded rather than omitted
+     * so the provisioning screen shows why a step is missing.
+     */
+    public function recordStepSkipped(string $name, string $reason): void
+    {
+        $this->appendStepResult($name, 'skipped', 0, $reason);
+    }
+
     public function markComplete(): void
     {
         $this->update(['status' => 'complete', 'completed_at' => now()]);

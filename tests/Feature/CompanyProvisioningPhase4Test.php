@@ -28,6 +28,9 @@ beforeEach(function () {
         'company_name' => 'Phase Four Test Co',
         'code' => 'P4TC',
         'email' => 'phase4@test.com',
+        'company_category_id' => App\Models\CompanyCategory::factory()
+            ->withModules(app(App\Services\Modules\ModuleRegistry::class)->togglableKeys())
+            ->create()->id,
     ]);
 
     $this->user = User::create([

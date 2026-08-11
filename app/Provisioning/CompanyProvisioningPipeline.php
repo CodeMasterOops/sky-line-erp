@@ -6,6 +6,8 @@ use App\Models\Branch;
 use App\Models\Company;
 use Illuminate\Support\Facades\DB;
 use App\Models\CompanyProvisionLog;
+use App\Services\Modules\CompanyModuleService;
+use App\Provisioning\Contracts\ModuleAwareStep;
 use App\Provisioning\Contracts\ProvisioningStep;
 
 class CompanyProvisioningPipeline
@@ -36,6 +38,15 @@ class CompanyProvisioningPipeline
                 $headOffice = $this->resolveHeadOffice($company);
 
                 foreach ($this->steps as $step) {
+                    if ($step instanceof ModuleAwareStep && $this->shouldSkip($step, $company)) {
+                        $log->recordStepSkipped(
+                            $step->name(),
+                            "The [{$step->module()}] module is not enabled for this company.",
+                        );
+
+                        continue;
+                    }
+
                     $log->recordStep($step->name(), fn () => $step->run($company, $headOffice));
                 }
             });
@@ -45,6 +56,19 @@ class CompanyProvisioningPipeline
             $log->markFailed($e);
             throw $e;
         }
+    }
+
+    /**
+     * A module-owned step only runs for companies that run its module. Core
+     * steps carry no module and always run.
+     */
+    private function shouldSkip(ProvisioningStep $step, Company $company): bool
+    {
+        if (! $step instanceof ModuleAwareStep) {
+            return false;
+        }
+
+        return ! app(CompanyModuleService::class)->isEnabled($step->module(), (int) $company->id);
     }
 
     private function resolveHeadOffice(Company $company): Branch

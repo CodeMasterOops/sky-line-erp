@@ -28,10 +28,10 @@ class CollectionRequest extends FormRequest
 
         return match ($this->method()) {
             'POST' => array_merge($validations, [
-                'slug' => ['required', 'alpha_dash', Rule::unique('collections')->withoutTrashed()],
+                'slug' => ['required', 'alpha_dash', Rule::unique('collections')],
             ]),
             'PUT' => array_merge($validations, [
-                'slug' => ['required', 'alpha_dash', Rule::unique('collections')->withoutTrashed()->ignore($this->collection)],
+                'slug' => ['required', 'alpha_dash', Rule::unique('collections')->ignore($this->collection)],
             ])
         };
     }

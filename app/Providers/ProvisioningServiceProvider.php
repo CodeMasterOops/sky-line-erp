@@ -14,6 +14,7 @@ use App\Provisioning\Steps\PartyGroupsStep;
 use App\Provisioning\Steps\DesignationsStep;
 use App\Provisioning\Steps\PaymentModesStep;
 use App\Provisioning\Steps\WorkScheduleStep;
+use App\Provisioning\Steps\CompanyModulesStep;
 use App\Provisioning\Steps\AccountSettingsStep;
 use App\Provisioning\Steps\ChartOfAccountsStep;
 use App\Provisioning\Contracts\ProvisioningStep;
@@ -47,6 +48,9 @@ class ProvisioningServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('provisioning.steps', fn (): array => array_merge([
+            // Must stay first: every step after it may be skipped based on the
+            // module set this one writes.
+            $this->app->make(CompanyModulesStep::class),
             new FiscalYearStep,
             new BranchAndWarehouseStep,
             new ChartOfAccountsStep,
@@ -62,7 +66,7 @@ class ProvisioningServiceProvider extends ServiceProvider
             new WorkScheduleStep,
             new HolidaysStep,
             new SalaryComponentsStep,
-            new DocumentSequencesStep,
+            $this->app->make(DocumentSequencesStep::class),
             new PartyGroupsStep,
             new CompanyPreferencesStep,
             new NotificationSettingsStep,

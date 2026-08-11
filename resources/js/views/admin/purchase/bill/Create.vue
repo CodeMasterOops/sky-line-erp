@@ -68,6 +68,14 @@
                                 :error="errors.warehouse_id"
                             />
                         </div>
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <VInput
+                                id="supplier_invoice_no"
+                                v-model="form.supplier_invoice_no"
+                                label="Supplier Invoice No"
+                                placeholder="Supplier invoice reference"
+                            />
+                        </div>
                         <div v-if="form.party_id" class="col-12">
                             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                                 <button
@@ -578,6 +586,7 @@ const getInitialState = () => ({
     party_id: '',
     purchase_order_id: '',
     warehouse_id: '',
+    supplier_invoice_no: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',
@@ -648,6 +657,9 @@ const importSelectedGrnLines = () => {
         }
         if (row.warehouse_id && !form.warehouse_id) {
             form.warehouse_id = String(row.warehouse_id);
+        }
+        if (row.supplier_invoice_no && !form.supplier_invoice_no) {
+            form.supplier_invoice_no = row.supplier_invoice_no;
         }
         form.items.push({
             product_variant_id: row.product_variant_id,
@@ -837,6 +849,7 @@ const buildBillPayload = () => {
         due_date: form.due_date || null,
         party_id: form.party_id || null,
         purchase_order_id: form.purchase_order_id || null,
+        supplier_invoice_no: form.supplier_invoice_no || null,
         remarks: form.remarks,
         status: form.status,
         order_discount_type: form.order_discount_type || 'fixed',

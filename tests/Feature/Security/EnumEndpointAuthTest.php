@@ -49,4 +49,10 @@ it('M-4: serves enum lists to any authenticated user without a permission', func
     $this->getJson('/api/admin/enum/party-types')->assertSuccessful();
     $this->getJson('/api/admin/enum/task-statuses')->assertSuccessful();
     $this->getJson('/api/admin/enum/follow-up-channels')->assertSuccessful();
+    $this->getJson('/api/admin/enum/genders')
+        ->assertSuccessful()
+        ->assertJsonFragment(['id' => 'male', 'name' => 'Male']);
+    $this->getJson('/api/admin/enum/blood-groups')
+        ->assertSuccessful()
+        ->assertJsonFragment(['id' => 'O+', 'name' => 'O+']);
 });

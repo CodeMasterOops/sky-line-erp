@@ -10,11 +10,13 @@
             },
             {
                 "title": "Company details",
-                "routes": "/admin/settings/setting"
+                "routes": "/admin/settings/setting",
+                "permission": "list_setting"
             },
             {
                 "title": "Branches",
-                "routes": "/admin/settings/branches"
+                "routes": "/admin/settings/branches",
+                "permission": "list_branch"
             },
             {
                 "title": "Security",
@@ -25,8 +27,14 @@
                 "routes": "/admin/settings/notifications"
             },
             {
+                "title": "Modules",
+                "routes": "/admin/settings/modules"
+            },
+            {
                 "title": "Data transfer",
-                "routes": "/admin/settings/data-transfer"
+                "routes": "/admin/settings/data-transfer",
+                "permission": "list_data_transfer",
+                "module": "data-transfer"
             }
         ]
     },
@@ -37,19 +45,24 @@
         "subMenu": [
             {
                 "title": "Taxes",
-                "routes": "/admin/settings/tax"
+                "routes": "/admin/settings/tax",
+                "permission": "list_tax"
             },
             {
                 "title": "Tax Groups",
-                "routes": "/admin/settings/tax-group"
+                "routes": "/admin/settings/tax-group",
+                "permission": "list_tax"
             },
             {
                 "title": "Payment methods",
-                "routes": "/admin/settings/payment-mode"
+                "routes": "/admin/settings/payment-mode",
+                "permission": "list_payment_mode"
             },
             {
                 "title": "Default GL accounts",
-                "routes": "/admin/settings/account-settings"
+                "routes": "/admin/settings/account-settings",
+                "permission": "list_account_setting",
+                "module": "accounting"
             }
         ]
     },
@@ -57,6 +70,7 @@
         "icon": "file-text",
         "title": "Nepal IRD / e-billing",
         "page": "nepal-ird",
+        "module": "nepal-compliance",
         "subMenu": [
             {
                 "title": "IRD EBS (e-billing)",

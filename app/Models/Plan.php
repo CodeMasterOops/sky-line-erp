@@ -21,11 +21,13 @@ class Plan extends Model
         'price_monthly',
         'price_yearly',
         'features',
+        'modules',
         'is_active',
         'is_default',
         'is_recommended',
         'sort_order',
         'branch_limit',
+        'limits',
     ];
 
     protected function casts(): array
@@ -34,11 +36,13 @@ class Plan extends Model
             'price_monthly' => 'decimal:2',
             'price_yearly' => 'decimal:2',
             'features' => 'array',
+            'modules' => 'array',
             'is_active' => 'boolean',
             'is_default' => 'boolean',
             'is_recommended' => 'boolean',
             'sort_order' => 'integer',
             'branch_limit' => 'integer',
+            'limits' => 'array',
         ];
     }
 
@@ -72,6 +76,27 @@ class Plan extends Model
         }
 
         return $query;
+    }
+
+    /**
+     * Whether this plan lets a company run the given module. A null `modules`
+     * column means the plan is uncapped — every plan that predates module
+     * entitlements stays that way, so no existing tenant loses anything.
+     */
+    public function entitlesModule(string $moduleKey): bool
+    {
+        return $this->modules === null || in_array($moduleKey, $this->modules, true);
+    }
+
+    /**
+     * The quota this plan sets for the given key, or null for unlimited.
+     * Read through QuotaService rather than directly — see config/limits.php.
+     */
+    public function limitFor(string $key): ?int
+    {
+        $value = ($this->limits ?? [])[$key] ?? null;
+
+        return $value === null ? null : (int) $value;
     }
 
     public function priceForCycle(BillingCycleEnum $cycle): string

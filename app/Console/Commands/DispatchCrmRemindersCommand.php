@@ -8,6 +8,7 @@ use App\Enums\TaskStatusEnum;
 use Illuminate\Console\Command;
 use App\Enums\FollowUpStatusEnum;
 use App\Notifications\CrmReminderNotification;
+use App\Services\Modules\CompanyModuleService;
 
 class DispatchCrmRemindersCommand extends Command
 {
@@ -17,19 +18,33 @@ class DispatchCrmRemindersCommand extends Command
 
     public function handle(): int
     {
-        $followUps = $this->dispatchFollowUpReminders();
-        $tasks = $this->dispatchTaskReminders();
+        // Background work follows the module switch too: a company that has CRM
+        // turned off must stop receiving CRM reminders, not just lose the menu.
+        $companyIds = app(CompanyModuleService::class)->companyIdsWith('crm');
+
+        if ($companyIds === []) {
+            $this->info('No company has the CRM module enabled.');
+
+            return Command::SUCCESS;
+        }
+
+        $followUps = $this->dispatchFollowUpReminders($companyIds);
+        $tasks = $this->dispatchTaskReminders($companyIds);
 
         $this->info("Dispatched {$followUps} follow-up and {$tasks} task reminder(s).");
 
         return Command::SUCCESS;
     }
 
-    private function dispatchFollowUpReminders(): int
+    /**
+     * @param  list<int>  $companyIds
+     */
+    private function dispatchFollowUpReminders(array $companyIds): int
     {
         $count = 0;
 
         FollowUp::query()
+            ->whereIn('company_id', $companyIds)
             ->whereNull('reminded_at')
             ->where('status', FollowUpStatusEnum::Pending->value)
             ->whereNotNull('user_id')
@@ -46,11 +61,15 @@ class DispatchCrmRemindersCommand extends Command
         return $count;
     }
 
-    private function dispatchTaskReminders(): int
+    /**
+     * @param  list<int>  $companyIds
+     */
+    private function dispatchTaskReminders(array $companyIds): int
     {
         $count = 0;
 
         Task::query()
+            ->whereIn('company_id', $companyIds)
             ->whereNull('reminded_at')
             ->whereNotNull('reminder_at')
             ->where('reminder_at', '<=', now())

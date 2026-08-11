@@ -124,7 +124,7 @@ class GoodsReceivedNoteService
             ->with([
                 'productVariant.product',
                 'unit',
-                'goodsReceivedNote:id,grn_no,party_id,warehouse_id,received_date,status,billing_status',
+                'goodsReceivedNote:id,grn_no,party_id,warehouse_id,received_date,status,billing_status,supplier_invoice_no',
                 'goodsReceivedNote.landedCosts.account',
             ])
             ->whereHas('goodsReceivedNote', function ($q) use ($partyId, $warehouseId) {
@@ -160,6 +160,7 @@ class GoodsReceivedNoteService
                 'grn_item_id' => $grnItem->id,
                 'goods_received_note_id' => $grnItem->goods_received_note_id,
                 'grn_no' => $grnItem->goodsReceivedNote?->grn_no,
+                'supplier_invoice_no' => $grnItem->goodsReceivedNote?->supplier_invoice_no,
                 'received_date' => $grnItem->goodsReceivedNote?->received_date,
                 'warehouse_id' => $grnItem->goodsReceivedNote?->warehouse_id,
                 'product_variant_id' => $grnItem->product_variant_id,

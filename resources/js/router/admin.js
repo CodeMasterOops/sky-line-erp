@@ -1,12 +1,14 @@
 import AdminLayout from "@/layouts/admin/AppLayout.vue";
 import accountingRoutes from "@/router/modules/accounting.routes.js";
 import crmRoutes from "@/router/modules/crm.routes.js";
+import gymRoutes from "@/router/modules/gym.routes.js";
 import hrRoutes from "@/router/modules/hr.routes.js";
 import inventoryRoutes from "@/router/modules/inventory.routes.js";
 import purchaseRoutes from "@/router/modules/purchase.routes.js";
 import salesRoutes from "@/router/modules/sales.routes.js";
 import settingsRoutes from "@/router/modules/settings.routes.js";
 import userManagementRoutes from "@/router/modules/user-management.routes.js";
+import { withModule } from "@/router/withModule.js";
 
 const routes = [
     {
@@ -97,6 +99,14 @@ const routes = [
                 redirect: "/admin/settings/profile",
             },
             {
+                path: "module-unavailable",
+                name: "admin.module-unavailable",
+                meta: {
+                    pageTitle: "Module not enabled",
+                },
+                component: () => import("@/views/admin/ModuleUnavailable.vue"),
+            },
+            {
                 path: "billing/pricing",
                 name: "admin.billing-pricing",
                 meta: {
@@ -123,7 +133,7 @@ const routes = [
                 component: () => import("@/views/admin/notification/Index.vue"),
             },
             //sales module
-            ...salesRoutes,
+            ...withModule(salesRoutes, "sales"),
             {
                 path: "reports",
                 name: "admin.reports-hub",
@@ -133,19 +143,22 @@ const routes = [
                 component: () => import("@/views/admin/reports/ReportsHub.vue"),
             },
             //inventory module
-            ...inventoryRoutes,
+            ...withModule(inventoryRoutes, "inventory"),
 
             //crm module (unified contacts: customers, suppliers, leads)
-            ...crmRoutes,
+            ...withModule(crmRoutes, "crm"),
+
+            //gym module (industry vertical)
+            ...withModule(gymRoutes, "gym"),
 
             //purchase module
-            ...purchaseRoutes,
+            ...withModule(purchaseRoutes, "purchase"),
 
             //accounting module
-            ...accountingRoutes,
+            ...withModule(accountingRoutes, "accounting"),
             
             //hr module
-            ...hrRoutes,
+            ...withModule(hrRoutes, "hr"),
 
             {
                 path: "support",
@@ -167,7 +180,9 @@ const routes = [
             {
                 path: "",
                 name: "admin.pos",
-                meta: {pageTitle: "POS"},
+                meta: {
+                    module: "pos",
+                    pageTitle: "POS"},
                 component: () => import("@/views/admin/pos/pos-two.vue"),
             },
         ],

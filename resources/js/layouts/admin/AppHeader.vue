@@ -107,7 +107,11 @@
                     <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">
                         <i class="ti ti-settings-2 me-2"></i>Settings
                     </router-link>
-                    <router-link class="dropdown-item" :to="{ name: 'admin.data-transfer-list' }">
+                    <router-link
+                        v-if="isModuleEnabled('data-transfer')"
+                        class="dropdown-item"
+                        :to="{ name: 'admin.data-transfer-list' }"
+                    >
                         <i class="ti ti-file-export me-2"></i>Data transfer
                     </router-link>
                     <router-link class="dropdown-item" :to="{ name: 'admin.billing-pricing' }">
@@ -127,7 +131,7 @@
             <div class="dropdown-menu dropdown-menu-right">
                 <router-link class="dropdown-item" :to="{ name: 'admin.profile' }">My Profile</router-link>
                 <router-link class="dropdown-item" :to="{ name: 'admin.setting' }">Settings</router-link>
-                <router-link class="dropdown-item" :to="{ name: 'admin.data-transfer-list' }">Data transfer</router-link>
+                <router-link v-if="isModuleEnabled('data-transfer')" class="dropdown-item" :to="{ name: 'admin.data-transfer-list' }">Data transfer</router-link>
                 <router-link class="dropdown-item" :to="{ name: 'admin.billing-pricing' }">View plans</router-link>
                 <button class="dropdown-item" type="button" @click.prevent="logout">Logout</button>
             </div>
@@ -150,6 +154,7 @@ import {useBranchStore} from "@/stores/admin/settings/branch.js";
 import {useDatePreferenceStore} from "@/stores/admin/datePreference.js";
 import {useRoute} from "vue-router";
 import HeaderNotificationDropdown from "@/components/shared/HeaderNotificationDropdown.vue";
+import {isModuleEnabled} from "@/helpers/checkModule";
 import {watch} from "vue";
 
 const notificationStore = useAdminNotificationStore();

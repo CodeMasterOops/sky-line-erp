@@ -58,18 +58,48 @@
 <script>
 import Settings from "@/assets/json/settings.json";
 import { isSettingsRouteActive } from "@/helpers/settingsMenuActive.js";
+import { hasPermission } from "@/helpers/checkPermission";
+import { isModuleEnabled } from "@/helpers/checkModule";
+
+/**
+ * Keep the entries this user may open and this company runs. A section's
+ * `module` cascades to its children, and a section left with nothing is
+ * dropped — the same rules the main sidebar has always applied, which this
+ * menu was rendering straight from JSON without.
+ *
+ * @see resources/js/helpers/sidebarMenu.js
+ */
+function visibleSettings(sections) {
+  return sections
+    .map((section) => ({
+      ...section,
+      subMenu: (section.subMenu ?? [])
+        .filter((item) => isVisible(item, section.module))
+        .map((item) => ({
+          ...item,
+          expanded: false,
+          subMenusTwo: (item.subMenusTwo ?? []).filter((leaf) =>
+            isVisible(leaf, item.module ?? section.module)
+          ),
+        }))
+        .filter((item) => !item.customSubmenuTwo || item.subMenusTwo.length > 0),
+      expanded: false,
+    }))
+    .filter((section) => section.subMenu.length > 0);
+}
+
+function isVisible(item, inheritedModule) {
+  const moduleKey = item.module ?? inheritedModule;
+
+  if (moduleKey && !isModuleEnabled(moduleKey)) return false;
+
+  return !item.permission || hasPermission(item.permission);
+}
 
 export default {
   data() {
     return {
-      Settings: Settings.map((menu) => ({
-        ...menu,
-        expanded: false, // Initialize expanded state
-        subMenu: menu.subMenu.map((subMenu) => ({
-          ...subMenu,
-          expanded: false, // Initialize expanded state for nested submenus
-        })),
-      })),
+      Settings: visibleSettings(Settings),
     };
   },
   mounted() {
