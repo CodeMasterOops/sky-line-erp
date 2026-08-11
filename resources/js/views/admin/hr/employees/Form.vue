@@ -76,19 +76,37 @@
                     <div class="col-12 mt-2"><h6 class="text-muted fw-bold">Department & Role</h6></div>
 
                     <div class="col-md-4">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label mb-0" for="department_id">Department</label>
+                            <button
+                                type="button"
+                                class="btn btn-link btn-sm p-0 text-primary lh-1"
+                                title="Add new department"
+                                @click="addDepartmentModalOpen = true">
+                                <i class="ti ti-plus"></i> Add
+                            </button>
+                        </div>
                         <VMultiselect
                             id="department_id"
                             v-model="form.department_id"
-                            label="Department"
                             placeholder="Select Department"
                             :options="departments.data"
                         />
                     </div>
                     <div class="col-md-4">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <label class="form-label mb-0" for="designation_id">Designation</label>
+                            <button
+                                type="button"
+                                class="btn btn-link btn-sm p-0 text-primary lh-1"
+                                title="Add new designation"
+                                @click="addDesignationModalOpen = true">
+                                <i class="ti ti-plus"></i> Add
+                            </button>
+                        </div>
                         <VMultiselect
                             id="designation_id"
                             v-model="form.designation_id"
-                            label="Designation"
                             placeholder="Select Designation"
                             :options="designations.data"
                         />
@@ -145,6 +163,15 @@
                         <VButton :loading="isSubmitting" />
                     </div>
                 </form>
+
+                <CreateDepartment
+                    v-model:create-modal-opened="addDepartmentModalOpen"
+                    @created="(department) => { form.department_id = department.id }"
+                />
+                <CreateDesignation
+                    v-model:create-modal-opened="addDesignationModalOpen"
+                    @created="(designation) => { form.designation_id = designation.id }"
+                />
             </div>
         </div>
     </section>
@@ -165,6 +192,8 @@ import { useNextCode } from '@/helpers/useNextCode.js';
 import { apiAdmin } from '@/helpers/api.js';
 import VDatepicker from '@/components/base/VDatepicker.vue';
 import { useEnumStore } from '@/stores/admin/enum.js';
+import CreateDepartment from '@/views/admin/hr/departments/Create.vue';
+import CreateDesignation from '@/views/admin/hr/designations/Create.vue';
 
 const maritalStatusOptions = [
     { id: 'single', name: 'Single' },
@@ -212,6 +241,8 @@ const { genders } = storeToRefs(enumStore);
 const isEdit = computed(() => !!route.params.id);
 const loading = ref(false);
 const isSubmitting = ref(false);
+const addDepartmentModalOpen = ref(false);
+const addDesignationModalOpen = ref(false);
 
 const initial = {
     employee_code: '', first_name: '', last_name: '', email: '', phone: '',
