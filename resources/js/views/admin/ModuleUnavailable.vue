@@ -27,33 +27,20 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useModuleCatalogue } from '@/composables/useModuleCatalogue';
 
 const route = useRoute();
 
-const MODULE_LABELS = {
-    accounting: 'Accounting',
-    inventory: 'Inventory',
-    sales: 'Sales',
-    purchase: 'Purchase',
-    crm: 'CRM',
-    hr: 'HR',
-    payroll: 'Payroll',
-    pos: 'Point of Sale',
-    manufacturing: 'Manufacturing',
-    'fixed-assets': 'Fixed Assets',
-    budgeting: 'Budgeting',
-    banking: 'Banking & Reconciliation',
-    'data-transfer': 'Data Import / Export',
-    'nepal-compliance': 'Nepal Compliance',
-};
+// Names come from config/modules.php through the catalogue endpoint. This
+// screen used to keep its own copy of the module list, which quietly went stale
+// every time a module was added to the registry.
+const { load, moduleLabel: labelFor } = useModuleCatalogue();
 
-const moduleLabel = computed(() => {
-    const key = route.query.module;
+onMounted(load);
 
-    return MODULE_LABELS[key] ?? 'This module';
-});
+const moduleLabel = computed(() => labelFor(route.query.module));
 </script>
 
 <style scoped>

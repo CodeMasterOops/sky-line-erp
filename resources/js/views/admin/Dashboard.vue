@@ -27,7 +27,7 @@
 
     <template v-else>
       <!-- Business snapshot -->
-      <section class="dashboard-section">
+      <section v-if="businessMetrics.length" class="dashboard-section">
         <div class="row g-2">
           <div
             v-for="metric in businessMetrics"
@@ -45,7 +45,11 @@
                     <h3 class="metric-card__count mb-0">{{ metric.displayValue }}</h3>
                   </div>
                 </div>
-                <router-link :to="metric.route" class="metric-card__footer">
+                <router-link
+                  v-if="isModuleEnabled(metric.routeModule)"
+                  :to="metric.route"
+                  class="metric-card__footer"
+                >
                   View all <i class="ti ti-arrow-right fs-12"></i>
                 </router-link>
               </div>
@@ -90,25 +94,28 @@
       </section>
 
       <!-- Analytics -->
-      <section class="dashboard-section">
+      <section
+        v-if="has('sales_purchase_chart') || has('sales_expense_chart')"
+        class="dashboard-section"
+      >
         <div class="row g-2">
-          <div class="col-xxl-7 col-xl-12 d-flex">
+          <div v-if="has('sales_purchase_chart')" class="col-xxl-7 col-xl-12 d-flex">
             <div class="card dashboard-panel flex-fill">
               <div class="card-header dashboard-panel__header">
                 <div class="d-inline-flex align-items-center">
                   <span class="title-icon fs-16 me-2"><i class="ti ti-report-analytics"></i></span>
-                  <h5 class="card-title mb-0">Sales &amp; Purchase</h5>
+                  <h5 class="card-title mb-0">{{ salesPurchaseTitle }}</h5>
                 </div>
               </div>
               <div class="card-body pb-0">
                 <div class="d-flex align-items-stretch gap-2 mb-3 flex-wrap">
-                  <div class="chart-stat">
+                  <div v-if="has('sales_totals')" class="chart-stat">
                     <p class="chart-stat__label mb-1">
                       <span class="chart-stat__dot chart-stat__dot--sales"></span>Total Sales
                     </p>
                     <h5 class="chart-stat__value mb-0">{{ formatMoney(dash.total_sales) }}</h5>
                   </div>
-                  <div class="chart-stat">
+                  <div v-if="has('purchase_totals')" class="chart-stat">
                     <p class="chart-stat__label mb-1">
                       <span class="chart-stat__dot chart-stat__dot--purchase"></span>Total Purchase
                     </p>
@@ -126,17 +133,20 @@
             </div>
           </div>
 
-          <div class="col-xxl-5 col-xl-12 d-flex">
+          <div
+            v-if="has('sales_expense_chart')"
+            :class="has('sales_purchase_chart') ? 'col-xxl-5 col-xl-12 d-flex' : 'col-12 d-flex'"
+          >
             <div class="card dashboard-panel flex-fill">
               <div class="card-header dashboard-panel__header">
                 <div class="d-inline-flex align-items-center">
                   <span class="title-icon fs-16 me-2"><i class="ti ti-chart-line"></i></span>
-                  <h5 class="card-title mb-0">Sales vs Expenses</h5>
+                  <h5 class="card-title mb-0">{{ has('sales_totals') ? 'Sales vs Expenses' : 'Expenses' }}</h5>
                 </div>
               </div>
               <div class="card-body pb-0">
                 <div class="d-flex align-items-stretch gap-2 mb-3 flex-wrap">
-                  <div class="chart-stat">
+                  <div v-if="has('sales_totals')" class="chart-stat">
                     <p class="chart-stat__label mb-1">
                       <span class="chart-stat__dot chart-stat__dot--revenue"></span>Total Revenue
                     </p>
@@ -163,9 +173,9 @@
       </section>
 
       <!-- Financial overview -->
-      <section class="dashboard-section">
+      <section v-if="showProfit || summaryCards.length" class="dashboard-section">
         <div class="row g-2">
-          <div class="col-xxl col-lg-6 col-12 d-flex">
+          <div v-if="showProfit" class="col-xxl col-lg-6 col-12 d-flex">
             <div class="card stat-card flex-fill">
               <div class="card-body d-flex align-items-center gap-2">
                 <span class="stat-card__icon bg-soft-success text-success">
@@ -200,115 +210,46 @@
       </section>
 
       <!-- Recent activity -->
-      <section class="dashboard-section">
+      <section v-if="transactionTabs.length" class="dashboard-section">
         <div class="card dashboard-panel">
           <div class="card-body p-0">
             <ul class="nav nav-tabs nav-justified transaction-tab">
-              <li class="nav-item"><a class="nav-link active" href="#sale" data-bs-toggle="tab">Sales</a></li>
-              <li class="nav-item"><a class="nav-link" href="#purchase-transaction" data-bs-toggle="tab">Purchases</a></li>
-              <li class="nav-item"><a class="nav-link" href="#quotation" data-bs-toggle="tab">Quotations</a></li>
-              <li class="nav-item"><a class="nav-link" href="#expenses" data-bs-toggle="tab">Expenses</a></li>
+              <li v-for="(tab, idx) in transactionTabs" :key="tab.key" class="nav-item">
+                <a
+                  class="nav-link"
+                  :class="{ active: idx === 0 }"
+                  :href="`#${tab.id}`"
+                  data-bs-toggle="tab"
+                >{{ tab.label }}</a>
+              </li>
             </ul>
             <div class="tab-content">
-              <div class="tab-pane show active" id="sale">
+              <div
+                v-for="(tab, idx) in transactionTabs"
+                :key="tab.key"
+                class="tab-pane"
+                :class="idx === 0 ? 'show active' : 'fade'"
+                :id="tab.id"
+              >
                 <div class="table-responsive">
                   <table class="table table-borderless custom-table mb-0">
                     <thead class="thead-light">
-                      <tr><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total</th></tr>
+                      <tr>
+                        <th>Date</th>
+                        <th>{{ tab.partyLabel }}</th>
+                        <th>Status</th>
+                        <th class="text-end">Total</th>
+                      </tr>
                     </thead>
                     <tbody>
-                      <tr v-if="!dash.recent_transactions.invoices.length">
-                        <td colspan="4" class="text-center text-muted py-4">No recent invoices</td>
+                      <tr v-if="!transactionRows(tab).length">
+                        <td colspan="4" class="text-center text-muted py-4">{{ tab.emptyText }}</td>
                       </tr>
-                      <tr v-for="row in dash.recent_transactions.invoices" :key="row.id">
-                        <td>{{ row.invoice_date }}</td>
+                      <tr v-for="row in transactionRows(tab)" :key="row.id">
+                        <td>{{ row[tab.dateField] }}</td>
                         <td>
-                          <span class="fw-semibold">{{ row.party_name || '–' }}</span>
-                          <br><small class="text-muted">{{ row.invoice_no }}</small>
-                        </td>
-                        <td>
-                          <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
-                            <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}
-                          </span>
-                        </td>
-                        <td class="fw-bold text-gray-9 text-end">{{ formatMoney(row.total) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="tab-pane fade" id="purchase-transaction">
-                <div class="table-responsive">
-                  <table class="table table-borderless custom-table mb-0">
-                    <thead class="thead-light">
-                      <tr><th>Date</th><th>Supplier</th><th>Status</th><th class="text-end">Total</th></tr>
-                    </thead>
-                    <tbody>
-                      <tr v-if="!dash.recent_transactions.bills.length">
-                        <td colspan="4" class="text-center text-muted py-4">No recent bills</td>
-                      </tr>
-                      <tr v-for="row in dash.recent_transactions.bills" :key="row.id">
-                        <td>{{ row.bill_date }}</td>
-                        <td>
-                          <span class="fw-semibold">{{ row.party_name || '–' }}</span>
-                          <br><small class="text-muted">{{ row.bill_no }}</small>
-                        </td>
-                        <td>
-                          <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
-                            <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}
-                          </span>
-                        </td>
-                        <td class="fw-bold text-gray-9 text-end">{{ formatMoney(row.total) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="tab-pane" id="quotation">
-                <div class="table-responsive">
-                  <table class="table table-borderless custom-table mb-0">
-                    <thead class="thead-light">
-                      <tr><th>Date</th><th>Customer</th><th>Status</th><th class="text-end">Total</th></tr>
-                    </thead>
-                    <tbody>
-                      <tr v-if="!dash.recent_transactions.quotations.length">
-                        <td colspan="4" class="text-center text-muted py-4">No recent quotations</td>
-                      </tr>
-                      <tr v-for="row in dash.recent_transactions.quotations" :key="row.id">
-                        <td>{{ row.quotation_date }}</td>
-                        <td>
-                          <span class="fw-semibold">{{ row.party_name || '–' }}</span>
-                          <br><small class="text-muted">{{ row.quotation_no }}</small>
-                        </td>
-                        <td>
-                          <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
-                            <i class="ti ti-circle-filled fs-5 me-1"></i>{{ capitalize(row.status) }}
-                          </span>
-                        </td>
-                        <td class="fw-bold text-gray-9 text-end">{{ formatMoney(row.total) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="tab-pane fade" id="expenses">
-                <div class="table-responsive">
-                  <table class="table table-borderless custom-table mb-0">
-                    <thead class="thead-light">
-                      <tr><th>Date</th><th>Expense</th><th>Status</th><th class="text-end">Total</th></tr>
-                    </thead>
-                    <tbody>
-                      <tr v-if="!dash.recent_transactions.expenses.length">
-                        <td colspan="4" class="text-center text-muted py-4">No recent expenses</td>
-                      </tr>
-                      <tr v-for="row in dash.recent_transactions.expenses" :key="row.id">
-                        <td>{{ row.date }}</td>
-                        <td>
-                          <span class="fw-semibold">{{ row.expense_no }}</span>
-                          <br><small class="text-muted">{{ row.party_name || '–' }}</small>
+                          <span class="fw-semibold">{{ row[tab.titleField] || '–' }}</span>
+                          <br><small class="text-muted">{{ row[tab.subtitleField] || '–' }}</small>
                         </td>
                         <td>
                           <span :class="`badge ${statusBadge(row.status)} badge-xs d-inline-flex align-items-center`">
@@ -327,9 +268,9 @@
       </section>
 
       <!-- Insights -->
-      <section class="dashboard-section dashboard-section--last">
+      <section v-if="hasInsights" class="dashboard-section dashboard-section--last">
         <div class="row g-2">
-          <div class="col-xxl-4 col-md-6 d-flex">
+          <div v-if="has('top_selling_products')" class="col-xxl-4 col-md-6 d-flex">
             <div class="card dashboard-panel flex-fill">
               <div class="card-header dashboard-panel__header d-flex justify-content-between align-items-center">
                 <div class="d-inline-flex align-items-center">
@@ -363,7 +304,7 @@
             </div>
           </div>
 
-          <div class="col-xxl-4 col-md-6 d-flex">
+          <div v-if="has('low_stock_products')" class="col-xxl-4 col-md-6 d-flex">
             <div class="card dashboard-panel flex-fill">
               <div class="card-header dashboard-panel__header d-flex justify-content-between align-items-center">
                 <div class="d-inline-flex align-items-center">
@@ -397,14 +338,14 @@
             </div>
           </div>
 
-          <div class="col-xxl-4 col-md-12 d-flex">
+          <div v-if="has('top_customers')" class="col-xxl-4 col-md-12 d-flex">
             <div class="card dashboard-panel flex-fill">
               <div class="card-header dashboard-panel__header d-flex justify-content-between align-items-center">
                 <div class="d-inline-flex align-items-center">
                   <span class="title-icon fs-16 me-2"><i class="ti ti-users"></i></span>
                   <h5 class="card-title mb-0">Top Customers</h5>
                 </div>
-                <router-link :to="{ name: 'admin.crm-contacts' }" class="stat-card__link">View all</router-link>
+                <router-link v-if="isModuleEnabled('crm')" :to="{ name: 'admin.crm-contacts' }" class="stat-card__link">View all</router-link>
               </div>
               <div class="card-body">
                 <div v-if="!dash.top_customers.length" class="dashboard-empty">No customer data yet</div>
@@ -515,6 +456,27 @@ const dash         = computed(() => dashboardStore.dashboard.data);
 const summaryCards = computed(() => dashboardStore.summaryCards);
 const fiscalYear   = computed(() => dashboardStore.fiscalYear);
 
+/**
+ * Whether the server computed a widget for this company. A widget it did not
+ * compute belongs to a module the company does not run — its panel is not
+ * rendered at all, rather than rendered with zeros.
+ *
+ * @see app/Http/Controllers/Api/Admin/DashboardController.php — WIDGETS
+ */
+const has = (widget) => dashboardStore.hasWidget(widget);
+
+/** Profit is sales minus purchase, so it needs both sides to mean anything. */
+const showProfit = computed(() => has('sales_totals') && has('purchase_totals'));
+
+const hasInsights = computed(() =>
+    has('top_selling_products') || has('low_stock_products') || has('top_customers'),
+);
+
+const salesPurchaseTitle = computed(() => {
+    if (has('sales_totals') && has('purchase_totals')) return 'Sales & Purchase';
+    return has('sales_totals') ? 'Sales' : 'Purchase';
+});
+
 const profit = computed(() => {
     const d = dashboardStore.dashboard.data;
     return Math.max(0, (d.total_sales - d.total_sales_return) - (d.total_purchase - d.total_purchase_return));
@@ -522,6 +484,11 @@ const profit = computed(() => {
 
 const todayStr = moment().format('YYYY-MM-DD');
 
+/**
+ * Party counts are core — every company has customers and suppliers — but the
+ * only screen that lists them lives in CRM, so the count stays and the "View
+ * all" link goes when CRM is off.
+ */
 const businessMetrics = computed(() => {
     const d = dashboardStore.dashboard.data;
 
@@ -531,31 +498,93 @@ const businessMetrics = computed(() => {
             displayValue: d.customers_count,
             icon: 'ti-users',
             cardColor: 'green',
+            widget: 'party_counts',
             route: {name: 'admin.crm-contacts'},
+            routeModule: 'crm',
         },
         {
             label: 'Products',
             displayValue: d.products_count,
             icon: 'ti-shopping-bag',
             cardColor: 'teal',
+            widget: 'product_count',
             route: {name: 'admin.product-list'},
+            routeModule: 'inventory',
         },
         {
             label: 'Suppliers',
             displayValue: d.suppliers_count,
             icon: 'ti-truck',
             cardColor: 'purple',
+            widget: 'party_counts',
             route: {name: 'admin.crm-contacts'},
+            routeModule: 'crm',
         },
         {
             label: "Today's Sales",
             displayValue: d.orders_today,
             icon: 'ti-cash',
             cardColor: 'primary',
+            widget: 'sales_totals',
             route: {name: 'admin.invoice-list', query: {date_from: todayStr, date_to: todayStr}},
+            routeModule: 'sales',
         },
-    ];
+    ].filter((metric) => has(metric.widget));
 });
+
+/**
+ * The recent-activity tabs, one per document type the company still runs. Built
+ * as data so the first available tab is the active one — hardcoding "Sales" as
+ * active left a company without the Sales module staring at a blank pane.
+ */
+const transactionTabs = computed(() => [
+    {
+        widget: 'recent_invoices',
+        key: 'invoices',
+        id: 'sale',
+        label: 'Sales',
+        partyLabel: 'Customer',
+        dateField: 'invoice_date',
+        titleField: 'party_name',
+        subtitleField: 'invoice_no',
+        emptyText: 'No recent invoices',
+    },
+    {
+        widget: 'recent_bills',
+        key: 'bills',
+        id: 'purchase-transaction',
+        label: 'Purchases',
+        partyLabel: 'Supplier',
+        dateField: 'bill_date',
+        titleField: 'party_name',
+        subtitleField: 'bill_no',
+        emptyText: 'No recent bills',
+    },
+    {
+        widget: 'recent_quotations',
+        key: 'quotations',
+        id: 'quotation',
+        label: 'Quotations',
+        partyLabel: 'Customer',
+        dateField: 'quotation_date',
+        titleField: 'party_name',
+        subtitleField: 'quotation_no',
+        emptyText: 'No recent quotations',
+    },
+    {
+        widget: 'recent_expenses',
+        key: 'expenses',
+        id: 'expenses',
+        label: 'Expenses',
+        partyLabel: 'Expense',
+        dateField: 'date',
+        titleField: 'expense_no',
+        subtitleField: 'party_name',
+        emptyText: 'No recent expenses',
+    },
+].filter((tab) => has(tab.widget)));
+
+const transactionRows = (tab) => dash.value.recent_transactions?.[tab.key] ?? [];
 
 /* ---- Quick links (pinned dashboard shortcuts) ---- */
 const availableLeaves = computed(() =>
@@ -660,10 +689,17 @@ const salesChartOptions = computed(() => ({
     xaxis: { categories: chartLabels.value },
 }));
 
-const salesChartSeries = computed(() => [
-    {name: 'Sales',    data: chartData.value.sales     || []},
-    {name: 'Purchase', data: chartData.value.purchases || []},
-]);
+/**
+ * Only the series the server actually sent. A module that is off has no series
+ * at all, so the chart draws one bar group instead of pairing real data with a
+ * flat line of zeros that reads as "we sold nothing".
+ */
+const salesChartSeries = computed(() => {
+    const series = [];
+    if (chartData.value.sales)     series.push({name: 'Sales',    data: chartData.value.sales});
+    if (chartData.value.purchases) series.push({name: 'Purchase', data: chartData.value.purchases});
+    return series;
+});
 
 const expensesChartOptions = computed(() => ({
     ...baseChartOptions(),
@@ -677,10 +713,12 @@ const expensesChartOptions = computed(() => ({
     xaxis: { categories: chartLabels.value },
 }));
 
-const expensesChartSeries = computed(() => [
-    {name: 'Revenue',  data: chartData.value.sales    || []},
-    {name: 'Expenses', data: chartData.value.expenses || []},
-]);
+const expensesChartSeries = computed(() => {
+    const series = [];
+    if (chartData.value.sales)    series.push({name: 'Revenue',  data: chartData.value.sales});
+    if (chartData.value.expenses) series.push({name: 'Expenses', data: chartData.value.expenses});
+    return series;
+});
 
 const hasSalesChartData    = computed(() => salesChartSeries.value.some((s) => s.data.length > 0));
 const hasExpensesChartData = computed(() => expensesChartSeries.value.some((s) => s.data.length > 0));

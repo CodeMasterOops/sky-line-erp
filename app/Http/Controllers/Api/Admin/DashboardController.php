@@ -4,46 +4,60 @@ namespace App\Http\Controllers\Api\Admin;
 
 use Carbon\Carbon;
 use App\Models\Party;
-use App\Models\Stock;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\FiscalYear;
 use App\Enums\DateModeEnum;
 use Illuminate\Http\Request;
 use App\Services\BranchScope;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Services\Modules\ModuleGate;
 use App\Services\Nepal\DateDisplayService;
 
 class DashboardController extends Controller
 {
+    /**
+     * Widget => the modules that make it meaningful, **any** of which is enough.
+     * An empty list is a core widget that every company sees.
+     *
+     * A widget the company cannot use is not computed and not returned — its
+     * keys are absent from the payload rather than present and zero, so the SPA
+     * can tell "you don't run this" apart from "you run this and it's empty".
+     * `widgets` in the response is the manifest of what was computed.
+     *
+     * @var array<string, list<string>>
+     */
+    private const WIDGETS = [
+        'party_counts' => [],
+        'sales_totals' => ['sales'],
+        'purchase_totals' => ['purchase'],
+        'product_count' => ['inventory'],
+        'top_selling_products' => ['sales'],
+        'low_stock_products' => ['inventory'],
+        'recent_invoices' => ['sales'],
+        'recent_bills' => ['purchase'],
+        'recent_quotations' => ['sales'],
+        'recent_expenses' => ['purchase'],
+        'top_customers' => ['sales'],
+        'sales_purchase_chart' => ['sales', 'purchase'],
+        'sales_expense_chart' => ['purchase'],
+    ];
+
+    public function __construct(private readonly ModuleGate $modules) {}
+
     public function __invoke(Request $request)
     {
         $companyId = auth('admin')->user()->company_id;
 
         [$from, $to, $fiscalYear] = $this->getDateRange($request);
 
-        [$salesTotal, $salesReturnTotal, $purchaseTotal, $purchaseReturnTotal] = $this->financialTotals($companyId, $from, $to);
+        $widgets = $this->enabledWidgets();
+        $has = fn (string $widget): bool => in_array($widget, $widgets, true);
 
-        return response()->json([
-            'total_sales' => round((float) $salesTotal, 2),
-            'total_sales_return' => round((float) $salesReturnTotal, 2),
-            'total_purchase' => round((float) $purchaseTotal, 2),
-            'total_purchase_return' => round((float) $purchaseReturnTotal, 2),
-            'customers_count' => Party::where('type', 'customer')->count(),
-            'suppliers_count' => Party::where('type', 'supplier')->count(),
-            'products_count' => Product::count(),
-            'orders_today' => Invoice::whereDate('invoice_date', today())->count(),
-            'top_selling_products' => $this->topSellingProducts($companyId, $from, $to),
-            'low_stock_products' => $this->lowStockProducts($companyId),
-            'recent_transactions' => [
-                'invoices' => $this->recentInvoices($companyId, $from, $to),
-                'bills' => $this->recentBills($companyId, $from, $to),
-                'quotations' => $this->recentQuotations($companyId, $from, $to),
-                'expenses' => $this->recentExpenses($companyId, $from, $to),
-            ],
-            'top_customers' => $this->topCustomers($companyId, $from, $to),
-            'chart_data' => $this->chartData($companyId, $from, $to),
+        $payload = [
+            'widgets' => $widgets,
             'fiscal_year' => [
                 'start_date' => $fiscalYear ? $fiscalYear->start_date->toDateString() : Carbon::now()->startOfYear()->toDateString(),
                 'end_date' => $fiscalYear ? $fiscalYear->end_date->toDateString() : Carbon::now()->endOfYear()->toDateString(),
@@ -52,7 +66,78 @@ class DashboardController extends Controller
                 'date_from' => $from,
                 'date_to' => $to,
             ],
-        ]);
+        ];
+
+        if ($has('party_counts')) {
+            $payload['customers_count'] = Party::where('type', 'customer')->count();
+            $payload['suppliers_count'] = Party::where('type', 'supplier')->count();
+        }
+
+        if ($has('sales_totals')) {
+            [$salesTotal, $salesReturnTotal] = $this->salesTotals($companyId, $from, $to);
+
+            $payload['total_sales'] = round((float) $salesTotal, 2);
+            $payload['total_sales_return'] = round((float) $salesReturnTotal, 2);
+            $payload['orders_today'] = Invoice::whereDate('invoice_date', today())->count();
+        }
+
+        if ($has('purchase_totals')) {
+            [$purchaseTotal, $purchaseReturnTotal] = $this->purchaseTotals($companyId, $from, $to);
+
+            $payload['total_purchase'] = round((float) $purchaseTotal, 2);
+            $payload['total_purchase_return'] = round((float) $purchaseReturnTotal, 2);
+        }
+
+        if ($has('product_count')) {
+            $payload['products_count'] = Product::count();
+        }
+
+        if ($has('top_selling_products')) {
+            $payload['top_selling_products'] = $this->topSellingProducts($companyId, $from, $to);
+        }
+
+        if ($has('low_stock_products')) {
+            $payload['low_stock_products'] = $this->lowStockProducts($companyId);
+        }
+
+        $recent = array_filter([
+            'invoices' => $has('recent_invoices') ? $this->recentInvoices($companyId, $from, $to) : null,
+            'bills' => $has('recent_bills') ? $this->recentBills($companyId, $from, $to) : null,
+            'quotations' => $has('recent_quotations') ? $this->recentQuotations($companyId, $from, $to) : null,
+            'expenses' => $has('recent_expenses') ? $this->recentExpenses($companyId, $from, $to) : null,
+        ], fn (?array $rows): bool => $rows !== null);
+
+        if ($recent !== []) {
+            $payload['recent_transactions'] = $recent;
+        }
+
+        if ($has('top_customers')) {
+            $payload['top_customers'] = $this->topCustomers($companyId, $from, $to);
+        }
+
+        if ($has('sales_purchase_chart') || $has('sales_expense_chart')) {
+            $payload['chart_data'] = $this->chartData($companyId, $from, $to, $widgets);
+        }
+
+        return response()->json($payload);
+    }
+
+    /**
+     * The widgets this company's module set supports, in declaration order.
+     *
+     * @return list<string>
+     */
+    private function enabledWidgets(): array
+    {
+        $enabled = [];
+
+        foreach (self::WIDGETS as $widget => $moduleKeys) {
+            if ($moduleKeys === [] || $this->modules->anyEnabled(...$moduleKeys)) {
+                $enabled[] = $widget;
+            }
+        }
+
+        return $enabled;
     }
 
     /** Resolve the active date range from request params or current fiscal year. */
@@ -72,10 +157,35 @@ class DashboardController extends Controller
         return [$from, $to, $fiscalYear];
     }
 
-    /** Financial totals using raw aggregation – no model hydration. */
-    private function financialTotals(int $companyId, string $from, string $to): array
+    /**
+     * Sales and its returns. Split from the purchase side so a company that
+     * runs only one of the two modules pays for only one pair of queries.
+     *
+     * @return array{0: float|int, 1: float|int}
+     */
+    private function salesTotals(int $companyId, string $from, string $to): array
     {
-        $itemTotal = fn (string $itemTable, string $fk, string $parentTable, string $dateCol) => DB::table($itemTable)
+        return [
+            $this->itemTotal($companyId, 'invoice_items', 'invoice_id', 'invoices', 'invoice_date', $from, $to),
+            $this->itemTotal($companyId, 'credit_note_items', 'credit_note_id', 'credit_notes', 'credit_note_date', $from, $to),
+        ];
+    }
+
+    /**
+     * @return array{0: float|int, 1: float|int}
+     */
+    private function purchaseTotals(int $companyId, string $from, string $to): array
+    {
+        return [
+            $this->itemTotal($companyId, 'bill_items', 'bill_id', 'bills', 'bill_date', $from, $to),
+            $this->itemTotal($companyId, 'debit_note_items', 'debit_note_id', 'debit_notes', 'debit_note_date', $from, $to),
+        ];
+    }
+
+    /** Document total using raw aggregation – no model hydration. */
+    private function itemTotal(int $companyId, string $itemTable, string $fk, string $parentTable, string $dateCol, string $from, string $to): float|int
+    {
+        return DB::table($itemTable)
             ->join($parentTable, "{$parentTable}.id", '=', "{$itemTable}.{$fk}")
             ->where("{$parentTable}.company_id", $companyId)
             ->tap(fn ($q) => BranchScope::apply($q, "{$parentTable}.branch_id"))
@@ -84,13 +194,6 @@ class DashboardController extends Controller
             ->whereBetween("{$parentTable}.{$dateCol}", [$from, $to])
             ->selectRaw("COALESCE(SUM({$itemTable}.quantity * {$itemTable}.rate - {$itemTable}.discount_amount), 0) as total")
             ->value('total') ?? 0;
-
-        return [
-            $itemTotal('invoice_items', 'invoice_id', 'invoices', 'invoice_date'),
-            $itemTotal('credit_note_items', 'credit_note_id', 'credit_notes', 'credit_note_date'),
-            $itemTotal('bill_items', 'bill_id', 'bills', 'bill_date'),
-            $itemTotal('debit_note_items', 'debit_note_id', 'debit_notes', 'debit_note_date'),
-        ];
     }
 
     /** Top 5 products by units sold – single aggregation query. */
@@ -291,42 +394,16 @@ class DashboardController extends Controller
     /**
      * Monthly breakdown between $from and $to.
      * Generates one label per calendar month in range.
+     *
+     * Each series is gated by the module that owns it — sales by `sales`,
+     * purchases and expenses by `purchase` — so a missing series means the
+     * company does not run that side of the business, not that it did nothing.
+     * The labels are always present, which is what keeps the axis stable.
+     *
+     * @param  list<string>  $widgets
      */
-    private function chartData(int $companyId, string $from, string $to): array
+    private function chartData(int $companyId, string $from, string $to, array $widgets): array
     {
-        $salesByMonth = DB::table('invoice_items as ii')
-            ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')
-            ->where('inv.company_id', $companyId)
-            ->tap(fn ($q) => BranchScope::apply($q, 'inv.branch_id'))
-            ->whereBetween('inv.invoice_date', [$from, $to])
-            ->whereNull('inv.deleted_at')
-            ->whereNull('ii.deleted_at')
-            ->selectRaw("DATE_FORMAT(inv.invoice_date, '%Y-%m') as month, SUM(ii.quantity * ii.rate - ii.discount_amount) as total")
-            ->groupBy('month')
-            ->pluck('total', 'month');
-
-        $purchasesByMonth = DB::table('bill_items as bi')
-            ->join('bills as b', 'b.id', '=', 'bi.bill_id')
-            ->where('b.company_id', $companyId)
-            ->tap(fn ($q) => BranchScope::apply($q, 'b.branch_id'))
-            ->whereBetween('b.bill_date', [$from, $to])
-            ->whereNull('b.deleted_at')
-            ->whereNull('bi.deleted_at')
-            ->selectRaw("DATE_FORMAT(b.bill_date, '%Y-%m') as month, SUM(bi.quantity * bi.rate - bi.discount_amount) as total")
-            ->groupBy('month')
-            ->pluck('total', 'month');
-
-        $expensesByMonth = DB::table('expense_items as ei')
-            ->join('expenses as e', 'e.id', '=', 'ei.expense_id')
-            ->where('e.company_id', $companyId)
-            ->tap(fn ($q) => BranchScope::apply($q, 'e.branch_id'))
-            ->whereBetween('e.date', [$from, $to])
-            ->whereNull('e.deleted_at')
-            ->whereNull('ei.deleted_at')
-            ->selectRaw("DATE_FORMAT(e.date, '%Y-%m') as month, SUM(ei.amount) as total")
-            ->groupBy('month')
-            ->pluck('total', 'month');
-
         $start = Carbon::parse($from)->startOfMonth();
         $end = Carbon::parse($to)->startOfMonth();
 
@@ -339,12 +416,69 @@ class DashboardController extends Controller
 
         $display = app(DateDisplayService::class);
 
-        return [
+        $data = [
             'labels' => $months->map(fn ($m) => $display->monthLabel($m.'-01', DateModeEnum::Ad))->values()->all(),
             'labels_bs' => $months->map(fn ($m) => $display->monthLabel($m.'-01', DateModeEnum::Bs))->values()->all(),
-            'sales' => $months->map(fn ($m) => round((float) ($salesByMonth[$m] ?? 0), 2))->values()->all(),
-            'purchases' => $months->map(fn ($m) => round((float) ($purchasesByMonth[$m] ?? 0), 2))->values()->all(),
-            'expenses' => $months->map(fn ($m) => round((float) ($expensesByMonth[$m] ?? 0), 2))->values()->all(),
         ];
+
+        $series = fn (Collection $byMonth): array => $months
+            ->map(fn ($m) => round((float) ($byMonth[$m] ?? 0), 2))
+            ->values()
+            ->all();
+
+        if (in_array('sales_totals', $widgets, true)) {
+            $data['sales'] = $series(DB::table('invoice_items as ii')
+                ->join('invoices as inv', 'inv.id', '=', 'ii.invoice_id')
+                ->where('inv.company_id', $companyId)
+                ->tap(fn ($q) => BranchScope::apply($q, 'inv.branch_id'))
+                ->whereBetween('inv.invoice_date', [$from, $to])
+                ->whereNull('inv.deleted_at')
+                ->whereNull('ii.deleted_at')
+                ->selectRaw($this->monthExpression('inv.invoice_date').' as month, SUM(ii.quantity * ii.rate - ii.discount_amount) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month'));
+        }
+
+        if (in_array('purchase_totals', $widgets, true)) {
+            $data['purchases'] = $series(DB::table('bill_items as bi')
+                ->join('bills as b', 'b.id', '=', 'bi.bill_id')
+                ->where('b.company_id', $companyId)
+                ->tap(fn ($q) => BranchScope::apply($q, 'b.branch_id'))
+                ->whereBetween('b.bill_date', [$from, $to])
+                ->whereNull('b.deleted_at')
+                ->whereNull('bi.deleted_at')
+                ->selectRaw($this->monthExpression('b.bill_date').' as month, SUM(bi.quantity * bi.rate - bi.discount_amount) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month'));
+
+            $data['expenses'] = $series(DB::table('expense_items as ei')
+                ->join('expenses as e', 'e.id', '=', 'ei.expense_id')
+                ->where('e.company_id', $companyId)
+                ->tap(fn ($q) => BranchScope::apply($q, 'e.branch_id'))
+                ->whereBetween('e.date', [$from, $to])
+                ->whereNull('e.deleted_at')
+                ->whereNull('ei.deleted_at')
+                ->selectRaw($this->monthExpression('e.date').' as month, SUM(ei.amount) as total')
+                ->groupBy('month')
+                ->pluck('total', 'month'));
+        }
+
+        return $data;
+    }
+
+    /**
+     * `YYYY-MM` for the given date column, in this connection's dialect.
+     *
+     * `DATE_FORMAT` is MySQL-only, which is why the chart could never be
+     * covered by the SQLite test suite — every dashboard test died on
+     * "no such function: DATE_FORMAT" before it could assert anything.
+     */
+    private function monthExpression(string $column): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlite' => "strftime('%Y-%m', {$column})",
+            'pgsql' => "to_char({$column}, 'YYYY-MM')",
+            default => "DATE_FORMAT({$column}, '%Y-%m')",
+        };
     }
 }

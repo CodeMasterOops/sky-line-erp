@@ -105,3 +105,44 @@ it('carries the metadata the module screen needs', function () {
         ->and($crm['name'])->toBe('CRM')
         ->and($crm['group'])->toBe('optional');
 });
+
+it('serves the shipped registry with no per-company state', function () {
+    // The SPA needs a label for a module the company does NOT run — the "not
+    // enabled" screen names the module it just refused to open — so this
+    // endpoint deliberately carries no `enabled` flag at all.
+    $response = $this->getJson('/api/admin/module/catalogue')->assertSuccessful();
+
+    $gym = collect($response->json('data'))->firstWhere('key', 'gym');
+
+    expect($gym)->toHaveKeys(['key', 'name', 'group', 'description', 'icon', 'requires', 'always_on'])
+        ->and($gym)->not->toHaveKey('enabled')
+        ->and($gym['name'])->toBe('Gym Management')
+        ->and(collect($response->json('data'))->firstWhere('key', 'core')['always_on'])->toBeTrue();
+});
+
+it('gates a module-owned reference list behind its module', function () {
+    // A reference list is part of a module's surface too; leaving enum
+    // endpoints open is how an enforcement checklist rots.
+    $this->getJson('/api/admin/enum/journal-type')->assertSuccessful();
+
+    $this->getJson('/api/admin/enum/crm-lead-statuses')
+        ->assertForbidden()
+        ->assertJsonPath('code', 'module_disabled')
+        ->assertJsonPath('module', 'crm');
+
+    // Core lists stay open to every authenticated user.
+    $this->getJson('/api/admin/enum/party-types')->assertSuccessful();
+});
+
+it('gates the branch P&L behind accounting even though branches are core', function () {
+    $this->getJson('/api/admin/branch')->assertSuccessful();
+
+    app(CompanyModuleService::class)->disable($this->company, 'accounting', cascade: true);
+
+    // Branch CRUD keeps working; the report that reads the ledger does not.
+    $this->getJson('/api/admin/branch')->assertSuccessful();
+
+    $this->getJson('/api/admin/branch/consolidated-report')
+        ->assertForbidden()
+        ->assertJsonPath('module', 'accounting');
+});

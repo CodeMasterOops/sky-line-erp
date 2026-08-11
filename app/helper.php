@@ -122,14 +122,12 @@ if (! function_exists('moduleEnabled')) {
      */
     function moduleEnabled(string $moduleKey, ?int $companyId = null): bool
     {
-        $companyId ??= \App\Services\TenantService::companyId() ?? auth('admin')->user()?->company_id;
-
-        if (! $companyId) {
-            return false;
+        if ($companyId !== null) {
+            return app(\App\Services\Modules\CompanyModuleService::class)
+                ->isEnabled($moduleKey, $companyId);
         }
 
-        return app(\App\Services\Modules\CompanyModuleService::class)
-            ->isEnabled($moduleKey, (int) $companyId);
+        return app(\App\Services\Modules\ModuleGate::class)->enabled($moduleKey);
     }
 }
 

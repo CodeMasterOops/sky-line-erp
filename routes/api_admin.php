@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\OnboardingController;
 use App\Http\Controllers\Api\Admin\EnumController;
 use App\Http\Controllers\Api\Admin\ModuleController;
 use App\Http\Controllers\Api\Admin\PartyController;
+use App\Http\Controllers\Api\Admin\ReportCatalogueController;
 use App\Http\Controllers\Api\Admin\ProfileController;
 use App\Http\Controllers\Api\Admin\AccountSecurityController;
 use App\Http\Controllers\Api\Admin\DashboardController;
@@ -71,7 +72,12 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         Route::get('dashboard', DashboardController::class)->name('dashboard');
 
         // modules enabled for this company (read-only; the Super Admin owns the switch)
-        Route::get('module', ModuleController::class)->name('module.index');
+        Route::get('module', [ModuleController::class, 'index'])->name('module.index');
+        // the shipped registry itself — labels and icons, no company state
+        Route::get('module/catalogue', [ModuleController::class, 'catalogue'])->name('module.catalogue');
+
+        // report catalogue, already filtered by permission AND enabled module
+        Route::get('report-catalogue', ReportCatalogueController::class)->name('report-catalogue');
 
         // support info (read-only, set by super admin)
         Route::get('support', [SupportController::class, 'index'])->name('support.index');
@@ -230,17 +236,26 @@ Route::middleware(['auth:admin', SetTenantContext::class])->group(function () {
         Route::get('current-fiscal-year', 'currentFiscalYear')->name('current-fiscal-year');
     });
 
-    // enum (authenticated reference lists — no permission required, auth only)
+    // enum (authenticated reference lists — no permission required, auth only).
+    // Module-owned lists sit behind their module: a reference list is still part
+    // of the module's surface, and leaving it open is how enforcement checklists
+    // rot.
     Route::prefix('enum')->as('enum.')->controller(EnumController::class)->group(function () {
         Route::get('genders', 'genders')->name('genders');
         Route::get('blood-groups', 'bloodGroups')->name('blood-groups');
-        Route::get('journal-type', 'journalTypes')->name('journal-type');
-        Route::get('tds-categories', 'tdsCategories')->name('tds-categories');
         Route::get('party-types', 'partyTypes')->name('party-types');
-        Route::get('crm-lead-statuses', 'crmLeadStatuses')->name('crm-lead-statuses');
-        Route::get('task-statuses', 'taskStatuses')->name('task-statuses');
-        Route::get('task-priorities', 'taskPriorities')->name('task-priorities');
-        Route::get('follow-up-channels', 'followUpChannels')->name('follow-up-channels');
-        Route::get('follow-up-statuses', 'followUpStatuses')->name('follow-up-statuses');
+
+        Route::middleware('module:accounting')->group(function () {
+            Route::get('journal-type', 'journalTypes')->name('journal-type');
+            Route::get('tds-categories', 'tdsCategories')->name('tds-categories');
+        });
+
+        Route::middleware('module:crm')->group(function () {
+            Route::get('crm-lead-statuses', 'crmLeadStatuses')->name('crm-lead-statuses');
+            Route::get('task-statuses', 'taskStatuses')->name('task-statuses');
+            Route::get('task-priorities', 'taskPriorities')->name('task-priorities');
+            Route::get('follow-up-channels', 'followUpChannels')->name('follow-up-channels');
+            Route::get('follow-up-statuses', 'followUpStatuses')->name('follow-up-statuses');
+        });
     });
 });

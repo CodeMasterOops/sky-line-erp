@@ -14,6 +14,7 @@ use App\Http\Requests\Api\Admin\UpdateProfileRequest;
 use App\Http\Requests\Api\Admin\ChangePasswordRequest;
 use App\Http\Requests\Api\Admin\UpdateDateModeRequest;
 use App\Http\Requests\Api\Admin\UpdatePinnedLinksRequest;
+use App\Http\Requests\Api\Admin\UpdateReportPinnedLinksRequest;
 use App\Http\Requests\Api\Admin\UpdateSidebarPinnedLinksRequest;
 
 class ProfileController extends Controller
@@ -97,7 +98,7 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function updateReportPinnedLinks(UpdatePinnedLinksRequest $request)
+    public function updateReportPinnedLinks(UpdateReportPinnedLinksRequest $request)
     {
         auth('admin')->user()->update([
             'report_pinned_links' => $request->validated('links'),

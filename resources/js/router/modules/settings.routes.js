@@ -67,7 +67,9 @@ export default [
     {
         path: "ird-settings",
         name: "admin.ird-settings",
-        meta: {pageTitle: "IRD EBS Settings"},
+        meta: {
+            module: "nepal-compliance",
+            pageTitle: "IRD EBS Settings"},
         component: () => import("@/views/admin/settings/ird/IrdSettings.vue"),
     },
     {

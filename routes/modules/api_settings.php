@@ -25,8 +25,15 @@ Route::get('branch/my-branches', [BranchController::class, 'myBranches'])->name(
 
 // branch — admin management routes
 Route::get('branch/next-code', [BranchController::class, 'nextCode'])->name('branch.next-code');
-Route::get('branch/{branch}/pl-report', [BranchController::class, 'plReport'])->name('branch.pl-report');
-Route::get('branch/consolidated-report', [BranchController::class, 'consolidatedReport'])->name('branch.consolidated-report');
+
+// Branch P&L reads the general ledger, so it belongs to Accounting even though
+// branch CRUD is core. Without the gate a company that switched Accounting off
+// could still pull a P&L out of a settings screen.
+Route::middleware('module:accounting')->group(function () {
+    Route::get('branch/{branch}/pl-report', [BranchController::class, 'plReport'])->name('branch.pl-report');
+    Route::get('branch/consolidated-report', [BranchController::class, 'consolidatedReport'])->name('branch.consolidated-report');
+});
+
 Route::apiResource('branch', BranchController::class);
 
 // branch user assignments — admin only

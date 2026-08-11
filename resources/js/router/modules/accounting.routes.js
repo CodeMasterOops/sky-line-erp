@@ -104,13 +104,19 @@ export default [
     {
         path: "tds-challan",
         name: "admin.tds-challan",
-        meta: {pageTitle: "TDS Challan & Certificate"},
+        // Reads nepal/tds/*, so it is gated by Nepal Compliance rather than by
+        // the Accounting module its route file belongs to.
+        meta: {
+            module: "nepal-compliance",
+            pageTitle: "TDS Challan & Certificate"},
         component: () => import("@/views/admin/accounting/tds-challan/Index.vue"),
     },
     {
         path: "ird-sync",
         name: "admin.ird-sync",
-        meta: {pageTitle: "IRD EBS Sync Status"},
+        meta: {
+            module: "nepal-compliance",
+            pageTitle: "IRD EBS Sync Status"},
         component: () => import("@/views/admin/accounting/ird-sync/Index.vue"),
     },
     {
