@@ -75,6 +75,15 @@
                                 :error="errors.warehouse_id"
                             />
                         </div>
+                        <div class="col-lg-4 col-sm-6 col-12">
+                            <VInput
+                                id="supplier_invoice_no"
+                                v-model="form.supplier_invoice_no"
+                                label="Supplier Invoice No"
+                                placeholder="Supplier invoice reference"
+                                :disabled="!isDraft"
+                            />
+                        </div>
 
                         <div v-if="isDraft && form.party_id" class="col-12">
                             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
@@ -623,6 +632,7 @@ const initialState = {
     due_date: '',
     party_id: '',
     warehouse_id: '',
+    supplier_invoice_no: '',
     remarks: '',
     status: 'draft',
     order_discount_type: 'fixed',
@@ -855,6 +865,9 @@ const importSelectedGrnLines = () => {
         if (row.warehouse_id && !form.warehouse_id) {
             form.warehouse_id = String(row.warehouse_id);
         }
+        if (row.supplier_invoice_no && !form.supplier_invoice_no) {
+            form.supplier_invoice_no = row.supplier_invoice_no;
+        }
         form.items.push({
             product_variant_id: row.product_variant_id,
             product_label: variantLabel(row.product_variant || {}),
@@ -933,6 +946,7 @@ const buildBillPayload = () => {
         bill_date: form.bill_date,
         due_date: form.due_date || null,
         party_id: form.party_id || null,
+        supplier_invoice_no: form.supplier_invoice_no || null,
         remarks: form.remarks,
         order_discount_type: form.order_discount_type || 'fixed',
         order_discount_value: form.order_discount_value ?? '0',

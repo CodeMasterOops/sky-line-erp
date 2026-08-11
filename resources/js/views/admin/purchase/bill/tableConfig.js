@@ -3,6 +3,7 @@ import { formatMoney } from '@/helpers/formatMoney.js';
 export const billColumns = [
     { title: 'SN',           key: 'sn',           width: 60 },
     { title: 'Bill No',      dataIndex: 'bill_no',    sorter: true },
+    { title: 'Supplier Invoice', dataIndex: 'supplier_invoice_no', sorter: true },
     { title: 'Bill Date',    dataIndex: 'bill_date',  sorter: true },
     { title: 'Due Date',     dataIndex: 'due_date',   sorter: true },
     { title: 'Supplier',     dataIndex: 'party_name', sorter: true },
