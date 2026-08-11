@@ -355,6 +355,7 @@ const {errors, validateField, validateForm} = useYup(form, validations);
 
 function buildPayload() {
     return {
+        company_category_id: Number(form.company_category_id),
         company_name: form.company_name,
         legal_name: form.legal_name,
         code: form.code,
