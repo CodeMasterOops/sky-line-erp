@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
-use App\Models\User;
 use App\Services\TenantService;
 use App\Http\Controllers\Controller;
 use App\Services\BranchAccessService;
@@ -125,35 +124,18 @@ class ProfileController extends Controller
     public function changePassword(ChangePasswordRequest $request)
     {
         $user = auth('admin')->user();
-        $user->update($request->validated());
+        $user->update([
+            'password' => $request->validated('password'),
+        ]);
 
-        // Revoke all tokens so stale sessions are invalidated after a password change.
+        // Drop every session, including this one, so the old password cannot
+        // reopen the app from a leftover token or another device.
         $user->tokens()->delete();
-
-        $abilities = $this->buildTokenAbilities($user);
-        $tokenData = $user->createToken('auth-token', $abilities, now()->addWeek());
-        $tokenData->accessToken->forceFill([
-            'ip_address' => $request->ip(),
-            'user_agent' => substr((string) $request->userAgent(), 0, 255) ?: null,
-        ])->save();
 
         app(SecurityActivityLogger::class)->log($user, 'password_changed', 'Password changed');
 
         return response()->json([
-            'access_token' => $tokenData->plainTextToken,
-            'expires_at' => $tokenData->accessToken->expires_at,
-            'message' => 'Password Changed Successfully',
+            'message' => 'Password changed successfully. Please sign in with your new password.',
         ]);
-    }
-
-    private function buildTokenAbilities(User $user): array
-    {
-        if ($user->isAdmin()) {
-            return ['*'];
-        }
-
-        $permissions = userPermissions($user);
-
-        return $permissions ?: ['user:read'];
     }
 }

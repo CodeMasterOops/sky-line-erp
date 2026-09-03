@@ -1,6 +1,7 @@
 import {defineStore} from 'pinia'
 import {apiSuperAdmin} from "@/helpers/api";
 import showErrors from "@/helpers/showErrors";
+import {useSuperAdminAuthStore} from "@/stores/super-admin/auth";
 
 export const useSuperAdminProfileStore = defineStore('super-admin-profile', {
     state: () => {
@@ -39,6 +40,7 @@ export const useSuperAdminProfileStore = defineStore('super-admin-profile', {
         changePassword(form) {
             return apiSuperAdmin(`profile/change-password`, 'put', form)
                 .then((res) => {
+                    useSuperAdminAuthStore().removeAuthToken();
                     return res;
                 }).catch((err) => {
                     throw err;

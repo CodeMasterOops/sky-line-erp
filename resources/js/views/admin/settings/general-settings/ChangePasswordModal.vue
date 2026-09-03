@@ -6,7 +6,7 @@
     @close-click="closeChangePasswordModal"
   >
     <template #modal-body>
-      <div class="row">
+      <form @submit.prevent="submitChangePassword" class="row">
         <div class="col-lg-12">
           <div class="input-blocks">
             <label class="fw-medium"
@@ -145,10 +145,9 @@
             Cancel
           </button>
           <button
-            type="button"
+            type="submit"
             class="btn btn-primary"
             :disabled="isSubmitting"
-            @click.prevent="submitChangePassword"
           >
             <span
               v-if="isSubmitting"
@@ -159,7 +158,7 @@
             Save Changes
           </button>
         </div>
-      </div>
+      </form>
     </template>
   </VModal>
 </template>
@@ -307,6 +306,7 @@ async function submitChangePassword() {
     const res = await profileStore.changePassword({ ...form });
     toast(res.status, res.data.message);
     changePasswordModalOpened.value = false;
+    window.location.href = "/admin/login";
   } catch (e) {
     showErrors(e);
   } finally {
