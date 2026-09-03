@@ -99,7 +99,7 @@ it('falls back to ["user:read"] ability when sub-user has no roles', function ()
 
 // --- Item 14: Revoke all tokens on password change ---
 
-it('revokes all existing tokens and issues a fresh token on password change', function () {
+it('revokes all existing tokens on password change', function () {
     [$company, $admin] = tokenSecMakeAdminUser();
 
     // Issue two tokens to simulate multiple active sessions
@@ -117,10 +117,9 @@ it('revokes all existing tokens and issues a fresh token on password change', fu
         ]);
 
     $res->assertSuccessful()
-        ->assertJsonStructure(['access_token', 'expires_at', 'message']);
+        ->assertJsonPath('message', 'Password changed successfully. Please sign in with your new password.');
 
-    // Only the fresh token should remain — both previous tokens are gone
-    expect($admin->tokens()->count())->toBe(1);
+    expect($admin->tokens()->count())->toBe(0);
 
     // The original session-1 token row must no longer exist in the DB
     foreach ($oldTokenIds as $id) {
@@ -128,24 +127,24 @@ it('revokes all existing tokens and issues a fresh token on password change', fu
     }
 });
 
-it('returns a usable new token after password change', function () {
+it('rejects the previous token after password change', function () {
     [$company, $admin] = tokenSecMakeAdminUser();
 
     $oldToken = $admin->createToken('auth-token')->plainTextToken;
 
-    $res = $this->withToken($oldToken)
+    $this->withToken($oldToken)
         ->putJson('/api/admin/profile/change-password', [
             'current_password' => 'secret123',
             'password' => 'brandNew789!',
             'password_confirmation' => 'brandNew789!',
-        ]);
-
-    $res->assertSuccessful();
-    $newToken = $res->json('access_token');
-
-    $this->withToken($newToken)
-        ->getJson('/api/admin/profile')
+        ])
         ->assertSuccessful();
+
+    auth()->forgetGuards();
+
+    $this->withToken($oldToken)
+        ->getJson('/api/admin/profile')
+        ->assertUnauthorized();
 });
 
 // --- Item 10: permissions endpoint returns user_type ---

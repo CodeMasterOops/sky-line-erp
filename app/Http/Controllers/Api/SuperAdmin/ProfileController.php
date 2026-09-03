@@ -28,10 +28,15 @@ class ProfileController extends Controller
 
     public function changePassword(ChangePasswordRequest $request)
     {
-        auth('super_admin')->user()->update($request->validated());
+        $user = auth('super_admin')->user();
+        $user->update([
+            'password' => $request->validated('password'),
+        ]);
+
+        $user->tokens()->delete();
 
         return response()->json([
-            'message' => 'Password Changed Successfully',
+            'message' => 'Password changed successfully. Please sign in with your new password.',
         ]);
     }
 }

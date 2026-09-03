@@ -17,6 +17,7 @@ use App\Services\SetCompanyDefaultDataService;
 use App\Http\Resources\SuperAdmin\CompanyResource;
 use App\Http\Requests\Api\SuperAdmin\CompanyRequest;
 use App\Http\Resources\Admin\Settings\BranchResource;
+use App\Http\Requests\Api\SuperAdmin\ResetCompanyPasswordRequest;
 
 class CompanyController extends Controller
 {
@@ -138,15 +139,21 @@ class CompanyController extends Controller
         ]);
     }
 
-    public function resetPassword(Request $request, Company $company)
+    public function resetPassword(ResetCompanyPasswordRequest $request, Company $company)
     {
-        $request->validate([
-            'password' => ['required', 'min:7', 'confirmed'],
+        $admin = $company->admin;
+
+        if (! $admin) {
+            return response()->json([
+                'message' => 'Company admin account was not found.',
+            ], 404);
+        }
+
+        $admin->update([
+            'password' => $request->validated('password'),
         ]);
 
-        $company->admin()->update([
-            'password' => bcrypt($request->input('password')),
-        ]);
+        $admin->tokens()->delete();
 
         return response()->json([
             'data' => '',
